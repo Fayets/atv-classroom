@@ -12,6 +12,14 @@ logger = logging.getLogger(__name__)
 _TIMEOUT_SEGUNDOS = 60
 _FUENTES_MARKER = "FUENTES:"
 _MODEL = "claude-haiku-4-5-20251001"
+_MAX_TOKENS = 1024
+_MAX_FRAGMENTO_CHARS = 300
+
+# Haiku 4.5 — USD por millón de tokens (mar 2026)
+_PRECIO_INPUT_POR_M = 1.0
+_PRECIO_OUTPUT_POR_M = 5.0
+_PRECIO_CACHE_WRITE_POR_M = 1.25
+_PRECIO_CACHE_READ_POR_M = 0.10
 
 SYSTEM_PROMPT = """
 sos una extensión del pensamiento de Juan Carrizo, fundador de ATV
@@ -112,6 +120,72 @@ no devolvés sugerencias vagas ni opciones múltiples
 no devolvés textos gigantes le decís lo relevante
 """.strip()
 
+_SYSTEM_BLOCKS = [
+    {
+        "type": "text",
+        "text": SYSTEM_PROMPT,
+        "cache_control": {"type": "ephemeral"},
+    }
+]
+
+
+def truncar_fragmento(texto: str, max_chars: int = _MAX_FRAGMENTO_CHARS) -> str:
+    texto = texto.strip()
+    if len(texto) <= max_chars:
+        return texto
+
+    corte = texto[:max_chars]
+    ultimo_espacio = corte.rfind(" ")
+    if ultimo_espacio > 0:
+        corte = corte[:ultimo_espacio]
+
+    return corte.rstrip()
+
+
+def _log_token_usage(usage) -> None:
+    if usage is None:
+        return
+
+    input_tokens = getattr(usage, "input_tokens", 0) or 0
+    output_tokens = getattr(usage, "output_tokens", 0) or 0
+    cache_creation = getattr(usage, "cache_creation_input_tokens", 0) or 0
+    cache_read = getattr(usage, "cache_read_input_tokens", 0) or 0
+
+    costo_estimado = _estimar_costo_usd(
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cache_creation=cache_creation,
+        cache_read=cache_read,
+    )
+
+    logger.info(
+        "Anthropic usage model=%s input_tokens=%d output_tokens=%d "
+        "cache_creation_input_tokens=%d cache_read_input_tokens=%d "
+        "costo_estimado_usd=%.6f",
+        _MODEL,
+        input_tokens,
+        output_tokens,
+        cache_creation,
+        cache_read,
+        costo_estimado,
+    )
+
+
+def _estimar_costo_usd(
+    *,
+    input_tokens: int,
+    output_tokens: int,
+    cache_creation: int,
+    cache_read: int,
+) -> float:
+    input_sin_cache = max(0, input_tokens - cache_read - cache_creation)
+    return (
+        (input_sin_cache / 1_000_000) * _PRECIO_INPUT_POR_M
+        + (cache_creation / 1_000_000) * _PRECIO_CACHE_WRITE_POR_M
+        + (cache_read / 1_000_000) * _PRECIO_CACHE_READ_POR_M
+        + (output_tokens / 1_000_000) * _PRECIO_OUTPUT_POR_M
+    )
+
 
 def _armar_contexto(fragmentos: list[dict]) -> str:
     if not fragmentos:
@@ -131,7 +205,9 @@ def _armar_contexto(fragmentos: list[dict]) -> str:
             encabezado += f" | Link: /programas/{programa_id}?clase={clase_id}"
         encabezado += " ---"
 
-        bloques.append(f"{encabezado}\n{fragmento['contenido']}")
+        bloques.append(
+            f"{encabezado}\n{truncar_fragmento(fragmento['contenido'])}"
+        )
     return "\n\n".join(bloques)
 
 
@@ -175,8 +251,8 @@ async def _ejecutar_claude(prompt: str) -> str:
     try:
         message = await client.messages.create(
             model=_MODEL,
-            max_tokens=2048,
-            system=SYSTEM_PROMPT,
+            max_tokens=_MAX_TOKENS,
+            system=_SYSTEM_BLOCKS,
             messages=[{"role": "user", "content": prompt}],
         )
     except APITimeoutError:
@@ -192,6 +268,7 @@ async def _ejecutar_claude(prompt: str) -> str:
             detail="No se pudo obtener una respuesta del asistente.",
         )
 
+    _log_token_usage(message.usage)
     return message.content[0].text
 
 
@@ -201,12 +278,14 @@ async def _ejecutar_claude_stream(prompt: str):
     try:
         async with client.messages.stream(
             model=_MODEL,
-            max_tokens=2048,
-            system=SYSTEM_PROMPT,
+            max_tokens=_MAX_TOKENS,
+            system=_SYSTEM_BLOCKS,
             messages=[{"role": "user", "content": prompt}],
         ) as stream:
             async for text in stream.text_stream:
                 yield text
+            final = await stream.get_final_message()
+            _log_token_usage(final.usage)
     except APITimeoutError:
         logger.error("Anthropic API superó el timeout de %d segundos", _TIMEOUT_SEGUNDOS)
         raise HTTPException(
@@ -226,7 +305,7 @@ async def responder_stream(pregunta: str):
     if not pregunta:
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía.")
 
-    fragmentos = knowledge_service.buscar(pregunta, top_k=5)
+    fragmentos = knowledge_service.buscar(pregunta)
     contexto = _armar_contexto(fragmentos)
     prompt = _armar_prompt(pregunta, contexto)
     fuentes = _extraer_fuentes(fragmentos)

@@ -30,6 +30,25 @@ MODULO_SLUG_OVERRIDES = {
     "10_case_studies": "case-of-study",
 }
 
+_DEFAULT_TOP_K = 3
+
+_RE_TIMESTAMP = re.compile(
+    r"^[\[\(]?\d{1,2}:\d{2}(:\d{2})?(?:[.,]\d+)?[\]\)]?\s*",
+    re.IGNORECASE,
+)
+_RE_SOLO_TIMESTAMP = re.compile(
+    r"^[\[\(]?\d{1,2}:\d{2}(:\d{2})?(?:[.,]\d+)?[\]\)]?\s*$",
+    re.IGNORECASE,
+)
+_RE_MULETILLA = re.compile(
+    r"^(?:um+|uh+|eh+|ah+|mm+|hmm+|ehm+|em+)\.?$",
+    re.IGNORECASE,
+)
+_RE_SILENCIO = re.compile(
+    r"^\[?(?:silencio|silence|music|música|musica|aplausos|risas)\]?\.?$",
+    re.IGNORECASE,
+)
+
 
 def _leer_env(nombre: str) -> str | None:
     valor = os.environ.get(nombre)
@@ -115,6 +134,55 @@ def _clase_stem_a_busqueda(clase_stem: str) -> str:
     return nombre.replace("_", " ")
 
 
+def get_top_k() -> int:
+    raw = _leer_env("TOP_K")
+    if not raw:
+        return _DEFAULT_TOP_K
+    try:
+        valor = int(raw)
+    except ValueError:
+        logger.warning("TOP_K inválido (%s); usando default %d", raw, _DEFAULT_TOP_K)
+        return _DEFAULT_TOP_K
+    return max(1, valor)
+
+
+def _limpiar_linea(linea: str) -> str | None:
+    linea = linea.strip()
+    if not linea:
+        return None
+
+    if _RE_SOLO_TIMESTAMP.match(linea) or _RE_SILENCIO.match(linea):
+        return None
+
+    if _RE_MULETILLA.match(linea):
+        return None
+
+    linea = _RE_TIMESTAMP.sub("", linea).strip()
+    if not linea or _RE_MULETILLA.match(linea):
+        return None
+
+    return linea
+
+
+def limpiar_transcript(contenido: str) -> str:
+    lineas_limpias: list[str] = []
+    vistas: set[str] = set()
+
+    for linea in contenido.splitlines():
+        limpia = _limpiar_linea(linea)
+        if not limpia:
+            continue
+
+        clave = limpia.lower()
+        if clave in vistas:
+            continue
+
+        vistas.add(clave)
+        lineas_limpias.append(limpia)
+
+    return "\n\n".join(lineas_limpias)
+
+
 def _tokenizar(texto: str) -> list[str]:
     palabras = re.findall(r"\w+", texto.lower())
     return [p for p in palabras if len(p) >= 3]
@@ -155,7 +223,7 @@ def _cargar_transcripts() -> list[dict]:
         clase = archivo.stem
 
         try:
-            contenido = archivo.read_text(encoding="utf-8")
+            contenido = limpiar_transcript(archivo.read_text(encoding="utf-8"))
         except OSError as exc:
             logger.warning("No se pudo leer %s: %s", archivo, exc)
             continue
@@ -217,7 +285,10 @@ def _seleccionar_top_k(
     return seleccionados[:top_k]
 
 
-def buscar(pregunta: str, top_k: int = 5) -> list[dict]:
+def buscar(pregunta: str, top_k: int | None = None) -> list[dict]:
+    if top_k is None:
+        top_k = get_top_k()
+
     palabras_clave = _tokenizar(pregunta)
     if not palabras_clave or not _INDEX:
         return []
