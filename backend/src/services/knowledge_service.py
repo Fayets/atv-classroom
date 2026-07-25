@@ -1,6 +1,8 @@
 import logging
 import os
 import re
+import unicodedata
+from collections import Counter
 from pathlib import Path
 
 import psycopg2
@@ -47,6 +49,362 @@ _RE_MULETILLA = re.compile(
 _RE_SILENCIO = re.compile(
     r"^\[?(?:silencio|silence|music|música|musica|aplausos|risas)\]?\.?$",
     re.IGNORECASE,
+)
+
+# Términos del dominio ATV — no filtrar aunque sean cortos o parezcan comunes
+_DOMAIN_TERMS = frozenset(
+    {
+        "ads",
+        "ad",
+        "bofu",
+        "call",
+        "cierre",
+        "closer",
+        "dm",
+        "dms",
+        "embudo",
+        "icp",
+        "lead",
+        "leads",
+        "meta",
+        "mofu",
+        "oferta",
+        "reel",
+        "reels",
+        "roi",
+        "sales",
+        "sop",
+        "tofu",
+        "venta",
+        "ventas",
+        "vsl",
+        "webinar",
+    }
+)
+
+# Stopwords gramaticales en español (artículos, preposiciones, pronombres,
+# conjunciones, adverbios y formas verbales auxiliares frecuentes)
+_STOPWORDS = frozenset(
+    {
+        "a",
+        "aca",
+        "acá",
+        "ahi",
+        "ahí",
+        "al",
+        "algo",
+        "algun",
+        "alguna",
+        "algunas",
+        "alguno",
+        "algunos",
+        "alli",
+        "allí",
+        "ambos",
+        "ante",
+        "antes",
+        "aquel",
+        "aquella",
+        "aquellas",
+        "aquello",
+        "aquellos",
+        "aqui",
+        "aquí",
+        "arriba",
+        "asi",
+        "así",
+        "aun",
+        "aún",
+        "aunque",
+        "bajo",
+        "bastante",
+        "bien",
+        "cada",
+        "casi",
+        "cierto",
+        "cierta",
+        "ciertas",
+        "ciertos",
+        "como",
+        "con",
+        "conmigo",
+        "conseguir",
+        "consigo",
+        "contigo",
+        "contra",
+        "cual",
+        "cuales",
+        "cualquier",
+        "cualquiera",
+        "cuan",
+        "cuando",
+        "cuanta",
+        "cuantas",
+        "cuanto",
+        "cuantos",
+        "de",
+        "debajo",
+        "del",
+        "demasiado",
+        "demas",
+        "despues",
+        "detras",
+        "dia",
+        "dice",
+        "dicho",
+        "dieron",
+        "diferente",
+        "dijeron",
+        "dijo",
+        "dio",
+        "donde",
+        "dos",
+        "durante",
+        "e",
+        "el",
+        "ella",
+        "ellas",
+        "ello",
+        "ellos",
+        "en",
+        "encima",
+        "entre",
+        "era",
+        "eramos",
+        "eran",
+        "eras",
+        "eres",
+        "es",
+        "esa",
+        "esas",
+        "ese",
+        "eso",
+        "esos",
+        "esta",
+        "estaba",
+        "estaban",
+        "estado",
+        "estados",
+        "estais",
+        "estamos",
+        "estan",
+        "estar",
+        "estas",
+        "este",
+        "esto",
+        "estos",
+        "estoy",
+        "etc",
+        "fin",
+        "fue",
+        "fueron",
+        "fui",
+        "fuimos",
+        "gran",
+        "grandes",
+        "ha",
+        "haber",
+        "habia",
+        "habian",
+        "hace",
+        "hacia",
+        "haciendo",
+        "hago",
+        "han",
+        "has",
+        "hasta",
+        "hay",
+        "he",
+        "hemos",
+        "hice",
+        "hicieron",
+        "hizo",
+        "hoy",
+        "hubo",
+        "incluso",
+        "ir",
+        "jamás",
+        "jamas",
+        "la",
+        "las",
+        "le",
+        "les",
+        "lo",
+        "los",
+        "luego",
+        "mas",
+        "más",
+        "me",
+        "mediante",
+        "menos",
+        "mi",
+        "mia",
+        "mias",
+        "mientras",
+        "mio",
+        "mios",
+        "mis",
+        "misma",
+        "mismas",
+        "mismo",
+        "mismos",
+        "modo",
+        "mucha",
+        "muchas",
+        "mucho",
+        "muchos",
+        "muy",
+        "nada",
+        "nadie",
+        "ni",
+        "ningun",
+        "ninguna",
+        "ningunas",
+        "ninguno",
+        "ningunos",
+        "no",
+        "nos",
+        "nosotras",
+        "nosotros",
+        "nuestra",
+        "nuestras",
+        "nuestro",
+        "nuestros",
+        "nunca",
+        "o",
+        "os",
+        "otra",
+        "otras",
+        "otro",
+        "otros",
+        "para",
+        "parece",
+        "parte",
+        "partir",
+        "paso",
+        "pero",
+        "poco",
+        "pocos",
+        "podemos",
+        "poder",
+        "podria",
+        "podriais",
+        "podriamos",
+        "podrian",
+        "podrias",
+        "por",
+        "porque",
+        "primero",
+        "puede",
+        "pueden",
+        "puedo",
+        "pues",
+        "que",
+        "qué",
+        "quedó",
+        "queremos",
+        "quien",
+        "quienes",
+        "quiza",
+        "quizas",
+        "sabe",
+        "sabeis",
+        "sabemos",
+        "saben",
+        "saber",
+        "se",
+        "sea",
+        "sean",
+        "segun",
+        "ser",
+        "sera",
+        "seria",
+        "si",
+        "sí",
+        "sido",
+        "siempre",
+        "siendo",
+        "sin",
+        "sino",
+        "sobre",
+        "sois",
+        "solamente",
+        "solo",
+        "somos",
+        "son",
+        "soy",
+        "su",
+        "sus",
+        "suya",
+        "suyas",
+        "suyo",
+        "suyos",
+        "tal",
+        "tambien",
+        "tampoco",
+        "tan",
+        "tanto",
+        "te",
+        "teneis",
+        "tenemos",
+        "tener",
+        "tengo",
+        "tenia",
+        "tenian",
+        "ti",
+        "tiempo",
+        "tiene",
+        "tienen",
+        "tienes",
+        "todo",
+        "todos",
+        "tomar",
+        "trabajo",
+        "tras",
+        "tu",
+        "tus",
+        "tuya",
+        "tuyas",
+        "tuyo",
+        "tuyos",
+        "u",
+        "un",
+        "una",
+        "unas",
+        "uno",
+        "unos",
+        "usa",
+        "usais",
+        "usamos",
+        "usan",
+        "usar",
+        "usas",
+        "uso",
+        "usted",
+        "ustedes",
+        "va",
+        "vais",
+        "vamos",
+        "van",
+        "varias",
+        "varios",
+        "veces",
+        "ver",
+        "verdadera",
+        "verdadero",
+        "vez",
+        "vos",
+        "vosotras",
+        "vosotros",
+        "voy",
+        "vuestra",
+        "vuestras",
+        "vuestro",
+        "vuestros",
+        "y",
+        "ya",
+        "yo",
+    }
 )
 
 
@@ -183,9 +541,27 @@ def limpiar_transcript(contenido: str) -> str:
     return "\n\n".join(lineas_limpias)
 
 
+def _sin_acentos(texto: str) -> str:
+    normalizado = unicodedata.normalize("NFD", texto.lower())
+    return "".join(c for c in normalizado if unicodedata.category(c) != "Mn")
+
+
+def _es_token_valido(palabra: str) -> bool:
+    if palabra in _DOMAIN_TERMS:
+        return True
+    if len(palabra) < 3:
+        return False
+    return palabra not in _STOPWORDS
+
+
 def _tokenizar(texto: str) -> list[str]:
     palabras = re.findall(r"\w+", texto.lower())
-    return [p for p in palabras if len(p) >= 3]
+    tokens: list[str] = []
+    for palabra in palabras:
+        normalizada = _sin_acentos(palabra)
+        if _es_token_valido(normalizada):
+            tokens.append(normalizada)
+    return tokens
 
 
 def _fragmentar(contenido: str) -> list[str]:
@@ -197,8 +573,8 @@ def _puntaje_fragmento(fragmento: str, palabras_clave: list[str]) -> int:
     if not palabras_clave:
         return 0
 
-    texto = fragmento.lower()
-    return sum(texto.count(palabra) for palabra in palabras_clave)
+    conteo = Counter(_tokenizar(fragmento))
+    return sum(conteo.get(palabra, 0) for palabra in palabras_clave)
 
 
 def _cargar_transcripts() -> list[dict]:
@@ -285,6 +661,49 @@ def _seleccionar_top_k(
     return seleccionados[:top_k]
 
 
+def _archivo_candidato(modulo: str, clase: str) -> str:
+    return f"{modulo}/{clase}"
+
+
+def _score_final(score_keyword: int, peso_modulo: float) -> float:
+    """Keyword domina; peso de módulo solo desempata entre scores parejos."""
+    return score_keyword + peso_modulo * 0.001
+
+
+def _log_candidatos(
+    pregunta: str,
+    candidatos: list[dict],
+    seleccionados: list[dict],
+    top_k: int,
+) -> None:
+    logger.info("ranking pregunta=%r", pregunta)
+
+    por_keyword = sorted(
+        candidatos,
+        key=lambda c: c["score_keyword"],
+        reverse=True,
+    )[:10]
+    logger.info("ranking top 10 ANTES de peso de módulo (solo keyword):")
+    for c in por_keyword:
+        logger.info(
+            "candidato=%s score_keyword=%d peso_modulo=%.1f score_final=%.4f",
+            _archivo_candidato(c["modulo"], c["clase"]),
+            c["score_keyword"],
+            c["peso_modulo"],
+            _score_final(c["score_keyword"], c["peso_modulo"]),
+        )
+
+    logger.info("ranking top %d DESPUÉS de ranking (keyword + desempate módulo):", top_k)
+    for item in seleccionados:
+        logger.info(
+            "candidato=%s score_keyword=%d peso_modulo=%.1f score_final=%.4f",
+            _archivo_candidato(item["modulo"], item["clase"]),
+            item.get("_score_keyword", 0),
+            item.get("_peso_modulo", 1.0),
+            _score_final(item.get("_score_keyword", 0), item.get("_peso_modulo", 1.0)),
+        )
+
+
 def buscar(pregunta: str, top_k: int | None = None) -> list[dict]:
     if top_k is None:
         top_k = get_top_k()
@@ -293,31 +712,53 @@ def buscar(pregunta: str, top_k: int | None = None) -> list[dict]:
     if not palabras_clave or not _INDEX:
         return []
 
-    resultados: list[tuple[float, dict]] = []
+    candidatos: list[dict] = []
 
     for entrada in _INDEX:
-        multiplicador = _multiplicador_modulo(entrada["modulo"])
+        peso_modulo = _multiplicador_modulo(entrada["modulo"])
         for fragmento in _fragmentar(entrada["contenido"]):
-            puntaje_keywords = _puntaje_fragmento(fragmento, palabras_clave)
-            if puntaje_keywords <= 0:
+            score_keyword = _puntaje_fragmento(fragmento, palabras_clave)
+            if score_keyword <= 0:
                 continue
 
-            puntaje_final = puntaje_keywords * multiplicador
-            resultados.append(
-                (
-                    puntaje_final,
-                    {
-                        "modulo": entrada["modulo"],
-                        "clase": entrada["clase"],
-                        "contenido": fragmento,
-                        "clase_id": entrada.get("clase_id"),
-                        "programa_id": entrada.get("programa_id"),
-                    },
-                )
+            candidatos.append(
+                {
+                    "modulo": entrada["modulo"],
+                    "clase": entrada["clase"],
+                    "contenido": fragmento,
+                    "clase_id": entrada.get("clase_id"),
+                    "programa_id": entrada.get("programa_id"),
+                    "score_keyword": score_keyword,
+                    "peso_modulo": peso_modulo,
+                }
             )
 
-    resultados.sort(key=lambda item: item[0], reverse=True)
-    return _seleccionar_top_k(resultados, top_k)
+    candidatos.sort(
+        key=lambda c: (c["score_keyword"], c["peso_modulo"]),
+        reverse=True,
+    )
+
+    resultados: list[tuple[float, dict]] = []
+    for c in candidatos:
+        item = {
+            "modulo": c["modulo"],
+            "clase": c["clase"],
+            "contenido": c["contenido"],
+            "clase_id": c["clase_id"],
+            "programa_id": c["programa_id"],
+            "_score_keyword": c["score_keyword"],
+            "_peso_modulo": c["peso_modulo"],
+        }
+        resultados.append((_score_final(c["score_keyword"], c["peso_modulo"]), item))
+
+    seleccionados = _seleccionar_top_k(resultados, top_k)
+    _log_candidatos(pregunta, candidatos, seleccionados, top_k)
+
+    for item in seleccionados:
+        item.pop("_score_keyword", None)
+        item.pop("_peso_modulo", None)
+
+    return seleccionados
 
 
 _INDEX = _cargar_transcripts()

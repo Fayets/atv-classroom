@@ -82,6 +82,22 @@ class BuscarTopKTests(unittest.TestCase):
             self.assertEqual(knowledge_service.get_top_k(), knowledge_service._DEFAULT_TOP_K)
 
 
+class TokenizarStopwordsTests(unittest.TestCase):
+    def test_filtra_stopwords_en_pregunta(self):
+        tokens = knowledge_service._tokenizar(
+            "¿cómo cierro una venta en una call de discovery?"
+        )
+        self.assertIn("venta", tokens)
+        self.assertIn("call", tokens)
+        self.assertNotIn("como", tokens)
+        self.assertNotIn("una", tokens)
+
+    def test_preserva_terminos_de_dominio(self):
+        tokens = knowledge_service._tokenizar("ads reels leads ventas cierre")
+        for term in ("ads", "reels", "leads", "ventas", "cierre"):
+            self.assertIn(term, tokens)
+
+
 class LimpiarTranscriptTests(unittest.TestCase):
     def test_elimina_duplicados_y_muletillas(self):
         raw = """
