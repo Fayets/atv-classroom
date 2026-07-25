@@ -79,7 +79,7 @@ export default function LoginPage() {
     setCargando(true)
 
     try {
-      const user = await login(email.trim(), contrasena)
+      const user = await login(email.trim(), contrasena.trim())
       navigate(user.rol === 'admin' ? '/admin' : '/', { replace: true })
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
