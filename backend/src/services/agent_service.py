@@ -13,7 +13,40 @@ _TIMEOUT_SEGUNDOS = 60
 _FUENTES_MARKER = "FUENTES:"
 _MODEL = "claude-haiku-4-5-20251001"
 _MAX_TOKENS = 1024
+_MAX_TOKENS_CONSULTORIA = 4096
 _MAX_FRAGMENTO_CHARS = 300
+_HISTORIAL_MAX_DEFAULT = 15
+
+# Señales heurísticas para modo consultoría (RAG + max_tokens)
+_SENALES_NEGOCIO = (
+    "factur",
+    "ingreso",
+    "equipo",
+    "avatar",
+    "roadmap",
+    "diagnóstico",
+    "diagnostico",
+    "caso",
+    "cliente",
+    "negocio",
+    "closers",
+    "setters",
+    "nicho",
+    "icp",
+    "oferta",
+    "embudo",
+    "funnel",
+    "mentor",
+    "consultor",
+    "agencia",
+    "infoproduct",
+    "empleado",
+    "factura",
+    "mrr",
+    "ticket",
+)
+_SENALES_CONTINUACION = ("continúa", "continua", "seguí", "segui", "siguiente fase", "seguir")
+_SENALES_ROADMAP_HISTORIAL = ("roadmap", "fase 1", "fase 2", "fase 3", "diagnóstico", "diagnostico")
 
 # Haiku 4.5 — USD por millón de tokens (mar 2026)
 _PRECIO_INPUT_POR_M = 1.0
@@ -118,6 +151,48 @@ cuando un alumno pregunta algo en el classroom devolvés
 no devolvés sugerencias vagas ni opciones múltiples
 
 no devolvés textos gigantes le decís lo relevante
+
+
+DOS MODOS — DETECTÁ AUTOMÁTICAMENTE SEGÚN EL MENSAJE Y EL HISTORIAL
+
+modo pregunta corta (default)
+cuando el alumno pregunta algo puntual sobre una clase concepto o táctica
+respuesta corta máximo 4 párrafos breves separados por línea en blanco
+diagnóstico explícito + respuesta directa en voz de Juan
+si hay algo no cubierto en la base decilo explícitamente
+
+modo consultoría de caso
+activalo cuando el mensaje describe un negocio o cliente con contexto concreto
+(facturación ingresos equipo avatar nicho problema declarado oferta embudo)
+o cuando pide explícitamente diagnóstico roadmap o plan por fases
+o cuando dice continúa/seguí y en el historial ya hay un roadmap en curso
+
+en modo consultoría
+sin límite de 4 párrafos — desarrollá lo que haga falta
+estructura obligatoria en este orden
+1 diagnóstico explícito del caso (qué está pasando de verdad no el síntoma)
+2a si falta un dato que bifurca el orden del roadmap → una sola pregunta concreta (reglas abajo) y pará acá sin roadmap numerado
+2b si ya tenés los datos → roadmap por fases numeradas (fase 1 fase 2 fase 3…) con acciones concretas
+3 al final módulos y clases del classroom recomendados para profundizar
+   nombralos naturalmente (ej "mirá la clase de avatar en advantage")
+   no copies textualmente los transcripts — solo recomendá qué ver
+nunca mezcles roadmap completo y pregunta de cierre en la misma respuesta — o preguntás el dato que falta o entregás el roadmap entero
+si el historial ya tiene un roadmap y el alumno pide continuar retomá desde la última fase sin reinventar
+
+si el diagnóstico necesita un dato que falta antes de armar el roadmap (o antes de ordenar las fases)
+no cierres con confirmaciones vagas
+la pregunta final tiene que cumplir tres condiciones
+1 pedí un dato concreto y específico nunca una confirmación de comprensión tipo "¿te queda claro?" "¿entendiste el problema?" "¿se entiende el diagnóstico?" o variantes
+2 en la misma oración explicá por qué ese dato cambia la estructura o el orden del roadmap (qué fase va primero depende de la respuesta)
+3 dejá claro que sin ese dato no podés avanzar con el roadmap ordenado — no es cierre retórico es el input que falta
+ejemplo de pregunta mala "¿te queda claro el problema de fondo?"
+ejemplo de pregunta buena "¿el cuello de botella es volumen de llamadas tasa de cierre o los dos? porque eso define si arrancamos por captación o por el script de cierre y el orden importa"
+si el alumno ya nombró la métrica del problema (show rate tasa de cierre volumen de leads) usala como eje del roadmap — no preguntes por datos adicionales para afinar
+si el diagnóstico ya tiene todos los datos necesarios no preguntes nada al final pasá directo al roadmap completo
+si ya tenés facturación equipo avatar nicho y al menos una métrica concreta del problema (show rate tasa de cierre volumen de leads ticket) eso alcanza para armar el roadmap — no pidas más datos por precaución
+solo frená y preguntá cuando falte un dato que bifurca el orden de las fases (ej captación vs cierre vs oferta volumen vs tasa de cierre)
+no pidas datos operativos secundarios (scripts grabaciones CRM detalle de procesos internos) si ya tenés facturación equipo avatar y métrica del problema — con eso armá el roadmap
+si entregás roadmap por fases numeradas no agregues pregunta al final — la pregunta va solo cuando ese dato bifurcador falta y todavía no podés ordenar las fases (en ese caso diagnóstico + pregunta concreta sin roadmap completo)
 """.strip()
 
 _SYSTEM_BLOCKS = [
@@ -127,6 +202,70 @@ _SYSTEM_BLOCKS = [
         "cache_control": {"type": "ephemeral"},
     }
 ]
+
+
+def get_truncado_consultoria() -> int:
+    return config("TRUNCADO_CONSULTORIA", default=900, cast=int)
+
+
+def get_top_k_consultoria() -> int:
+    return config("TOP_K_CONSULTORIA", default=5, cast=int)
+
+
+def get_historial_max() -> int:
+    return config("CHAT_HISTORIAL_MAX", default=_HISTORIAL_MAX_DEFAULT, cast=int)
+
+
+def detectar_modo_consultoria(
+    pregunta: str,
+    historial: list[dict] | None = None,
+) -> bool:
+    texto = pregunta.lower().strip()
+    historial = historial or []
+
+    if any(s in texto for s in _SENALES_CONTINUACION):
+        for msg in reversed(historial):
+            if msg.get("rol") != "assistant":
+                continue
+            contenido = msg.get("contenido", "").lower()
+            if any(s in contenido for s in _SENALES_ROADMAP_HISTORIAL):
+                return True
+
+    if len(texto) >= 180:
+        senales = sum(1 for s in _SENALES_NEGOCIO if s in texto)
+        if senales >= 2:
+            return True
+
+    senales_fuertes = (
+        "roadmap",
+        "diagnóstico",
+        "diagnostico",
+        "mi negocio",
+        "mi cliente",
+        "caso de",
+        "te cuento el caso",
+    )
+    if any(s in texto for s in senales_fuertes):
+        return True
+
+    if "$" in texto or "k/mes" in texto or "k/m" in texto:
+        return True
+
+    return False
+
+
+def get_rag_config(modo_consultoria: bool) -> dict:
+    if modo_consultoria:
+        return {
+            "top_k": get_top_k_consultoria(),
+            "truncado": get_truncado_consultoria(),
+            "max_tokens": _MAX_TOKENS_CONSULTORIA,
+        }
+    return {
+        "top_k": knowledge_service.get_top_k(),
+        "truncado": _MAX_FRAGMENTO_CHARS,
+        "max_tokens": _MAX_TOKENS,
+    }
 
 
 def truncar_fragmento(texto: str, max_chars: int = _MAX_FRAGMENTO_CHARS) -> str:
@@ -187,7 +326,7 @@ def _estimar_costo_usd(
     )
 
 
-def _armar_contexto(fragmentos: list[dict]) -> str:
+def _armar_contexto(fragmentos: list[dict], max_chars: int = _MAX_FRAGMENTO_CHARS) -> str:
     if not fragmentos:
         return (
             "No se encontró información relevante en las clases del programa "
@@ -206,7 +345,7 @@ def _armar_contexto(fragmentos: list[dict]) -> str:
         encabezado += " ---"
 
         bloques.append(
-            f"{encabezado}\n{truncar_fragmento(fragmento['contenido'])}"
+            f"{encabezado}\n{truncar_fragmento(fragmento['contenido'], max_chars)}"
         )
     return "\n\n".join(bloques)
 
@@ -272,15 +411,36 @@ async def _ejecutar_claude(prompt: str) -> str:
     return message.content[0].text
 
 
-async def _ejecutar_claude_stream(prompt: str):
+def _armar_mensajes_api(
+    historial: list[dict],
+    prompt_actual: str,
+) -> list[dict]:
+    mensajes: list[dict] = []
+    for turno in historial:
+        rol = turno.get("rol")
+        contenido = turno.get("contenido", "").strip()
+        if rol not in ("user", "assistant") or not contenido:
+            continue
+        mensajes.append({"role": rol, "content": contenido})
+    mensajes.append({"role": "user", "content": prompt_actual})
+    return mensajes
+
+
+async def _ejecutar_claude_stream(
+    prompt: str,
+    *,
+    historial: list[dict] | None = None,
+    max_tokens: int = _MAX_TOKENS,
+):
     client = _get_client()
+    mensajes = _armar_mensajes_api(historial or [], prompt)
 
     try:
         async with client.messages.stream(
             model=_MODEL,
-            max_tokens=_MAX_TOKENS,
+            max_tokens=max_tokens,
             system=_SYSTEM_BLOCKS,
-            messages=[{"role": "user", "content": prompt}],
+            messages=mensajes,
         ) as stream:
             async for text in stream.text_stream:
                 yield text
@@ -300,17 +460,40 @@ async def _ejecutar_claude_stream(prompt: str):
         )
 
 
-async def responder_stream(pregunta: str):
+async def responder_stream(
+    pregunta: str,
+    *,
+    historial: list[dict] | None = None,
+    modo_consultoria: bool | None = None,
+):
     pregunta = pregunta.strip()
     if not pregunta:
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía.")
 
-    fragmentos = knowledge_service.buscar(pregunta)
-    contexto = _armar_contexto(fragmentos)
+    historial = historial or []
+    if modo_consultoria is None:
+        modo_consultoria = detectar_modo_consultoria(pregunta, historial)
+
+    rag = get_rag_config(modo_consultoria)
+    logger.info(
+        "chat modo=%s top_k=%d truncado=%d max_tokens=%d historial_turnos=%d",
+        "consultoria" if modo_consultoria else "pregunta",
+        rag["top_k"],
+        rag["truncado"],
+        rag["max_tokens"],
+        len(historial),
+    )
+
+    fragmentos = knowledge_service.buscar(pregunta, top_k=rag["top_k"])
+    contexto = _armar_contexto(fragmentos, max_chars=rag["truncado"])
     prompt = _armar_prompt(pregunta, contexto)
     fuentes = _extraer_fuentes(fragmentos)
 
-    async for chunk in _ejecutar_claude_stream(prompt):
+    async for chunk in _ejecutar_claude_stream(
+        prompt,
+        historial=historial,
+        max_tokens=rag["max_tokens"],
+    ):
         yield chunk
 
     yield f"{_FUENTES_MARKER}{json.dumps(fuentes, ensure_ascii=False)}"

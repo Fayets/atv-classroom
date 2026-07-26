@@ -96,3 +96,15 @@ class Nota(db.Entity):
     cliente_id = Optional(int)
     contenido = Required(str)
     creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class Mensaje(db.Entity):
+    _table_ = (DB_SCHEMA, "mensaje")
+
+    id = PrimaryKey(int, auto=True)
+    sesion_id = Required(str)
+    usuario_id = Required(int)
+    tipo_usuario = Required(str)
+    rol = Required(str)
+    contenido = Required(str)
+    creado_en = Required(datetime, default=datetime.utcnow)

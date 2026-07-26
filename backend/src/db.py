@@ -51,5 +51,24 @@ def _apply_migrations() -> None:
                     f'ALTER TABLE "{DB_SCHEMA}"."clase" '
                     f"ADD COLUMN IF NOT EXISTS descripcion TEXT"
                 )
+                cur.execute(
+                    f"""
+                    CREATE TABLE IF NOT EXISTS "{DB_SCHEMA}"."mensaje" (
+                        id SERIAL PRIMARY KEY,
+                        sesion_id VARCHAR NOT NULL,
+                        usuario_id INTEGER NOT NULL,
+                        tipo_usuario VARCHAR NOT NULL,
+                        rol VARCHAR NOT NULL,
+                        contenido TEXT NOT NULL,
+                        creado_en TIMESTAMP NOT NULL DEFAULT NOW()
+                    )
+                    """
+                )
+                cur.execute(
+                    f"""
+                    CREATE INDEX IF NOT EXISTS idx_mensaje_sesion
+                    ON "{DB_SCHEMA}"."mensaje" (sesion_id, creado_en)
+                    """
+                )
     finally:
         conn.close()
