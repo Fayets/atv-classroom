@@ -1,3 +1,4 @@
+import json
 import secrets
 import time
 from datetime import date, timedelta
@@ -39,12 +40,52 @@ def _buscar_admin_por_email(email: str) -> Admin | None:
     return None
 
 
+def _emails_del_cliente(cliente: ClienteExterno) -> set[str]:
+    emails = {cliente.email} if cliente.email else set()
+    if cliente.emails_json:
+        try:
+            emails.update(e for e in json.loads(cliente.emails_json) if isinstance(e, str))
+        except ValueError:
+            pass
+    return {_normalizar_email(e) for e in emails if e.strip()}
+
+
 def _buscar_cliente_por_email(email: str) -> ClienteExterno | None:
+    candidatos = _buscar_clientes_por_email(email)
+    return candidatos[0] if candidatos else None
+
+
+def _buscar_clientes_por_email(email: str) -> list[ClienteExterno]:
+    """El mail puede ser el principal o cualquiera de los cargados en atv-clients."""
     email_norm = _normalizar_email(email)
+    encontrados = []
     for cliente in ClienteExterno.select()[:]:
-        if cliente.email and cliente.email.strip().lower() == email_norm:
-            return cliente
-    return None
+        if email_norm in _emails_del_cliente(cliente):
+            encontrados.append(cliente)
+    return encontrados
+
+
+def clave_desde_canal(canal: str | None) -> str | None:
+    """#ema-romero → ema.romero (misma regla que muestra atv-clients)."""
+    if not canal:
+        return None
+    limpio = canal.strip().lstrip("#").strip().lower()
+    return limpio.replace("-", ".") if limpio else None
+
+
+def _clave_correcta(cliente: ClienteExterno, contrasena: str) -> bool:
+    clave = clave_desde_canal(cliente.canal_discord)
+    if clave:
+        return contrasena.strip().lower() == clave
+    # Sin canal cargado queda la contraseña manual (seed), si la hay.
+    return bool(cliente.password_hash) and _verify_password(contrasena, cliente.password_hash)
+
+
+def _tiene_acceso(cliente: ClienteExterno) -> bool:
+    """El acceso dura lo que dice fecha_vencimiento en atv-clients."""
+    if cliente.estado_cliente == "inactivo":
+        return False
+    return cliente.fecha_vencimiento is None or cliente.fecha_vencimiento >= date.today()
 
 
 def _crear_token(session_data: dict) -> str:
@@ -125,15 +166,21 @@ def login(email: str, contrasena: str) -> dict:
                 "dias_restantes": None,
             }
 
-        cliente = _buscar_cliente_por_email(email_norm)
+        # Un mail puede estar en más de una ficha (ej. cliente que recompró): gana la que tenga
+        # la clave correcta y, entre esas, la que siga con acceso.
+        validos = [c for c in _buscar_clientes_por_email(email_norm) if _clave_correcta(c, contrasena)]
+        if not validos:
+            raise HTTPException(status_code=401, detail="Email o contrasena incorrectos.")
+
+        cliente = next((c for c in validos if _tiene_acceso(c)), None)
         if cliente is None:
-            raise HTTPException(status_code=401, detail="Email o contrasena incorrectos.")
-
-        if cliente.estado_cliente != "vigente":
-            raise HTTPException(status_code=401, detail="Email o contrasena incorrectos.")
-
-        if not cliente.password_hash or not _verify_password(contrasena, cliente.password_hash):
-            raise HTTPException(status_code=401, detail="Email o contrasena incorrectos.")
+            vencimiento = max((c.fecha_vencimiento for c in validos if c.fecha_vencimiento), default=None)
+            detalle = (
+                f"Tu acceso venció el {vencimiento.strftime('%d/%m/%Y')}. Escribinos para renovarlo."
+                if vencimiento
+                else "Tu acceso no está activo. Escribinos para renovarlo."
+            )
+            raise HTTPException(status_code=403, detail=detalle)
 
         rol = cliente.plan_actual or "mentoria"
         dias_restantes = _calcular_dias_restantes(cliente.fecha_vencimiento)
@@ -160,6 +207,14 @@ def obtener_sesion_desde_request(request: Request) -> dict:
     sesion = _obtener_sesion(token)
     if sesion is None:
         raise HTTPException(status_code=401, detail="Sesión inválida o expirada.")
+
+    # Si el cliente vence con la sesión abierta, se corta en el próximo request.
+    if sesion.get("tipo") == "cliente":
+        with db_session:
+            cliente = ClienteExterno.get(id=sesion["usuario_id"])
+            if cliente is None or not _tiene_acceso(cliente):
+                _sessions.pop(token, None)
+                raise HTTPException(status_code=401, detail="Tu acceso al Classroom venció.")
 
     return {
         "usuario_id": sesion["usuario_id"],

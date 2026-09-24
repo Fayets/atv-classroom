@@ -22,6 +22,8 @@ class ClienteExterno(db.Entity):
     id = PrimaryKey(int, auto=True)
     nombre = Optional(str)
     email = Required(str, unique=True)
+    emails_json = Optional(str, nullable=True)
+    canal_discord = Optional(str, nullable=True)
     password_hash = Optional(str)
     plan_actual = Optional(str)
     estado_cliente = Optional(str)
