@@ -23,6 +23,7 @@ export default function InicioPage() {
   const [texto, setTexto] = useState('')
   const [pensando, setPensando] = useState(false)
   const [resultado, setResultado] = useState(null)
+  const [pregunta, setPregunta] = useState('')
   const [consulta, setConsulta] = useState({ estado: 'idle', texto: '' })
 
   useEffect(() => {
@@ -36,11 +37,14 @@ export default function InicioPage() {
   async function preguntar(valor) {
     const q = (valor ?? texto).trim()
     if (q.length < 3 || pensando) return
-    setTexto(q)
+    setTexto('')
+    setPregunta(q)
+    setResultado(null)
     setPensando(true)
     setConsulta({ estado: 'idle', texto: q })
     try {
-      const r = await preguntarGuia(q)
+      // Espera mínima para que el chat llegue a abrirse antes de la respuesta.
+      const [r] = await Promise.all([preguntarGuia(q), new Promise((ok) => setTimeout(ok, 650))])
       setResultado({ ...r, texto: q })
     } catch (err) {
       setResultado({ error: err instanceof Error ? err.message : 'La guía no respondió. Probá de nuevo.' })
@@ -105,62 +109,85 @@ export default function InicioPage() {
             ))}
           </div>
 
-          {resultado?.error ? <p className="im-error">{resultado.error}</p> : null}
-
-          {elegido ? (
-            <div className="im-route" key={resultado.texto}>
-              <p className="im-route__lead">
-                Esto se resuelve con un frente de trabajo: <b>{elegido.titulo}</b>
-              </p>
-              <ol className="im-route__steps">
-                <li>
-                  <span className="num">1</span>
-                  <div>
-                    <b>Resolver</b>
-                    <span>
-                      {elegido.clases_resolver} {elegido.clases_resolver === 1 ? 'clase' : 'clases'} que atacan el problema
-                    </span>
-                  </div>
-                </li>
-                <li>
-                  <span className="num">2</span>
-                  <div>
-                    <b>Documentar</b>
-                    <span>Tu SOP: {elegido.sop_nombre}</span>
-                  </div>
-                </li>
-                <li>
-                  <span className="num">3</span>
-                  <div>
-                    <b>Automatizar</b>
-                    <span>{elegido.tiene_automatizacion ? 'Lo dejás andando solo con el sistema ATV' : `Lo armás con ${coach ?? 'tu coach'}`}</span>
-                  </div>
-                </li>
-              </ol>
-              <button type="button" className="pc-btn pc-complete pc-btn--lg" onClick={() => navigate(`/frentes/${elegido.slug}`)}>
-                {elegido.frente ? 'Seguir este frente' : 'Abrir este frente'} <Chevron />
-              </button>
-            </div>
-          ) : resultado && !resultado.error ? (
-            <div className="im-route im-route--coach" key={resultado.texto}>
-              <p className="im-route__lead">
-                No hay una clase ni un SOP que resuelva esto, y no te vamos a inventar una respuesta. Lo ve {coach ?? 'tu coach'}.
-              </p>
-              <div className="im-coach">
-                <span className="im-coach__av" aria-hidden="true">
-                  {(coach ?? 'C').slice(0, 2).toUpperCase()}
-                </span>
-                <div>
-                  <b>{coach ?? 'Tu coach'}</b>
-                  <span>Tu consulta queda registrada para que la vea</span>
+          <div className={`im-reveal${pregunta ? ' is-open' : ''}`} aria-live="polite">
+            <div className="im-reveal__inner">
+              {pregunta ? (
+                <div className="im-chat">
+                  <p className="im-chat__yo">
+                    <span className="visually-hidden">Vos: </span>
+                    {pregunta}
+                  </p>
+                  {pensando ? (
+                    <p className="im-chat__typing">
+                      <span className="visually-hidden">La guía está armando tu camino</span>
+                      <i aria-hidden="true" />
+                      <i aria-hidden="true" />
+                      <i aria-hidden="true" />
+                    </p>
+                  ) : (
+                    <>
+              {resultado?.error ? <p className="im-error">{resultado.error}</p> : null}
+    
+                  {elegido ? (
+                    <div className="im-route" key={resultado.texto}>
+                      <p className="im-route__lead">
+                        Esto se resuelve con un frente de trabajo: <b>{elegido.titulo}</b>
+                      </p>
+                      <ol className="im-route__steps">
+                        <li>
+                          <span className="num">1</span>
+                          <div>
+                            <b>Resolver</b>
+                            <span>
+                              {elegido.clases_resolver} {elegido.clases_resolver === 1 ? 'clase' : 'clases'} que atacan el problema
+                            </span>
+                          </div>
+                        </li>
+                        <li>
+                          <span className="num">2</span>
+                          <div>
+                            <b>Documentar</b>
+                            <span>Tu SOP: {elegido.sop_nombre}</span>
+                          </div>
+                        </li>
+                        <li>
+                          <span className="num">3</span>
+                          <div>
+                            <b>Automatizar</b>
+                            <span>{elegido.tiene_automatizacion ? 'Lo dejás andando solo con el sistema ATV' : `Lo armás con ${coach ?? 'tu coach'}`}</span>
+                          </div>
+                        </li>
+                      </ol>
+                      <button type="button" className="pc-btn pc-complete pc-btn--lg" onClick={() => navigate(`/frentes/${elegido.slug}`)}>
+                        {elegido.frente ? 'Seguir este frente' : 'Abrir este frente'} <Chevron />
+                      </button>
+                    </div>
+                  ) : resultado && !resultado.error ? (
+                    <div className="im-route im-route--coach" key={resultado.texto}>
+                      <p className="im-route__lead">
+                        No hay una clase ni un SOP que resuelva esto, y no te vamos a inventar una respuesta. Lo ve {coach ?? 'tu coach'}.
+                      </p>
+                      <div className="im-coach">
+                        <span className="im-coach__av" aria-hidden="true">
+                          {(coach ?? 'C').slice(0, 2).toUpperCase()}
+                        </span>
+                        <div>
+                          <b>{coach ?? 'Tu coach'}</b>
+                          <span>Tu consulta queda registrada para que la vea</span>
+                        </div>
+                        <button type="button" className={`pc-btn ${consulta.estado === 'enviada' ? 'pc-btn--ghost' : 'pc-btn--light'}`} onClick={mandarAlCoach} disabled={consulta.estado === 'enviando' || consulta.estado === 'enviada'}>
+                          {consulta.estado === 'enviada' ? 'Consulta enviada' : consulta.estado === 'enviando' ? 'Enviando…' : 'Mandarle la consulta'}
+                        </button>
+                      </div>
+                      {consulta.estado === 'error' ? <p className="im-error">No se pudo enviar. Probá de nuevo.</p> : null}
+                    </div>
+                  ) : null}
+                    </>
+                  )}
                 </div>
-                <button type="button" className={`pc-btn ${consulta.estado === 'enviada' ? 'pc-btn--ghost' : 'pc-btn--light'}`} onClick={mandarAlCoach} disabled={consulta.estado === 'enviando' || consulta.estado === 'enviada'}>
-                  {consulta.estado === 'enviada' ? 'Consulta enviada' : consulta.estado === 'enviando' ? 'Enviando…' : 'Mandarle la consulta'}
-                </button>
-              </div>
-              {consulta.estado === 'error' ? <p className="im-error">No se pudo enviar. Probá de nuevo.</p> : null}
+              ) : null}
             </div>
-          ) : null}
+          </div>
         </section>
 
         {error ? <p className="im-error">{error}</p> : null}

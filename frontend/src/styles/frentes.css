@@ -108,7 +108,7 @@
   .im-root *, .im-root *::before, .im-root *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; }
 }
 
-.im-home { max-width: 1120px; margin: 0 auto; padding: 72px 32px 140px; display: flex; flex-direction: column; gap: 72px; }
+.im-home { max-width: 1120px; margin: 0 auto; padding: 72px 32px 40px; display: flex; flex-direction: column; gap: 72px; min-height: calc(100dvh - 65px); box-sizing: border-box; }
 
 /* ---------- pregunta ---------- */
 .im-ask { display: flex; flex-direction: column; gap: 22px; }
@@ -239,5 +239,35 @@
 }
 
 .im-error { font-size: 14px; color: #f08a8a; }
-.im-foot { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.im-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
 .im-foot .hub-page__access { margin: 0; }
+
+/* ---------- la guía se abre como un chat ---------- */
+/* La altura se anima con grid-template-rows 0fr → 1fr: el pie baja suave. */
+.im-reveal { display: grid; grid-template-rows: 0fr; margin-top: -22px; transition: grid-template-rows 560ms cubic-bezier(0.16, 1, 0.3, 1), margin-top 560ms cubic-bezier(0.16, 1, 0.3, 1); }
+.im-reveal.is-open { grid-template-rows: 1fr; margin-top: 6px; }
+.im-reveal__inner { min-height: 0; overflow: hidden; }
+.im-chat { max-width: 900px; display: flex; flex-direction: column; gap: 16px; padding-bottom: 4px; }
+.im-chat__yo {
+  align-self: flex-end;
+  max-width: min(560px, 80%);
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--pc-s2);
+  box-shadow: inset 0 0 0 1px var(--pc-line2);
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--pc-t1);
+  animation: im-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.im-chat__typing { display: inline-flex; gap: 6px; align-items: center; margin: 0; padding: 16px 18px; border-radius: 16px 16px 16px 4px; background: var(--pc-s1); box-shadow: inset 0 0 0 1px var(--pc-line); align-self: flex-start; animation: im-in 280ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both; }
+.im-chat__typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--pc-t3); animation: im-dot 1.1s ease-in-out infinite; }
+.im-chat__typing i:nth-child(3) { animation-delay: 0.15s; }
+.im-chat__typing i:nth-child(4) { animation-delay: 0.3s; }
+@keyframes im-dot { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+.im-chat .im-route { margin-top: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .im-reveal { transition: none; }
+  .im-chat__typing i { animation: none; opacity: 0.6; }
+}
