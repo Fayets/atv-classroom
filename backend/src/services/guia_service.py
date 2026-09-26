@@ -5,6 +5,7 @@ A Haiku se le piden datos, no respuestas: ids de clases del catálogo y el fragm
 textual del mensaje que cada una cubre. El código valida los ids, arma las tarjetas con
 los datos reales de la base y decide si deriva al coach cuando no queda nada."""
 
+import json
 import logging
 import unicodedata
 
@@ -120,6 +121,17 @@ async def _por_ia(texto: str) -> dict | None:
     api_key = config("ANTHROPIC_API_KEY", default=None)
     if not api_key:
         return None
+    try:
+        return await _llamar_ia(texto, api_key)
+    except (APITimeoutError, APIConnectionError, APIStatusError):
+        raise
+    except Exception:
+        # Cualquier forma inesperada de la respuesta: se usa el respaldo, no se rompe la guía.
+        logger.exception("Guía ATV: respuesta de la IA inesperada; uso palabras clave")
+        return None
+
+
+async def _llamar_ia(texto: str, api_key: str) -> dict | None:
     client = AsyncAnthropic(api_key=api_key, timeout=_TIMEOUT_SEGUNDOS)
     try:
         message = await client.messages.create(
@@ -135,8 +147,38 @@ async def _por_ia(texto: str) -> dict | None:
         return None
     for bloque in message.content:
         if bloque.type == "tool_use" and bloque.name == "recomendar":
-            return bloque.input if isinstance(bloque.input, dict) else None
+            return _normalizar_salida(bloque.input)
     return None
+
+
+def _normalizar_salida(datos) -> dict | None:
+    """Haiku a veces devuelve la lista anidada como texto JSON: se acepta y se valida la forma."""
+    if isinstance(datos, str):
+        try:
+            datos = json.loads(datos)
+        except ValueError:
+            return None
+    if not isinstance(datos, dict):
+        return None
+    recs = datos.get("recomendaciones")
+    if isinstance(recs, str):
+        try:
+            recs = json.loads(recs)
+        except ValueError:
+            recs = []
+    if not isinstance(recs, list):
+        recs = []
+    limpias = []
+    for rec in recs:
+        if not isinstance(rec, dict):
+            continue
+        try:
+            clase_id = int(rec.get("clase_id"))
+        except (TypeError, ValueError):
+            continue
+        limpias.append({"clase_id": clase_id, "cubre": str(rec.get("cubre") or "")})
+    frente = datos.get("frente")
+    return {"recomendaciones": limpias, "frente": frente if isinstance(frente, str) else "ninguno"}
 
 
 def _tarjeta(clase: Clase, cubre: str | None) -> dict:
@@ -155,8 +197,16 @@ def _tarjeta(clase: Clase, cubre: str | None) -> dict:
 
 async def recomendar(texto: str) -> dict:
     texto = texto.strip()
-    q = _normalizar(texto)
     ia = await _por_ia(texto)
+    try:
+        return _armar(texto, ia)
+    except Exception:
+        logger.exception("Guía ATV: no se pudo armar la respuesta de la IA; uso palabras clave")
+        return _armar(texto, None)
+
+
+def _armar(texto: str, ia: dict | None) -> dict:
+    q = _normalizar(texto)
 
     recomendaciones: list[dict] = []
     frente: str | None = None

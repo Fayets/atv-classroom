@@ -51,3 +51,9 @@ def test_sin_ia_usa_el_frente_por_palabras(monkeypatch):
     r = asyncio.run(guia_service.recomendar("agendan y no vienen a la llamada"))
     assert r["frente"]["slug"] == "no-se-presentan"
     assert [x["clase_id"] for x in r["recomendaciones"]] == [71, 41]
+
+
+def test_acepta_la_lista_como_texto_json():
+    salida = guia_service._normalizar_salida({"recomendaciones": '[{"clase_id": 71, "cubre": "no aparece"}, "basura"]', "frente": "no-se-presentan"})
+    assert salida == {"recomendaciones": [{"clase_id": 71, "cubre": "no aparece"}], "frente": "no-se-presentan"}
+    assert guia_service._normalizar_salida("no es json") is None

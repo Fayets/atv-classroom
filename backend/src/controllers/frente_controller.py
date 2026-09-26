@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -5,6 +7,7 @@ from src.services.auth_service import obtener_sesion_desde_request
 from src.services.frente_service import FrenteServices
 from src.services.guia_service import recomendar
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["frentes"])
 service = FrenteServices()
 
@@ -50,6 +53,7 @@ async def guia(body: GuiaRequest, sesion: dict = Depends(obtener_sesion_desde_re
     except HTTPException:
         raise
     except Exception:
+        logger.exception("Guía ATV: error procesando la consulta")
         raise HTTPException(status_code=500, detail="La guía no pudo procesar tu mensaje. Probá de nuevo.")
 
 
