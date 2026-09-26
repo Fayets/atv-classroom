@@ -164,12 +164,6 @@
 .im-steps.is-compact { width: 72px; gap: 3px; }
 .im-steps.is-compact i { height: 3px; }
 
-.im-areas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
-.im-area h3 { font-size: 14px; font-weight: 600; color: var(--pc-t3); padding-bottom: 10px; border-bottom: 1px solid var(--pc-line2); }
-.im-prob { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--pc-line); color: var(--pc-t2); text-decoration: none; font-size: 15px; line-height: 1.4; transition: color 150ms ease; }
-.im-prob .pc-chev { color: var(--pc-t4); transition: transform 200ms var(--pc-ease), color 150ms ease; }
-.im-prob:hover { color: var(--pc-t1); }
-.im-prob:hover .pc-chev { transform: translateX(3px); color: var(--pc-red2); }
 .im-foot { border-top: 1px solid var(--pc-line); padding-top: 22px; }
 .im-foot a { font-size: 14px; color: var(--pc-t3); text-underline-offset: 4px; }
 .im-foot a:hover { color: var(--pc-t1); }
@@ -233,7 +227,6 @@
   .im-route__steps { grid-template-columns: 1fr; }
   .im-open__row { grid-template-columns: 1fr; gap: 10px; }
   .im-open__next { justify-content: flex-start; }
-  .im-areas { grid-template-columns: 1fr; gap: 28px; }
   .im-frente { padding: 18px 16px 120px; }
   .im-track__s { flex-direction: column; align-items: flex-start; gap: 8px; }
   .im-track__t b { font-size: 15px; }

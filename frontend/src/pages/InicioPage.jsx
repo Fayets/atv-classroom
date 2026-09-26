@@ -184,28 +184,7 @@ export default function InicioPage() {
           </section>
         ) : null}
 
-        {datos ? (
-          <section className="im-sec">
-            <h2>Problemas que resolvemos</h2>
-            <div className="im-areas">
-              {datos.areas.map((a) => (
-                <div key={a} className="im-area">
-                  <h3>{a}</h3>
-                  {problemas
-                    .filter((p) => p.area === a)
-                    .map((p) => (
-                      <Link key={p.slug} to={`/frentes/${p.slug}`} className="im-prob">
-                        <span>{p.titulo}</span>
-                        {p.frente ? <Pasos paso={p.frente.paso} compacto /> : <Chevron />}
-                      </Link>
-                    ))}
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : !error ? (
-          <p className="pc-loading">Cargando tus frentes…</p>
-        ) : null}
+        {!datos && !error ? <p className="pc-loading">Cargando tus frentes…</p> : null}
 
         <footer className="im-foot">
           <AccesoRestante />
