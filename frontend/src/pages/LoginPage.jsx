@@ -2,30 +2,21 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import '../styles/login.css'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function IconArrow() {
-  return (
-    <svg
-      className="login-submit__icon"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M5 12h14M13 6l6 6-6 6"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
+const METODO = [
+  { n: '1', t: 'Resolver', d: 'el problema que hoy frena tu negocio' },
+  { n: '2', t: 'Documentar', d: 'cómo se hace, en tu propio SOP' },
+  { n: '3', t: 'Automatizar', d: 'para que funcione sin depender de vos' },
+]
 
-function isValidEmail(value) {
-  return EMAIL_REGEX.test(value.trim())
+function validarEmail(value) {
+  const limpio = value.trim()
+  if (!limpio) return 'Ingresá tu email.'
+  if (!EMAIL_REGEX.test(limpio)) return 'Ese email no parece válido.'
+  return ''
 }
 
 export default function LoginPage() {
@@ -34,60 +25,35 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('')
   const [contrasena, setContrasena] = useState('')
+  const [verClave, setVerClave] = useState(false)
   const [error, setError] = useState('')
   const [emailError, setEmailError] = useState('')
   const [cargando, setCargando] = useState(false)
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate(isAdmin ? '/admin' : '/', { replace: true })
-    }
+    if (isAuthenticated) navigate(isAdmin ? '/admin' : '/', { replace: true })
   }, [isAuthenticated, isAdmin, navigate])
-
-  function validateEmailField(value) {
-    const trimmed = value.trim()
-    if (!trimmed) {
-      return 'Ingresá tu email.'
-    }
-    if (!isValidEmail(trimmed)) {
-      return 'Ingresá un email válido.'
-    }
-    return ''
-  }
-
-  function handleEmailBlur() {
-    if (email.trim()) {
-      setEmailError(validateEmailField(email))
-    }
-  }
 
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
-
-    const emailValidation = validateEmailField(email)
-    setEmailError(emailValidation)
-    if (emailValidation) {
-      return
-    }
-
+    const errEmail = validarEmail(email)
+    setEmailError(errEmail)
+    if (errEmail) return
     if (!contrasena) {
       setError('Ingresá tu contraseña.')
       return
     }
 
     setCargando(true)
-
     try {
       const user = await login(email.trim(), contrasena.trim())
       navigate(user.rol === 'admin' ? '/admin' : '/', { replace: true })
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
-        setError(err.message || 'Email o contrasena incorrectos.')
+        setError('El email o la contraseña no coinciden.')
       } else {
-        setError(
-          err instanceof Error ? err.message : 'No se pudo iniciar sesión.',
-        )
+        setError(err instanceof Error ? err.message : 'No pudimos iniciar tu sesión. Probá de nuevo.')
       }
     } finally {
       setCargando(false)
@@ -95,86 +61,99 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-page">
-      <main className="login-main">
-        <div className="login-card">
-          <div className="login-card__logo-wrap">
-            <img
-              src="/atv-logo.png"
-              alt="ATV — Aumenta Tu Valor"
-              className="login-card__logo"
-              width={72}
-              height={72}
+    <div className="lg-root">
+      <section className="lg-brand" aria-label="ATV">
+        <div className="lg-brand__glow" aria-hidden="true" />
+        <img src="/atv-logo.png" alt="ATV · Aumenta Tu Valor" className="lg-brand__logo" width={56} height={72} />
+        <div className="lg-brand__copy">
+          <h1>
+            Tu negocio,
+            <br />
+            en implementación.
+          </h1>
+          <p>El programa de ATV para dueños de negocio que quieren sistemas, no más información.</p>
+        </div>
+        <ol className="lg-metodo">
+          {METODO.map((m) => (
+            <li key={m.n}>
+              <span className="lg-metodo__n">{m.n}</span>
+              <span>
+                <b>{m.t}</b> {m.d}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <main className="lg-panel">
+        <form className="lg-form" onSubmit={handleSubmit} noValidate>
+          <header>
+            <h2>Entrá a tu programa</h2>
+            <p>Acceso exclusivo para clientes de ATV.</p>
+          </header>
+
+          {error ? (
+            <p className="lg-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+
+          <div className="lg-field">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              className={emailError ? 'is-invalid' : ''}
+              type="email"
+              name="email"
+              autoComplete="email"
+              inputMode="email"
+              placeholder="vos@tuempresa.com"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                if (emailError) setEmailError('')
+                if (error) setError('')
+              }}
+              onBlur={() => email.trim() && setEmailError(validarEmail(email))}
+              disabled={cargando}
+              aria-invalid={Boolean(emailError)}
+              aria-describedby={emailError ? 'email-error' : undefined}
             />
+            {emailError ? (
+              <span id="email-error" className="lg-field__hint">
+                {emailError}
+              </span>
+            ) : null}
           </div>
 
-          <form className="login-form" onSubmit={handleSubmit} noValidate>
-            {error ? (
-              <p className="login-error" role="alert">
-                {error}
-              </p>
-            ) : null}
-
-            <label className="login-field">
-              <span className="visually-hidden">Email</span>
-              <input
-                id="email"
-                className={`login-input${emailError ? ' login-input--invalid' : ''}`}
-                type="email"
-                name="email"
-                autoComplete="email"
-                placeholder="Email"
-                value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value)
-                  if (emailError) setEmailError('')
-                  if (error) setError('')
-                }}
-                onBlur={handleEmailBlur}
-                disabled={cargando}
-                aria-invalid={Boolean(emailError)}
-              />
-              {emailError ? (
-                <span className="login-field__hint" role="alert">
-                  {emailError}
-                </span>
-              ) : null}
-            </label>
-
-            <label className="login-field">
-              <span className="visually-hidden">Contraseña</span>
+          <div className="lg-field">
+            <label htmlFor="contrasena">Contraseña</label>
+            <div className="lg-pass">
               <input
                 id="contrasena"
-                className="login-input"
-                type="password"
+                type={verClave ? 'text' : 'password'}
                 name="contrasena"
                 autoComplete="current-password"
-                placeholder="Contraseña"
                 value={contrasena}
-                onChange={(event) => {
-                  setContrasena(event.target.value)
+                onChange={(e) => {
+                  setContrasena(e.target.value)
                   if (error) setError('')
                 }}
                 disabled={cargando}
               />
-            </label>
+              <button type="button" className="lg-pass__toggle" onClick={() => setVerClave((v) => !v)} aria-pressed={verClave}>
+                {verClave ? 'Ocultar' : 'Mostrar'}
+              </button>
+            </div>
+          </div>
 
-            <button
-              type="submit"
-              className="login-submit"
-              disabled={cargando}
-              aria-label={cargando ? 'Ingresando' : 'Ingresar'}
-            >
-              {cargando ? (
-                <span className="login-submit__loading" aria-hidden="true" />
-              ) : (
-                <IconArrow />
-              )}
-            </button>
-          </form>
+          <button type="submit" className="lg-submit" disabled={cargando}>
+            {cargando ? <span className="lg-submit__spin" aria-hidden="true" /> : null}
+            {cargando ? 'Entrando…' : 'Entrar'}
+          </button>
 
-          <p className="login-footer">Solo miembros autorizados</p>
-        </div>
+          <p className="lg-help">¿No podés entrar? Escribile a tu coach por tu canal de Discord.</p>
+        </form>
       </main>
     </div>
   )

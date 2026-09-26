@@ -1,0 +1,154 @@
+/* Login: marca y promesa a la izquierda, formulario a la derecha. */
+
+.lg-root {
+  --lg-bg: #0b0b0c;
+  --lg-s1: #121213;
+  --lg-line: rgba(255, 255, 255, 0.08);
+  --lg-line2: rgba(255, 255, 255, 0.14);
+  --lg-t1: #f3f3f1;
+  --lg-t2: #c4c2bc;
+  --lg-t3: #8f8c85;
+  --lg-red: #b04545;
+  --lg-red2: #d65c5c;
+  --lg-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
+  background: var(--lg-bg);
+  color: var(--lg-t1);
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.lg-root ::selection { background: var(--lg-red); color: #fff; }
+
+/* ---------- marca ---------- */
+.lg-brand {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 48px;
+  padding: 56px clamp(32px, 6vw, 96px);
+  border-right: 1px solid var(--lg-line);
+  background:
+    radial-gradient(90% 70% at 0% 100%, rgba(176, 69, 69, 0.22), transparent 60%),
+    radial-gradient(60% 50% at 100% 0%, rgba(176, 69, 69, 0.08), transparent 70%),
+    #09090a;
+}
+.lg-brand__glow {
+  position: absolute;
+  left: -10%;
+  bottom: -30%;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(214, 92, 92, 0.25), transparent);
+  filter: blur(40px);
+  pointer-events: none;
+}
+.lg-brand > *:not(.lg-brand__glow) { position: relative; }
+.lg-brand__logo { width: 56px; height: auto; filter: drop-shadow(0 0 24px rgba(214, 92, 92, 0.35)); }
+.lg-brand__copy { display: flex; flex-direction: column; gap: 20px; }
+.lg-brand__copy h1 {
+  margin: 0;
+  font-size: clamp(44px, 4.6vw, 72px);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  text-wrap: balance;
+  animation: lg-rise 700ms var(--lg-ease) both;
+}
+.lg-brand__copy p { margin: 0; max-width: 40ch; font-size: 17px; line-height: 1.55; color: var(--lg-t2); animation: lg-rise 700ms var(--lg-ease) 90ms both; }
+@keyframes lg-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.lg-metodo { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--lg-line2); }
+.lg-metodo li { display: flex; flex-direction: column; gap: 10px; padding: 18px 20px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--lg-t3); }
+.lg-metodo b { color: var(--lg-t1); font-weight: 600; }
+.lg-metodo__n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: #fff; background: var(--lg-red); font-variant-numeric: tabular-nums; }
+
+/* ---------- formulario ---------- */
+.lg-panel { display: grid; place-items: center; padding: 48px 32px; }
+.lg-form { width: min(400px, 100%); display: flex; flex-direction: column; gap: 20px; }
+.lg-form header h2 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.03em; }
+.lg-form header p { margin: 6px 0 0; font-size: 14.5px; color: var(--lg-t3); }
+.lg-field { display: flex; flex-direction: column; gap: 8px; }
+.lg-field label { font-size: 13px; font-weight: 500; color: var(--lg-t2); }
+.lg-field input {
+  width: 100%;
+  height: 50px;
+  box-sizing: border-box;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--lg-line2);
+  background: var(--lg-s1);
+  color: var(--lg-t1);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.lg-field input::placeholder { color: #5f5d58; }
+.lg-field input:focus { border-color: rgba(214, 92, 92, 0.7); box-shadow: 0 0 0 4px rgba(176, 69, 69, 0.18); }
+.lg-field input.is-invalid { border-color: rgba(240, 138, 138, 0.8); }
+.lg-field__hint { font-size: 12.5px; color: #f08a8a; }
+.lg-pass { position: relative; }
+.lg-pass input { padding-right: 88px; }
+.lg-pass__toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--lg-t3);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.lg-pass__toggle:hover { color: var(--lg-t1); background: rgba(255, 255, 255, 0.05); }
+.lg-submit {
+  appearance: none;
+  border: 0;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--lg-red);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+  box-shadow: 0 16px 40px -16px rgba(214, 92, 92, 0.7);
+  transition: background-color 150ms ease, transform 160ms var(--lg-ease);
+}
+.lg-submit:hover:not(:disabled) { background: #c14e4e; }
+.lg-submit:active:not(:disabled) { transform: scale(0.98); }
+.lg-submit:disabled { opacity: 0.7; cursor: default; }
+.lg-submit:focus-visible, .lg-pass__toggle:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.6); outline-offset: 2px; }
+.lg-submit__spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: lg-spin 700ms linear infinite; }
+@keyframes lg-spin { to { transform: rotate(360deg); } }
+.lg-error { margin: 0; padding: 12px 14px; border-radius: 10px; font-size: 14px; color: #f6c3c3; background: rgba(176, 69, 69, 0.16); box-shadow: inset 0 0 0 1px rgba(214, 92, 92, 0.35); }
+.lg-help { margin: 4px 0 0; font-size: 13px; color: var(--lg-t3); text-align: center; }
+
+@media (max-width: 900px) {
+  .lg-root { grid-template-columns: 1fr; }
+  .lg-brand { border-right: 0; border-bottom: 1px solid var(--lg-line); padding: 32px 20px 28px; gap: 28px; }
+  .lg-brand__logo { width: 40px; }
+  .lg-brand__copy h1 { font-size: 34px; }
+  .lg-brand__copy p { font-size: 15px; }
+  .lg-metodo { display: none; }
+  .lg-panel { padding: 32px 20px 48px; place-items: start center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lg-brand__copy h1, .lg-brand__copy p { animation: none; }
+  .lg-submit__spin { animation-duration: 1.4s; }
+}
