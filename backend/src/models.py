@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from pony.orm import Optional, PrimaryKey, Required, Set
+from pony.orm import Optional, PrimaryKey, Required, Set, composite_key
 
 from src.db import DB_SCHEMA, db
 
@@ -24,6 +24,7 @@ class ClienteExterno(db.Entity):
     email = Required(str, unique=True)
     emails_json = Optional(str, nullable=True)
     canal_discord = Optional(str, nullable=True)
+    responsable = Optional(str, nullable=True)
     password_hash = Optional(str)
     plan_actual = Optional(str)
     estado_cliente = Optional(str)
@@ -109,4 +110,35 @@ class Mensaje(db.Entity):
     tipo_usuario = Required(str)
     rol = Required(str)
     contenido = Required(str)
+    creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class Frente(db.Entity):
+    """Un problema del negocio que el cliente está trabajando: resolver → SOP → automatizar."""
+
+    _table_ = (DB_SCHEMA, "frente")
+
+    id = PrimaryKey(int, auto=True)
+    usuario_id = Required(int)
+    tipo_usuario = Required(str)
+    slug = Required(str)
+    vistas_json = Required(str, default="[]")
+    sop_link = Optional(str, nullable=True)
+    automatizado = Required(bool, default=False)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    actualizado_en = Required(datetime, default=datetime.utcnow)
+    composite_key(usuario_id, tipo_usuario, slug)
+
+
+class ConsultaCoach(db.Entity):
+    """Lo que la guía no pudo resolver con material y quedó para el coach."""
+
+    _table_ = (DB_SCHEMA, "consulta_coach")
+
+    id = PrimaryKey(int, auto=True)
+    usuario_id = Required(int)
+    tipo_usuario = Required(str)
+    texto = Required(str)
+    slug = Optional(str, nullable=True)
+    estado = Required(str, default="pendiente")
     creado_en = Required(datetime, default=datetime.utcnow)

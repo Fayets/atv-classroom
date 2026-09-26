@@ -9,6 +9,7 @@ from src.controllers.admin_controller import router as admin_router
 from src.controllers.auth_controller import router as auth_router
 from src.controllers.chat_controller import router as chat_router
 from src.controllers.clase_controller import router as clase_router
+from src.controllers.frente_controller import router as frente_router
 from src.controllers.programa_controller import router as programa_router
 from src.db import init_db
 from src.schemas import HealthResponse
@@ -42,6 +43,7 @@ app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(programa_router)
 app.include_router(clase_router)
+app.include_router(frente_router)
 app.include_router(chat_router)
 
 ensure_upload_dirs()

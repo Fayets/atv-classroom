@@ -1,0 +1,371 @@
+{
+ "areas": [
+  "Vender",
+  "Conseguir clientes",
+  "Operar y escalar"
+ ],
+ "problemas": [
+  {
+   "slug": "no-se-presentan",
+   "area": "Vender",
+   "titulo": "Agendan pero no se presentan a las llamadas",
+   "sintoma": "La agenda se llena y la mitad no aparece. Perdés horas de closer y leads que ya estaban calientes.",
+   "resolver": [
+    71,
+    41
+   ],
+   "sop": {
+    "clase_id": 71,
+    "nombre": "Confirmación y micro-compromisos antes de la llamada"
+   },
+   "automatizar": [
+    147
+   ],
+   "senales": [
+    "no se presentan",
+    "no show",
+    "no-show",
+    "faltan",
+    "no aparecen",
+    "agendan",
+    "asistencia",
+    "plantan",
+    "calendly",
+    "no aparece",
+    "no vienen",
+    "no viene",
+    "no se conectan",
+    "no se conecta",
+    "se olvidan de la llamada"
+   ]
+  },
+  {
+   "slug": "lo-voy-a-pensar",
+   "area": "Vender",
+   "titulo": "Me dicen “lo voy a pensar” y no cierran",
+   "sintoma": "Las llamadas salen bien pero el lead se enfría en el cierre y después no vuelve.",
+   "resolver": [
+    84,
+    87,
+    45
+   ],
+   "sop": {
+    "clase_id": 82,
+    "nombre": "Seguimiento de las 48 h después de la llamada"
+   },
+   "automatizar": [
+    148
+   ],
+   "senales": [
+    "pensar",
+    "no cierran",
+    "no cierro",
+    "cierre",
+    "objecion",
+    "objeción",
+    "caro",
+    "no compran",
+    "se enfrian",
+    "se enfrían",
+    "lo pienso",
+    "lo voy a pensar",
+    "no me compran",
+    "no pagan"
+   ]
+  },
+  {
+   "slug": "follow-ups",
+   "area": "Vender",
+   "titulo": "No sé cuántos follow-ups hacer ni cuándo",
+   "sintoma": "Algunos leads quedan olvidados y a otros los perseguís de más.",
+   "resolver": [
+    68,
+    82
+   ],
+   "sop": {
+    "clase_id": 68,
+    "nombre": "Cadencia de follow-ups"
+   },
+   "automatizar": [
+    92
+   ],
+   "senales": [
+    "follow",
+    "seguimiento",
+    "no responden",
+    "visto",
+    "insistir",
+    "perseguir",
+    "cuantos mensajes",
+    "cada cuanto escribir",
+    "dejan de contestar"
+   ]
+  },
+  {
+   "slug": "no-califican",
+   "area": "Vender",
+   "titulo": "Hablo con muchos leads que no califican",
+   "sintoma": "Se te va el día en llamadas con curiosos o gente que no puede pagar.",
+   "resolver": [
+    69,
+    67,
+    42
+   ],
+   "sop": {
+    "clase_id": 69,
+    "nombre": "Preguntas de calificación"
+   },
+   "automatizar": [
+    146
+   ],
+   "senales": [
+    "califican",
+    "curiosos",
+    "no tienen plata",
+    "no pueden pagar",
+    "filtrar",
+    "filtro",
+    "perder tiempo",
+    "no califica",
+    "no les alcanza",
+    "no tienen presupuesto"
+   ]
+  },
+  {
+   "slug": "leads-perdidos",
+   "area": "Vender",
+   "titulo": "Tengo una base de leads que se enfrió",
+   "sintoma": "Cientos de conversaciones que quedaron a mitad de camino y hoy no generan nada.",
+   "resolver": [
+    72
+   ],
+   "sop": {
+    "clase_id": 72,
+    "nombre": "Reactivación por segmento"
+   },
+   "automatizar": [
+    145
+   ],
+   "senales": [
+    "perdidos",
+    "frios",
+    "fríos",
+    "base",
+    "reactivar",
+    "viejos",
+    "dejaron de responder"
+   ]
+  },
+  {
+   "slug": "equipo-ventas",
+   "area": "Vender",
+   "titulo": "Mi equipo de ventas no rinde parejo",
+   "sintoma": "Un closer vende y otro no; cada uno trabaja a su manera y no sabés por qué.",
+   "resolver": [
+    76,
+    75,
+    74
+   ],
+   "sop": {
+    "clase_id": 76,
+    "nombre": "Estándar del equipo de ventas"
+   },
+   "automatizar": [
+    157,
+    156
+   ],
+   "senales": [
+    "equipo",
+    "closer",
+    "closers",
+    "setter",
+    "setters",
+    "vendedores",
+    "estandar",
+    "estándar",
+    "rinde"
+   ]
+  },
+  {
+   "slug": "pocos-leads",
+   "area": "Conseguir clientes",
+   "titulo": "No me entran leads suficientes",
+   "sintoma": "Publicás pero no te escribe la cantidad de gente que necesitás para vender.",
+   "resolver": [
+    29,
+    31,
+    34
+   ],
+   "sop": {
+    "clase_id": 37,
+    "nombre": "Calendario de contenido de adquisición"
+   },
+   "automatizar": [
+    155
+   ],
+   "senales": [
+    "leads",
+    "contenido",
+    "reels",
+    "alcance",
+    "no me escriben",
+    "no me llegan",
+    "instagram",
+    "publicar",
+    "pocos leads",
+    "no tengo leads",
+    "nadie me escribe",
+    "no me consultan"
+   ]
+  },
+  {
+   "slug": "pautar",
+   "area": "Conseguir clientes",
+   "titulo": "Quiero pautar y no sé si me conviene",
+   "sintoma": "No sabés cuándo meter plata en anuncios ni cómo medir si vuelve.",
+   "resolver": [
+    38,
+    104
+   ],
+   "sop": {
+    "clase_id": 103,
+    "nombre": "Laboratorio de anuncios"
+   },
+   "automatizar": [
+    106
+   ],
+   "senales": [
+    "ads",
+    "anuncios",
+    "pauta",
+    "pautar",
+    "meta",
+    "facebook",
+    "campaña",
+    "publicidad"
+   ]
+  },
+  {
+   "slug": "no-renuevan",
+   "area": "Operar y escalar",
+   "titulo": "Los clientes no renuevan ni compran más",
+   "sintoma": "Cada cliente que termina es uno que tenés que reemplazar con venta nueva.",
+   "resolver": [
+    95,
+    98,
+    96
+   ],
+   "sop": {
+    "clase_id": 95,
+    "nombre": "Seguimiento de clientes"
+   },
+   "automatizar": [],
+   "senales": [
+    "renuevan",
+    "renovar",
+    "recompra",
+    "upsell",
+    "retencion",
+    "retención",
+    "se van",
+    "churn",
+    "inactivos",
+    "no vuelven a comprar",
+    "abandonan",
+    "cancelan"
+   ]
+  },
+  {
+   "slug": "numeros",
+   "area": "Operar y escalar",
+   "titulo": "No sé si mi negocio está ganando plata",
+   "sintoma": "Facturás, pero no tenés claro cuánto queda, qué canal rinde ni dónde se va la plata.",
+   "resolver": [
+    21,
+    23,
+    22
+   ],
+   "sop": {
+    "clase_id": 23,
+    "nombre": "Tablero de métricas del negocio"
+   },
+   "automatizar": [
+    152,
+    153,
+    151
+   ],
+   "senales": [
+    "plata",
+    "numeros",
+    "números",
+    "metricas",
+    "métricas",
+    "rentable",
+    "finanzas",
+    "gastos",
+    "ganancia",
+    "margen",
+    "cuanta plata",
+    "me queda",
+    "facturo",
+    "rentabilidad",
+    "caja"
+   ]
+  },
+  {
+   "slug": "delegar",
+   "area": "Operar y escalar",
+   "titulo": "Todo depende de mí y no puedo delegar",
+   "sintoma": "Si vos no estás, el negocio se frena. No tenés procesos que otro pueda seguir.",
+   "resolver": [
+    53,
+    51,
+    19
+   ],
+   "sop": {
+    "clase_id": 53,
+    "nombre": "Proceso documentado para delegar"
+   },
+   "automatizar": [],
+   "senales": [
+    "delegar",
+    "depende de mi",
+    "depende de mí",
+    "procesos",
+    "contratar",
+    "no doy abasto",
+    "sin tiempo",
+    "hago todo yo",
+    "todo pasa por mi",
+    "todo pasa por mí"
+   ]
+  },
+  {
+   "slug": "oferta",
+   "area": "Operar y escalar",
+   "titulo": "Mi oferta no se diferencia y no sé cuánto cobrar",
+   "sintoma": "Te comparan con cualquiera y terminás bajando el precio para cerrar.",
+   "resolver": [
+    15,
+    17,
+    14
+   ],
+   "sop": {
+    "clase_id": 15,
+    "nombre": "Oferta y precio"
+   },
+   "automatizar": [],
+   "senales": [
+    "oferta",
+    "precio",
+    "cobrar",
+    "pricing",
+    "diferenciar",
+    "barato",
+    "competencia",
+    "metodo",
+    "método"
+   ]
+  }
+ ]
+}

@@ -12,6 +12,7 @@ import AdminRoute from './components/AdminRoute'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import AdminPage from './pages/AdminPage'
+import FrentePage from './pages/FrentePage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import PlaceholderPage from './pages/PlaceholderPage'
@@ -74,6 +75,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <ProgramaDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/frentes/:slug"
+          element={
+            <ProtectedRoute>
+              <FrentePage />
             </ProtectedRoute>
           }
         />

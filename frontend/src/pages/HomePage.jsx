@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import HubPage from './HubPage'
+import InicioPage from './InicioPage'
 
 export default function HomePage() {
   const { isAdmin } = useAuth()
@@ -9,5 +9,5 @@ export default function HomePage() {
     return <Navigate to="/admin" replace />
   }
 
-  return <HubPage />
+  return <InicioPage />
 }
