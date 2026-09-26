@@ -271,3 +271,30 @@
   .im-reveal { transition: none; }
   .im-chat__typing i { animation: none; opacity: 0.6; }
 }
+
+/* ---------- modo chat: el título se pliega y la conversación toma la pantalla ---------- */
+.im-hero { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 620ms cubic-bezier(0.16, 1, 0.3, 1); }
+.im-hero__inner { min-height: 0; overflow: hidden; }
+.im-hero h1 { transform-origin: left bottom; transition: opacity 360ms ease, transform 620ms cubic-bezier(0.16, 1, 0.3, 1), filter 360ms ease; }
+.im-ask.is-chat .im-hero { grid-template-rows: 0fr; }
+.im-ask.is-chat .im-hero h1 { opacity: 0; transform: translateY(-24px) scale(0.94); filter: blur(6px); }
+
+.im-chatbar { display: flex; justify-content: space-between; align-items: center; max-width: 900px; max-height: 0; opacity: 0; overflow: hidden; transform: translateY(8px); transition: max-height 520ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease, transform 520ms cubic-bezier(0.16, 1, 0.3, 1); }
+.im-ask.is-chat .im-chatbar { max-height: 48px; opacity: 1; transform: none; transition-delay: 180ms; }
+.im-chatbar__t { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.im-chatbar__t::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--pc-red2); box-shadow: 0 0 0 4px var(--pc-red-soft); }
+.im-chatbar__new { appearance: none; border: 0; background: transparent; color: var(--pc-t3); font: inherit; font-size: 13px; font-weight: 500; padding: 6px 10px; border-radius: 8px; cursor: pointer; transition: color 150ms ease, background-color 150ms ease; }
+.im-chatbar__new:hover:not(:disabled) { color: var(--pc-t1); background: rgba(255, 255, 255, 0.05); }
+
+.im-ask__hints { transition: opacity 260ms ease, transform 420ms cubic-bezier(0.16, 1, 0.3, 1), max-height 480ms cubic-bezier(0.16, 1, 0.3, 1); max-height: 120px; }
+.im-ask.is-chat .im-ask__hints { opacity: 0; transform: translateY(-6px); max-height: 0; pointer-events: none; overflow: hidden; }
+
+/* la barra de pregunta se reposiciona en el mismo movimiento */
+.im-ask { transition: gap 520ms cubic-bezier(0.16, 1, 0.3, 1); }
+.im-ask.is-chat { gap: 16px; }
+.im-home { transition: padding-top 620ms cubic-bezier(0.16, 1, 0.3, 1); }
+.im-home:has(.im-ask.is-chat) { padding-top: 36px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .im-hero, .im-hero h1, .im-chatbar, .im-ask__hints, .im-ask, .im-home { transition: none; }
+}

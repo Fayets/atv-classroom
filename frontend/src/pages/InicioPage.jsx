@@ -53,6 +53,13 @@ export default function InicioPage() {
     }
   }
 
+  function nuevaConsulta() {
+    setPregunta('')
+    setResultado(null)
+    setTexto('')
+    document.getElementById('im-q')?.focus()
+  }
+
   async function mandarAlCoach() {
     setConsulta((c) => ({ ...c, estado: 'enviando' }))
     try {
@@ -73,12 +80,22 @@ export default function InicioPage() {
     <div className="app-shell im-root">
       <AppHeader />
       <main className="im-home">
-        <section className="im-ask">
-          <h1>
-            {nombre ? `${nombre}, ¿qué` : '¿Qué'} está trabando
-            <br />
-            tu negocio hoy?
-          </h1>
+        <section className={`im-ask${pregunta ? ' is-chat' : ''}`}>
+          <div className="im-hero" aria-hidden={Boolean(pregunta)}>
+            <div className="im-hero__inner">
+              <h1>
+                {nombre ? `${nombre}, ¿qué` : '¿Qué'} está trabando
+                <br />
+                tu negocio hoy?
+              </h1>
+            </div>
+          </div>
+          <div className="im-chatbar">
+            <span className="im-chatbar__t">Guía ATV</span>
+            <button type="button" className="im-chatbar__new" onClick={nuevaConsulta} disabled={pensando}>
+              Nueva consulta
+            </button>
+          </div>
           <form
             className="im-ask__form"
             onSubmit={(e) => {
@@ -101,7 +118,7 @@ export default function InicioPage() {
               {pensando ? 'Armando tu camino…' : 'Armar mi camino'}
             </button>
           </form>
-          <div className="im-ask__hints">
+          <div className="im-ask__hints" aria-hidden={Boolean(pregunta)}>
             {EJEMPLOS.map((h) => (
               <button key={h} type="button" onClick={() => preguntar(h)} disabled={pensando}>
                 {h}
