@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 from src.services.auth_service import obtener_sesion_desde_request
 from src.services.frente_service import FrenteServices
-from src.services.guia_service import elegir_frente
+from src.services.guia_service import recomendar
 
 router = APIRouter(prefix="/api", tags=["frentes"])
 service = FrenteServices()
@@ -46,7 +46,7 @@ def actualizar_frente(slug: str, body: FrentePatch, sesion: dict = Depends(obten
 @router.post("/guia")
 async def guia(body: GuiaRequest, sesion: dict = Depends(obtener_sesion_desde_request)):
     try:
-        return await elegir_frente(body.texto)
+        return await recomendar(body.texto)
     except HTTPException:
         raise
     except Exception:

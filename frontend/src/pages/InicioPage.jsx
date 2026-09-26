@@ -7,7 +7,7 @@ import AccesoRestante from '../components/AccesoRestante'
 import { Chevron } from '../components/frentes/piezas'
 import Pasos from '../components/frentes/Pasos'
 import { useAuth } from '../context/AuthContext'
-import { proximoPaso } from '../utils/frentes'
+import { proximoPaso, tipoRecurso, tituloLindo } from '../utils/frentes'
 import '../styles/frentes.css'
 
 // El cliente no entra a una biblioteca: entra con un problema de su negocio.
@@ -71,7 +71,8 @@ export default function InicioPage() {
   }
 
   const problemas = datos?.problemas ?? []
-  const elegido = resultado?.slug ? problemas.find((p) => p.slug === resultado.slug) : null
+  const recomendaciones = resultado?.recomendaciones ?? []
+  const frenteSugerido = resultado?.frente ? problemas.find((p) => p.slug === resultado.frente.slug) : null
   const abiertos = problemas.filter((p) => p.frente)
   const coach = datos?.coach?.nombre
   const nombre = user?.nombre?.split(' ')[0]
@@ -143,62 +144,69 @@ export default function InicioPage() {
                     </p>
                   ) : (
                     <>
-              {resultado?.error ? <p className="im-error">{resultado.error}</p> : null}
-    
-                  {elegido ? (
-                    <div className="im-route" key={resultado.texto}>
-                      <p className="im-route__lead">
-                        Esto se resuelve con un frente de trabajo: <b>{elegido.titulo}</b>
-                      </p>
-                      <ol className="im-route__steps">
-                        <li>
-                          <span className="num">1</span>
-                          <div>
-                            <b>Resolver</b>
-                            <span>
-                              {elegido.clases_resolver} {elegido.clases_resolver === 1 ? 'clase' : 'clases'} que atacan el problema
-                            </span>
-                          </div>
-                        </li>
-                        <li>
-                          <span className="num">2</span>
-                          <div>
-                            <b>Documentar</b>
-                            <span>Tu SOP: {elegido.sop_nombre}</span>
-                          </div>
-                        </li>
-                        <li>
-                          <span className="num">3</span>
-                          <div>
-                            <b>Automatizar</b>
-                            <span>{elegido.tiene_automatizacion ? 'Lo dejás andando solo con el sistema ATV' : `Lo armás con ${coach ?? 'tu coach'}`}</span>
-                          </div>
-                        </li>
-                      </ol>
-                      <button type="button" className="pc-btn pc-complete pc-btn--lg" onClick={() => navigate(`/frentes/${elegido.slug}`)}>
-                        {elegido.frente ? 'Seguir este frente' : 'Abrir este frente'} <Chevron />
-                      </button>
-                    </div>
-                  ) : resultado && !resultado.error ? (
-                    <div className="im-route im-route--coach" key={resultado.texto}>
-                      <p className="im-route__lead">
-                        No hay una clase ni un SOP que resuelva esto, y no te vamos a inventar una respuesta. Lo ve {coach ?? 'tu coach'}.
-                      </p>
-                      <div className="im-coach">
-                        <span className="im-coach__av" aria-hidden="true">
-                          {(coach ?? 'C').slice(0, 2).toUpperCase()}
-                        </span>
-                        <div>
-                          <b>{coach ?? 'Tu coach'}</b>
-                          <span>Tu consulta queda registrada para que la vea</span>
+                      {resultado?.error ? <p className="im-error">{resultado.error}</p> : null}
+                      {recomendaciones.length ? (
+                        <div className="im-route" key={resultado.texto}>
+                          <p className="im-route__lead">Para esto te sirven estas clases. Miralas y usá su plantilla como tu SOP.</p>
+                          <ol className="im-recs">
+                            {recomendaciones.map((r, i) => (
+                              <li key={r.clase_id} className="im-rec" style={{ '--i': i }}>
+                                <span className="num im-rec__n">{i + 1}</span>
+                                <div className="im-rec__body">
+                                  <span className="im-rec__where">
+                                    {r.modulo} › {tituloLindo(r.seccion)}
+                                  </span>
+                                  <b>{tituloLindo(r.titulo)}</b>
+                                  {r.cubre ? <span className="im-rec__cubre">Cubre: “{r.cubre}”</span> : null}
+                                  {r.recursos.length ? (
+                                    <div className="im-rec__sops">
+                                      {r.recursos.map((rec) => (
+                                        <a key={rec.id ?? rec.url} href={rec.url} target="_blank" rel="noopener noreferrer" className="im-sopchip">
+                                          <span>{tipoRecurso(rec).tag}</span>
+                                          {/^(documento|planilla|formulario) google/i.test(rec.titulo) ? tipoRecurso(rec).label : rec.titulo}
+                                        </a>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </div>
+                                <Link to={`/classroom/${r.programa_id}?clase=${r.clase_id}`} className="pc-btn pc-btn--light im-rec__ver">
+                                  Ver clase <Chevron />
+                                </Link>
+                              </li>
+                            ))}
+                          </ol>
+                          {frenteSugerido ? (
+                            <div className="im-frentebox">
+                              <div>
+                                <b>Trabajalo como frente</b>
+                                <span>{frenteSugerido.titulo}: resolver, documentar tu SOP y automatizar, con tu avance guardado.</span>
+                              </div>
+                              <button type="button" className="pc-btn pc-complete" onClick={() => navigate(`/frentes/${frenteSugerido.slug}`)}>
+                                {frenteSugerido.frente ? 'Seguir el frente' : 'Abrir frente'} <Chevron />
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
-                        <button type="button" className={`pc-btn ${consulta.estado === 'enviada' ? 'pc-btn--ghost' : 'pc-btn--light'}`} onClick={mandarAlCoach} disabled={consulta.estado === 'enviando' || consulta.estado === 'enviada'}>
-                          {consulta.estado === 'enviada' ? 'Consulta enviada' : consulta.estado === 'enviando' ? 'Enviando…' : 'Mandarle la consulta'}
-                        </button>
-                      </div>
-                      {consulta.estado === 'error' ? <p className="im-error">No se pudo enviar. Probá de nuevo.</p> : null}
-                    </div>
-                  ) : null}
+                      ) : resultado && !resultado.error ? (
+                        <div className="im-route im-route--coach" key={resultado.texto}>
+                          <p className="im-route__lead">
+                            No hay una clase ni un SOP que resuelva esto, y no te vamos a inventar una respuesta. Lo ve {coach ?? 'tu coach'}.
+                          </p>
+                          <div className="im-coach">
+                            <span className="im-coach__av" aria-hidden="true">
+                              {(coach ?? 'C').slice(0, 2).toUpperCase()}
+                            </span>
+                            <div>
+                              <b>{coach ?? 'Tu coach'}</b>
+                              <span>Tu consulta queda registrada para que la vea</span>
+                            </div>
+                            <button type="button" className={`pc-btn ${consulta.estado === 'enviada' ? 'pc-btn--ghost' : 'pc-btn--light'}`} onClick={mandarAlCoach} disabled={consulta.estado === 'enviando' || consulta.estado === 'enviada'}>
+                              {consulta.estado === 'enviada' ? 'Consulta enviada' : consulta.estado === 'enviando' ? 'Enviando…' : 'Mandarle la consulta'}
+                            </button>
+                          </div>
+                          {consulta.estado === 'error' ? <p className="im-error">No se pudo enviar. Probá de nuevo.</p> : null}
+                        </div>
+                      ) : null}
                     </>
                   )}
                 </div>
