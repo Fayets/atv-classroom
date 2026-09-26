@@ -5,16 +5,37 @@ from pathlib import Path
 from fastapi import HTTPException
 from pony.orm import db_session, flush
 
-from src.models import Clase, ClienteExterno, ConsultaCoach, Frente
+from src.models import Clase, ConsultaCoach, Frente
 from src.utils.clase_content import serializar_recursos
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 CATALOGO = json.loads((_DATA / "problemas.json").read_text(encoding="utf-8"))
 BRIEFS = json.loads((_DATA / "briefs.json").read_text(encoding="utf-8"))
 PROBLEMAS = {p["slug"]: p for p in CATALOGO["problemas"]}
+COACHES = json.loads((_DATA / "coaches.json").read_text(encoding="utf-8"))
 
-# clients.clientes.responsable guarda la clave; acá el nombre que ve el cliente.
-NOMBRES_COACH = {"lucas": "Lucas", "juampi": "Juampi", "juan": "Juan", "ale": "Ale"}
+
+def coach_de_clase(clase: Clase) -> dict | None:
+    """El coach sale del tema de la clase: la primera regla que coincide (clase > sección > módulo)."""
+    modulo = clase.seccion.programa.titulo
+    seccion = clase.seccion.titulo
+    for regla in COACHES["reglas"]:
+        if "clases" in regla:
+            if clase.id not in regla["clases"]:
+                continue
+        elif regla.get("modulo") != modulo or ("seccion" in regla and regla["seccion"] != seccion):
+            continue
+        return {"clave": regla["coach"], **COACHES["coaches"][regla["coach"]]}
+    return None
+
+
+def coach_de_clases(clase_ids: list[int]) -> dict | None:
+    for clase_id in clase_ids:
+        clase = Clase.get(id=clase_id)
+        coach = coach_de_clase(clase) if clase else None
+        if coach:
+            return coach
+    return None
 
 
 def _problema(slug: str) -> dict:
@@ -52,16 +73,6 @@ def _estado(problema: dict, frente: Frente | None) -> dict | None:
 
 def _frente(usuario_id: int, tipo: str, slug: str) -> Frente | None:
     return Frente.get(usuario_id=usuario_id, tipo_usuario=tipo, slug=slug)
-
-
-def _coach(usuario_id: int, tipo: str) -> dict | None:
-    if tipo != "cliente":
-        return None
-    cliente = ClienteExterno.get(id=usuario_id)
-    clave = (cliente.responsable or "").strip().lower() if cliente else ""
-    if not clave:
-        return None
-    return {"nombre": NOMBRES_COACH.get(clave, clave.capitalize())}
 
 
 def _clase(clase_id: int) -> dict | None:
@@ -102,7 +113,7 @@ class FrenteServices:
                         "frente": _estado(p, propios.get(p["slug"])),
                     }
                 )
-            return {"areas": CATALOGO["areas"], "problemas": problemas, "coach": _coach(usuario_id, tipo)}
+            return {"areas": CATALOGO["areas"], "problemas": problemas}
 
     def detalle(self, slug: str, usuario_id: int, tipo: str) -> dict:
         problema = _problema(slug)
@@ -122,7 +133,7 @@ class FrenteServices:
                     "cubrir": sop_brief["claves"] if sop_brief else [],
                 },
                 "frente": _estado(problema, _frente(usuario_id, tipo, slug)),
-                "coach": _coach(usuario_id, tipo),
+                "coach": coach_de_clases(problema["resolver"]),
             }
 
     def actualizar(self, slug: str, usuario_id: int, tipo: str, cambios: dict) -> dict:
@@ -148,4 +159,4 @@ class FrenteServices:
         with db_session:
             consulta = ConsultaCoach(usuario_id=usuario_id, tipo_usuario=tipo, texto=texto.strip(), slug=slug)
             flush()
-            return {"id": consulta.id, "estado": consulta.estado, "coach": _coach(usuario_id, tipo)}
+            return {"id": consulta.id, "estado": consulta.estado}

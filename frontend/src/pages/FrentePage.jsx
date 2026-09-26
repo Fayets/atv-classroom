@@ -285,12 +285,24 @@ export default function FrentePage() {
                   {(coach ?? 'C').slice(0, 2).toUpperCase()}
                 </span>
                 <div>
-                  <b>¿Te trabaste?</b>
-                  <span>{coach ? `${coach} ve este frente con vos` : 'Tu coach ve este frente con vos'}</span>
+                  <b>{coach ? `Revisión con ${coach}` : 'Revisión con tu coach'}</b>
+                  <span>{d.coach?.area ?? 'Cuando lo tengas implementado'}</span>
                 </div>
               </div>
-              <button type="button" className="pc-btn pc-btn--ghost im-side__btn" onClick={pedirAyuda} disabled={ayuda === 'enviando' || ayuda === 'enviada'}>
-                {ayuda === 'enviada' ? 'Pedido registrado' : ayuda === 'enviando' ? 'Enviando…' : 'Pedir ayuda con este frente'}
+              {d.coach?.agenda_url && f.sop_link ? (
+                <a href={d.coach.agenda_url} target="_blank" rel="noopener noreferrer" className="pc-btn pc-complete im-side__btn">
+                  Agendar call con {coach}
+                </a>
+              ) : (
+                <>
+                  <button type="button" className="pc-btn pc-btn--ghost im-side__btn" disabled>
+                    Agendar call{coach ? ` con ${coach}` : ''}
+                  </button>
+                  <p className="pc-muted im-note">Se habilita cuando documentes tu SOP: la llamada es para revisar lo que implementaste.</p>
+                </>
+              )}
+              <button type="button" className="im-side__link" onClick={pedirAyuda} disabled={ayuda === 'enviando' || ayuda === 'enviada'}>
+                {ayuda === 'enviada' ? 'Pedido registrado' : ayuda === 'enviando' ? 'Enviando…' : '¿Te trabaste antes? Pedí ayuda'}
               </button>
               {ayuda === 'error' ? <p className="im-error">No se pudo enviar. Probá de nuevo.</p> : null}
             </div>

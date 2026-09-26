@@ -1,0 +1,27 @@
+{
+ "coaches": {
+  "juan-cruz": {"nombre": "Juan Cruz", "area": "Misión, visión y marketing", "agenda_url": "https://calendly.com/juancruzcarrizo/1-1"},
+  "juampi": {"nombre": "Juampi", "area": "Ads y lanzamientos", "agenda_url": "https://calendly.com/juanpablotoledo2017-toledo/30min"},
+  "lucas": {"nombre": "Lucas", "area": "Ventas", "agenda_url": "https://calendly.com/lucasruarte688/reunion-de-auditoria-rise-site"},
+  "nick": {"nombre": "Nick", "area": "Closing", "agenda_url": "https://calendly.com/agendasf/call-1-1-nick-xanderz"},
+  "franco": {"nombre": "Franco", "area": "Sistemas, procesos y equipos", "agenda_url": "https://calendly.com/francoayet07/30min"}
+ },
+ "reglas": [
+  {"clases": [38, 46], "coach": "juampi"},
+  {"clases": [43, 44, 45], "coach": "nick"},
+  {"clases": [19, 20, 47, 48], "coach": "franco"},
+  {"modulo": "Start Here", "coach": "juan-cruz"},
+  {"modulo": "Advantage", "seccion": "MÉTRICAS", "coach": "franco"},
+  {"modulo": "Advantage", "seccion": "CONVERSIÓN DE LEADS", "coach": "lucas"},
+  {"modulo": "Advantage", "coach": "juan-cruz"},
+  {"modulo": "Marketing", "coach": "juan-cruz"},
+  {"modulo": "Creator Acquisition", "coach": "juan-cruz"},
+  {"modulo": "Sales", "seccion": "CLOSING", "coach": "nick"},
+  {"modulo": "Sales", "coach": "lucas"},
+  {"modulo": "Ads", "coach": "juampi"},
+  {"modulo": "Launch", "coach": "juampi"},
+  {"modulo": "Business Foundations", "coach": "franco"},
+  {"modulo": "Product", "coach": "franco"},
+  {"modulo": "Systems", "coach": "franco"}
+ ]
+}

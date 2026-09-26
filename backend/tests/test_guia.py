@@ -55,5 +55,11 @@ def test_sin_ia_usa_el_frente_por_palabras(monkeypatch):
 
 def test_acepta_la_lista_como_texto_json():
     salida = guia_service._normalizar_salida({"recomendaciones": '[{"clase_id": 71, "cubre": "no aparece"}, "basura"]', "frente": "no-se-presentan"})
-    assert salida == {"recomendaciones": [{"clase_id": 71, "cubre": "no aparece"}], "frente": "no-se-presentan"}
+    assert salida == {"recomendaciones": [{"clase_id": 71, "cubre": "no aparece"}], "frente": "no-se-presentan", "area": "ninguno"}
     assert guia_service._normalizar_salida("no es json") is None
+
+
+def test_sin_clases_deriva_al_coach_del_area(monkeypatch):
+    monkeypatch.setattr(guia_service, "_por_ia", _con_ia({"recomendaciones": [], "frente": "ninguno", "area": "juan-cruz"}))
+    r = asyncio.run(guia_service.recomendar("no tengo clara la visión de mi empresa"))
+    assert r["recomendaciones"] == [] and r["coach"]["nombre"] == "Juan Cruz" and r["coach"]["agenda_url"]

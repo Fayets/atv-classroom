@@ -323,3 +323,16 @@
   .im-frentebox { flex-direction: column; align-items: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) { .im-rec { animation: none; } }
+
+/* ---------- coach del área ---------- */
+.im-coachbox { width: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 12px; background: rgba(29, 158, 117, 0.07); box-shadow: inset 0 0 0 1px rgba(29, 158, 117, 0.3); }
+.im-coachbox > div { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.im-coachbox b { font-size: 14.5px; font-weight: 600; }
+.im-coachbox span:not(.im-coach__av) { font-size: 13px; color: var(--pc-t3); }
+.im-coachbox .pc-btn { text-decoration: none; }
+.im-side__btn { text-decoration: none; box-sizing: border-box; }
+.im-side__link { appearance: none; border: 0; background: transparent; color: var(--pc-t3); font: inherit; font-size: 12.5px; cursor: pointer; padding: 2px 0; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
+.im-side__link:hover:not(:disabled) { color: var(--pc-t1); }
+.im-side__link:disabled { cursor: default; text-decoration: none; }
+@media (max-width: 900px) { .im-coachbox { flex-wrap: wrap; } }
+.im-coach .pc-btn { text-decoration: none; }

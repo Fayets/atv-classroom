@@ -74,7 +74,6 @@ export default function InicioPage() {
   const recomendaciones = resultado?.recomendaciones ?? []
   const frenteSugerido = resultado?.frente ? problemas.find((p) => p.slug === resultado.frente.slug) : null
   const abiertos = problemas.filter((p) => p.frente)
-  const coach = datos?.coach?.nombre
   const nombre = user?.nombre?.split(' ')[0]
 
   return (
@@ -175,6 +174,20 @@ export default function InicioPage() {
                               </li>
                             ))}
                           </ol>
+                          {resultado.coach ? (
+                            <div className="im-coachbox">
+                              <span className="im-coach__av" aria-hidden="true">
+                                {resultado.coach.nombre.slice(0, 2).toUpperCase()}
+                              </span>
+                              <div>
+                                <b>Cuando lo implementes, revisalo con {resultado.coach.nombre}</b>
+                                <span>{resultado.coach.area}</span>
+                              </div>
+                              <a href={resultado.coach.agenda_url} target="_blank" rel="noopener noreferrer" className="pc-btn pc-btn--ghost">
+                                Agendar call
+                              </a>
+                            </div>
+                          ) : null}
                           {frenteSugerido ? (
                             <div className="im-frentebox">
                               <div>
@@ -190,19 +203,26 @@ export default function InicioPage() {
                       ) : resultado && !resultado.error ? (
                         <div className="im-route im-route--coach" key={resultado.texto}>
                           <p className="im-route__lead">
-                            No hay una clase ni un SOP que resuelva esto, y no te vamos a inventar una respuesta. Lo ve {coach ?? 'tu coach'}.
+                            No hay una clase ni un SOP que cubra esto, y no te vamos a inventar una respuesta.{' '}
+                            {resultado.coach ? `Lo ves en una call con ${resultado.coach.nombre}.` : 'Lo ve tu coach.'}
                           </p>
                           <div className="im-coach">
                             <span className="im-coach__av" aria-hidden="true">
-                              {(coach ?? 'C').slice(0, 2).toUpperCase()}
+                              {(resultado.coach?.nombre ?? 'ATV').slice(0, 2).toUpperCase()}
                             </span>
                             <div>
-                              <b>{coach ?? 'Tu coach'}</b>
-                              <span>Tu consulta queda registrada para que la vea</span>
+                              <b>{resultado.coach?.nombre ?? 'Tu coach'}</b>
+                              <span>{resultado.coach?.area ?? 'Tu consulta queda registrada para que la vea'}</span>
                             </div>
-                            <button type="button" className={`pc-btn ${consulta.estado === 'enviada' ? 'pc-btn--ghost' : 'pc-btn--light'}`} onClick={mandarAlCoach} disabled={consulta.estado === 'enviando' || consulta.estado === 'enviada'}>
-                              {consulta.estado === 'enviada' ? 'Consulta enviada' : consulta.estado === 'enviando' ? 'Enviando…' : 'Mandarle la consulta'}
-                            </button>
+                            {resultado.coach ? (
+                              <a href={resultado.coach.agenda_url} target="_blank" rel="noopener noreferrer" className="pc-btn pc-btn--light">
+                                Agendar call
+                              </a>
+                            ) : (
+                              <button type="button" className={`pc-btn ${consulta.estado === 'enviada' ? 'pc-btn--ghost' : 'pc-btn--light'}`} onClick={mandarAlCoach} disabled={consulta.estado === 'enviando' || consulta.estado === 'enviada'}>
+                                {consulta.estado === 'enviada' ? 'Consulta enviada' : consulta.estado === 'enviando' ? 'Enviando…' : 'Mandarle la consulta'}
+                              </button>
+                            )}
                           </div>
                           {consulta.estado === 'error' ? <p className="im-error">No se pudo enviar. Probá de nuevo.</p> : null}
                         </div>

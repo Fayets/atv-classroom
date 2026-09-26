@@ -14,7 +14,7 @@ from decouple import config
 from pony.orm import db_session
 
 from src.models import Clase
-from src.services.frente_service import BRIEFS, CATALOGO, PROBLEMAS
+from src.services.frente_service import BRIEFS, CATALOGO, COACHES, PROBLEMAS, coach_de_clase
 from src.utils.clase_content import serializar_recursos
 
 logger = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ _MODEL = config("GUIA_MODEL", default="claude-haiku-4-5")
 _TIMEOUT_SEGUNDOS = 25
 _MAX_RECOMENDACIONES = 4
 _SLUGS = [p["slug"] for p in CATALOGO["problemas"]]
+_AREAS = list(COACHES["coaches"].keys())
 
 _catalogo_texto: str | None = None
 
@@ -69,7 +70,9 @@ def _system() -> list[dict]:
         f"- Recomendá entre 1 y {_MAX_RECOMENDACIONES} clases, las más directas primero. Solo ids que estén en el catálogo.\n"
         "- En 'cubre' copiá textual el fragmento del mensaje del cliente que esa clase ataca.\n"
         "- Si ninguna clase trata de verdad lo que pregunta (impuestos, temas legales, algo personal, algo que ATV no enseña), devolvé la lista vacía.\n"
-        "- 'frente' es el problema de la lista que coincide con lo que cuenta, o 'ninguno'.\n\n"
+        "- 'frente' es el problema de la lista que coincide con lo que cuenta, o 'ninguno'.\n"
+        "- 'area' es el área de ATV a la que pertenece la consulta, aunque no haya clase que la cubra, o 'ninguno' si es ajena al negocio.\n\n"
+        "Áreas:\n" + "\n".join(f"- {k}: {v['area']}" for k, v in COACHES["coaches"].items()) + "\n\n"
         f"Frentes de trabajo:\n{frentes}\n\n"
         "Catálogo de clases (id | módulo › sección › título | temas):\n" + _catalogo()
     )
@@ -96,8 +99,9 @@ _TOOL = {
                 },
             },
             "frente": {"type": "string", "enum": [*_SLUGS, "ninguno"]},
+            "area": {"type": "string", "enum": [*_AREAS, "ninguno"]},
         },
-        "required": ["recomendaciones", "frente"],
+        "required": ["recomendaciones", "frente", "area"],
         "additionalProperties": False,
     },
 }
@@ -178,7 +182,12 @@ def _normalizar_salida(datos) -> dict | None:
             continue
         limpias.append({"clase_id": clase_id, "cubre": str(rec.get("cubre") or "")})
     frente = datos.get("frente")
-    return {"recomendaciones": limpias, "frente": frente if isinstance(frente, str) else "ninguno"}
+    area = datos.get("area")
+    return {
+        "recomendaciones": limpias,
+        "frente": frente if isinstance(frente, str) else "ninguno",
+        "area": area if isinstance(area, str) else "ninguno",
+    }
 
 
 def _tarjeta(clase: Clase, cubre: str | None) -> dict:
@@ -192,6 +201,7 @@ def _tarjeta(clase: Clase, cubre: str | None) -> dict:
         "recursos": serializar_recursos(clase),
         "cubre": cubre,
         "resumen": brief["resumen"] if brief else None,
+        "coach": coach_de_clase(clase),
     }
 
 
@@ -237,8 +247,15 @@ def _armar(texto: str, ia: dict | None) -> dict:
                     if clase:
                         recomendaciones.append(_tarjeta(clase, None))
 
+    # La revisión se agenda con el coach del tema principal (la primera recomendación con coach).
+    coach = next((r["coach"] for r in recomendaciones if r["coach"]), None)
+    # Sin clases que lo cubran, igual se deriva al coach del área que eligió la IA.
+    area = (ia or {}).get("area")
+    if coach is None and area in COACHES["coaches"]:
+        coach = {"clave": area, **COACHES["coaches"][area]}
     return {
         "recomendaciones": recomendaciones,
+        "coach": coach,
         "frente": {"slug": frente, "titulo": PROBLEMAS[frente]["titulo"]} if frente else None,
         "fuente": fuente,
     }
