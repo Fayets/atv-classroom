@@ -46,6 +46,11 @@ def actualizar_frente(slug: str, body: FrentePatch, sesion: dict = Depends(obten
     return service.actualizar(slug, sesion["usuario_id"], _tipo(sesion), body.model_dump(exclude_unset=True))
 
 
+@router.delete("/frentes/{slug}", status_code=204)
+def eliminar_frente(slug: str, sesion: dict = Depends(obtener_sesion_desde_request)):
+    service.eliminar(slug, sesion["usuario_id"], _tipo(sesion))
+
+
 @router.post("/guia")
 async def guia(body: GuiaRequest, sesion: dict = Depends(obtener_sesion_desde_request)):
     try:

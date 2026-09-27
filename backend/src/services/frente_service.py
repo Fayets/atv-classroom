@@ -153,6 +153,14 @@ class FrenteServices:
             frente.actualizado_en = datetime.utcnow()
             return _estado(problema, frente)
 
+    def eliminar(self, slug: str, usuario_id: int, tipo: str) -> None:
+        _problema(slug)
+        with db_session:
+            frente = _frente(usuario_id, tipo, slug)
+            if frente is None:
+                raise HTTPException(status_code=404, detail="Ese frente no está abierto.")
+            frente.delete()
+
     def registrar_consulta(self, usuario_id: int, tipo: str, texto: str, slug: str | None) -> dict:
         if slug is not None:
             _problema(slug)

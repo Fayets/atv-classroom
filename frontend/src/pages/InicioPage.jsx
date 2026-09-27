@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { enviarConsultaCoach, fetchFrentes, preguntarGuia } from '../api/frentes'
+import { eliminarFrente, enviarConsultaCoach, fetchFrentes, preguntarGuia } from '../api/frentes'
 import AppHeader from '../components/AppHeader'
 import AccesoRestante from '../components/AccesoRestante'
 import { Chevron } from '../components/frentes/piezas'
@@ -24,6 +24,8 @@ export default function InicioPage() {
   const [pensando, setPensando] = useState(false)
   const [resultado, setResultado] = useState(null)
   const [pregunta, setPregunta] = useState('')
+  const [quitando, setQuitando] = useState(null)
+  const [borrando, setBorrando] = useState(false)
   const [consulta, setConsulta] = useState({ estado: 'idle', texto: '' })
 
   useEffect(() => {
@@ -50,6 +52,19 @@ export default function InicioPage() {
       setResultado({ error: err instanceof Error ? err.message : 'La guía no respondió. Probá de nuevo.' })
     } finally {
       setPensando(false)
+    }
+  }
+
+  async function quitarFrente(slug) {
+    setBorrando(true)
+    try {
+      await eliminarFrente(slug)
+      setDatos((prev) => ({ ...prev, problemas: prev.problemas.map((p) => (p.slug === slug ? { ...p, frente: null } : p)) }))
+      setQuitando(null)
+    } catch {
+      setError('No se pudo quitar el frente. Probá de nuevo.')
+    } finally {
+      setBorrando(false)
     }
   }
 
@@ -241,17 +256,40 @@ export default function InicioPage() {
           <section className="im-sec">
             <h2>Tus frentes abiertos</h2>
             <div className="im-open">
-              {abiertos.map((p) => (
-                <Link key={p.slug} to={`/frentes/${p.slug}`} className="im-open__row">
-                  <span className="im-open__area">{p.area}</span>
-                  <b>{p.titulo}</b>
-                  <Pasos paso={p.frente.paso} />
-                  <span className="im-open__next">
-                    {proximoPaso(p.frente.paso)}
-                    <Chevron />
-                  </span>
-                </Link>
-              ))}
+              {abiertos.map((p) =>
+                quitando === p.slug ? (
+                  <div key={p.slug} className="im-open__confirm" role="group" aria-label={`Quitar ${p.titulo}`}>
+                    <span>
+                      ¿Quitar <b>{p.titulo}</b>? Se borra tu avance y el link de tu SOP.
+                    </span>
+                    <div>
+                      <button type="button" className="pc-btn pc-btn--ghost" onClick={() => setQuitando(null)} disabled={borrando}>
+                        Cancelar
+                      </button>
+                      <button type="button" className="pc-btn pc-complete" onClick={() => quitarFrente(p.slug)} disabled={borrando}>
+                        {borrando ? 'Quitando…' : 'Quitar'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div key={p.slug} className="im-open__item">
+                    <Link to={`/frentes/${p.slug}`} className="im-open__row">
+                      <span className="im-open__area">{p.area}</span>
+                      <b>{p.titulo}</b>
+                      <Pasos paso={p.frente.paso} />
+                      <span className="im-open__next">
+                        {proximoPaso(p.frente.paso)}
+                        <Chevron />
+                      </span>
+                    </Link>
+                    <button type="button" className="im-open__x" onClick={() => setQuitando(p.slug)} aria-label={`Quitar ${p.titulo}`} title="Quitar este frente">
+                      <svg viewBox="0 0 12 12" aria-hidden="true">
+                        <path d="M3 3l6 6M9 3l-6 6" />
+                      </svg>
+                    </button>
+                  </div>
+                ),
+              )}
             </div>
           </section>
         ) : null}

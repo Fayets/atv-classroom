@@ -22,3 +22,7 @@ export function preguntarGuia(texto) {
 export function enviarConsultaCoach(texto, slug = null) {
   return request('/api/consultas', { method: 'POST', body: JSON.stringify({ texto, slug }) })
 }
+
+export function eliminarFrente(slug) {
+  return request(`/api/frentes/${encodeURIComponent(slug)}`, { method: 'DELETE' })
+}

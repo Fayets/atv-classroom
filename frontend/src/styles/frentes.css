@@ -148,7 +148,15 @@
 /* ---------- secciones ---------- */
 .im-sec h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 16px; }
 .im-open { display: flex; flex-direction: column; border-top: 1px solid var(--pc-line); }
-.im-open__row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 300px 170px; gap: 20px; align-items: center; padding: 20px 4px; border-bottom: 1px solid var(--pc-line); color: var(--pc-t1); text-decoration: none; transition: background-color 150ms ease; }
+.im-open__item { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; border-bottom: 1px solid var(--pc-line); }
+.im-open__row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 300px 170px; gap: 20px; align-items: center; padding: 20px 4px; color: var(--pc-t1); text-decoration: none; transition: background-color 150ms ease; }
+.im-open__x { appearance: none; border: 0; background: transparent; width: 32px; height: 32px; justify-self: end; border-radius: 8px; display: grid; place-items: center; color: var(--pc-t4); cursor: pointer; transition: color 150ms ease, background-color 150ms ease; }
+.im-open__x svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.im-open__x:hover { color: var(--pc-t1); background: rgba(255, 255, 255, 0.06); }
+.im-open__x:focus-visible { outline: 2px solid rgba(214, 92, 92, 0.6); outline-offset: 2px; }
+.im-open__confirm { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 4px; border-bottom: 1px solid var(--pc-line); font-size: 14.5px; color: var(--pc-t2); animation: pc-fade 160ms ease; }
+.im-open__confirm b { color: var(--pc-t1); font-weight: 600; }
+.im-open__confirm > div { display: flex; gap: 8px; }
 .im-open__row:hover { background: rgba(255, 255, 255, 0.025); }
 .im-open__area { font-size: 13px; color: var(--pc-t3); }
 .im-open__row b { font-size: 18px; font-weight: 600; letter-spacing: -0.015em; }
