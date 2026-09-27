@@ -53,7 +53,7 @@
 .lg-brand__copy { display: flex; flex-direction: column; gap: 20px; }
 .lg-brand__copy h1 {
   margin: 0;
-  font-size: clamp(44px, 4.6vw, 72px);
+  font-size: clamp(56px, 8vw, 128px);
   font-weight: 600;
   letter-spacing: -0.045em;
   line-height: 1.02;
@@ -67,7 +67,6 @@
 .lg-metodo li + li { padding-left: 26px; }
 .lg-metodo li + li::before { content: '+'; position: absolute; left: 0; top: 17px; font-size: 22px; font-weight: 500; color: var(--lg-red2); }
 .lg-metodo__t { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: var(--lg-t1); }
-.lg-eq { color: var(--lg-red2); }
 .lg-metodo b { color: var(--lg-t1); font-weight: 600; }
 
 /* ---------- formulario ---------- */
@@ -146,7 +145,7 @@
   .lg-root { grid-template-columns: 1fr; }
   .lg-brand { border-right: 0; border-bottom: 1px solid var(--lg-line); padding: 32px 20px 28px; gap: 28px; }
   .lg-brand__logo { width: 40px; }
-  .lg-brand__copy h1 { font-size: 34px; }
+  .lg-brand__copy h1 { font-size: 56px; }
   .lg-brand__copy p { font-size: 15px; }
   .lg-metodo { display: flex; flex-wrap: wrap; gap: 0; }
   .lg-metodo li { padding: 14px 10px 0 0; }

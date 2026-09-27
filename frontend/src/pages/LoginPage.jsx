@@ -67,12 +67,8 @@ export default function LoginPage() {
         <div className="lg-brand__glow" aria-hidden="true" />
         <img src="/atv-logo.png" alt="ATV · Aumenta Tu Valor" className="lg-brand__logo" width={56} height={72} />
         <div className="lg-brand__copy">
-          <h1>
-            Implementación
-            <br />
-            <span className="lg-eq">=</span> resultado inevitable.
-          </h1>
-          <p>En ATV no comprás información. Cada problema de tu negocio se resuelve con tres piezas:</p>
+          <h1>Implementá.</h1>
+          <p>En ATV no comprás información. Cada problema de tu negocio se resuelve con tres piezas, y el resultado es inevitable:</p>
         </div>
         <ol className="lg-metodo">
           {METODO.map((m) => (
