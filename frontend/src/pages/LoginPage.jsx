@@ -4,13 +4,6 @@ import { ApiError } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import '../styles/login.css'
 
-// Las portadas de los módulos suben en tres columnas detrás del logo.
-const COLUMNAS = [
-  ['start-here', 'marketing', 'ads', 'systems'],
-  ['advantage', 'sales', 'launch', 'case-of-study'],
-  ['business-foundations', 'product', 'creator-acquisition', 'live-sessions-mentoria'],
-]
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 
@@ -65,17 +58,12 @@ export default function LoginPage() {
   return (
     <div className="lg-root">
       <section className="lg-brand" aria-label="ATV · Aumenta Tu Valor">
-        <div className="lg-mosaic" aria-hidden="true">
-          {COLUMNAS.map((col, i) => (
-            <div key={i} className="lg-mosaic__col">
-              {[...col, ...col].map((slug, j) => (
-                <img key={`${slug}-${j}`} src={`/modules/${slug}.png`} alt="" loading={j < col.length ? 'eager' : 'lazy'} />
-              ))}
-            </div>
-          ))}
+        <div className="lg-brand__panel">
+          <div className="lg-brand__light" aria-hidden="true" />
+          <img src="/atv-logo.png" alt="ATV · Aumenta Tu Valor" className="lg-brand__logo" width={72} height={94} />
+          <span className="lg-brand__rule" aria-hidden="true" />
+          <div className="lg-brand__grain" aria-hidden="true" />
         </div>
-        <div className="lg-brand__glow" aria-hidden="true" />
-        <img src="/atv-logo.png" alt="ATV · Aumenta Tu Valor" className="lg-brand__logo" width={72} height={94} />
       </section>
 
       <main className="lg-panel">
