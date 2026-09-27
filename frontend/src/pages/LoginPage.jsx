@@ -4,10 +4,11 @@ import { ApiError } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import '../styles/login.css'
 
-// Las portadas de los módulos suben en dos columnas detrás del logo, en una franja lateral.
+// Las portadas de los módulos suben en tres columnas detrás del logo.
 const COLUMNAS = [
-  ['start-here', 'marketing', 'ads', 'systems', 'business-foundations', 'creator-acquisition'],
-  ['advantage', 'sales', 'launch', 'product', 'case-of-study', 'live-sessions-mentoria'],
+  ['start-here', 'marketing', 'ads', 'systems'],
+  ['advantage', 'sales', 'launch', 'case-of-study'],
+  ['business-foundations', 'product', 'creator-acquisition', 'live-sessions-mentoria'],
 ]
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

@@ -14,7 +14,7 @@
 
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: 380px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   background: var(--lg-bg);
   color: var(--lg-t1);
   font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -35,12 +35,13 @@
   position: absolute;
   inset: 0 12px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  opacity: 0.4;
+  opacity: 0.3;
 }
 .lg-mosaic__col { display: flex; flex-direction: column; gap: 12px; animation: lg-sube 44s linear infinite; will-change: transform; }
 .lg-mosaic__col:nth-child(2) { animation-duration: 52s; animation-direction: reverse; }
+.lg-mosaic__col:nth-child(3) { animation-duration: 48s; }
 .lg-mosaic__col img { display: block; width: 100%; aspect-ratio: 1024 / 527; object-fit: cover; border-radius: 9px; }
 @keyframes lg-sube { to { transform: translateY(calc(-50% - 6px)); } }
 /* viñeta: oscurece bordes y centro para que el logo mande */
