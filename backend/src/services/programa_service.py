@@ -89,6 +89,7 @@ class ProgramaServices:
                         usuario_id,
                         tipo,
                     ),
+                    "total_clases": len(_clases_de_programa(programa.id)),
                 }
                 for programa in programas_ordenados
             ]

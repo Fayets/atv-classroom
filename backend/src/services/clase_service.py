@@ -5,6 +5,7 @@ from pony.orm import db_session
 
 from src.db import db
 from src.models import Clase, Nota, Progreso
+from src.services.frente_service import BRIEFS, coach_de_clase
 from src.utils.clase_content import serializar_recursos
 
 
@@ -59,6 +60,9 @@ class ClaseServices:
                 if progreso is not None and progreso.completado_en is not None
                 else None,
                 "nota": nota.contenido if nota is not None else None,
+                "resumen": BRIEFS.get(str(clase.id), {}).get("resumen"),
+                "claves": BRIEFS.get(str(clase.id), {}).get("claves", []),
+                "coach": coach_de_clase(clase),
             }
 
     def marcar_progreso(

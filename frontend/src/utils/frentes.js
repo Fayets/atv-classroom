@@ -29,3 +29,15 @@ export function tituloLindo(titulo) {
 export function proximoPaso(paso) {
   return ['Mirá y aplicá las clases', 'Armá tu SOP', 'Automatizalo', 'Implementado'][paso] ?? ''
 }
+
+// Muchas descripciones son el pedido del mentor de etiquetarlo en Instagram:
+// se separa para no mostrarlo como si fuera el contenido de la clase.
+export function partirDescripcion(texto) {
+  if (!texto?.trim()) return { cuerpo: '', mentor: null }
+  const esPromo = /instagram|etiquet/i.test(texto) && texto.length < 480
+  if (!esPromo) return { cuerpo: texto.trim(), mentor: null }
+  const handles = [...texto.matchAll(/@([\w.]+)/g)].map((m) => m[1].replace(/\.+$/, ''))
+  const lineas = texto.trim().split('\n').map((l) => l.trim()).filter(Boolean)
+  const firma = lineas[lineas.length - 1]?.split(/[-,]/).pop().trim()
+  return { cuerpo: '', mentor: { nombre: firma && firma.length < 24 ? firma : null, handles } }
+}

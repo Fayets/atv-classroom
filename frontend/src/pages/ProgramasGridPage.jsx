@@ -1,151 +1,85 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { ApiError, fetchProgramas } from '../api/client'
 import AppHeader from '../components/AppHeader'
-import AccesoRestante from '../components/AccesoRestante'
-import MainNav from '../components/MainNav'
-
+import { Chevron } from '../components/frentes/piezas'
 import { getModuloCoverUrl } from '../utils/modules'
+import '../styles/frentes.css'
+import '../styles/material.css'
 
-function ModuleCard({ modulo, onSelect }) {
-  const progreso = Math.min(100, Math.max(0, modulo.porcentaje_progreso ?? 0))
-  const label = modulo.titulo || 'Módulo'
-  const coverUrl = getModuloCoverUrl(modulo)
-
-  return (
-    <article
-      className="module-card"
-      role="button"
-      tabIndex={0}
-      aria-label={label}
-      onClick={() => onSelect(modulo.id)}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
-          onSelect(modulo.id)
-        }
-      }}
-    >
-      {coverUrl ? (
-        <img
-          src={coverUrl}
-          alt=""
-          className="module-card__img"
-          loading="lazy"
-        />
-      ) : (
-        <div className="module-card__fallback" aria-hidden="true">
-          {label}
-        </div>
-      )}
-      {progreso > 0 ? (
-        <div className="module-card__progress" aria-hidden="true">
-          <div
-            className="module-card__progress-fill"
-            style={{ width: `${progreso}%` }}
-          />
-        </div>
-      ) : null}
-    </article>
-  )
-}
-
+// Todo el material, módulo por módulo. Al día a día se entra por la guía del inicio.
 export default function ProgramasGridPage() {
-  const navigate = useNavigate()
-
-  const [programas, setProgramas] = useState([])
-  const [cargando, setCargando] = useState(true)
+  const [programas, setProgramas] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    let cancelled = false
-
-    async function loadProgramas() {
-      setCargando(true)
-      setError('')
-
-      try {
-        const data = await fetchProgramas()
-        if (!cancelled) {
-          setProgramas(Array.isArray(data) ? data : [])
-        }
-      } catch (err) {
-        if (cancelled) return
-        if (err instanceof ApiError && err.status === 401) {
-          return
-        }
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'No se pudieron cargar los módulos.',
-        )
-      } finally {
-        if (!cancelled) {
-          setCargando(false)
-        }
-      }
-    }
-
-    loadProgramas()
-
+    let cancelado = false
+    fetchProgramas()
+      .then((data) => {
+        if (!cancelado) setProgramas(Array.isArray(data) ? data : [])
+      })
+      .catch((err) => {
+        if (cancelado || (err instanceof ApiError && err.status === 401)) return
+        setError(err instanceof Error ? err.message : 'No se pudieron cargar los módulos.')
+      })
     return () => {
-      cancelled = true
+      cancelado = true
     }
   }, [])
 
-  function handleSelectModulo(id) {
-    navigate(`/classroom/${id}`)
-  }
-
   return (
-    <div className="app-shell hub-page classroom-page">
-      <div className="hub-page__halo" aria-hidden="true" />
-
+    <div className="app-shell im-root">
       <AppHeader />
+      <main className="mt-grid-page">
+        <header className="mt-grid-head">
+          <Link to="/" className="im-back">
+            <Chevron dir="left" /> Inicio
+          </Link>
+          <h1>Todo el material</h1>
+        </header>
 
-      <main className="hub-page__main classroom-page__main">
-        <div className="hub-page__hero classroom-page__hero">
-          <p className="hub-page__eyebrow">Aumenta tu valor</p>
-
-          <h1 className="hub-page__title">
-            Tus{' '}
-            <em className="hub-page__title-em">módulos</em>
-          </h1>
-
-          <MainNav activeTab="classroom" />
-
-          <AccesoRestante />
-        </div>
-
-        <div className="classroom-page__content">
-          {cargando ? (
-            <div className="page-state page-state--plain">
-              <p className="page-state__title">Cargando módulos…</p>
-            </div>
-          ) : error ? (
-            <div className="page-state page-state--error">
-              <p className="page-state__title">No se pudo cargar el contenido</p>
-              <p className="page-state__text">{error}</p>
-            </div>
-          ) : programas.length === 0 ? (
-            <div className="page-state page-state--plain">
-              <p className="page-state__title">Todavía no hay módulos</p>
-              <p className="page-state__text">
-                Cuando se publiquen cursos, van a aparecer acá.
-              </p>
-            </div>
-          ) : (
-            <div className="modulos-grid">
-              {programas.map((modulo) => (
-                <ModuleCard
-                  key={modulo.id}
-                  modulo={modulo}
-                  onSelect={handleSelectModulo}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        {error ? (
+          <p className="im-error">{error}</p>
+        ) : !programas ? (
+          <p className="pc-loading">Cargando módulos…</p>
+        ) : (
+          <div className="mt-grid">
+            {programas.map((m, i) => {
+              const vacio = !m.total_clases
+              const pct = Math.min(100, Math.max(0, m.porcentaje_progreso ?? 0))
+              const contenido = (
+                <>
+                  <span className="mt-card__cover">
+                    <img src={getModuloCoverUrl(m)} alt="" loading="lazy" />
+                  </span>
+                  <span className="mt-card__info">
+                    <span className="mt-card__row">
+                      <b>{m.titulo}</b>
+                      <span className="num">{vacio ? 'Próximamente' : `${m.total_clases} clases`}</span>
+                    </span>
+                    {vacio ? null : (
+                      <span className="mt-card__row">
+                        <span className="mt-bar" aria-hidden="true">
+                          <i style={{ transform: `scaleX(${pct / 100})` }} />
+                        </span>
+                        <span className="num mt-card__pct">{pct}%</span>
+                      </span>
+                    )}
+                  </span>
+                </>
+              )
+              return vacio ? (
+                <div key={m.id} className="mt-card is-soon" style={{ '--i': i }}>
+                  {contenido}
+                </div>
+              ) : (
+                <Link key={m.id} to={`/classroom/${m.id}`} className="mt-card" style={{ '--i': i }}>
+                  {contenido}
+                </Link>
+              )
+            })}
+          </div>
+        )}
       </main>
     </div>
   )

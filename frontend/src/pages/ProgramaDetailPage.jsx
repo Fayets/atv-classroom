@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import {
   ApiError,
   fetchClase,
@@ -7,9 +7,11 @@ import {
   updateProgreso,
 } from '../api/client'
 import AppHeader from '../components/AppHeader'
+import '../styles/frentes.css'
+import '../styles/material.css'
 import ClaseViewer from '../components/ClaseViewer'
 import ProgramaSidebar from '../components/ProgramaSidebar'
-import { getModuloCoverUrl } from '../utils/modules'
+import { Chevron } from '../components/frentes/piezas'
 import { flattenClases, navegacionClase } from '../utils/programa'
 
 function primeraClaseId(secciones) {
@@ -46,7 +48,6 @@ function actualizarClaseEnPrograma(programa, claseId, completado) {
 export default function ProgramaDetailPage() {
   const { programaId } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const navigate = useNavigate()
 
   const [programa, setPrograma] = useState(null)
   const [claseDetalle, setClaseDetalle] = useState(null)
@@ -191,115 +192,63 @@ export default function ProgramaDetailPage() {
     }
   }
 
-  const progreso = Math.min(
-    100,
-    Math.max(0, programa?.porcentaje_progreso ?? 0),
-  )
-  const coverUrl = getModuloCoverUrl(programa)
   const clasesFlat = programa ? flattenClases(programa.secciones) : []
   const nav = navegacionClase(clasesFlat, claseActivaId)
-  const seccionActiva = nav.actual?.seccionTitulo ?? null
 
   return (
-    <div className={`app-shell${tieneContenido ? ' app-shell--player' : ''}`}>
+    <div className="app-shell im-root">
       <AppHeader />
 
-      <main
-        className={`programa-detail${tieneContenido ? ' programa-detail--player' : ''}`}
-      >
-        {!tieneContenido ? (
-          <div className="programa-detail__topbar">
-            <button
-              type="button"
-              className="programa-detail__back"
-              onClick={() => navigate('/classroom')}
-            >
-              Classroom
-            </button>
-            <span className="programa-detail__sep">/</span>
-            <span className="programa-detail__current">
-              {programa?.titulo || `Módulo ${programaId}`}
-            </span>
-          </div>
-        ) : null}
-
-        {cargandoPrograma ? (
-          <div className="page-state page-state--plain">
-            <p className="page-state__title">Cargando módulo…</p>
-          </div>
-        ) : error && !programa ? (
-          <div className="page-state page-state--error">
-            <p className="page-state__title">No se pudo cargar el módulo</p>
-            <p className="page-state__text">{error}</p>
-            <Link to="/classroom" className="programa-detail__link">
-              Volver a Classroom
-            </Link>
-          </div>
-        ) : tieneContenido ? (
-          <div className="programa-detail__layout">
-            <ProgramaSidebar
-              titulo={programa.titulo}
-              totalClases={clasesFlat.length}
-              secciones={programa.secciones}
-              claseActivaId={claseActivaId}
-              onSelectClase={handleSelectClase}
-              onVolver={() => navigate('/classroom')}
-            />
-            <div className="programa-detail__main">
-              <div className="programa-detail__halo" aria-hidden="true" />
-              {error ? (
-                <p className="programa-detail__inline-error" role="alert">
-                  {error}
-                </p>
-              ) : null}
-              <ClaseViewer
-                clase={claseDetalle}
-                numero={nav.actual?.numero}
-                seccionTitulo={seccionActiva}
-                cargando={cargandoClase}
-                guardando={guardandoProgreso}
-                onToggleCompletado={handleToggleCompletado}
-              />
-            </div>
-          </div>
-        ) : (
-          <>
-            {coverUrl ? (
-              <div className="programa-detail__cover-wrap">
-                <img
-                  src={coverUrl}
-                  alt={programa.titulo}
-                  className="programa-detail__cover"
-                />
-                {progreso > 0 ? (
-                  <div className="programa-detail__progress">
-                    <span>Progreso {progreso}%</span>
-                    <div className="programa-detail__progress-track">
-                      <div
-                        className="programa-detail__progress-fill"
-                        style={{ width: `${progreso}%` }}
-                      />
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+      {cargandoPrograma ? (
+        <p className="pc-loading">Cargando módulo…</p>
+      ) : error && !programa ? (
+        <main className="im-home">
+          <p className="im-error">{error}</p>
+          <Link to="/classroom" className="im-back">
+            <Chevron dir="left" /> Todo el material
+          </Link>
+        </main>
+      ) : tieneContenido ? (
+        <main className="mt-player">
+          <ProgramaSidebar
+            titulo={programa.titulo}
+            secciones={programa.secciones}
+            claseActivaId={claseActivaId}
+            onSelectClase={handleSelectClase}
+          />
+          <section className="mt-main">
+            {error ? (
+              <p className="im-error" role="alert">
+                {error}
+              </p>
             ) : null}
-
-            <div className="page-state page-state--plain">
-              <p className="page-state__title">
-                {programa?.titulo || 'Módulo'}
-              </p>
-              <p className="page-state__text">
-                {programa?.descripcion ||
-                  'El contenido de clases se publicará pronto.'}
-              </p>
-              <Link to="/classroom" className="programa-detail__link">
-                Volver a Classroom
-              </Link>
-            </div>
-          </>
-        )}
-      </main>
+            <ClaseViewer
+              clase={claseDetalle}
+              modulo={programa.titulo}
+              seccionTitulo={nav.actual?.seccionTitulo}
+              numero={nav.actual?.numero}
+              total={nav.total}
+              anterior={nav.anterior}
+              siguiente={nav.siguiente}
+              cargando={cargandoClase}
+              guardando={guardandoProgreso}
+              onToggleCompletado={handleToggleCompletado}
+              onIr={(id) => {
+                handleSelectClase(id)
+                window.scrollTo({ top: 0 })
+              }}
+            />
+          </section>
+        </main>
+      ) : (
+        <main className="im-home mt-vacio">
+          <Link to="/classroom" className="im-back">
+            <Chevron dir="left" /> Todo el material
+          </Link>
+          <h1>{programa?.titulo || 'Módulo'}</h1>
+          <p className="pc-muted">{programa?.descripcion || 'Las clases de este módulo se publican pronto.'}</p>
+        </main>
+      )}
     </div>
   )
 }

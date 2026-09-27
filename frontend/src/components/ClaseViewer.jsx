@@ -1,202 +1,123 @@
-import DescripcionClase from './DescripcionClase'
-import {
-  formatDuracion,
-  getVideoEmbedInfo,
-} from '../utils/video'
-import { formatNumeroClase } from '../utils/programa'
+import { Check, Chevron, Recursos, Video } from './frentes/piezas'
+import { partirDescripcion, tituloLindo } from '../utils/frentes'
 
-function CheckCircleIcon({ done }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle
-        cx="12"
-        cy="12"
-        r="9"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        fill={done ? 'currentColor' : 'none'}
-      />
-      {done ? (
-        <path
-          d="M8 12l2.5 2.5L16 9"
-          stroke="#0e0e0e"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      ) : null}
-    </svg>
-  )
-}
-
-function VideoPlaceholder({ duracion }) {
-  return (
-    <div className="clase-viewer__video-placeholder">
-      <div className="clase-viewer__play-btn" aria-hidden="true">
-        <svg viewBox="0 0 48 48" fill="none">
-          <circle cx="24" cy="24" r="22" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M20 16l14 8-14 8V16z" fill="currentColor" />
-        </svg>
-      </div>
-      {duracion ? (
-        <span className="clase-viewer__duracion">{duracion}</span>
-      ) : null}
-    </div>
-  )
-}
-
-export default function ClaseViewer({
-  clase,
-  numero,
-  seccionTitulo,
-  cargando,
-  guardando,
-  onToggleCompletado,
-}) {
+export default function ClaseViewer({ clase, modulo, seccionTitulo, numero, total, anterior, siguiente, cargando, guardando, onToggleCompletado, onIr }) {
   if (cargando) {
-    return (
-      <div className="clase-viewer clase-viewer--loading">
-        <p className="clase-viewer__loading-text">Cargando clase…</p>
-      </div>
-    )
+    return <p className="pc-loading">Cargando clase…</p>
   }
 
   if (!clase) {
-    return (
-      <div className="clase-viewer clase-viewer--empty">
-        <p className="clase-viewer__empty-text">
-          Elegí una clase del menú para empezar.
-        </p>
-      </div>
-    )
+    return <p className="pc-loading">Elegí una clase para empezar.</p>
   }
 
-  const video = getVideoEmbedInfo(clase.video_url)
-  const duracion = formatDuracion(clase.duracion_segundos)
-  const tituloConNumero = numero
-    ? `${formatNumeroClase(numero)} ${clase.titulo}`
-    : clase.titulo
+  const { cuerpo, mentor } = partirDescripcion(clase.descripcion)
 
   return (
-    <article className="clase-viewer">
-      <header className="clase-viewer__header">
-        <div className="clase-viewer__header-text">
-          {seccionTitulo ? (
-            <p className="clase-viewer__section">{seccionTitulo}</p>
-          ) : null}
-          <h1 className="clase-viewer__title">{tituloConNumero}</h1>
+    <article className="mt-clase">
+      <header className="mt-clase__head">
+        <p className="mt-crumbs">
+          {modulo} <Chevron /> {tituloLindo(seccionTitulo)}
+          {numero ? <span className="num mt-crumbs__n">Clase {numero} de {total}</span> : null}
+        </p>
+        <div className="mt-clase__title">
+          <h1>{tituloLindo(clase.titulo)}</h1>
+          <button
+            type="button"
+            className={`pc-btn ${clase.completado ? 'pc-btn--ghost' : 'pc-complete'}`}
+            onClick={() => onToggleCompletado(!clase.completado)}
+            disabled={guardando}
+            aria-pressed={clase.completado}
+          >
+            <Check done={clase.completado} /> {clase.completado ? 'Vista' : 'Marcar como vista'}
+          </button>
         </div>
-        <button
-          type="button"
-          className={`clase-viewer__complete${clase.completado ? ' clase-viewer__complete--done' : ''}`}
-          onClick={() => onToggleCompletado(!clase.completado)}
-          disabled={guardando}
-          aria-pressed={clase.completado}
-          title={clase.completado ? 'Marcar como pendiente' : 'Marcar como completada'}
-        >
-          <CheckCircleIcon done={clase.completado} />
-          <span className="visually-hidden">
-            {clase.completado ? 'Completada' : 'Marcar completada'}
-          </span>
-        </button>
       </header>
 
-      <div className="clase-viewer__media-wrap">
-        <div className="clase-viewer__media">
-          {video?.type === 'iframe' ? (
-            <div className="clase-viewer__embed-wrap">
-              <iframe
-                src={video.src}
-                title={clase.titulo}
-                className="clase-viewer__embed"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                allowFullScreen
-              />
-              {duracion ? (
-                <span className="clase-viewer__duracion">{duracion}</span>
+      <Video clase={clase} className="mt-video" />
+
+      <div className="mt-body">
+        <div className="mt-body__main">
+          {clase.resumen ? (
+            <section className="mt-brief">
+              <p className="mt-brief__lead">{clase.resumen}</p>
+              {clase.claves?.length ? (
+                <ol>
+                  {clase.claves.map((k) => (
+                    <li key={k}>{k}</li>
+                  ))}
+                </ol>
               ) : null}
-            </div>
-          ) : video?.type === 'video' ? (
-            <div className="clase-viewer__embed-wrap">
-              <video
-                className="clase-viewer__video"
-                src={video.src}
-                controls
-                playsInline
-              />
-              {duracion ? (
-                <span className="clase-viewer__duracion">{duracion}</span>
-              ) : null}
-            </div>
-          ) : (
-            <VideoPlaceholder duracion={duracion} />
-          )}
-        </div>
-      </div>
+            </section>
+          ) : cuerpo ? (
+            <p className="mt-desc">{cuerpo}</p>
+          ) : null}
 
-      {clase.descripcion ? (
-        <DescripcionClase texto={clase.descripcion} />
-      ) : null}
-
-      {clase.recursos?.length > 0 ? (
-        <section className="clase-viewer__recursos">
-          <h2 className="clase-viewer__recursos-title">Recursos</h2>
-          <ul className="clase-viewer__recursos-list">
-            {clase.recursos.map((recurso) => {
-              const isPdf =
-                recurso.tipo === 'pdf' || recurso.url?.startsWith('/uploads/')
-
-              return (
-                <li key={recurso.id ?? `${recurso.titulo}-${recurso.url}`}>
-                  <a
-                    href={recurso.url}
-                    className="clase-viewer__recurso-link"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    {...(isPdf ? { download: `${recurso.titulo}.pdf` } : {})}
-                  >
-                    <span className="clase-viewer__recurso-icon" aria-hidden="true">
-                      {isPdf ? (
-                        <svg viewBox="0 0 24 24" fill="none">
-                          <path
-                            d="M8 4h6l4 4v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M14 4v4h4M9 13h6M9 17h4"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" fill="none">
-                          <path
-                            d="M8 12h8M14 8l4 4-4 4"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M16.5 6.5v9.75a4.25 4.25 0 01-8.5 0V5.75a2.75 2.75 0 015.5 0v10.5a1.5 1.5 0 01-3 0V6.5"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      )}
+          {mentor ? (
+            <p className="mt-mentor">
+              Clase de <b>{mentor.nombre ?? 'tu mentor'}</b>
+              {mentor.handles.length ? (
+                <>
+                  {' · '}
+                  {mentor.handles.map((h, i) => (
+                    <span key={h}>
+                      {i ? ', ' : ''}
+                      <a href={`https://instagram.com/${h}`} target="_blank" rel="noopener noreferrer">
+                        @{h}
+                      </a>
                     </span>
-                    <span>{recurso.titulo}</span>
-                  </a>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      ) : null}
+                  ))}
+                </>
+              ) : null}
+            </p>
+          ) : null}
+
+          <nav className="mt-nav" aria-label="Otras clases">
+            {anterior ? (
+              <button type="button" className="mt-nav__btn" onClick={() => onIr(anterior.id)}>
+                <small>
+                  <Chevron dir="left" /> Anterior
+                </small>
+                <b>{tituloLindo(anterior.titulo)}</b>
+              </button>
+            ) : (
+              <span />
+            )}
+            {siguiente ? (
+              <button type="button" className="mt-nav__btn mt-nav__btn--next" onClick={() => onIr(siguiente.id)}>
+                <small>
+                  Siguiente <Chevron />
+                </small>
+                <b>{tituloLindo(siguiente.titulo)}</b>
+              </button>
+            ) : null}
+          </nav>
+        </div>
+
+        <aside className="mt-body__side">
+          {clase.recursos?.length ? (
+            <div className="mt-box">
+              <p className="mt-box__t">Tu SOP y recursos</p>
+              <Recursos recursos={clase.recursos} />
+            </div>
+          ) : null}
+          {clase.coach ? (
+            <div className="mt-box">
+              <div className="im-coach im-coach--side">
+                <span className="im-coach__av" aria-hidden="true">
+                  {clase.coach.nombre.slice(0, 2).toUpperCase()}
+                </span>
+                <div>
+                  <b>Cuando lo implementes, revisalo con {clase.coach.nombre}</b>
+                  <span>{clase.coach.area}</span>
+                </div>
+              </div>
+              <a href={clase.coach.agenda_url} target="_blank" rel="noopener noreferrer" className="pc-btn pc-btn--ghost im-side__btn">
+                Agendar call
+              </a>
+            </div>
+          ) : null}
+        </aside>
+      </div>
     </article>
   )
 }

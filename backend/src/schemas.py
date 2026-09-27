@@ -36,6 +36,7 @@ class ProgramaListItem(BaseModel):
     descripcion: str | None = None
     cover_url: str | None = None
     porcentaje_progreso: int = 0
+    total_clases: int = 0
 
 
 class ClaseListItem(BaseModel):
@@ -78,6 +79,9 @@ class ClaseDetalleResponse(BaseModel):
     completado: bool = False
     completado_en: str | None = None
     nota: str | None = None
+    resumen: str | None = None
+    claves: list[str] = []
+    coach: dict | None = None
 
 
 class ClaseRecursoItem(BaseModel):
