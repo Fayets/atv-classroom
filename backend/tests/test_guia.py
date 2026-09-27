@@ -62,4 +62,4 @@ def test_acepta_la_lista_como_texto_json():
 def test_sin_clases_deriva_al_coach_del_area(monkeypatch):
     monkeypatch.setattr(guia_service, "_por_ia", _con_ia({"recomendaciones": [], "frente": "ninguno", "area": "juan-cruz"}))
     r = asyncio.run(guia_service.recomendar("no tengo clara la visión de mi empresa"))
-    assert r["recomendaciones"] == [] and r["coach"]["nombre"] == "Juan Cruz" and r["coach"]["agenda_url"]
+    assert r["recomendaciones"] == [] and r["coach"]["nombre"] == "Juan Cruz" and "agenda_url" not in r["coach"]

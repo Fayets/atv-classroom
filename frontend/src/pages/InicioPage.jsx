@@ -198,9 +198,6 @@ export default function InicioPage() {
                                 <b>Cuando lo implementes, revisalo con {resultado.coach.nombre}</b>
                                 <span>{resultado.coach.area}</span>
                               </div>
-                              <a href={resultado.coach.agenda_url} target="_blank" rel="noopener noreferrer" className="pc-btn pc-btn--ghost">
-                                Agendar call
-                              </a>
                             </div>
                           ) : null}
                           {frenteSugerido ? (
@@ -229,11 +226,7 @@ export default function InicioPage() {
                               <b>{resultado.coach?.nombre ?? 'Tu coach'}</b>
                               <span>{resultado.coach?.area ?? 'Tu consulta queda registrada para que la vea'}</span>
                             </div>
-                            {resultado.coach ? (
-                              <a href={resultado.coach.agenda_url} target="_blank" rel="noopener noreferrer" className="pc-btn pc-btn--light">
-                                Agendar call
-                              </a>
-                            ) : (
+                            {resultado.coach ? null : (
                               <button type="button" className={`pc-btn ${consulta.estado === 'enviada' ? 'pc-btn--ghost' : 'pc-btn--light'}`} onClick={mandarAlCoach} disabled={consulta.estado === 'enviando' || consulta.estado === 'enviada'}>
                                 {consulta.estado === 'enviada' ? 'Consulta enviada' : consulta.estado === 'enviando' ? 'Enviando…' : 'Mandarle la consulta'}
                               </button>

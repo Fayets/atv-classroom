@@ -289,18 +289,11 @@ export default function FrentePage() {
                   <span>{d.coach?.area ?? 'Cuando lo tengas implementado'}</span>
                 </div>
               </div>
-              {d.coach?.agenda_url && f.sop_link ? (
-                <a href={d.coach.agenda_url} target="_blank" rel="noopener noreferrer" className="pc-btn pc-complete im-side__btn">
-                  Agendar call con {coach}
-                </a>
-              ) : (
-                <>
-                  <button type="button" className="pc-btn pc-btn--ghost im-side__btn" disabled>
-                    Agendar call{coach ? ` con ${coach}` : ''}
-                  </button>
-                  <p className="pc-muted im-note">Se habilita cuando documentes tu SOP: la llamada es para revisar lo que implementaste.</p>
-                </>
-              )}
+              <p className="pc-muted im-note">
+                {f.sop_link
+                  ? `Con tu SOP documentado, revisalo con ${coach ?? 'tu coach'} en tu próxima llamada.`
+                  : `Cuando documentes tu SOP, lo revisás con ${coach ?? 'tu coach'}.`}
+              </p>
               <button type="button" className="im-side__link" onClick={pedirAyuda} disabled={ayuda === 'enviando' || ayuda === 'enviada'}>
                 {ayuda === 'enviada' ? 'Pedido registrado' : ayuda === 'enviando' ? 'Enviando…' : '¿Te trabaste antes? Pedí ayuda'}
               </button>

@@ -100,22 +100,6 @@ export default function ClaseViewer({ clase, modulo, seccionTitulo, numero, tota
               <Recursos recursos={clase.recursos} />
             </div>
           ) : null}
-          {clase.coach ? (
-            <div className="mt-box">
-              <div className="im-coach im-coach--side">
-                <span className="im-coach__av" aria-hidden="true">
-                  {clase.coach.nombre.slice(0, 2).toUpperCase()}
-                </span>
-                <div>
-                  <b>Cuando lo implementes, revisalo con {clase.coach.nombre}</b>
-                  <span>{clase.coach.area}</span>
-                </div>
-              </div>
-              <a href={clase.coach.agenda_url} target="_blank" rel="noopener noreferrer" className="pc-btn pc-btn--ghost im-side__btn">
-                Agendar call
-              </a>
-            </div>
-          ) : null}
         </aside>
       </div>
     </article>
