@@ -1,4 +1,5 @@
 import { Check, Chevron, Recursos, Video } from './frentes/piezas'
+import TextoFormateado from './frentes/TextoFormateado'
 import { partirDescripcion, tituloLindo } from '../utils/frentes'
 
 export default function ClaseViewer({ clase, modulo, seccionTitulo, numero, total, anterior, siguiente, cargando, guardando, onToggleCompletado, onIr }) {
@@ -49,7 +50,7 @@ export default function ClaseViewer({ clase, modulo, seccionTitulo, numero, tota
               ) : null}
             </section>
           ) : cuerpo ? (
-            <p className="mt-desc">{cuerpo}</p>
+            <TextoFormateado texto={cuerpo} className="mt-desc" />
           ) : null}
 
           {mentor ? (
