@@ -7,11 +7,7 @@ import '../styles/login.css'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // Implementación = SOP + explicación + 1 a 1 = resultado inevitable.
-const METODO = [
-  { t: 'SOP', d: 'El proceso paso a paso para resolver un problema específico de tu negocio.' },
-  { t: 'Explicación', d: 'Un video que te explica cada SOP, para que sepas qué hacer y por qué.' },
-  { t: '1 a 1', d: 'El criterio para aplicarlo en tu negocio: clases en vivo y chat 1 a 1 en Discord.' },
-]
+const METODO = [{ t: 'SOP' }, { t: 'Explicación' }, { t: '1 a 1' }]
 
 function validarEmail(value) {
   const limpio = value.trim()
@@ -68,13 +64,11 @@ export default function LoginPage() {
         <img src="/atv-logo.png" alt="ATV · Aumenta Tu Valor" className="lg-brand__logo" width={56} height={72} />
         <div className="lg-brand__copy">
           <h1>Implementá.</h1>
-          <p>En ATV no comprás información. Cada problema de tu negocio se resuelve con tres piezas, y el resultado es inevitable:</p>
         </div>
         <ol className="lg-metodo">
           {METODO.map((m) => (
             <li key={m.t}>
               <b className="lg-metodo__t">{m.t}</b>
-              <span>{m.d}</span>
             </li>
           ))}
         </ol>

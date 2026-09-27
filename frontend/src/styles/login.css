@@ -62,7 +62,7 @@
 }
 .lg-brand__copy p { margin: 0; max-width: 40ch; font-size: 17px; line-height: 1.55; color: var(--lg-t2); animation: lg-rise 700ms var(--lg-ease) 90ms both; }
 @keyframes lg-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-.lg-metodo { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--lg-line2); }
+.lg-metodo { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0; border-top: 1px solid var(--lg-line2); }
 .lg-metodo li { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 20px 24px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--lg-t3); }
 .lg-metodo li + li { padding-left: 26px; }
 .lg-metodo li + li::before { content: '+'; position: absolute; left: 0; top: 17px; font-size: 22px; font-weight: 500; color: var(--lg-red2); }
