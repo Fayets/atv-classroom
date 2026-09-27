@@ -4,10 +4,15 @@ import { ApiError } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import '../styles/login.css'
 
+// Las portadas de los módulos suben en tres columnas detrás del logo.
+const COLUMNAS = [
+  ['start-here', 'marketing', 'ads', 'systems'],
+  ['advantage', 'sales', 'launch', 'case-of-study'],
+  ['business-foundations', 'product', 'creator-acquisition', 'live-sessions-mentoria'],
+]
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// Implementación = SOP + explicación + 1 a 1 = resultado inevitable.
-const METODO = [{ t: 'SOP' }, { t: 'Explicación' }, { t: '1 a 1' }]
 
 function validarEmail(value) {
   const limpio = value.trim()
@@ -59,28 +64,22 @@ export default function LoginPage() {
 
   return (
     <div className="lg-root">
-      <section className="lg-brand" aria-label="ATV">
-        <div className="lg-brand__glow" aria-hidden="true" />
-        <img src="/atv-logo.png" alt="ATV · Aumenta Tu Valor" className="lg-brand__logo" width={56} height={72} />
-        <div className="lg-brand__copy">
-          <h1>Implementá.</h1>
-        </div>
-        <ol className="lg-metodo">
-          {METODO.map((m) => (
-            <li key={m.t}>
-              <b className="lg-metodo__t">{m.t}</b>
-            </li>
+      <section className="lg-brand" aria-label="ATV · Aumenta Tu Valor">
+        <div className="lg-mosaic" aria-hidden="true">
+          {COLUMNAS.map((col, i) => (
+            <div key={i} className="lg-mosaic__col">
+              {[...col, ...col].map((slug, j) => (
+                <img key={`${slug}-${j}`} src={`/modules/${slug}.png`} alt="" loading={j < col.length ? 'eager' : 'lazy'} />
+              ))}
+            </div>
           ))}
-        </ol>
+        </div>
+        <div className="lg-brand__glow" aria-hidden="true" />
+        <img src="/atv-logo.png" alt="ATV · Aumenta Tu Valor" className="lg-brand__logo" width={180} height={234} />
       </section>
 
       <main className="lg-panel">
         <form className="lg-form" onSubmit={handleSubmit} noValidate>
-          <header>
-            <h2>Entrá a tu programa</h2>
-            <p>Acceso exclusivo para clientes de ATV.</p>
-          </header>
-
           {error ? (
             <p className="lg-error" role="alert">
               {error}
@@ -141,7 +140,6 @@ export default function LoginPage() {
             {cargando ? 'Entrando…' : 'Entrar'}
           </button>
 
-          <p className="lg-help">¿No podés entrar? Escribile a tu coach por tu canal de Discord.</p>
         </form>
       </main>
     </div>

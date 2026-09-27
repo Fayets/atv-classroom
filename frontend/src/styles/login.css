@@ -1,4 +1,4 @@
-/* Login: marca y promesa a la izquierda, formulario a la derecha. */
+/* Login sin texto: portadas y logo a la izquierda, formulario a la derecha. */
 
 .lg-root {
   --lg-bg: #0b0b0c;
@@ -22,58 +22,62 @@
 }
 .lg-root ::selection { background: var(--lg-red); color: #fff; }
 
-/* ---------- marca ---------- */
+/* ---------- marca: portadas en movimiento y el logo encima ---------- */
 .lg-brand {
   position: relative;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 48px;
-  padding: 56px clamp(32px, 6vw, 96px);
+  display: grid;
+  place-items: center;
   border-right: 1px solid var(--lg-line);
+  background: #09090a;
+}
+.lg-mosaic {
+  position: absolute;
+  inset: 0 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  opacity: 0.42;
+}
+.lg-mosaic__col { display: flex; flex-direction: column; gap: 16px; animation: lg-sube 44s linear infinite; will-change: transform; }
+.lg-mosaic__col:nth-child(2) { animation-duration: 52s; animation-direction: reverse; }
+.lg-mosaic__col:nth-child(3) { animation-duration: 48s; }
+.lg-mosaic__col img { display: block; width: 100%; aspect-ratio: 1024 / 527; object-fit: cover; border-radius: 12px; }
+@keyframes lg-sube { to { transform: translateY(calc(-50% - 8px)); } }
+/* viñeta: oscurece bordes y centro para que el logo mande */
+.lg-brand::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background:
-    radial-gradient(90% 70% at 0% 100%, rgba(176, 69, 69, 0.22), transparent 60%),
-    radial-gradient(60% 50% at 100% 0%, rgba(176, 69, 69, 0.08), transparent 70%),
-    #09090a;
+    radial-gradient(38% 42% at 50% 50%, rgba(9, 9, 10, 0.88), rgba(9, 9, 10, 0.35) 70%, transparent),
+    linear-gradient(0deg, #09090a, transparent 18%, transparent 82%, #09090a),
+    linear-gradient(90deg, transparent 70%, rgba(9, 9, 10, 0.9));
 }
 .lg-brand__glow {
   position: absolute;
-  left: -10%;
-  bottom: -30%;
-  width: 70%;
+  z-index: 1;
+  width: min(560px, 80%);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(214, 92, 92, 0.25), transparent);
-  filter: blur(40px);
+  background: radial-gradient(closest-side, rgba(214, 92, 92, 0.34), transparent);
+  filter: blur(30px);
   pointer-events: none;
+  animation: lg-respira 5s ease-in-out infinite;
 }
-.lg-brand > *:not(.lg-brand__glow) { position: relative; }
-.lg-brand__logo { width: 56px; height: auto; filter: drop-shadow(0 0 24px rgba(214, 92, 92, 0.35)); }
-.lg-brand__copy { display: flex; flex-direction: column; gap: 20px; }
-.lg-brand__copy h1 {
-  margin: 0;
-  font-size: clamp(56px, 8vw, 128px);
-  font-weight: 600;
-  letter-spacing: -0.045em;
-  line-height: 1.02;
-  text-wrap: balance;
-  animation: lg-rise 700ms var(--lg-ease) both;
+@keyframes lg-respira { 0%, 100% { transform: scale(0.92); opacity: 0.75; } 50% { transform: scale(1.05); opacity: 1; } }
+.lg-brand__logo {
+  position: relative;
+  z-index: 2;
+  width: clamp(120px, 13vw, 190px);
+  height: auto;
+  filter: drop-shadow(0 0 40px rgba(214, 92, 92, 0.55));
 }
-.lg-brand__copy p { margin: 0; max-width: 40ch; font-size: 17px; line-height: 1.55; color: var(--lg-t2); animation: lg-rise 700ms var(--lg-ease) 90ms both; }
-@keyframes lg-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-.lg-metodo { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0; border-top: 1px solid var(--lg-line2); }
-.lg-metodo li { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 20px 24px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--lg-t3); }
-.lg-metodo li + li { padding-left: 26px; }
-.lg-metodo li + li::before { content: '+'; position: absolute; left: 0; top: 17px; font-size: 22px; font-weight: 500; color: var(--lg-red2); }
-.lg-metodo__t { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: var(--lg-t1); }
-.lg-metodo b { color: var(--lg-t1); font-weight: 600; }
 
 /* ---------- formulario ---------- */
 .lg-panel { display: grid; place-items: center; padding: 48px 32px; }
 .lg-form { width: min(400px, 100%); display: flex; flex-direction: column; gap: 20px; }
-.lg-form header h2 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.03em; }
-.lg-form header p { margin: 6px 0 0; font-size: 14.5px; color: var(--lg-t3); }
 .lg-field { display: flex; flex-direction: column; gap: 8px; }
 .lg-field label { font-size: 13px; font-weight: 500; color: var(--lg-t2); }
 .lg-field input {
@@ -139,23 +143,15 @@
 .lg-submit__spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; animation: lg-spin 700ms linear infinite; }
 @keyframes lg-spin { to { transform: rotate(360deg); } }
 .lg-error { margin: 0; padding: 12px 14px; border-radius: 10px; font-size: 14px; color: #f6c3c3; background: rgba(176, 69, 69, 0.16); box-shadow: inset 0 0 0 1px rgba(214, 92, 92, 0.35); }
-.lg-help { margin: 4px 0 0; font-size: 13px; color: var(--lg-t3); text-align: center; }
 
 @media (max-width: 900px) {
-  .lg-root { grid-template-columns: 1fr; }
-  .lg-brand { border-right: 0; border-bottom: 1px solid var(--lg-line); padding: 32px 20px 28px; gap: 28px; }
-  .lg-brand__logo { width: 40px; }
-  .lg-brand__copy h1 { font-size: 56px; }
-  .lg-brand__copy p { font-size: 15px; }
-  .lg-metodo { display: flex; flex-wrap: wrap; gap: 0; }
-  .lg-metodo li { padding: 14px 10px 0 0; }
-  .lg-metodo li + li { padding-left: 20px; }
-  .lg-metodo li + li::before { top: 11px; font-size: 18px; }
-  .lg-metodo li > span { display: none; }
-  .lg-metodo__t { font-size: 17px; }
+  .lg-root { grid-template-columns: 1fr; grid-template-rows: 240px 1fr; }
+  .lg-brand { border-right: 0; border-bottom: 1px solid var(--lg-line); }
+  .lg-brand__logo { width: 88px; }
+  .lg-brand::after { background: radial-gradient(50% 60% at 50% 50%, rgba(9, 9, 10, 0.85), rgba(9, 9, 10, 0.4) 70%, transparent), linear-gradient(0deg, #09090a, transparent 30%); }
   .lg-panel { padding: 32px 20px 48px; place-items: start center; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lg-brand__copy h1, .lg-brand__copy p { animation: none; }
+  .lg-mosaic__col, .lg-brand__glow { animation: none; }
   .lg-submit__spin { animation-duration: 1.4s; }
 }
