@@ -60,8 +60,16 @@ export default function LoginPage() {
       <section className="lg-brand" aria-label="ATV · Aumenta Tu Valor">
         <div className="lg-brand__panel">
           <div className="lg-brand__light" aria-hidden="true" />
-          <img src="/atv-logo.png" alt="ATV · Aumenta Tu Valor" className="lg-brand__logo" width={72} height={94} />
-          <span className="lg-brand__rule" aria-hidden="true" />
+          <div className="lg-brand__center">
+            <img src="/atv-logo.png" alt="ATV · Aumenta Tu Valor" className="lg-brand__logo" width={72} height={94} />
+            <p className="lg-ecuacion" aria-label="SOP más explicación más 1 a 1">
+              <span>SOP</span>
+              <i aria-hidden="true">+</i>
+              <span>Explicación</span>
+              <i aria-hidden="true">+</i>
+              <span>1 a 1</span>
+            </p>
+          </div>
           <div className="lg-brand__grain" aria-hidden="true" />
         </div>
       </section>
