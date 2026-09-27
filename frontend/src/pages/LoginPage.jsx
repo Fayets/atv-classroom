@@ -4,11 +4,10 @@ import { ApiError } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import '../styles/login.css'
 
-// Las portadas de los módulos suben en tres columnas detrás del logo.
+// Las portadas de los módulos suben en dos columnas detrás del logo, en una franja lateral.
 const COLUMNAS = [
-  ['start-here', 'marketing', 'ads', 'systems'],
-  ['advantage', 'sales', 'launch', 'case-of-study'],
-  ['business-foundations', 'product', 'creator-acquisition', 'live-sessions-mentoria'],
+  ['start-here', 'marketing', 'ads', 'systems', 'business-foundations', 'creator-acquisition'],
+  ['advantage', 'sales', 'launch', 'product', 'case-of-study', 'live-sessions-mentoria'],
 ]
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -75,7 +74,7 @@ export default function LoginPage() {
           ))}
         </div>
         <div className="lg-brand__glow" aria-hidden="true" />
-        <img src="/atv-logo.png" alt="ATV · Aumenta Tu Valor" className="lg-brand__logo" width={180} height={234} />
+        <img src="/atv-logo.png" alt="ATV · Aumenta Tu Valor" className="lg-brand__logo" width={72} height={94} />
       </section>
 
       <main className="lg-panel">

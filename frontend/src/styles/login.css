@@ -14,7 +14,7 @@
 
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
+  grid-template-columns: 380px minmax(0, 1fr);
   background: var(--lg-bg);
   color: var(--lg-t1);
   font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -33,17 +33,16 @@
 }
 .lg-mosaic {
   position: absolute;
-  inset: 0 16px;
+  inset: 0 12px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  opacity: 0.42;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  opacity: 0.4;
 }
-.lg-mosaic__col { display: flex; flex-direction: column; gap: 16px; animation: lg-sube 44s linear infinite; will-change: transform; }
+.lg-mosaic__col { display: flex; flex-direction: column; gap: 12px; animation: lg-sube 44s linear infinite; will-change: transform; }
 .lg-mosaic__col:nth-child(2) { animation-duration: 52s; animation-direction: reverse; }
-.lg-mosaic__col:nth-child(3) { animation-duration: 48s; }
-.lg-mosaic__col img { display: block; width: 100%; aspect-ratio: 1024 / 527; object-fit: cover; border-radius: 12px; }
-@keyframes lg-sube { to { transform: translateY(calc(-50% - 8px)); } }
+.lg-mosaic__col img { display: block; width: 100%; aspect-ratio: 1024 / 527; object-fit: cover; border-radius: 9px; }
+@keyframes lg-sube { to { transform: translateY(calc(-50% - 6px)); } }
 /* viñeta: oscurece bordes y centro para que el logo mande */
 .lg-brand::after {
   content: '';
@@ -51,14 +50,13 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(38% 42% at 50% 50%, rgba(9, 9, 10, 0.88), rgba(9, 9, 10, 0.35) 70%, transparent),
-    linear-gradient(0deg, #09090a, transparent 18%, transparent 82%, #09090a),
-    linear-gradient(90deg, transparent 70%, rgba(9, 9, 10, 0.9));
+    radial-gradient(45% 30% at 50% 50%, rgba(9, 9, 10, 0.88), rgba(9, 9, 10, 0.35) 70%, transparent),
+    linear-gradient(0deg, #09090a, transparent 16%, transparent 84%, #09090a);
 }
 .lg-brand__glow {
   position: absolute;
   z-index: 1;
-  width: min(560px, 80%);
+  width: 240px;
   aspect-ratio: 1;
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(214, 92, 92, 0.34), transparent);
@@ -70,9 +68,9 @@
 .lg-brand__logo {
   position: relative;
   z-index: 2;
-  width: clamp(120px, 13vw, 190px);
+  width: 72px;
   height: auto;
-  filter: drop-shadow(0 0 40px rgba(214, 92, 92, 0.55));
+  filter: drop-shadow(0 0 26px rgba(214, 92, 92, 0.55));
 }
 
 /* ---------- formulario ---------- */
@@ -145,9 +143,9 @@
 .lg-error { margin: 0; padding: 12px 14px; border-radius: 10px; font-size: 14px; color: #f6c3c3; background: rgba(176, 69, 69, 0.16); box-shadow: inset 0 0 0 1px rgba(214, 92, 92, 0.35); }
 
 @media (max-width: 900px) {
-  .lg-root { grid-template-columns: 1fr; grid-template-rows: 240px 1fr; }
+  .lg-root { grid-template-columns: 1fr; grid-template-rows: 200px 1fr; }
   .lg-brand { border-right: 0; border-bottom: 1px solid var(--lg-line); }
-  .lg-brand__logo { width: 88px; }
+  .lg-brand__logo { width: 60px; }
   .lg-brand::after { background: radial-gradient(50% 60% at 50% 50%, rgba(9, 9, 10, 0.85), rgba(9, 9, 10, 0.4) 70%, transparent), linear-gradient(0deg, #09090a, transparent 30%); }
   .lg-panel { padding: 32px 20px 48px; place-items: start center; }
 }
