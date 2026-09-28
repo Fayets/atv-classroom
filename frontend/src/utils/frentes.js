@@ -69,18 +69,31 @@ function mentorDe(promo) {
 // Donde arranca el pedido de etiquetar cuando viene pegado al final del contenido.
 const INICIO_PROMO = /\n[ \t]*(?:⸻\s*\n)?[ \t]*(?:si la clase te (?:gust|sirvi)|si te gust[óo] la clase)/i
 
-function sinExEquipo(cuerpo) {
-  return cuerpo.replace(/\bcon Naza\b/gi, 'con el equipo')
+// Saca a quien ya no está: su @ (dejando el resto de la línea), su firma y "hablá con Naza".
+function sinExEquipo(texto) {
+  let t = texto
+  for (const h of EX_EQUIPO.handles) {
+    t = t
+      .replace(new RegExp(`@${h}\\s*(?:y|,)\\s*`, 'gi'), '')
+      .replace(new RegExp(`\\s*(?:y|,)\\s*@${h}`, 'gi'), '')
+      .replace(new RegExp(`@${h}`, 'gi'), '')
+  }
+  return t
+    .split('\n')
+    .filter((l) => !/^\s*[-–—]?\s*naza\s*$/i.test(l))
+    .join('\n')
+    .replace(/\bcon Naza\b/gi, 'con el equipo')
+    .trim()
 }
 
+// La descripción se muestra entera, como en Skool; la firma además arma el "Clase de …".
 export function partirDescripcion(texto) {
   if (!texto?.trim()) return { cuerpo: '', mentor: null }
   const limpio = texto.trim()
   const m = limpio.match(INICIO_PROMO)
   const cola = m ? limpio.slice(m.index) : ''
-  if (cola && /instagram|etiquet/i.test(cola) && cola.length < 600) {
-    return { cuerpo: sinExEquipo(limpio.slice(0, m.index).replace(/\s*⸻\s*$/, '').trim()), mentor: mentorDe(cola) }
-  }
-  if (esPromo(limpio)) return { cuerpo: '', mentor: mentorDe(limpio) }
-  return { cuerpo: sinExEquipo(limpio), mentor: null }
+  let mentor = null
+  if (cola && /instagram|etiquet/i.test(cola) && cola.length < 600) mentor = mentorDe(cola)
+  else if (esPromo(limpio)) mentor = mentorDe(limpio)
+  return { cuerpo: sinExEquipo(limpio), mentor }
 }
