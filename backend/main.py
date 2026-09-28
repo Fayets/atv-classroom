@@ -29,7 +29,16 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="ATV Classroom API", version="1.0.0", lifespan=lifespan)
+# La documentación automática lista todos los endpoints: solo se prende en local con DOCS=1.
+_DOCS = config("DOCS", default=False, cast=bool)
+app = FastAPI(
+    title="ATV Classroom API",
+    version="1.0.0",
+    lifespan=lifespan,
+    docs_url="/docs" if _DOCS else None,
+    redoc_url="/redoc" if _DOCS else None,
+    openapi_url="/openapi.json" if _DOCS else None,
+)
 
 app.add_middleware(
     CORSMiddleware,
