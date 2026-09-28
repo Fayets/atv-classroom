@@ -83,17 +83,27 @@
 .mt-mentor b { color: var(--pc-t2); font-weight: 500; }
 .mt-mentor a { color: var(--pc-t3); }
 .mt-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 26px; border-top: 1px solid var(--pc-line); }
+/* Anterior es un link discreto; Siguiente es la acción: rojo, como el camino del inicio. */
 .mt-nav__btn {
-  appearance: none; border: 0; cursor: pointer; text-align: left; font: inherit; color: var(--pc-t1);
-  display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 12px;
-  background: var(--pc-s1); box-shadow: inset 0 0 0 1px var(--pc-line);
-  transition: background-color 150ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  appearance: none; border: 0; cursor: pointer; text-align: left; font: inherit; color: var(--pc-t2);
+  display: flex; flex-direction: column; gap: 4px; padding: 14px 4px; border-radius: 12px; background: transparent;
+  transition: color 150ms ease, background-color 150ms ease, box-shadow 150ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .mt-nav__btn small { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--pc-t3); }
 .mt-nav__btn b { font-size: 14.5px; font-weight: 500; line-height: 1.35; }
-.mt-nav__btn--next { text-align: right; align-items: flex-end; grid-column: 2; }
-.mt-nav__btn:hover { background: var(--pc-s2); }
+.mt-nav__btn--next {
+  grid-column: 2; text-align: right; align-items: flex-end; padding: 16px 20px; color: var(--pc-t1);
+  background: linear-gradient(140deg, rgba(176, 69, 69, 0.28), rgba(176, 69, 69, 0.08) 60%), var(--pc-s1);
+  box-shadow: inset 0 0 0 1px rgba(214, 92, 92, 0.45);
+}
+.mt-nav__btn--next small { color: #f0a0a0; font-weight: 500; }
+.mt-nav__btn--next b { font-weight: 600; }
 .mt-nav__btn:active { transform: scale(0.98); }
+@media (hover: hover) and (pointer: fine) {
+  .mt-nav__btn:not(.mt-nav__btn--next):hover { color: var(--pc-t1); }
+  .mt-nav__btn:not(.mt-nav__btn--next):hover small { color: var(--pc-t2); }
+  .mt-nav__btn--next:hover { box-shadow: inset 0 0 0 1px rgba(214, 92, 92, 0.75), 0 16px 36px -20px rgba(176, 69, 69, 0.6); }
+}
 .mt-vacio { gap: 16px; }
 .mt-vacio h1 { margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -0.035em; }
 
