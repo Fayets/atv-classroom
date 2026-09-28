@@ -76,7 +76,8 @@ class ProgramaServices:
     def listar_programas(self, usuario_id: int, tipo: str) -> list[dict]:
         with db_session:
             programas = list(Programa.select()[:])
-            programas_ordenados = sorted(programas, key=lambda programa: programa.orden)
+            # Los bloqueados van al final, en su orden.
+            programas_ordenados = sorted(programas, key=lambda programa: (programa_bloqueado(programa), programa.orden))
 
             return [
                 {

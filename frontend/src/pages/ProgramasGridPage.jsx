@@ -56,7 +56,7 @@ export default function ProgramasGridPage() {
                   <span className="mt-card__info">
                     <span className="mt-card__row">
                       <b>{m.titulo}</b>
-                      <span className="num">{vacio ? 'Próximamente' : `${m.total_clases} clases`}</span>
+                      {m.bloqueado && vacio ? null : <span className="num">{vacio ? 'Próximamente' : `${m.total_clases} clases`}</span>}
                     </span>
                     {m.bloqueado ? (
                       <span className="mt-card__lock">

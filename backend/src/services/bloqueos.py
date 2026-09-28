@@ -3,7 +3,7 @@ Para abrir uno, sacarlo de la lista y reiniciar el backend."""
 
 from fastapi import HTTPException
 
-MODULOS_BLOQUEADOS = {"launch"}
+MODULOS_BLOQUEADOS = {"launch", "live-sessions-mentoria", "live-sessions-boost"}
 MENSAJE = "Este módulo se desbloquea pronto."
 
 
