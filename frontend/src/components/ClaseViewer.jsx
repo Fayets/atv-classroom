@@ -84,21 +84,27 @@ export default function ClaseViewer({ clase, modulo, seccionTitulo, numero, tota
       {anterior || siguiente ? (
         <nav className="mt-nav" aria-label="Otras clases">
           {anterior ? (
-            <button type="button" className="mt-nav__btn" onClick={() => onIr(anterior.id)}>
-              <small>
-                <Chevron dir="left" /> Anterior
-              </small>
-              <b>{tituloLindo(anterior.titulo)}</b>
+            <button type="button" className="mt-nav__btn mt-nav__btn--prev" onClick={() => onIr(anterior.id)}>
+              <span className="mt-nav__ico" aria-hidden="true">
+                <Chevron dir="left" />
+              </span>
+              <span className="mt-nav__txt">
+                <small>Anterior</small>
+                <b>{tituloLindo(anterior.titulo)}</b>
+              </span>
             </button>
           ) : (
             <span />
           )}
           {siguiente ? (
             <button type="button" className="mt-nav__btn mt-nav__btn--next" onClick={() => onIr(siguiente.id)}>
-              <small>
-                Siguiente <Chevron />
-              </small>
-              <b>{tituloLindo(siguiente.titulo)}</b>
+              <span className="mt-nav__txt">
+                <small>Siguiente clase</small>
+                <b>{tituloLindo(siguiente.titulo)}</b>
+              </span>
+              <span className="mt-nav__ico" aria-hidden="true">
+                <Chevron />
+              </span>
             </button>
           ) : null}
         </nav>
