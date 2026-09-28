@@ -22,7 +22,7 @@ export default function SolicitudSop({ consulta, coach }) {
   const [abierto, setAbierto] = useState(false)
   const [nombre, setNombre] = useState('')
   const [area, setArea] = useState(AREA_DE_COACH[coach?.clave] ?? '')
-  const [entregable, setEntregable] = useState('')
+  const [problema, setProblema] = useState('')
   const [estado, setEstado] = useState('idle')
   const [enviada, setEnviada] = useState(null)
   const nombreRef = useRef(null)
@@ -32,14 +32,14 @@ export default function SolicitudSop({ consulta, coach }) {
     requestAnimationFrame(() => nombreRef.current?.focus({ preventScroll: true }))
   }
 
-  const listo = nombre.trim().length >= 3 && area && entregable.trim().length >= 3
+  const listo = nombre.trim().length >= 3 && area && problema.trim().length >= 3
 
   async function enviar(e) {
     e.preventDefault()
     if (!listo || estado === 'enviando') return
     setEstado('enviando')
     try {
-      const r = await solicitarSop({ nombre: nombre.trim(), area, entregable: entregable.trim(), consulta })
+      const r = await solicitarSop({ nombre: nombre.trim(), area, problema: problema.trim(), consulta })
       setEnviada(r)
       setEstado('enviada')
     } catch {
@@ -100,11 +100,11 @@ export default function SolicitudSop({ consulta, coach }) {
             </fieldset>
 
             <label className="im-sol__field">
-              <span>¿Qué es el entregable?</span>
+              <span>Contanos brevemente tu problema</span>
               <textarea
-                value={entregable}
-                onChange={(e) => setEntregable(e.target.value)}
-                placeholder="Qué querés tener al final: un checklist, un guion, una plantilla, un paso a paso…"
+                value={problema}
+                onChange={(e) => setProblema(e.target.value)}
+                placeholder="Qué está pasando, desde cuándo y qué probaste hasta ahora"
                 rows={3}
                 maxLength={1500}
               />

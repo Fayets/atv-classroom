@@ -32,7 +32,7 @@ class ConsultaRequest(BaseModel):
 class SolicitudSopRequest(BaseModel):
     nombre: str = Field(min_length=3, max_length=160)
     area: str = Field(max_length=40)
-    entregable: str = Field(min_length=3, max_length=1500)
+    problema: str = Field(min_length=3, max_length=1500)
     consulta: str | None = Field(default=None, max_length=1500)
 
 
@@ -78,4 +78,4 @@ def consulta_coach(body: ConsultaRequest, sesion: dict = Depends(obtener_sesion_
 
 @router.post("/solicitudes-sop", status_code=201)
 async def solicitar_sop(body: SolicitudSopRequest, sesion: dict = Depends(obtener_sesion_desde_request)):
-    return await solicitudes.crear(sesion, _tipo(sesion), body.nombre, body.area, body.entregable, body.consulta)
+    return await solicitudes.crear(sesion, _tipo(sesion), body.nombre, body.area, body.problema, body.consulta)

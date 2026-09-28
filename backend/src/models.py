@@ -154,7 +154,7 @@ class SolicitudSop(db.Entity):
     tipo_usuario = Required(str)
     nombre = Required(str)
     area = Required(str)
-    entregable = Required(str)
+    problema = Required(str, column="entregable")
     consulta = Optional(str, nullable=True)
     estado = Required(str, default="pendiente")
     avisado_discord = Required(bool, default=False)

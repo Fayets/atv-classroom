@@ -45,7 +45,7 @@ def _mensaje(solicitud: dict, quien: dict) -> dict:
         {"name": "Cliente", "value": cliente[:1024], "inline": True},
         {"name": "Área", "value": AREAS[solicitud["area"]], "inline": True},
         {"name": "Plazo", "value": f"{_hasta(hoy, DIAS_MIN)} al {_hasta(hoy, DIAS_MAX)} · o un Loom", "inline": True},
-        {"name": "Entregable", "value": solicitud["entregable"][:1024], "inline": False},
+        {"name": "Problema", "value": solicitud["problema"][:1024], "inline": False},
     ]
     if solicitud.get("consulta"):
         campos.append({"name": "Lo que preguntó en la guía", "value": f"> {solicitud['consulta'][:1000]}", "inline": False})
@@ -79,7 +79,7 @@ async def _avisar_discord(payload: dict) -> bool:
 
 
 class SolicitudServices:
-    async def crear(self, sesion: dict, tipo: str, nombre: str, area: str, entregable: str, consulta: str | None) -> dict:
+    async def crear(self, sesion: dict, tipo: str, nombre: str, area: str, problema: str, consulta: str | None) -> dict:
         area = area.strip().lower()
         if area not in AREAS:
             raise HTTPException(status_code=422, detail="Elegí un área.")
@@ -89,11 +89,11 @@ class SolicitudServices:
                 tipo_usuario=tipo,
                 nombre=nombre.strip(),
                 area=area,
-                entregable=entregable.strip(),
+                problema=problema.strip(),
                 consulta=(consulta or "").strip() or None,
             )
             flush()
-            solicitud = {"id": s.id, "nombre": s.nombre, "area": s.area, "entregable": s.entregable, "consulta": s.consulta}
+            solicitud = {"id": s.id, "nombre": s.nombre, "area": s.area, "problema": s.problema, "consulta": s.consulta}
 
         avisado = await _avisar_discord(_mensaje(solicitud, _quien(sesion["usuario_id"], tipo, sesion)))
         if avisado:
