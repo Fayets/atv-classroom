@@ -205,17 +205,19 @@ export default function InicioPage() {
                         <div className="im-route im-route--coach" key={resultado.texto}>
                           <p className="im-route__lead">
                             No hay una clase ni un SOP que cubra esto, y no te vamos a inventar una respuesta.{' '}
-                            {resultado.coach ? `Lo ves en una call con ${resultado.coach.nombre}.` : 'Lo ve tu coach.'}
+                            {resultado.coach ? `Lo ves en una call con ${resultado.coach.nombre}.` : null}
                           </p>
-                          <div className="im-coach">
-                            <span className="im-coach__av" aria-hidden="true">
-                              {(resultado.coach?.nombre ?? 'ATV').slice(0, 2).toUpperCase()}
-                            </span>
-                            <div>
-                              <b>{resultado.coach?.nombre ?? 'Tu coach'}</b>
-                              <span>{resultado.coach?.area ?? 'Tu coach de ATV'}</span>
+                          {resultado.coach ? (
+                            <div className="im-coach">
+                              <span className="im-coach__av" aria-hidden="true">
+                                {resultado.coach.nombre.slice(0, 2).toUpperCase()}
+                              </span>
+                              <div>
+                                <b>{resultado.coach.nombre}</b>
+                                <span>{resultado.coach.area}</span>
+                              </div>
                             </div>
-                          </div>
+                          ) : null}
                           <SolicitudSop consulta={resultado.texto} coach={resultado.coach} />
                         </div>
                       ) : null}
