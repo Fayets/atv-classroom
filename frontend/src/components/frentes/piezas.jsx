@@ -1,5 +1,5 @@
 import { getVideoEmbedInfo } from '../../utils/video'
-import { tipoRecurso } from '../../utils/frentes'
+import { tipoRecurso, urlRecurso } from '../../utils/frentes'
 
 export function Check({ done, now }) {
   return (
@@ -46,7 +46,7 @@ export function Recursos({ recursos }) {
         const generico = /^(documento|planilla|formulario) google/i.test(r.titulo)
         return (
           <li key={r.id ?? r.url}>
-            <a href={r.url} target="_blank" rel="noopener noreferrer" className="pc-recurso">
+            <a href={urlRecurso(r.url)} target="_blank" rel="noopener noreferrer" className="pc-recurso">
               <span className={`pc-recurso__tag pc-tag--${t.tag.toLowerCase()}`}>{t.tag}</span>
               <span className="pc-recurso__txt">
                 <b>{generico ? t.label : r.titulo}</b>

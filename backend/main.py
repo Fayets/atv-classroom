@@ -56,6 +56,8 @@ app.include_router(frente_router)
 app.include_router(chat_router)
 
 ensure_upload_dirs()
+# En producción solo /api llega al backend: los PDF se sirven por /api/uploads (y /uploads para links viejos).
+app.mount("/api/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads_api")
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 

@@ -8,7 +8,7 @@ import { Chevron } from '../components/frentes/piezas'
 import Pasos from '../components/frentes/Pasos'
 import SolicitudSop from '../components/frentes/SolicitudSop'
 import { useAuth } from '../context/AuthContext'
-import { proximoPaso, tipoRecurso, tituloLindo } from '../utils/frentes'
+import { proximoPaso, tipoRecurso, tituloLindo, urlRecurso } from '../utils/frentes'
 import '../styles/frentes.css'
 
 // El cliente no entra a una biblioteca: entra con un problema de su negocio.
@@ -164,7 +164,7 @@ export default function InicioPage() {
                                   {r.recursos.length ? (
                                     <div className="im-rec__sops">
                                       {r.recursos.map((rec) => (
-                                        <a key={rec.id ?? rec.url} href={rec.url} target="_blank" rel="noopener noreferrer" className="im-sopchip">
+                                        <a key={rec.id ?? rec.url} href={urlRecurso(rec.url)} target="_blank" rel="noopener noreferrer" className="im-sopchip">
                                           <span>{tipoRecurso(rec).tag}</span>
                                           {/^(documento|planilla|formulario) google/i.test(rec.titulo) ? tipoRecurso(rec).label : rec.titulo}
                                         </a>

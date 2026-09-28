@@ -1,5 +1,10 @@
 // Helpers de presentación para las pantallas de frentes.
 
+// Los PDF subidos se sirven por /api/uploads: en producción solo /api llega al backend.
+export function urlRecurso(url) {
+  return url?.startsWith('/uploads/') ? `/api${url}` : url
+}
+
 export function tipoRecurso(recurso) {
   const url = recurso.url || ''
   if (recurso.tipo === 'pdf' || url.startsWith('/uploads/')) return { tag: 'PDF', label: 'Descargar PDF' }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { urlRecurso } from '../utils/frentes'
 import {
   createAdminClase,
   createAdminPrograma,
@@ -763,7 +764,7 @@ export default function AdminPage() {
                                       <span className="admin-recurso__name">{recurso.titulo}</span>
                                       {recurso.url ? (
                                         <a
-                                          href={recurso.url}
+                                          href={urlRecurso(recurso.url)}
                                           className="admin-recurso__link"
                                           target="_blank"
                                           rel="noopener noreferrer"
