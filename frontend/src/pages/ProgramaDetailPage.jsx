@@ -9,8 +9,9 @@ import {
 import AppHeader from '../components/AppHeader'
 import '../styles/frentes.css'
 import '../styles/material.css'
-import ClaseViewer from '../components/ClaseViewer'
-import ProgramaSidebar from '../components/ProgramaSidebar'
+import '../styles/clase.css'
+import BarraModulo from '../components/clase/BarraModulo'
+import MesaClase from '../components/clase/MesaClase'
 import { Chevron } from '../components/frentes/piezas'
 import { flattenClases, navegacionClase } from '../utils/programa'
 
@@ -209,36 +210,36 @@ export default function ProgramaDetailPage() {
           </Link>
         </main>
       ) : tieneContenido ? (
-        <main className="mt-player">
-          <ProgramaSidebar
+        <main className="ms-page">
+          <BarraModulo
             titulo={programa.titulo}
             secciones={programa.secciones}
             claseActivaId={claseActivaId}
-            onSelectClase={handleSelectClase}
+            seccionTitulo={nav.actual?.seccionTitulo}
+            numero={nav.actual?.numero}
+            total={nav.total}
+            onSelectClase={(id) => {
+              handleSelectClase(id)
+              window.scrollTo({ top: 0 })
+            }}
           />
-          <section className="mt-main">
-            {error ? (
-              <p className="im-error" role="alert">
-                {error}
-              </p>
-            ) : null}
-            <ClaseViewer
-              clase={claseDetalle}
-              modulo={programa.titulo}
-              seccionTitulo={nav.actual?.seccionTitulo}
-              numero={nav.actual?.numero}
-              total={nav.total}
-              anterior={nav.anterior}
-              siguiente={nav.siguiente}
-              cargando={cargandoClase}
-              guardando={guardandoProgreso}
-              onToggleCompletado={handleToggleCompletado}
-              onIr={(id) => {
-                handleSelectClase(id)
-                window.scrollTo({ top: 0 })
-              }}
-            />
-          </section>
+          {error ? (
+            <p className="im-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <MesaClase
+            clase={claseDetalle}
+            anterior={nav.anterior}
+            siguiente={nav.siguiente}
+            cargando={cargandoClase}
+            guardando={guardandoProgreso}
+            onToggleCompletado={handleToggleCompletado}
+            onIr={(id) => {
+              handleSelectClase(id)
+              window.scrollTo({ top: 0 })
+            }}
+          />
         </main>
       ) : (
         <main className="im-home mt-vacio">

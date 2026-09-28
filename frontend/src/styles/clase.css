@@ -1,0 +1,129 @@
+/* Página de clase como mesa de trabajo: barra del módulo arriba, ver a la izquierda, implementar y revisar a la derecha. */
+
+.ms-page { max-width: 1440px; margin: 0 auto; padding: 0 40px 120px; }
+
+/* ---------- barra del módulo ---------- */
+.ms-barra { display: flex; flex-direction: column; gap: 14px; padding: 18px 0 16px; border-bottom: 1px solid var(--pc-line); }
+.ms-barra__fila { display: flex; align-items: center; gap: 18px; }
+.ms-barra__avance { margin-left: auto; font-size: 12.5px; color: var(--pc-t3); }
+.ms-indice-btn {
+  appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 13px; color: var(--pc-t2);
+  display: inline-flex; align-items: center; gap: 10px; height: 38px; padding: 0 12px; border-radius: 9px; min-width: 0;
+  background: var(--pc-s1); box-shadow: inset 0 0 0 1px var(--pc-line2);
+  transition: background-color 150ms ease, color 150ms ease, transform 160ms var(--pc-ease);
+}
+.ms-indice-btn > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-indice-btn b { color: var(--pc-t1); font-weight: 600; }
+.ms-indice-btn svg { flex: none; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.ms-indice-btn:active { transform: scale(0.98); }
+kbd { font: inherit; font-size: 11px; color: var(--pc-t4); padding: 2px 6px; border-radius: 5px; box-shadow: inset 0 0 0 1px var(--pc-line2); }
+
+.ms-tramos { display: flex; gap: 10px; }
+.ms-tramo { display: flex; flex-direction: column; gap: 6px; min-width: 28px; flex-basis: 0; }
+.ms-tramo__segs { display: flex; gap: 3px; }
+.ms-seg {
+  appearance: none; border: 0; padding: 0; cursor: pointer; flex: 1; height: 5px; border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1); transition: background-color 150ms ease, transform 150ms ease;
+}
+.ms-seg.is-done { background: var(--pc-ok); }
+.ms-seg.is-now { background: var(--pc-red2); }
+.ms-seg:focus-visible { outline: 2px solid rgba(214, 92, 92, 0.6); outline-offset: 2px; }
+.ms-tramo__t { font-size: 10.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pc-t4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ms-tramo.is-actual .ms-tramo__t { color: var(--pc-t2); }
+
+@media (hover: hover) and (pointer: fine) {
+  .ms-indice-btn:hover { background: var(--pc-s2); color: var(--pc-t1); }
+  .ms-seg:hover { transform: scaleY(1.8); }
+}
+
+/* ---------- índice (⌘K) ---------- */
+.ms-indice { position: fixed; inset: 0; z-index: 50; display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; }
+.ms-indice__fondo { position: absolute; inset: 0; border: 0; background: rgba(0, 0, 0, 0.6); cursor: default; animation: pc-fade 160ms ease; }
+.ms-indice__panel {
+  position: relative; width: min(620px, 100%); max-height: 70vh; display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 16px; background: var(--pc-s1); box-shadow: inset 0 0 0 1px var(--pc-line2), 0 30px 80px -20px rgba(0, 0, 0, 0.8);
+  animation: ms-pop 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes ms-pop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: none; } }
+.ms-indice__buscar { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--pc-line); }
+.ms-indice__buscar svg { flex: none; width: 16px; height: 16px; fill: none; stroke: var(--pc-t3); stroke-width: 1.6; stroke-linecap: round; }
+.ms-indice__buscar input { flex: 1; height: 54px; border: 0; background: transparent; color: var(--pc-t1); font: inherit; font-size: 15px; outline: none; }
+.ms-indice__buscar input::placeholder { color: var(--pc-t4); }
+.ms-indice__lista { overflow-y: auto; overscroll-behavior: contain; padding: 8px 8px 12px; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.12) transparent; }
+.ms-indice__lista h3 { margin: 12px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--pc-t4); }
+.ms-indice__lista ul { list-style: none; margin: 0; padding: 0; }
+.ms-indice__item {
+  appearance: none; border: 0; background: transparent; width: 100%; cursor: pointer; text-align: left; font: inherit;
+  display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 12px; align-items: start;
+  padding: 9px 10px; border-radius: 9px; color: var(--pc-t2); font-size: 14px; line-height: 1.4;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.ms-indice__item:hover, .ms-indice__item:focus-visible { background: rgba(255, 255, 255, 0.05); color: var(--pc-t1); outline: none; }
+.ms-indice__item.is-active { background: var(--pc-red-soft); color: var(--pc-t1); }
+.ms-indice__vacio { padding: 24px 12px; font-size: 14px; color: var(--pc-t3); }
+
+/* ---------- la mesa ---------- */
+.ms-mesa { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 32px; align-items: start; padding-top: 28px; animation: pc-fade 200ms ease; }
+.ms-ver { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.ms-video { border-radius: 14px; }
+.ms-ver__head h1 { margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.15; text-wrap: balance; }
+.ms-ver { grid-column: 1; grid-row: 1; }
+.ms-nav { grid-column: 1; grid-row: 2; }
+
+.ms-panel {
+  grid-column: 2; grid-row: 1 / span 2; position: sticky; top: 84px; display: flex; flex-direction: column;
+  border-radius: 16px; background: var(--pc-s1); box-shadow: inset 0 0 0 1px var(--pc-line);
+}
+.ms-paso { display: flex; flex-direction: column; gap: 14px; padding: 22px; }
+.ms-paso + .ms-paso { border-top: 1px solid var(--pc-line); }
+.ms-paso__n { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pc-red2); }
+.ms-paso--revisar .ms-paso__n { color: var(--pc-t3); }
+.ms-paso h2 { margin: -6px 0 0; font-size: 18px; font-weight: 600; letter-spacing: -0.015em; }
+.ms-paso__txt { margin: 0; font-size: 14px; line-height: 1.55; color: var(--pc-t3); }
+.ms-paso__meta { margin: 0; font-size: 12px; color: var(--pc-t4); }
+
+.ms-claves { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ms-claves label {
+  position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 12px; align-items: start;
+  padding: 10px; margin: 0 -10px; border-radius: 10px; cursor: pointer; font-size: 14px; line-height: 1.45; color: var(--pc-t1);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.ms-claves label .pc-check { margin-top: 1px; }
+.ms-claves input { position: absolute; opacity: 0; pointer-events: none; }
+.ms-claves label:has(input:focus-visible) { outline: 2px solid rgba(214, 92, 92, 0.6); outline-offset: -2px; }
+.ms-claves label.is-done { color: var(--pc-t3); background: rgba(29, 158, 117, 0.07); }
+.ms-claves label.is-done span { text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, 0.25); }
+
+.ms-recursos { margin-top: 4px; }
+.ms-coach { display: flex; align-items: center; gap: 12px; }
+.ms-coach .im-coach__av { width: 38px; height: 38px; font-size: 12px; }
+.ms-coach > div { display: flex; flex-direction: column; min-width: 0; }
+.ms-coach b { font-size: 14.5px; font-weight: 600; }
+.ms-coach span:not(.im-coach__av) { font-size: 12.5px; color: var(--pc-t3); }
+
+.ms-implementar { height: 46px; width: 100%; font-size: 14px; font-weight: 600; border-radius: 10px; background: var(--pc-red); color: #fff; }
+.ms-implementar .pc-check { border-color: rgba(255, 255, 255, 0.7); }
+.ms-implementar.is-done { background: var(--pc-s2); color: var(--pc-t1); box-shadow: inset 0 0 0 1px rgba(29, 158, 117, 0.45); }
+.ms-implementar.is-done .pc-check { border-color: var(--pc-ok); }
+
+@media (hover: hover) and (pointer: fine) {
+  .ms-claves label:not(.is-done):hover { background: rgba(255, 255, 255, 0.04); }
+  .ms-implementar:not(.is-done):hover:not(:disabled) { background: #c14e4e; }
+}
+
+@media (max-width: 1080px) {
+  .ms-mesa { grid-template-columns: 1fr; }
+  .ms-ver, .ms-panel, .ms-nav { grid-column: 1; grid-row: auto; }
+  .ms-panel { position: static; }
+}
+@media (max-width: 720px) {
+  .ms-page { padding: 0 16px 80px; }
+  .ms-barra__avance { display: none; }
+  .ms-barra .im-back { white-space: nowrap; flex: none; }
+  .ms-indice-btn kbd { display: none; }
+  .ms-tramo__t { display: none; }
+  .ms-ver__head h1 { font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ms-mesa, .ms-indice__panel, .ms-indice__fondo { animation: none; }
+}
