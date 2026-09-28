@@ -1,0 +1,22 @@
+{
+  "_nota": "Áreas de la solicitud de SOP y a quién se etiqueta en #solicitudes-sop. Los ids son de usuario de Discord.",
+  "areas": {
+    "marketing": { "nombre": "Marketing", "etiquetar": ["460646665808904192", "1152437077154218064", "1166437006637805569"] },
+    "ventas": { "nombre": "Ventas", "etiquetar": ["725490403410706482", "959634902763065426", "729221968401924147"] },
+    "sistemas": { "nombre": "Sistemas", "etiquetar": ["460499512134205440"] },
+    "equipo": { "nombre": "Equipo", "etiquetar": ["460499512134205440"] },
+    "fulfillment": { "nombre": "Fulfillment", "etiquetar": ["515956832263602177"] },
+    "mentalidad": { "nombre": "Mentalidad", "etiquetar": ["460646665808904192", "549002587333197840"] }
+  },
+  "_quienes": {
+    "460646665808904192": "Juan (@juancarrizo)",
+    "1152437077154218064": "Emi (@eemienriquee)",
+    "1166437006637805569": "Maite (@maiteee5)",
+    "725490403410706482": "Lucas (@_lukken)",
+    "959634902763065426": "Nick (@nicolasaliaga3.0)",
+    "729221968401924147": "Cris Songer (@cris.songer)",
+    "460499512134205440": "Franco (@_fayet)",
+    "515956832263602177": "Juampi (@juampi_5)",
+    "549002587333197840": "Alejandro Ramírez (@alejjjjandro)"
+  }
+}

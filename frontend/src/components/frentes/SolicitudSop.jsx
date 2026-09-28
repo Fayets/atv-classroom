@@ -2,15 +2,16 @@ import { useRef, useState } from 'react'
 import { solicitarSop } from '../../api/frentes'
 
 const AREAS = [
-  ['fulfillment', 'Fulfillment'],
-  ['ventas', 'Ventas'],
   ['marketing', 'Marketing'],
+  ['ventas', 'Ventas'],
+  ['sistemas', 'Sistemas'],
   ['equipo', 'Equipo'],
+  ['fulfillment', 'Fulfillment'],
   ['mentalidad', 'Mentalidad'],
 ]
 
 // El área que sugiere el coach al que la guía derivó; el cliente la puede cambiar.
-const AREA_DE_COACH = { 'juan-cruz': 'marketing', juampi: 'marketing', lucas: 'ventas', nick: 'ventas', franco: 'equipo' }
+const AREA_DE_COACH = { 'juan-cruz': 'marketing', juampi: 'marketing', lucas: 'ventas', nick: 'ventas', franco: 'sistemas' }
 
 function fecha(iso) {
   const [, m, d] = iso.split('-')
@@ -50,7 +51,7 @@ export default function SolicitudSop({ consulta, coach }) {
   if (enviada) {
     return (
       <div className="im-sol im-sol--ok" role="status">
-        <b>Solicitud enviada: {nombre.trim()}</b>
+        <b>Solicitud enviada: {nombre.trim().toUpperCase()}</b>
         <span>
           Te lo entregamos entre el {fecha(enviada.entrega_desde)} y el {fecha(enviada.entrega_hasta)}. Si se resuelve más rápido, te
           mandamos un Loom.

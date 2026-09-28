@@ -1,5 +1,7 @@
+import json
 import logging
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
 import httpx
 from decouple import config
@@ -10,13 +12,9 @@ from src.models import ClienteExterno, SolicitudSop
 
 logger = logging.getLogger(__name__)
 
-AREAS = {
-    "fulfillment": "Fulfillment",
-    "ventas": "Ventas",
-    "marketing": "Marketing",
-    "equipo": "Equipo",
-    "mentalidad": "Mentalidad",
-}
+# Áreas y a quién se etiqueta en Discord por cada una.
+_CONFIG = json.loads((Path(__file__).resolve().parent.parent / "data" / "solicitudes.json").read_text(encoding="utf-8"))
+AREAS = _CONFIG["areas"]
 DIAS_MIN, DIAS_MAX = 5, 7
 WEBHOOK = config("DISCORD_SOLICITUDES_WEBHOOK", default="")
 
@@ -38,23 +36,25 @@ def _quien(usuario_id: int, tipo: str, sesion: dict) -> dict:
 
 def _mensaje(solicitud: dict, quien: dict) -> dict:
     hoy = date.today()
+    area = AREAS[solicitud["area"]]
     cliente = quien["nombre"] or "Cliente"
     if quien["canal"]:
-        cliente += f" · #{quien['canal'].lstrip('#')}"
+        cliente += f" (#{quien['canal'].lstrip('#')})"
     campos = [
-        {"name": "Cliente", "value": cliente[:1024], "inline": True},
-        {"name": "Área", "value": AREAS[solicitud["area"]], "inline": True},
-        {"name": "Plazo", "value": f"{_hasta(hoy, DIAS_MIN)} al {_hasta(hoy, DIAS_MAX)} · o un Loom", "inline": True},
-        {"name": "Problema", "value": solicitud["problema"][:1024], "inline": False},
+        {"name": "Cliente — Área", "value": f"{cliente} — {area['nombre']}"[:1024], "inline": False},
+        {"name": "Fecha estimada", "value": f"{_hasta(hoy, DIAS_MIN)} al {_hasta(hoy, DIAS_MAX)} · o un Loom", "inline": False},
+        {"name": "Entregable", "value": solicitud["nombre"].upper()[:1024], "inline": False},
+        {"name": "Descripción", "value": solicitud["problema"][:1024], "inline": False},
     ]
-    if solicitud.get("consulta"):
-        campos.append({"name": "Lo que preguntó en la guía", "value": f"> {solicitud['consulta'][:1000]}", "inline": False})
+    ids = area["etiquetar"]
     return {
         "username": "Classroom ATV",
-        "allowed_mentions": {"parse": []},
+        # La mención va en el contenido: dentro del embed no le avisa a nadie.
+        "content": " ".join(f"<@{i}>" for i in ids),
+        "allowed_mentions": {"users": ids},
         "embeds": [
             {
-                "title": f"📄 Solicitud de SOP #{solicitud['id']}: {solicitud['nombre']}"[:256],
+                "title": f"📄 Solicitud de SOP #{solicitud['id']}",
                 "color": 0xB04545,
                 "fields": campos,
                 "footer": {"text": quien["email"] or ""},
@@ -87,7 +87,7 @@ class SolicitudServices:
             s = SolicitudSop(
                 usuario_id=sesion["usuario_id"],
                 tipo_usuario=tipo,
-                nombre=nombre.strip(),
+                nombre=nombre.strip().upper(),
                 area=area,
                 problema=problema.strip(),
                 consulta=(consulta or "").strip() or None,
