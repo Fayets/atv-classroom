@@ -173,7 +173,7 @@ export default function InicioPage() {
                                   ) : null}
                                 </div>
                                 <Link to={`/classroom/${r.programa_id}?clase=${r.clase_id}`} className="pc-btn pc-btn--light im-rec__ver">
-                                  Ver clase <Chevron />
+                                  Video explicativo <Chevron />
                                 </Link>
                               </li>
                             ))}
