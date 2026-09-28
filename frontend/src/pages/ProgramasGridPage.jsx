@@ -46,6 +46,7 @@ export default function ProgramasGridPage() {
           <div className="mt-grid">
             {programas.map((m, i) => {
               const vacio = !m.total_clases
+              const cerrado = vacio || m.bloqueado
               const pct = Math.min(100, Math.max(0, m.porcentaje_progreso ?? 0))
               const contenido = (
                 <>
@@ -57,7 +58,15 @@ export default function ProgramasGridPage() {
                       <b>{m.titulo}</b>
                       <span className="num">{vacio ? 'Próximamente' : `${m.total_clases} clases`}</span>
                     </span>
-                    {vacio ? null : (
+                    {m.bloqueado ? (
+                      <span className="mt-card__lock">
+                        <svg viewBox="0 0 16 16" aria-hidden="true">
+                          <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
+                          <path d="M5.5 7V5a2.5 2.5 0 015 0v2" />
+                        </svg>
+                        Se desbloquea pronto
+                      </span>
+                    ) : vacio ? null : (
                       <span className="mt-card__row">
                         <span className="mt-bar" aria-hidden="true">
                           <i style={{ transform: `scaleX(${pct / 100})` }} />
@@ -68,8 +77,8 @@ export default function ProgramasGridPage() {
                   </span>
                 </>
               )
-              return vacio ? (
-                <div key={m.id} className="mt-card is-soon" style={{ '--i': i }}>
+              return cerrado ? (
+                <div key={m.id} className={`mt-card is-soon${m.bloqueado ? ' is-locked' : ''}`} style={{ '--i': i }}>
                   {contenido}
                 </div>
               ) : (

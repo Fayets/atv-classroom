@@ -5,6 +5,7 @@ from pony.orm import db_session
 
 from src.db import db
 from src.models import Clase, Nota, Progreso
+from src.services.bloqueos import exigir_desbloqueado
 from src.services.frente_service import BRIEFS, coach_de_clase
 from src.utils.clase_content import serializar_recursos
 
@@ -41,6 +42,7 @@ class ClaseServices:
             clase = Clase.get(id=clase_id)
             if clase is None:
                 raise HTTPException(status_code=404, detail="Clase no encontrada.")
+            exigir_desbloqueado(clase.seccion.programa)
 
             progreso = _buscar_progreso(clase_id, usuario_id, tipo)
             nota = _buscar_nota(clase_id, usuario_id, tipo)
@@ -76,6 +78,7 @@ class ClaseServices:
             clase = Clase.get(id=clase_id)
             if clase is None:
                 raise HTTPException(status_code=404, detail="Clase no encontrada.")
+            exigir_desbloqueado(clase.seccion.programa)
 
             progreso = _buscar_progreso(clase_id, usuario_id, tipo)
 
@@ -115,6 +118,7 @@ class ClaseServices:
             clase = Clase.get(id=clase_id)
             if clase is None:
                 raise HTTPException(status_code=404, detail="Clase no encontrada.")
+            exigir_desbloqueado(clase.seccion.programa)
 
             nota = _buscar_nota(clase_id, usuario_id, tipo)
 

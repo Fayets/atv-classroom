@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from pony.orm import db_session
 
 from src.models import Clase, Programa, Progreso, Seccion
+from src.services.bloqueos import exigir_desbloqueado, programa_bloqueado
 
 
 def _cover_url(programa: Programa) -> str | None:
@@ -90,6 +91,7 @@ class ProgramaServices:
                         tipo,
                     ),
                     "total_clases": len(_clases_de_programa(programa.id)),
+                    "bloqueado": programa_bloqueado(programa),
                 }
                 for programa in programas_ordenados
             ]
@@ -104,6 +106,7 @@ class ProgramaServices:
             programa = Programa.get(id=programa_id)
             if programa is None:
                 raise HTTPException(status_code=404, detail="Programa no encontrado.")
+            exigir_desbloqueado(programa)
 
             secciones = list(Seccion.select()[:])
             secciones_programa = [

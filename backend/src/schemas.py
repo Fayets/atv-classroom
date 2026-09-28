@@ -37,6 +37,7 @@ class ProgramaListItem(BaseModel):
     cover_url: str | None = None
     porcentaje_progreso: int = 0
     total_clases: int = 0
+    bloqueado: bool = False
 
 
 class ClaseListItem(BaseModel):

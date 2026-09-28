@@ -14,6 +14,7 @@ from decouple import config
 from pony.orm import db_session
 
 from src.models import Clase
+from src.services.bloqueos import programa_bloqueado
 from src.services.frente_service import BRIEFS, CATALOGO, COACHES, PROBLEMAS, coach_de_clase
 from src.utils.clase_content import serializar_recursos
 
@@ -36,6 +37,8 @@ def _normalizar(texto: str) -> str:
 def _clases_publicadas() -> list[Clase]:
     clases = []
     for clase in Clase.select()[:]:
+        if programa_bloqueado(clase.seccion.programa):
+            continue
         if clase.titulo and clase.titulo.strip().lower() != "próximamente":
             clases.append(clase)
     clases.sort(key=lambda c: (c.seccion.programa.orden, c.seccion.orden, c.orden))
