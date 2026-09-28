@@ -26,3 +26,7 @@ export function enviarConsultaCoach(texto, slug = null) {
 export function eliminarFrente(slug) {
   return request(`/api/frentes/${encodeURIComponent(slug)}`, { method: 'DELETE' })
 }
+
+export function solicitarSop(solicitud) {
+  return request('/api/solicitudes-sop', { method: 'POST', body: JSON.stringify(solicitud) })
+}

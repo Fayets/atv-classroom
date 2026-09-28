@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { eliminarFrente, enviarConsultaCoach, fetchFrentes, preguntarGuia } from '../api/frentes'
+import { eliminarFrente, fetchFrentes, preguntarGuia } from '../api/frentes'
 import AppHeader from '../components/AppHeader'
 import AccesoRestante from '../components/AccesoRestante'
 import { Chevron } from '../components/frentes/piezas'
 import Pasos from '../components/frentes/Pasos'
+import SolicitudSop from '../components/frentes/SolicitudSop'
 import { useAuth } from '../context/AuthContext'
 import { proximoPaso, tipoRecurso, tituloLindo } from '../utils/frentes'
 import '../styles/frentes.css'
@@ -26,7 +27,6 @@ export default function InicioPage() {
   const [pregunta, setPregunta] = useState('')
   const [quitando, setQuitando] = useState(null)
   const [borrando, setBorrando] = useState(false)
-  const [consulta, setConsulta] = useState({ estado: 'idle', texto: '' })
 
   useEffect(() => {
     fetchFrentes()
@@ -43,7 +43,6 @@ export default function InicioPage() {
     setPregunta(q)
     setResultado(null)
     setPensando(true)
-    setConsulta({ estado: 'idle', texto: q })
     try {
       // Espera mínima para que el chat llegue a abrirse antes de la respuesta.
       const [r] = await Promise.all([preguntarGuia(q), new Promise((ok) => setTimeout(ok, 650))])
@@ -73,16 +72,6 @@ export default function InicioPage() {
     setResultado(null)
     setTexto('')
     document.getElementById('im-q')?.focus()
-  }
-
-  async function mandarAlCoach() {
-    setConsulta((c) => ({ ...c, estado: 'enviando' }))
-    try {
-      await enviarConsultaCoach(consulta.texto)
-      setConsulta((c) => ({ ...c, estado: 'enviada' }))
-    } catch {
-      setConsulta((c) => ({ ...c, estado: 'error' }))
-    }
   }
 
   const problemas = datos?.problemas ?? []
@@ -224,15 +213,10 @@ export default function InicioPage() {
                             </span>
                             <div>
                               <b>{resultado.coach?.nombre ?? 'Tu coach'}</b>
-                              <span>{resultado.coach?.area ?? 'Tu consulta queda registrada para que la vea'}</span>
+                              <span>{resultado.coach?.area ?? 'Tu coach de ATV'}</span>
                             </div>
-                            {resultado.coach ? null : (
-                              <button type="button" className={`pc-btn ${consulta.estado === 'enviada' ? 'pc-btn--ghost' : 'pc-btn--light'}`} onClick={mandarAlCoach} disabled={consulta.estado === 'enviando' || consulta.estado === 'enviada'}>
-                                {consulta.estado === 'enviada' ? 'Consulta enviada' : consulta.estado === 'enviando' ? 'Enviando…' : 'Mandarle la consulta'}
-                              </button>
-                            )}
                           </div>
-                          {consulta.estado === 'error' ? <p className="im-error">No se pudo enviar. Probá de nuevo.</p> : null}
+                          <SolicitudSop consulta={resultado.texto} coach={resultado.coach} />
                         </div>
                       ) : null}
                     </>

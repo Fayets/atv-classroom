@@ -8,3 +8,4 @@ psycopg2-binary==2.9.10
 bcrypt==4.2.1
 anthropic==0.49.0
 pytest==8.3.4
+httpx>=0.27,<1

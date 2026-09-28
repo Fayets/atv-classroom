@@ -6,10 +6,12 @@ from pydantic import BaseModel, Field
 from src.services.auth_service import obtener_sesion_desde_request
 from src.services.frente_service import FrenteServices
 from src.services.guia_service import recomendar
+from src.services.solicitud_service import SolicitudServices
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["frentes"])
 service = FrenteServices()
+solicitudes = SolicitudServices()
 
 
 class FrentePatch(BaseModel):
@@ -25,6 +27,13 @@ class GuiaRequest(BaseModel):
 class ConsultaRequest(BaseModel):
     texto: str = Field(min_length=3, max_length=3000)
     slug: str | None = None
+
+
+class SolicitudSopRequest(BaseModel):
+    nombre: str = Field(min_length=3, max_length=160)
+    area: str = Field(max_length=40)
+    entregable: str = Field(min_length=3, max_length=1500)
+    consulta: str | None = Field(default=None, max_length=1500)
 
 
 def _tipo(sesion: dict) -> str:
@@ -65,3 +74,8 @@ async def guia(body: GuiaRequest, sesion: dict = Depends(obtener_sesion_desde_re
 @router.post("/consultas")
 def consulta_coach(body: ConsultaRequest, sesion: dict = Depends(obtener_sesion_desde_request)):
     return service.registrar_consulta(sesion["usuario_id"], _tipo(sesion), body.texto, body.slug)
+
+
+@router.post("/solicitudes-sop", status_code=201)
+async def solicitar_sop(body: SolicitudSopRequest, sesion: dict = Depends(obtener_sesion_desde_request)):
+    return await solicitudes.crear(sesion, _tipo(sesion), body.nombre, body.area, body.entregable, body.consulta)

@@ -142,3 +142,20 @@ class ConsultaCoach(db.Entity):
     slug = Optional(str, nullable=True)
     estado = Required(str, default="pendiente")
     creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class SolicitudSop(db.Entity):
+    """Un SOP que el cliente pidió porque la guía no encontró material. Se avisa al canal de Discord."""
+
+    _table_ = (DB_SCHEMA, "solicitud_sop")
+
+    id = PrimaryKey(int, auto=True)
+    usuario_id = Required(int)
+    tipo_usuario = Required(str)
+    nombre = Required(str)
+    area = Required(str)
+    entregable = Required(str)
+    consulta = Optional(str, nullable=True)
+    estado = Required(str, default="pendiente")
+    avisado_discord = Required(bool, default=False)
+    creado_en = Required(datetime, default=datetime.utcnow)
