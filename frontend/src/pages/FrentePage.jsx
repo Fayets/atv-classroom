@@ -4,13 +4,13 @@ import { ApiError } from '../api/client'
 import { actualizarFrente, enviarConsultaCoach, fetchFrente } from '../api/frentes'
 import AppHeader from '../components/AppHeader'
 import { Check, Chevron, Recursos, Video } from '../components/frentes/piezas'
-import { tituloLindo } from '../utils/frentes'
+import { tipoRecurso, tituloLindo, urlRecurso } from '../utils/frentes'
 import '../styles/frentes.css'
 
 // Un frente = un problema del negocio trabajado con el método ATV:
-// resolver (clases) → documentar (el SOP del cliente) → automatizar (sistema o coach).
+// resolver (clases) → documentar (las plantillas de SOP, completas con tu negocio) → revisarlas con el coach.
 
-const PASOS = ['Resolver', 'Documentar', 'Automatizar']
+const PASOS = ['Resolver', 'Documentar', 'Revisar']
 
 function ClaseItem({ c, aplicada, abierta, onAbrir, onAplicada, guardando }) {
   return (
@@ -35,13 +35,76 @@ function ClaseItem({ c, aplicada, abierta, onAbrir, onAplicada, guardando }) {
               ) : null}
             </div>
           ) : null}
-          {c.recursos?.length ? <Recursos recursos={c.recursos} /> : null}
           <button type="button" className={`pc-btn ${aplicada ? 'pc-btn--ghost' : 'pc-complete'}`} onClick={onAplicada} disabled={guardando}>
             <Check done={aplicada} /> {aplicada ? 'Aplicada' : 'Ya la apliqué'}
           </button>
         </div>
       ) : null}
     </div>
+  )
+}
+
+// Las plantillas se llaman "Documento Google 1": se nombran por la clase de donde salen.
+function nombrePlantilla(p, repetidas) {
+  const generico = /^(documento|planilla|formulario) google/i.test(p.titulo)
+  if (!generico) return p.titulo
+  const base = `${tipoRecurso(p).label.replace(' de Google', '')} de «${tituloLindo(p.clase_titulo)}»`
+  const n = p.titulo.match(/(\d+)\s*$/)
+  return repetidas[p.clase_id] > 1 && n ? `${base} · ${n[1]}` : base
+}
+
+// Una fila: la plantilla (se abre una copia) y, al lado, el link de tu versión completa.
+function PlantillaSop({ p, nombre, link, guardando, onGuardar }) {
+  const [editando, setEditando] = useState(!link)
+  const [valor, setValor] = useState(link ?? '')
+  const t = tipoRecurso(p)
+  const id = `im-sop-${p.id}`
+
+  useEffect(() => {
+    setValor(link ?? '')
+    setEditando(!link)
+  }, [link])
+
+  return (
+    <li className={`im-plantilla${link ? ' is-ok' : ''}`}>
+      <a href={urlRecurso(p.url)} target="_blank" rel="noopener noreferrer" className="im-plantilla__src">
+        <span className={`pc-recurso__tag pc-tag--${t.tag.toLowerCase()}`}>{t.tag}</span>
+        <span className="im-plantilla__txt">
+          <b>{nombre}</b>
+          <small>{p.url.includes('/copy') ? 'Plantilla · se abre una copia para vos' : 'Plantilla · hacé una copia'}</small>
+        </span>
+        <Chevron />
+      </a>
+      <div className="im-plantilla__tuya">
+        {editando ? (
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault()
+              if (!valor.trim()) return
+              if (await onGuardar(valor.trim())) setEditando(false)
+            }}
+          >
+            <label htmlFor={id} className="sr-only">
+              Link de tu versión de {nombre}
+            </label>
+            <input id={id} value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Pegá el link de tu versión completa" inputMode="url" />
+            <button type="submit" className="pc-btn pc-complete" disabled={guardando || !valor.trim()}>
+              Guardar
+            </button>
+          </form>
+        ) : (
+          <div className="im-plantilla__lista">
+            <Check done />
+            <a href={link} target="_blank" rel="noopener noreferrer">
+              Tu versión completa
+            </a>
+            <button type="button" className="im-plantilla__cambiar" onClick={() => setEditando(true)}>
+              Cambiar
+            </button>
+          </div>
+        )}
+      </div>
+    </li>
   )
 }
 
@@ -96,11 +159,18 @@ export default function FrentePage() {
     )
   }
 
-  const f = d.frente ?? { vistas: [], sop_link: null, automatizado: false, paso: 0 }
+  const f = d.frente ?? { vistas: [], sop_link: null, sops: {}, revisado: false, paso: 0 }
   const paso = f.paso
   const etapa = ver ?? Math.min(paso, 2)
-  const resolverIds = d.resolver.map((c) => c.id)
-  const todoAplicado = resolverIds.every((id) => f.vistas.includes(id))
+  const todoAplicado = d.resolver.every((c) => f.vistas.includes(c.id))
+  const plantillas = d.plantillas.filter((p) => p.completable)
+  const apoyo = d.plantillas.filter((p) => !p.completable)
+  const repetidas = plantillas.reduce((acc, p) => ({ ...acc, [p.clase_id]: (acc[p.clase_id] ?? 0) + 1 }), {})
+  const completas = plantillas.filter((p) => f.sops?.[p.id])
+  // Frentes de antes: un solo link de SOP para todo el frente.
+  const legado = Boolean(f.sop_link) && !completas.length
+  const documentado = plantillas.length && !legado ? completas.length === plantillas.length : Boolean(f.sop_link)
+  const coach = d.coach?.nombre
 
   async function guardar(cambios) {
     setGuardando(true)
@@ -128,8 +198,6 @@ export default function FrentePage() {
       setAyuda('error')
     }
   }
-
-  const coach = d.coach?.nombre
 
   return (
     <div className="app-shell im-root">
@@ -173,7 +241,7 @@ export default function FrentePage() {
             {etapa === 0 ? (
               <>
                 <h2>Entendé cómo se resuelve</h2>
-                <p className="im-stage__sub">Mirá estas clases y aplicá cada una en tu negocio. Cuando las apliques todas, pasás a documentarlo.</p>
+                <p className="im-stage__sub">Mirá estas clases y aplicá cada una en tu negocio.</p>
                 <div className="im-clases">
                   {d.resolver.map((c) => (
                     <ClaseItem
@@ -187,72 +255,111 @@ export default function FrentePage() {
                     />
                   ))}
                 </div>
+                <div className="im-siguiente">
+                  <span className="num">2</span>
+                  <div>
+                    <b>En el siguiente paso están los SOPs</b>
+                    <span>
+                      {plantillas.length
+                        ? `${plantillas.length} ${plantillas.length === 1 ? 'plantilla' : 'plantillas'} de estas clases para completar con los datos de tu negocio.`
+                        : 'La plantilla para documentar cómo lo hace tu negocio.'}
+                    </span>
+                  </div>
+                  <button type="button" className={`pc-btn ${todoAplicado ? 'pc-complete' : 'pc-btn--ghost'}`} onClick={() => setVer(1)}>
+                    Ir a los SOPs <Chevron />
+                  </button>
+                </div>
               </>
             ) : etapa === 1 ? (
               <>
-                <h2>Convertilo en tu SOP</h2>
+                <h2>Completá tus SOPs</h2>
                 <p className="im-stage__sub">
-                  Hacé tu copia de la plantilla, completala con cómo lo hace tu negocio y pegá el link. Ese documento es el proceso que tu equipo va a seguir.
+                  Abrí cada plantilla (se crea una copia para vos), completala con los datos de tu negocio y pegá al lado el link de tu versión. Es el proceso que va a seguir tu equipo.
                 </p>
-                <div className="im-sop">
-                  <p className="im-sop__name">{d.sop.nombre}</p>
-                  {d.sop.recursos.length ? <Recursos recursos={d.sop.recursos} /> : <p className="pc-muted">Esta plantilla todavía no está cargada. Pedísela a {coach ?? 'tu coach'}.</p>}
-                  {d.sop.cubrir.length ? (
-                    <div className="im-sop__must">
-                      <p>Tu SOP tiene que cubrir</p>
-                      <ul>
-                        {d.sop.cubrir.map((k) => (
-                          <li key={k}>{k}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
+                {plantillas.length ? (
+                  <>
+                    <p className="im-plantillas__meta num">
+                      {completas.length} de {plantillas.length} completas
+                    </p>
+                    <ul className="im-plantillas">
+                      {plantillas.map((p) => (
+                        <PlantillaSop
+                          key={p.id}
+                          p={p}
+                          nombre={nombrePlantilla(p, repetidas)}
+                          link={f.sops?.[p.id]}
+                          guardando={guardando}
+                          onGuardar={(url) => guardar({ sops: { [p.id]: url } })}
+                        />
+                      ))}
+                    </ul>
+                  </>
+                ) : (
                   <form
                     className="im-sop__form"
                     onSubmit={async (e) => {
                       e.preventDefault()
-                      if (!link.trim()) return
-                      const nuevo = await guardar({ sop_link: link.trim() })
-                      if (nuevo) setVer(null)
+                      if (link.trim()) await guardar({ sop_link: link.trim() })
                     }}
                   >
-                    <label htmlFor="im-sop-link">Link de tu SOP</label>
+                    <label htmlFor="im-sop-link">{d.sop.nombre}: link de tu SOP</label>
                     <div>
                       <input id="im-sop-link" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://docs.google.com/…" inputMode="url" />
                       <button type="submit" className="pc-btn pc-complete" disabled={guardando || !link.trim()}>
-                        {f.sop_link ? 'Actualizar' : 'Listo, está documentado'}
+                        {f.sop_link ? 'Actualizar' : 'Guardar'}
                       </button>
                     </div>
                   </form>
-                  {!todoAplicado ? <p className="pc-muted im-note">Podés armarlo ya, aunque te falte aplicar alguna clase.</p> : null}
-                </div>
+                )}
+                {apoyo.length ? (
+                  <div className="im-apoyo">
+                    <p>Material de apoyo</p>
+                    <Recursos recursos={apoyo} />
+                  </div>
+                ) : null}
+                {documentado ? (
+                  <button type="button" className="pc-btn pc-btn--lg pc-complete" onClick={() => setVer(2)}>
+                    Revisarlos con {coach ?? 'tu coach'} <Chevron />
+                  </button>
+                ) : null}
               </>
             ) : (
               <>
-                <h2>Dejalo andando solo</h2>
-                {d.automatizar.length ? (
-                  <>
-                    <p className="im-stage__sub">Con el sistema ATV, este proceso deja de depender de que alguien se acuerde.</p>
-                    <div className="im-clases">
-                      {d.automatizar.map((c) => (
-                        <ClaseItem
-                          key={c.id}
-                          c={c}
-                          aplicada={f.vistas.includes(c.id)}
-                          abierta={abierta === c.id}
-                          onAbrir={() => setAbierta(abierta === c.id ? null : c.id)}
-                          onAplicada={() => toggleAplicada(c.id)}
-                          guardando={guardando}
-                        />
-                      ))}
-                    </div>
-                  </>
+                <h2>Revisá tus SOPs con {coach ?? 'tu coach'}</h2>
+                <p className="im-stage__sub">
+                  Llevalos a tu próxima llamada con {coach ?? 'tu coach'}{d.coach?.area ? ` (${d.coach.area})` : ''}. Te marca qué ajustar para que tu equipo los pueda seguir sin preguntarte.
+                </p>
+                {completas.length || f.sop_link ? (
+                  <ul className="im-revisar">
+                    {completas.map((p) => (
+                      <li key={p.id}>
+                        <Check done />
+                        <a href={f.sops[p.id]} target="_blank" rel="noopener noreferrer">
+                          {nombrePlantilla(p, repetidas)}
+                        </a>
+                      </li>
+                    ))}
+                    {legado ? (
+                      <li>
+                        <Check done />
+                        <a href={f.sop_link} target="_blank" rel="noopener noreferrer">
+                          {d.sop.nombre}
+                        </a>
+                      </li>
+                    ) : null}
+                  </ul>
                 ) : (
-                  <p className="im-stage__sub">Para este problema todavía no hay un sistema listo. Lo automatizás con {coach ?? 'tu coach'}.</p>
+                  <p className="pc-muted">Todavía no completaste ningún SOP. Arrancá por el paso 2.</p>
                 )}
-                <button type="button" className={`pc-btn pc-btn--lg ${f.automatizado ? 'pc-btn--ghost' : 'pc-complete'}`} onClick={() => guardar({ automatizado: !f.automatizado })} disabled={guardando}>
-                  <Check done={f.automatizado} /> {f.automatizado ? 'Automatizado' : 'Ya está automatizado'}
+                <button
+                  type="button"
+                  className={`pc-btn pc-btn--lg ${f.revisado ? 'pc-btn--ghost' : 'pc-complete'}`}
+                  onClick={() => guardar({ revisado: !f.revisado })}
+                  disabled={guardando || (!f.revisado && !documentado)}
+                >
+                  <Check done={f.revisado} /> {f.revisado ? `Revisados con ${coach ?? 'tu coach'}` : `Ya los revisé con ${coach ?? 'mi coach'}`}
                 </button>
+                {!documentado && !f.revisado ? <p className="pc-muted im-note">Completá todos los SOPs antes de revisarlos.</p> : null}
               </>
             )}
           </section>
@@ -264,18 +371,18 @@ export default function FrentePage() {
                 <li className={todoAplicado ? 'is-ok' : ''}>
                   <Check done={todoAplicado} /> Problema resuelto
                 </li>
-                <li className={f.sop_link ? 'is-ok' : ''}>
-                  <Check done={Boolean(f.sop_link)} />
-                  {f.sop_link ? (
-                    <a href={f.sop_link} target="_blank" rel="noopener noreferrer">
-                      Tu SOP
-                    </a>
+                <li className={documentado ? 'is-ok' : ''}>
+                  <Check done={documentado} />
+                  {plantillas.length ? (
+                    <span className="num">
+                      SOPs completos {completas.length}/{plantillas.length}
+                    </span>
                   ) : (
                     'SOP documentado'
                   )}
                 </li>
-                <li className={f.automatizado ? 'is-ok' : ''}>
-                  <Check done={f.automatizado} /> Proceso automatizado
+                <li className={f.revisado ? 'is-ok' : ''}>
+                  <Check done={f.revisado} /> Revisado con {coach ?? 'tu coach'}
                 </li>
               </ul>
             </div>
@@ -286,14 +393,9 @@ export default function FrentePage() {
                 </span>
                 <div>
                   <b>{coach ? `Revisión con ${coach}` : 'Revisión con tu coach'}</b>
-                  <span>{d.coach?.area ?? 'Cuando lo tengas implementado'}</span>
+                  <span>{d.coach?.area ?? 'Cuando tengas tus SOPs'}</span>
                 </div>
               </div>
-              <p className="pc-muted im-note">
-                {f.sop_link
-                  ? `Con tu SOP documentado, revisalo con ${coach ?? 'tu coach'} en tu próxima llamada.`
-                  : `Cuando documentes tu SOP, lo revisás con ${coach ?? 'tu coach'}.`}
-              </p>
               <button type="button" className="im-side__link" onClick={pedirAyuda} disabled={ayuda === 'enviando' || ayuda === 'enviada'}>
                 {ayuda === 'enviada' ? 'Pedido registrado' : ayuda === 'enviando' ? 'Enviando…' : '¿Te trabaste antes? Pedí ayuda'}
               </button>

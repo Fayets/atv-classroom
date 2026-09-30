@@ -45,16 +45,55 @@ def _problema(slug: str) -> dict:
     return problema
 
 
+_COMPLETABLES = ("docs.google.com",)  # Docs, Sheets y Forms: se copian y se completan
+
+
+def _plantillas(problema: dict) -> list[dict]:
+    """Los recursos de las clases del frente. Los de Google se completan; el resto es material de apoyo."""
+    ids = list(dict.fromkeys([*problema["resolver"], problema["sop"]["clase_id"]]))
+    salida, vistos = [], set()
+    for clase_id in ids:
+        clase = Clase.get(id=clase_id)
+        if clase is None:
+            continue
+        for r in serializar_recursos(clase):
+            if r["url"] in vistos:
+                continue
+            vistos.add(r["url"])
+            salida.append({**r, "clase_id": clase.id, "clase_titulo": clase.titulo,
+                           "completable": any(d in r["url"] for d in _COMPLETABLES)})
+    return salida
+
+
+def _sops(frente: Frente | None) -> dict[str, str]:
+    if frente is None or not frente.sops_json:
+        return {}
+    try:
+        datos = json.loads(frente.sops_json)
+    except ValueError:
+        return {}
+    return {str(k): v for k, v in datos.items() if isinstance(v, str) and v}
+
+
+def _documentado(problema: dict, frente: Frente) -> bool:
+    completables = [p for p in _plantillas(problema) if p["completable"]]
+    sops = _sops(frente)
+    # Frentes de antes: un solo link de SOP para todo el frente; se respeta lo que ya hicieron.
+    if not completables or (frente.sop_link and not sops):
+        return bool(frente.sop_link)
+    return all(str(p["id"]) in sops for p in completables)
+
+
 def _paso(problema: dict, frente: Frente | None) -> int:
-    """0 resolver, 1 documentar, 2 automatizar, 3 implementado."""
+    """0 resolver, 1 documentar, 2 revisar, 3 listo."""
     if frente is None:
         return 0
     vistas = set(json.loads(frente.vistas_json))
     if not set(problema["resolver"]) <= vistas:
         return 0
-    if not frente.sop_link:
+    if not _documentado(problema, frente):
         return 1
-    if not frente.automatizado:
+    if not frente.revisado:
         return 2
     return 3
 
@@ -65,7 +104,8 @@ def _estado(problema: dict, frente: Frente | None) -> dict | None:
     return {
         "vistas": json.loads(frente.vistas_json),
         "sop_link": frente.sop_link,
-        "automatizado": frente.automatizado,
+        "sops": _sops(frente),
+        "revisado": frente.revisado,
         "paso": _paso(problema, frente),
         "actualizado_en": frente.actualizado_en.isoformat(),
     }
@@ -109,7 +149,6 @@ class FrenteServices:
                         "sintoma": p["sintoma"],
                         "clases_resolver": len(p["resolver"]),
                         "sop_nombre": p["sop"]["nombre"],
-                        "tiene_automatizacion": bool(p["automatizar"]),
                         "frente": _estado(p, propios.get(p["slug"])),
                     }
                 )
@@ -126,7 +165,7 @@ class FrenteServices:
                 "titulo": problema["titulo"],
                 "sintoma": problema["sintoma"],
                 "resolver": [c for c in (_clase(i) for i in problema["resolver"]) if c],
-                "automatizar": [c for c in (_clase(i) for i in problema["automatizar"]) if c],
+                "plantillas": _plantillas(problema),
                 "sop": {
                     "nombre": problema["sop"]["nombre"],
                     "recursos": serializar_recursos(sop_clase) if sop_clase else [],
@@ -138,7 +177,7 @@ class FrenteServices:
 
     def actualizar(self, slug: str, usuario_id: int, tipo: str, cambios: dict) -> dict:
         problema = _problema(slug)
-        permitidas = set(problema["resolver"]) | set(problema["automatizar"])
+        permitidas = set(problema["resolver"])
         with db_session:
             frente = _frente(usuario_id, tipo, slug) or Frente(usuario_id=usuario_id, tipo_usuario=tipo, slug=slug)
             if cambios.get("vistas") is not None:
@@ -148,8 +187,23 @@ class FrenteServices:
                 if link and not link.startswith(("http://", "https://")):
                     raise HTTPException(status_code=400, detail="El link del SOP tiene que empezar con https://")
                 frente.sop_link = link or None
-            if cambios.get("automatizado") is not None:
-                frente.automatizado = bool(cambios["automatizado"])
+            if cambios.get("sops") is not None:
+                validas = {str(p["id"]) for p in _plantillas(problema)}
+                sops = _sops(frente)
+                for plantilla_id, link in cambios["sops"].items():
+                    plantilla_id = str(plantilla_id)
+                    if plantilla_id not in validas:
+                        continue
+                    link = (link or "").strip()
+                    if link and not link.startswith(("http://", "https://")):
+                        raise HTTPException(status_code=400, detail="El link tiene que empezar con https://")
+                    if link:
+                        sops[plantilla_id] = link
+                    else:
+                        sops.pop(plantilla_id, None)
+                frente.sops_json = json.dumps(sops)
+            if cambios.get("revisado") is not None:
+                frente.revisado = bool(cambios["revisado"])
             frente.actualizado_en = datetime.utcnow()
             return _estado(problema, frente)
 

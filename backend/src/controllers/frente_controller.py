@@ -17,7 +17,8 @@ solicitudes = SolicitudServices()
 class FrentePatch(BaseModel):
     vistas: list[int] | None = None
     sop_link: str | None = Field(default=None, max_length=2000)
-    automatizado: bool | None = None
+    sops: dict[str, str] | None = None
+    revisado: bool | None = None
 
 
 class GuiaRequest(BaseModel):

@@ -51,6 +51,12 @@ def _apply_migrations() -> None:
                     f'ALTER TABLE "{DB_SCHEMA}"."clase" '
                     f"ADD COLUMN IF NOT EXISTS descripcion TEXT"
                 )
+                # Frente: un link por plantilla de SOP y la revisión con el coach (reemplaza "automatizar").
+                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."frente" ADD COLUMN IF NOT EXISTS sops_json TEXT')
+                cur.execute(
+                    f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."frente" '
+                    f"ADD COLUMN IF NOT EXISTS revisado BOOLEAN NOT NULL DEFAULT FALSE"
+                )
                 cur.execute(
                     f"""
                     CREATE TABLE IF NOT EXISTS "{DB_SCHEMA}"."mensaje" (

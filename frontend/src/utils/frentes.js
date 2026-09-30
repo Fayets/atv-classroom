@@ -32,7 +32,7 @@ export function tituloLindo(titulo) {
 }
 
 export function proximoPaso(paso) {
-  return ['Mirá y aplicá las clases', 'Armá tu SOP', 'Automatizalo', 'Implementado'][paso] ?? ''
+  return ['Mirá y aplicá las clases', 'Completá tus SOPs', 'Revisalos con tu coach', 'Listo'][paso] ?? ''
 }
 
 // Muchas descripciones son el pedido del mentor de etiquetarlo en Instagram:

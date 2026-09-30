@@ -114,7 +114,7 @@ class Mensaje(db.Entity):
 
 
 class Frente(db.Entity):
-    """Un problema del negocio que el cliente está trabajando: resolver → SOP → automatizar."""
+    """Un problema del negocio que el cliente está trabajando: resolver → documentar sus SOPs → revisarlos con el coach."""
 
     _table_ = (DB_SCHEMA, "frente")
 
@@ -124,7 +124,10 @@ class Frente(db.Entity):
     slug = Required(str)
     vistas_json = Required(str, default="[]")
     sop_link = Optional(str, nullable=True)
+    # {id de plantilla (ClaseRecurso): link de la versión completa del cliente}
+    sops_json = Optional(str, nullable=True)
     automatizado = Required(bool, default=False)
+    revisado = Required(bool, default=False)
     creado_en = Required(datetime, default=datetime.utcnow)
     actualizado_en = Required(datetime, default=datetime.utcnow)
     composite_key(usuario_id, tipo_usuario, slug)

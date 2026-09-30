@@ -193,7 +193,7 @@ export default function InicioPage() {
                             <div className="im-frentebox">
                               <div>
                                 <b>Trabajalo como frente</b>
-                                <span>{frenteSugerido.titulo}: resolver, documentar tu SOP y automatizar, con tu avance guardado.</span>
+                                <span>{frenteSugerido.titulo}: resolver, completar tus SOPs y revisarlos con tu coach, con tu avance guardado.</span>
                               </div>
                               <button type="button" className="pc-btn pc-complete" onClick={() => navigate(`/frentes/${frenteSugerido.slug}`)}>
                                 {frenteSugerido.frente ? 'Seguir el frente' : 'Abrir frente'} <Chevron />
