@@ -7,7 +7,9 @@ los datos reales de la base y decide si deriva al coach cuando no queda nada."""
 
 import json
 import logging
+import time
 import unicodedata
+from collections import OrderedDict
 
 from anthropic import APIConnectionError, APIStatusError, APITimeoutError, AsyncAnthropic
 from decouple import config
@@ -79,7 +81,8 @@ def _system() -> list[dict]:
         f"Frentes de trabajo:\n{frentes}\n\n"
         "Catálogo de clases (id | módulo › sección › título | temas):\n" + _catalogo()
     )
-    return [{"type": "text", "text": texto, "cache_control": {"type": "ephemeral"}}]
+    # Caché de 1 hora: las consultas llegan espaciadas y la de 5 minutos casi nunca se reusaba.
+    return [{"type": "text", "text": texto, "cache_control": {"type": "ephemeral", "ttl": "1h"}}]
 
 
 _TOOL = {
@@ -208,14 +211,34 @@ def _tarjeta(clase: Clase, cubre: str | None) -> dict:
     }
 
 
+# Preguntas repetidas: la misma consulta (sin tildes, mayúsculas ni signos) no vuelve a pagar la IA.
+_RESPUESTAS: "OrderedDict[str, tuple[float, dict]]" = OrderedDict()
+_RESPUESTAS_MAX = 500
+_RESPUESTAS_TTL = 7 * 24 * 3600
+
+
+def _clave(texto: str) -> str:
+    return " ".join("".join(c if c.isalnum() else " " for c in _normalizar(texto)).split())
+
+
 async def recomendar(texto: str) -> dict:
     texto = texto.strip()
+    clave = _clave(texto)
+    guardada = _RESPUESTAS.get(clave)
+    if guardada and time.time() - guardada[0] < _RESPUESTAS_TTL:
+        _RESPUESTAS.move_to_end(clave)
+        return {**guardada[1], "fuente": "guardada"}
     ia = await _por_ia(texto)
     try:
-        return _armar(texto, ia)
+        resultado = _armar(texto, ia)
     except Exception:
         logger.exception("Guía ATV: no se pudo armar la respuesta de la IA; uso palabras clave")
         return _armar(texto, None)
+    if resultado["fuente"] == "ia":
+        _RESPUESTAS[clave] = (time.time(), resultado)
+        while len(_RESPUESTAS) > _RESPUESTAS_MAX:
+            _RESPUESTAS.popitem(last=False)
+    return resultado
 
 
 def _armar(texto: str, ia: dict | None) -> dict:

@@ -208,7 +208,6 @@ export default function FrentePage() {
           <Link to="/" className="im-back">
             <Chevron dir="left" /> Tus frentes
           </Link>
-          <span className="pc-muted">{d.area}</span>
         </nav>
 
         <header className="im-frente__head">

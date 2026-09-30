@@ -1,4 +1,5 @@
 import logging
+import time
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -61,8 +62,24 @@ def eliminar_frente(slug: str, sesion: dict = Depends(obtener_sesion_desde_reque
     service.eliminar(slug, sesion["usuario_id"], _tipo(sesion))
 
 
+# Tope de consultas a la guía por persona y por día: corta el uso de juguete y los loops por error.
+GUIA_TOPE_DIARIO = 30
+_consultas_hoy: dict[str, list[float]] = {}
+
+
+def _contar_consulta(sesion: dict) -> None:
+    clave = f"{sesion['rol']}:{sesion['usuario_id']}"
+    ahora = time.time()
+    recientes = [t for t in _consultas_hoy.get(clave, []) if ahora - t < 24 * 3600]
+    if len(recientes) >= GUIA_TOPE_DIARIO:
+        raise HTTPException(status_code=429, detail="Llegaste al límite de consultas de hoy. Mañana podés seguir preguntando.")
+    recientes.append(ahora)
+    _consultas_hoy[clave] = recientes
+
+
 @router.post("/guia")
 async def guia(body: GuiaRequest, sesion: dict = Depends(obtener_sesion_desde_request)):
+    _contar_consulta(sesion)
     try:
         return await recomendar(body.texto)
     except HTTPException:
