@@ -192,7 +192,8 @@ export default function FrentePage() {
   async function pedirAyuda() {
     setAyuda('enviando')
     try {
-      await enviarConsultaCoach(`Pide ayuda con el frente "${d.titulo}" (etapa: ${PASOS[Math.min(paso, 2)]}).`, slug)
+      const etapaActual = PASOS[Math.min(etapa, 2)]
+      await enviarConsultaCoach(`En la etapa ${etapaActual} (paso ${Math.min(etapa, 2) + 1} de 3)${etapa === 1 && plantillas.length ? `, con ${completas.length} de ${plantillas.length} SOPs completos` : ''}.`, slug)
       setAyuda('enviada')
     } catch {
       setAyuda('error')
@@ -397,7 +398,7 @@ export default function FrentePage() {
                 </div>
               </div>
               <button type="button" className="im-side__link" onClick={pedirAyuda} disabled={ayuda === 'enviando' || ayuda === 'enviada'}>
-                {ayuda === 'enviada' ? 'Pedido registrado' : ayuda === 'enviando' ? 'Enviando…' : '¿Te trabaste antes? Pedí ayuda'}
+                {ayuda === 'enviada' ? `Listo, le avisamos a ${coach ?? 'tu coach'}` : ayuda === 'enviando' ? 'Enviando…' : '¿Te trabaste? Pedí ayuda'}
               </button>
               {ayuda === 'error' ? <p className="im-error">No se pudo enviar. Probá de nuevo.</p> : null}
             </div>

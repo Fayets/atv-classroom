@@ -8,6 +8,14 @@
     "fulfillment": { "nombre": "Fulfillment", "etiquetar": ["515956832263602177"] },
     "mentalidad": { "nombre": "Mentalidad", "etiquetar": ["460646665808904192", "549002587333197840"] }
   },
+  "_nota_coaches": "Pedidos de ayuda de un frente: se etiqueta al coach del frente (clave de coaches.json).",
+  "coaches": {
+    "juan-cruz": "460646665808904192",
+    "juampi": "515956832263602177",
+    "lucas": "725490403410706482",
+    "nick": "959634902763065426",
+    "franco": "460499512134205440"
+  },
   "_quienes": {
     "460646665808904192": "Juan (@juancarrizo)",
     "1152437077154218064": "Emi (@eemienriquee)",

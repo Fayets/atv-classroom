@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from src.services.auth_service import obtener_sesion_desde_request
 from src.services.frente_service import FrenteServices
 from src.services.guia_service import recomendar
-from src.services.solicitud_service import SolicitudServices
+from src.services.solicitud_service import SolicitudServices, avisar_pedido_ayuda
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["frentes"])
@@ -73,8 +73,15 @@ async def guia(body: GuiaRequest, sesion: dict = Depends(obtener_sesion_desde_re
 
 
 @router.post("/consultas")
-def consulta_coach(body: ConsultaRequest, sesion: dict = Depends(obtener_sesion_desde_request)):
-    return service.registrar_consulta(sesion["usuario_id"], _tipo(sesion), body.texto, body.slug)
+async def consulta_coach(body: ConsultaRequest, sesion: dict = Depends(obtener_sesion_desde_request)):
+    consulta = service.registrar_consulta(sesion["usuario_id"], _tipo(sesion), body.texto, body.slug)
+    coach = None
+    if body.slug:
+        ctx = service.contexto_ayuda(body.slug)
+        coach = ctx["coach"]
+        consulta["avisado"] = await avisar_pedido_ayuda(sesion, _tipo(sesion), consulta["id"], ctx["titulo"], body.texto, coach)
+    consulta["coach"] = coach["nombre"] if coach else None
+    return consulta
 
 
 @router.post("/solicitudes-sop", status_code=201)

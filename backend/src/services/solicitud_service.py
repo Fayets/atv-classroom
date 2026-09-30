@@ -78,6 +78,37 @@ async def _avisar_discord(payload: dict) -> bool:
         return False
 
 
+async def avisar_pedido_ayuda(sesion: dict, tipo: str, consulta_id: int, frente: str, detalle: str, coach: dict | None) -> bool:
+    """El cliente se trabó en un frente: se avisa en el canal etiquetando al coach del frente."""
+    quien = _quien(sesion["usuario_id"], tipo, sesion)
+    cliente = quien["nombre"] or "Cliente"
+    if quien["canal"]:
+        cliente += f" (#{quien['canal'].lstrip('#')})"
+    discord_id = _CONFIG.get("coaches", {}).get((coach or {}).get("clave", ""))
+    campos = [
+        {"name": "Cliente", "value": cliente[:1024], "inline": False},
+        {"name": "Frente", "value": frente[:1024], "inline": False},
+        {"name": "Dónde se trabó", "value": detalle[:1024], "inline": False},
+    ]
+    if coach:
+        campos.append({"name": "Coach", "value": f"{coach['nombre']} · {coach['area']}"[:1024], "inline": False})
+    payload = {
+        "username": "Classroom ATV",
+        "content": f"<@{discord_id}>" if discord_id else "",
+        "allowed_mentions": {"users": [discord_id] if discord_id else []},
+        "embeds": [
+            {
+                "title": f"🆘 Pedido de ayuda #{consulta_id}",
+                "color": 0xD6A548,
+                "fields": campos,
+                "footer": {"text": quien["email"] or ""},
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+            }
+        ],
+    }
+    return await _avisar_discord(payload)
+
+
 class SolicitudServices:
     async def crear(self, sesion: dict, tipo: str, nombre: str, area: str, problema: str, consulta: str | None) -> dict:
         area = area.strip().lower()

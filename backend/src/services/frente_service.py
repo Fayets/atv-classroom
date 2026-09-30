@@ -215,6 +215,12 @@ class FrenteServices:
                 raise HTTPException(status_code=404, detail="Ese frente no está abierto.")
             frente.delete()
 
+    def contexto_ayuda(self, slug: str) -> dict:
+        """Título del frente y coach que lo revisa, para el aviso en Discord."""
+        problema = _problema(slug)
+        with db_session:
+            return {"titulo": problema["titulo"], "coach": coach_de_clases(problema["resolver"])}
+
     def registrar_consulta(self, usuario_id: int, tipo: str, texto: str, slug: str | None) -> dict:
         if slug is not None:
             _problema(slug)
