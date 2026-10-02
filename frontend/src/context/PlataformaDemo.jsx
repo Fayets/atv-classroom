@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useReducer } from 'react'
+import { createContext, useContext, useMemo, useReducer, useState } from 'react'
 
 // Vista previa de la ATV Platform: mensajes, roadmaps y coaches con datos de ejemplo en memoria.
 // Todavía no hay backend: lo que se hace acá se pierde al recargar la página.
@@ -121,9 +121,26 @@ const Ctx = createContext(null)
 
 export function PlataformaDemoProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, inicial)
+  // Estilo visual de la vista previa: "atv" (el del classroom) o "mac" (ventana de macOS). Se recuerda por navegador.
+  const [estilo, setEstiloState] = useState(() => {
+    try {
+      return localStorage.getItem('atv_estilo') === 'mac' ? 'mac' : 'atv'
+    } catch {
+      return 'atv'
+    }
+  })
   const valor = useMemo(
     () => ({
       ...state,
+      estilo,
+      setEstilo: (e) => {
+        setEstiloState(e)
+        try {
+          localStorage.setItem('atv_estilo', e)
+        } catch {
+          // sin almacenamiento, el estilo vale mientras la página esté abierta
+        }
+      },
       cliente: (id) => state.clientes.find((c) => c.id === id),
       roadmapsDe: (cliente) => state.roadmaps.filter((r) => r.cliente === cliente),
       vigenteDe: (cliente) => state.roadmaps.find((r) => r.cliente === cliente && r.estado === 'vigente'),
@@ -132,7 +149,7 @@ export function PlataformaDemoProvider({ children }) {
       enviar: (cliente, coach, mensaje) => dispatch({ accion: 'enviar', clave: `${cliente}:${coach}`, mensaje }),
       asignar: (datos) => dispatch({ ...datos, accion: 'asignar' }),
     }),
-    [state],
+    [state, estilo],
   )
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }

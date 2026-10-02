@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import AppHeader from '../components/AppHeader'
+import { SelectorEstilo } from '../components/plataforma/MacVentana'
+import RoadmapsMac from '../components/plataforma/RoadmapsMac'
 import { Avatar } from '../components/plataforma/piezas'
 import { CLIENTE_DEMO, COACHES, usePlataforma } from '../context/PlataformaDemo'
 import '../styles/frentes.css'
@@ -23,7 +25,7 @@ function Carta({ r, sel, onSel }) {
 
 // Mapa de roadmaps del cliente: una zona por coach con sus roadmaps como hojas. Uno solo es el vigente.
 export default function RoadmapsPage() {
-  const { cliente, roadmapsDe, vigenteDe } = usePlataforma()
+  const { cliente, roadmapsDe, vigenteDe, estilo } = usePlataforma()
   const yo = cliente(CLIENTE_DEMO)
   const todos = roadmapsDe(CLIENTE_DEMO)
   const vigente = vigenteDe(CLIENTE_DEMO)
@@ -59,6 +61,8 @@ export default function RoadmapsPage() {
     arrastre.current = null
   }
   const acercar = (d) => setZoom((z) => Math.min(1.5, Math.max(0.5, Math.round((z + d) * 10) / 10)))
+
+  if (estilo === 'mac') return <RoadmapsMac />
 
   return (
     <div className="app-shell im-root">
@@ -197,6 +201,7 @@ export default function RoadmapsPage() {
           ) : null}
         </div>
       </main>
+      <SelectorEstilo flotante />
     </div>
   )
 }

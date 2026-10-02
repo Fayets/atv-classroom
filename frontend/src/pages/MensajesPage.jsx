@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import AppHeader from '../components/AppHeader'
 import { Chevron } from '../components/frentes/piezas'
+import { SelectorEstilo } from '../components/plataforma/MacVentana'
+import MensajesMac from '../components/plataforma/MensajesMac'
 import { Avatar, Chat } from '../components/plataforma/piezas'
 import { CANALES, CLIENTE_DEMO, COACHES, NIVELES, usePlataforma } from '../context/PlataformaDemo'
 import '../styles/frentes.css'
@@ -30,7 +32,7 @@ function Canal({ canal }) {
 
 // Mensajes del cliente: su equipo ATV, los canales, el chat y su programa al costado.
 export default function MensajesPage() {
-  const { cliente, conversacion, vigenteDe } = usePlataforma()
+  const { cliente, conversacion, vigenteDe, estilo } = usePlataforma()
   const yo = cliente(CLIENTE_DEMO)
   const vigente = vigenteDe(CLIENTE_DEMO)
   const [activo, setActivo] = useState({ tipo: 'coach', id: 'juampi' })
@@ -44,6 +46,8 @@ export default function MensajesPage() {
 
   const coach = activo.tipo === 'coach' ? COACHES[activo.id] : null
   const canal = activo.tipo === 'canal' ? CANALES.find((c) => c.id === activo.id) : null
+
+  if (estilo === 'mac') return <MensajesMac />
 
   return (
     <div className="app-shell im-root">
@@ -158,6 +162,7 @@ export default function MensajesPage() {
           </button>
         </aside>
       </main>
+      <SelectorEstilo flotante />
     </div>
   )
 }
