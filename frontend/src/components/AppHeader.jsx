@@ -1,7 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getUserInitials } from '../utils/user'
+import '../styles/plataforma.css'
+
+// Vista previa de la ATV Platform: navegación del cliente y del coach.
+const NAV_CLIENTE = [
+  ['/', 'Inicio', true],
+  ['/classroom', 'Classroom'],
+  ['/mensajes', 'Mensajes', false, 2],
+  ['/roadmaps', 'Roadmaps'],
+]
+const NAV_COACH = [
+  ['/coach', 'Bandeja', true, 3],
+  ['/coach/clientes', 'Clientes'],
+]
 
 export default function AppHeader() {
   const { user, logout, isAdmin } = useAuth()
@@ -9,6 +22,9 @@ export default function AppHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
   const initials = getUserInitials(user?.nombre)
+  const { pathname } = useLocation()
+  const esCoach = pathname.startsWith('/coach')
+  const nav = esCoach ? NAV_COACH : NAV_CLIENTE
 
   useEffect(() => {
     if (!menuOpen) return
@@ -46,6 +62,14 @@ export default function AppHeader() {
         <Link to="/" className="app-header__logo" aria-label="Inicio ATV">
           <img src="/atv-logo.png" alt="" className="app-header__logo-img" />
         </Link>
+        <nav className="app-header__nav" aria-label="Secciones">
+          {nav.map(([to, label, end, badge]) => (
+            <NavLink key={to} to={to} end={end} className={({ isActive }) => `app-header__navlink${isActive ? ' is-active' : ''}`}>
+              {label}
+              {badge && !pathname.startsWith(to === '/' ? '/__' : to) ? <span className="app-header__badge">{badge}</span> : null}
+            </NavLink>
+          ))}
+        </nav>
       </div>
 
       <div className="app-header__user" ref={menuRef}>
@@ -69,6 +93,14 @@ export default function AppHeader() {
             {user?.email ? (
               <p className="app-header__menu-email">{user.email}</p>
             ) : null}
+            <Link
+              to={esCoach ? '/mensajes' : '/coach'}
+              className="app-header__menu-link"
+              role="menuitem"
+              onClick={() => setMenuOpen(false)}
+            >
+              {esCoach ? 'Ver como cliente (demo)' : 'Ver como coach (demo)'}
+            </Link>
             {isAdmin ? (
               <Link
                 to="/admin"

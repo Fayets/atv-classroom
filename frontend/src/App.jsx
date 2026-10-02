@@ -11,6 +11,11 @@ import { setUnauthorizedHandler } from './api/client'
 import AdminRoute from './components/AdminRoute'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { PlataformaDemoProvider } from './context/PlataformaDemo'
+import CoachBandejaPage from './pages/CoachBandejaPage'
+import CoachClientesPage from './pages/CoachClientesPage'
+import MensajesPage from './pages/MensajesPage'
+import RoadmapsPage from './pages/RoadmapsPage'
 import AdminPage from './pages/AdminPage'
 import FrentePage from './pages/FrentePage'
 import HomePage from './pages/HomePage'
@@ -46,6 +51,14 @@ function AppRoutes() {
       <UnauthorizedSync />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        {[
+          ['/mensajes', <MensajesPage key="m" />],
+          ['/roadmaps', <RoadmapsPage key="r" />],
+          ['/coach', <CoachBandejaPage key="b" />],
+          ['/coach/clientes', <CoachClientesPage key="c" />],
+        ].map(([path, el]) => (
+          <Route key={path} path={path} element={<ProtectedRoute>{el}</ProtectedRoute>} />
+        ))}
         <Route
           path="/"
           element={
@@ -122,7 +135,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <PlataformaDemoProvider>
+          <AppRoutes />
+        </PlataformaDemoProvider>
       </AuthProvider>
     </BrowserRouter>
   )
