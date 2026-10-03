@@ -9,10 +9,11 @@ const MIEMBROS = ['juampi', 'juan', 'nick']
 function persona(autor, cliente) {
   if (autor === 'cliente') return { nombre: cliente.nombre.split(' ')[0], completo: cliente.nombre, color: 'var(--m-t1)', fondo: '#5a5a5f', tinta: '#fff', ini: cliente.nombre.slice(0, 2).toUpperCase(), rol: 'Cliente' }
   const c = COACHES[autor]
-  return { nombre: c.nombre, completo: c.nombre, color: c.color, fondo: c.color, tinta: c.tinta, ini: c.ini, rol: c.rol }
+  return { nombre: c.nombre, completo: c.nombre, color: c.color, fondo: c.color, tinta: c.tinta, ini: c.ini, rol: c.rol, foto: c.foto }
 }
 
 function Av({ p, size = 36 }) {
+  if (p.foto) return <img className="mac-av" src={p.foto} alt="" width={size} height={size} style={{ width: size, height: size }} />
   return (
     <span className="mac-av" style={{ width: size, height: size, background: p.fondo, color: p.tinta, fontSize: size > 30 ? 12 : 10 }} aria-hidden="true">
       {p.ini}

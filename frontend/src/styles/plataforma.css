@@ -297,3 +297,4 @@ a.pf-box:hover, button.pf-box:hover { background-color: var(--pc-s2); }
   .pf-msg-row, .pf-drawer__panel, .pf-ok, .pf-detalle { animation: none; }
   .pf-hoja { transition: none; }
 }
+img.pf-av { object-fit: cover; display: block; }

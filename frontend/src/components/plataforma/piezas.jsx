@@ -5,6 +5,7 @@ import { COACHES, NIVELES, usePlataforma } from '../../context/PlataformaDemo'
 export function Avatar({ coach, iniciales, size = 36 }) {
   const c = coach ? COACHES[coach] : null
   const texto = iniciales ?? c?.ini ?? '?'
+  if (c?.foto) return <img className="pf-av" src={c.foto} alt="" width={size} height={size} style={{ width: size, height: size }} />
   return (
     <span className="pf-av" style={{ width: size, height: size, background: c?.color ?? 'var(--pc-s3)', color: c?.tinta ?? 'var(--pc-t2)' }} aria-hidden="true">
       {texto}

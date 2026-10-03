@@ -8,6 +8,16 @@ const TIPO = { inicial: 'Roadmap inicial', revision: 'Revisión mensual', comple
 const HOJA = 112
 const SEP = 26
 
+function AvCoach({ id, size }) {
+  const c = COACHES[id]
+  if (c.foto) return <img className="mac-av" src={c.foto} alt="" width={size} height={size} style={{ width: size, height: size }} />
+  return (
+    <span className="mac-av" style={{ width: size, height: size, fontSize: size < 24 ? 9 : 10, background: c.color, color: c.tinta }} aria-hidden="true">
+      {c.ini}
+    </span>
+  )
+}
+
 function Hoja({ r, sel, onSel }) {
   return (
     <button type="button" className={`mac-archivo mac-archivo--${r.estado}${sel ? ' is-sel' : ''}`} onClick={() => onSel(r.id)} aria-pressed={sel}>
@@ -101,17 +111,13 @@ export default function RoadmapsMac() {
           <p className="mac-seccion">Coaches</p>
           {ORDEN.map((id) => (
             <button key={id} type="button" className="mac-item" onClick={() => irA(zonas.find((z) => z.id === id))}>
-              <span className="mac-av" style={{ width: 20, height: 20, fontSize: 9, background: COACHES[id].color, color: COACHES[id].tinta }} aria-hidden="true">
-                {COACHES[id].ini}
-              </span>
+              <AvCoach id={id} size={20} />
               <span className="mac-item__nombre">{COACHES[id].nombre}</span>
               <span className="mac-cuenta">{todos.filter((r) => r.coach === id).length || ''}</span>
             </button>
           ))}
           <button type="button" className="mac-item" onClick={() => irA(franco)}>
-            <span className="mac-av" style={{ width: 20, height: 20, fontSize: 9, background: COACHES.franco.color, color: COACHES.franco.tinta }} aria-hidden="true">
-              {COACHES.franco.ini}
-            </span>
+            <AvCoach id="franco" size={20} />
             <span className="mac-item__nombre">{COACHES.franco.nombre}</span>
             {bloqueado ? <span className="mac-cuenta">High</span> : null}
           </button>
@@ -148,9 +154,7 @@ export default function RoadmapsMac() {
               {zonas.map((z) => (
                 <section key={z.id} className="mac-zona" style={{ left: z.x, top: z.y, width: z.w, '--zona': COACHES[z.id].color }}>
                   <header>
-                    <span className="mac-av" style={{ width: 26, height: 26, fontSize: 10, background: COACHES[z.id].color, color: COACHES[z.id].tinta }} aria-hidden="true">
-                      {COACHES[z.id].ini}
-                    </span>
+                    <AvCoach id={z.id} size={26} />
                     <span>
                       <b>{COACHES[z.id].nombre}</b>
                       <small>{COACHES[z.id].rol}</small>
@@ -164,9 +168,7 @@ export default function RoadmapsMac() {
 
               <section className="mac-zona mac-zona--gris" style={{ left: franco.x, top: franco.y, width: franco.w, '--zona': '#8e8e93' }}>
                 <header>
-                  <span className="mac-av" style={{ width: 26, height: 26, fontSize: 10, background: COACHES.franco.color, color: COACHES.franco.tinta }} aria-hidden="true">
-                    {COACHES.franco.ini}
-                  </span>
+                  <AvCoach id="franco" size={26} />
                   <span>
                     <b>{COACHES.franco.nombre}</b>
                     <small>{COACHES.franco.rol}</small>

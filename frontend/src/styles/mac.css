@@ -298,3 +298,4 @@
 @media (prefers-reduced-motion: reduce) {
   .mac-ventana, .mac-linea { animation: none; }
 }
+img.mac-av { object-fit: cover; display: block; }
