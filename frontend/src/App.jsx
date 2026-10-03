@@ -11,7 +11,9 @@ import { setUnauthorizedHandler } from './api/client'
 import AdminRoute from './components/AdminRoute'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { PlataformaDemoProvider } from './context/PlataformaDemo'
+import { PlataformaDemoProvider, usePlataforma } from './context/PlataformaDemo'
+import './styles/mac.css'
+import './styles/tema-mac.css'
 import CoachBandejaPage from './pages/CoachBandejaPage'
 import CoachClientesPage from './pages/CoachClientesPage'
 import MensajesPage from './pages/MensajesPage'
@@ -23,6 +25,15 @@ import LoginPage from './pages/LoginPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 import ProgramaDetailPage from './pages/ProgramaDetailPage'
 import ProgramasGridPage from './pages/ProgramasGridPage'
+
+// Vista previa: el estilo elegido (ATV o Mac) se aplica a toda la app desde <html>.
+function EstiloSync() {
+  const { estilo } = usePlataforma()
+  useEffect(() => {
+    document.documentElement.dataset.estilo = estilo
+  }, [estilo])
+  return null
+}
 
 function UnauthorizedSync() {
   const { logout } = useAuth()
@@ -49,6 +60,7 @@ function AppRoutes() {
   return (
     <>
       <UnauthorizedSync />
+      <EstiloSync />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         {[

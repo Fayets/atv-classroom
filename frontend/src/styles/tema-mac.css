@@ -1,0 +1,201 @@
+/* Tema "Mac" para toda la app (vista previa). Se activa con html[data-estilo="mac"]:
+   cada página es una ventana de macOS sobre el escritorio, con los tokens del classroom pasados a los de Mac. */
+
+html[data-estilo='mac'] {
+  --mac-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
+  --mac-acento: #c5484a;
+  /* mismas variables que la ventana de mac.css, para las piezas que viven fuera de ella */
+  --m-bg: #1e1e20;
+  --m-inspector: #232326;
+  --m-grupo: rgba(255, 255, 255, 0.05);
+  --m-linea: rgba(255, 255, 255, 0.08);
+  --m-t1: #ececee;
+  --m-t2: #b4b4b9;
+  --m-t3: #8e8e93;
+  --m-acento: #c5484a;
+  --m-acento-suave: rgba(197, 72, 74, 0.22);
+  --m-gris-burbuja: #3a3a3d;
+  color-scheme: dark;
+}
+html[data-estilo='mac'] body {
+  font-family: var(--mac-font);
+  background:
+    radial-gradient(1200px 700px at 85% 110%, rgba(176, 69, 69, 0.35), transparent 60%),
+    radial-gradient(900px 600px at 10% -10%, rgba(80, 90, 120, 0.35), transparent 60%),
+    #0d0d10;
+  background-attachment: fixed;
+}
+
+/* ---------- la ventana ---------- */
+html[data-estilo='mac'] .app-shell {
+  margin: 22px;
+  height: calc(100dvh - 44px);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 12px;
+  background: #1e1e20;
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.6), 0 30px 80px -10px rgba(0, 0, 0, 0.75);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  animation: mac-abrir 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* tokens del classroom en versión Mac */
+html[data-estilo='mac'] .im-root {
+  --pc-bg: #1e1e20;
+  --pc-s1: #2a2a2d;
+  --pc-s2: #323236;
+  --pc-s3: #3a3a3e;
+  --pc-line: rgba(255, 255, 255, 0.08);
+  --pc-line2: rgba(255, 255, 255, 0.14);
+  --pc-t1: #ececee;
+  --pc-t2: #b4b4b9;
+  --pc-t3: #8e8e93;
+  --pc-t4: #6e6e73;
+  --pc-red: #c5484a;
+  --pc-red2: #ff6b6b;
+  --pc-red-soft: rgba(197, 72, 74, 0.22);
+  --pc-ok: #30d158;
+  --pc-font: var(--mac-font);
+  --pf-head: 96px;
+  background: #1e1e20;
+}
+html[data-estilo='mac'] .im-root h1,
+html[data-estilo='mac'] .im-root h2,
+html[data-estilo='mac'] .im-root h3 { font-family: var(--mac-font); }
+
+/* ---------- barra de título ---------- */
+html[data-estilo='mac'] .app-header {
+  top: 0;
+  height: 52px;
+  padding: 0 14px 0 82px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+  background: #2a2a2d;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: none;
+}
+html[data-estilo='mac'] .app-header::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff5f57;
+  box-shadow: 20px 0 0 #febc2e, 40px 0 0 #28c840;
+  transform: translateY(-50%);
+}
+html[data-estilo='mac'] .app-header__logo-img { width: 18px; }
+html[data-estilo='mac'] .app-header__nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px;
+  gap: 0;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  font-family: var(--mac-font);
+}
+html[data-estilo='mac'] .app-header__navlink { padding: 4px 14px; border-radius: 5px; font-size: 12.5px; font-weight: 500; color: #b4b4b9; }
+html[data-estilo='mac'] .app-header__navlink:hover { background: transparent; color: #ececee; }
+html[data-estilo='mac'] .app-header__navlink.is-active { background: #636366; color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
+html[data-estilo='mac'] .app-header__badge { background: #ff453a; font-size: 10px; padding: 2px 5px; }
+html[data-estilo='mac'] .app-header__user { display: flex; align-items: center; gap: 12px; }
+html[data-estilo='mac'] .app-header__avatar { width: 26px; height: 26px; font-size: 10px; border: 0; color: #ececee; background: linear-gradient(#5a5a5f, #3d3d41); }
+html[data-estilo='mac'] .app-header__menu {
+  border-radius: 10px;
+  background: rgba(44, 44, 47, 0.92);
+  backdrop-filter: blur(24px) saturate(1.5);
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.16), 0 16px 40px -8px rgba(0, 0, 0, 0.8);
+  font-family: var(--mac-font);
+}
+
+/* ---------- controles ---------- */
+html[data-estilo='mac'] .pc-btn { height: 30px; padding: 0 12px; border-radius: 7px; font-size: 13px; font-weight: 500; font-family: var(--mac-font); }
+html[data-estilo='mac'] .pc-btn--lg { height: 36px; padding: 0 16px; }
+html[data-estilo='mac'] .pc-complete { background: var(--mac-acento); box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.25); }
+html[data-estilo='mac'] .pc-complete:not(.is-done):hover { background: #d0524f; }
+html[data-estilo='mac'] .pc-btn--light { background: #5b5b5f; color: #fff; box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.2); }
+html[data-estilo='mac'] .pc-btn--light:hover:not(:disabled) { background: #6a6a6e; }
+html[data-estilo='mac'] .pc-btn--ghost { background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.12); color: #ececee; }
+html[data-estilo='mac'] .im-root input,
+html[data-estilo='mac'] .im-root textarea { font-family: var(--mac-font); }
+
+/* ---------- inicio y guía ---------- */
+html[data-estilo='mac'] .im-hero h1 { font-weight: 700; letter-spacing: -0.035em; }
+html[data-estilo='mac'] .im-ask__form { border-radius: 12px; }
+html[data-estilo='mac'] .im-ask__hints button { border-radius: 7px; font-size: 12.5px; }
+html[data-estilo='mac'] .im-route { border-radius: 12px; }
+
+/* ---------- material y clase ---------- */
+html[data-estilo='mac'] .mt-card { border-radius: 12px; }
+html[data-estilo='mac'] .ms-panel,
+html[data-estilo='mac'] .ms-indice__panel { border-radius: 12px; }
+html[data-estilo='mac'] .ms-indice__panel { background: rgba(44, 44, 47, 0.92); backdrop-filter: blur(30px) saturate(1.5); }
+html[data-estilo='mac'] .ms-barra { position: sticky; top: 52px; z-index: 5; background: #1e1e20; }
+html[data-estilo='mac'] .ms-panel { top: 150px; }
+html[data-estilo='mac'] .ms-seg { height: 4px; }
+html[data-estilo='mac'] .mt-nav__btn { border-radius: 10px; }
+html[data-estilo='mac'] kbd { font-family: var(--mac-font); }
+
+/* ---------- vistas del coach ---------- */
+html[data-estilo='mac'] .pf-metrica,
+html[data-estilo='mac'] .pf-box,
+html[data-estilo='mac'] .pf-tabla-wrap { border-radius: 10px; }
+html[data-estilo='mac'] .pf-lista { background: rgba(46, 46, 50, 0.72); }
+html[data-estilo='mac'] .pf-conv.is-on { background: var(--mac-acento); }
+html[data-estilo='mac'] .pf-conv.is-on .pf-conv__ultimo,
+html[data-estilo='mac'] .pf-conv.is-on time { color: rgba(255, 255, 255, 0.85); }
+html[data-estilo='mac'] .pf-burbuja { border-radius: 18px; }
+html[data-estilo='mac'] .pf-burbuja.is-mio { background: var(--mac-acento); box-shadow: none; color: #fff; }
+html[data-estilo='mac'] .pf-burbuja.is-mio time { color: rgba(255, 255, 255, 0.7); }
+html[data-estilo='mac'] .pf-drawer__panel { background: rgba(40, 40, 43, 0.96); backdrop-filter: blur(30px); }
+html[data-estilo='mac'] .pf-chips button.is-on { background: #636366; color: #fff; }
+
+/* ---------- login: el formulario en una ventana ---------- */
+html[data-estilo='mac'] .lg-root {
+  --lg-bg: #1e1e20;
+  --lg-s1: #2a2a2d;
+  --lg-red: #c5484a;
+  --lg-red2: #ff6b6b;
+  position: relative;
+  margin: 22px;
+  min-height: calc(100dvh - 44px);
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: var(--mac-font);
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.6), 0 30px 80px -10px rgba(0, 0, 0, 0.75);
+}
+html[data-estilo='mac'] .lg-root::before {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  left: 18px;
+  top: 18px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff5f57;
+  box-shadow: 20px 0 0 #febc2e, 40px 0 0 #28c840;
+}
+html[data-estilo='mac'] .lg-root input,
+html[data-estilo='mac'] .lg-root button { font-family: var(--mac-font); }
+html[data-estilo='mac'] .lg-brand__panel { border-radius: 10px; }
+html[data-estilo='mac'] .lg-brand { padding-top: 44px; }
+
+@media (max-width: 760px) {
+  html[data-estilo='mac'] .app-shell,
+  html[data-estilo='mac'] .lg-root { margin: 0; height: 100dvh; min-height: 100dvh; border-radius: 0; }
+  html[data-estilo='mac'] .app-header { padding-left: 14px; }
+  html[data-estilo='mac'] .app-header::before,
+  html[data-estilo='mac'] .lg-root::before { display: none; }
+  html[data-estilo='mac'] .app-header__nav { position: static; transform: none; overflow-x: auto; }
+  html[data-estilo='mac'] .app-header__navlink { padding: 4px 9px; }
+  html[data-estilo='mac'] .app-header .mac-estilo { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-estilo='mac'] .app-shell { animation: none; }
+}

@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react'
 import AppHeader from '../components/AppHeader'
-import { SelectorEstilo } from '../components/plataforma/MacVentana'
 import RoadmapsMac from '../components/plataforma/RoadmapsMac'
 import { Avatar } from '../components/plataforma/piezas'
 import { CLIENTE_DEMO, COACHES, usePlataforma } from '../context/PlataformaDemo'
@@ -201,7 +200,6 @@ export default function RoadmapsPage() {
           ) : null}
         </div>
       </main>
-      <SelectorEstilo flotante />
     </div>
   )
 }

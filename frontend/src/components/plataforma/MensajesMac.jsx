@@ -68,7 +68,8 @@ function Adjunto({ m }) {
 }
 
 // El canal privado del cliente, como en Discord: avatar, nombre, hora, respuestas y menciones.
-function CanalPrivado({ c }) {
+// `yo` es "cliente" o el id del coach que está mirando.
+export function CanalPrivado({ c, yo = 'cliente' }) {
   const { conversacion, mensaje, enviar } = usePlataforma()
   const mensajes = conversacion(c.id)
   const [texto, setTexto] = useState('')
@@ -84,7 +85,7 @@ function CanalPrivado({ c }) {
   function mandar(e) {
     e.preventDefault()
     if (!texto.trim()) return
-    enviar(c.id, null, { de: 'cliente', tipo: 'texto', texto: texto.trim(), responde: respondiendo?.id })
+    enviar(c.id, yo === 'cliente' ? null : yo, { de: yo === 'cliente' ? 'cliente' : 'coach', tipo: 'texto', texto: texto.trim(), responde: respondiendo?.id })
     setTexto('')
     setRespondiendo(null)
   }
@@ -95,14 +96,15 @@ function CanalPrivado({ c }) {
         <div className="mac-discord__inicio">
           <span className="mac-discord__hash">#</span>
           <b>Este es el comienzo de #{c.canal}</b>
-          <span>Tu canal privado con el equipo de ATV. Lo ven vos y tus coaches.</span>
+          <span>{yo === 'cliente' ? 'Tu canal privado con el equipo de ATV. Lo ven vos y tus coaches.' : `Canal privado de ${c.nombre} con el equipo de ATV.`}</span>
         </div>
         {mensajes.map((m, i) => {
           const p = persona(m.autor, c)
           const previo = mensajes[i - 1]
           const agrupado = previo && previo.autor === m.autor && !m.responde && previo.hora === m.hora
           const citado = m.responde ? mensaje(c.id, m.responde) : null
-          const menciona = m.tipo === 'texto' && m.autor !== 'cliente' && m.texto.includes(`@${c.nombre.split(' ')[0]}`)
+          const miNombre = yo === 'cliente' ? c.nombre.split(' ')[0] : COACHES[yo].nombre.split(' ')[0]
+          const menciona = m.tipo === 'texto' && m.autor !== yo && m.texto.includes(`@${miNombre}`)
           return (
             <div key={m.id} className={`mac-dmsg${agrupado ? ' is-agrupado' : ''}${menciona ? ' is-mencion' : ''}`}>
               {citado ? (
@@ -159,7 +161,7 @@ function CanalPrivado({ c }) {
           </div>
         ) : null}
         <div className="mac-dredactar__caja">
-          <button type="button" className="mac-dredactar__mas" aria-label="Adjuntar un SOP o archivo" onClick={() => enviar(c.id, null, { de: 'cliente', tipo: 'sop', titulo: 'SOP · Seguimiento post-call' })}>
+          <button type="button" className="mac-dredactar__mas" aria-label="Adjuntar un SOP o archivo" onClick={() => enviar(c.id, yo === 'cliente' ? null : yo, { de: yo === 'cliente' ? 'cliente' : 'coach', tipo: 'sop', titulo: 'SOP · Seguimiento post-call' })}>
             +
           </button>
           <label htmlFor="mac-mensaje" className="sr-only">

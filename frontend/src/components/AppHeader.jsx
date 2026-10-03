@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getUserInitials } from '../utils/user'
 import '../styles/plataforma.css'
+import { SelectorEstilo } from './plataforma/MacVentana'
 
 // Vista previa de la ATV Platform: navegación del cliente y del coach.
 const NAV_CLIENTE = [
@@ -73,6 +74,7 @@ export default function AppHeader() {
       </div>
 
       <div className="app-header__user" ref={menuRef}>
+        <SelectorEstilo />
         <button
           type="button"
           className="app-header__avatar"

@@ -9,6 +9,7 @@
 }
 .app-header__navlink:hover { color: #f3f3f1; background: rgba(255, 255, 255, 0.04); }
 .app-header__navlink.is-active { color: #f3f3f1; background: #18181a; }
+.app-header__user { display: flex; align-items: center; gap: 12px; }
 .app-header__badge { font-size: 10.5px; font-weight: 600; line-height: 1; color: #fff; background: #b04545; border-radius: 999px; padding: 3px 6px; }
 
 .im-root { --pf-head: 71px; }

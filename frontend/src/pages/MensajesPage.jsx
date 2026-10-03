@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import AppHeader from '../components/AppHeader'
 import { Chevron } from '../components/frentes/piezas'
-import { SelectorEstilo } from '../components/plataforma/MacVentana'
 import MensajesMac from '../components/plataforma/MensajesMac'
 import { Avatar, Chat } from '../components/plataforma/piezas'
 import { CANALES, CLIENTE_DEMO, COACHES, NIVELES, usePlataforma } from '../context/PlataformaDemo'
@@ -162,7 +161,6 @@ export default function MensajesPage() {
           </button>
         </aside>
       </main>
-      <SelectorEstilo flotante />
     </div>
   )
 }

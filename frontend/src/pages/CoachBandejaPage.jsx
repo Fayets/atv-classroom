@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import AppHeader from '../components/AppHeader'
 import { Chevron } from '../components/frentes/piezas'
+import { CanalPrivado } from '../components/plataforma/MensajesMac'
 import { AsignarRoadmap, Avatar, Chat, NivelChip } from '../components/plataforma/piezas'
 import { COACH_DEMO, NIVELES, usePlataforma } from '../context/PlataformaDemo'
 import '../styles/frentes.css'
@@ -23,7 +24,7 @@ const iniciales = (nombre) =>
 
 // Bandeja del coach: quién espera respuesta, métricas del día y la ficha del cliente.
 export default function CoachBandejaPage() {
-  const { clientes, esperando, conversacion, vigenteDe, roadmapsDe, enviar } = usePlataforma()
+  const { clientes, esperando, conversacion, vigenteDe, roadmapsDe, enviar, estilo } = usePlataforma()
   const [filtro, setFiltro] = useState('esperando')
   const [activo, setActivo] = useState('federico')
   const [asignando, setAsignando] = useState(false)
@@ -119,6 +120,9 @@ export default function CoachBandejaPage() {
               </button>
             </div>
             {c.nivel === 'mid' ? <p className="pf-regla">Mid incluye revisión mensual con vos. Personalización extra es un upsell.</p> : null}
+            {estilo === 'mac' ? (
+              <CanalPrivado key={c.id} c={c} yo={COACH_DEMO} />
+            ) : (
             <Chat
               key={c.id}
               cliente={c.id}
@@ -127,6 +131,7 @@ export default function CoachBandejaPage() {
               placeholder={`Responderle a ${c.nombre.split(' ')[0]}…`}
               rapidas={['Dale, el jueves lo vemos', 'Revisado, avanzá con el siguiente paso']}
             />
+            )}
           </section>
 
           <aside className="pf-lado" aria-label="Ficha del cliente">
