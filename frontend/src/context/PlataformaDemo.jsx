@@ -6,7 +6,7 @@ import { createContext, useContext, useMemo, useReducer, useState } from 'react'
 export const COACHES = {
   juampi: { id: 'juampi', nombre: 'Juampi', ini: 'JP', foto: '/coaches/juampi.jpg', rol: 'Revisión de roadmap mensual', area: 'Ventas', color: '#1d9e75', tinta: '#06140f', responde: '~2 h' },
   juan: { id: 'juan', nombre: 'Juan Cruz', ini: 'JC', foto: '/coaches/juan.jpg', rol: 'Chat 1-1 · Marketing', area: 'Marketing', color: '#6b95d8', tinta: '#0b0b0c', responde: '~4 h' },
-  nick: { id: 'nick', nombre: 'Nick', ini: 'NI', rol: 'Setting y closing', area: 'Closing', color: '#d6a548', tinta: '#0b0b0c', responde: '~3 h' },
+  nick: { id: 'nick', nombre: 'Nick', ini: 'NI', foto: '/coaches/nick.jpg', rol: 'Setting y closing', area: 'Closing', color: '#d6a548', tinta: '#0b0b0c', responde: '~3 h' },
   franco: { id: 'franco', nombre: 'Franco', ini: 'FR', rol: 'Sistemas, procesos y equipos', area: 'Sistemas', color: '#8f8c85', tinta: '#0b0b0c', responde: '~6 h' },
 }
 
