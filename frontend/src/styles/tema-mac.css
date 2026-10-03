@@ -204,3 +204,11 @@ html[data-estilo='mac'] .ms-page,
 html[data-estilo='mac'] .pf-clientes { max-width: none; padding-left: clamp(16px, 3vw, 40px); padding-right: clamp(16px, 3vw, 40px); }
 html[data-estilo='mac'] .mt-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 html[data-estilo='mac'] .im-route { max-width: none; }
+
+/* inicio: el saludo, la pregunta y la conversación con la guía van centrados */
+html[data-estilo='mac'] .im-ask { align-items: center; }
+html[data-estilo='mac'] .im-ask > * { width: 100%; max-width: 900px; }
+html[data-estilo='mac'] .im-hero h1 { text-align: center; transform-origin: center bottom; }
+html[data-estilo='mac'] .im-ask__hints { justify-content: center; }
+html[data-estilo='mac'] .im-ask__form { margin-left: auto; margin-right: auto; }
+html[data-estilo='mac'] .im-ask > .im-hero { max-width: 1240px; }
