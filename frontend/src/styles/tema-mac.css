@@ -212,3 +212,10 @@ html[data-estilo='mac'] .im-hero h1 { text-align: center; transform-origin: cent
 html[data-estilo='mac'] .im-ask__hints { justify-content: center; }
 html[data-estilo='mac'] .im-ask__form { margin-left: auto; margin-right: auto; }
 html[data-estilo='mac'] .im-ask > .im-hero { max-width: 1240px; }
+
+/* inicio centrado también en vertical: la pregunta queda en el medio de la ventana */
+html[data-estilo='mac'] .im-home { min-height: calc(100dvh - 52px); gap: 48px; padding-top: 24px; }
+html[data-estilo='mac'] .im-ask { flex: 1 0 auto; justify-content: center; min-height: min(62vh, 620px); }
+html[data-estilo='mac'] .im-home:has(.im-ask.is-chat) .im-ask { flex: 0 0 auto; justify-content: flex-start; min-height: 0; }
+html[data-estilo='mac'] .im-sec { width: 100%; max-width: 1100px; margin: 0 auto; }
+html[data-estilo='mac'] .im-foot { width: 100%; }
