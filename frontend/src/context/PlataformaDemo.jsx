@@ -47,30 +47,28 @@ const nuevoId = () => `m${++seq}`
 
 const ahora = () => new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
 
-// Conversaciones: una por cliente y coach. `de` es quién lo escribió.
+// Cada cliente tiene un canal privado, como en Discord: escriben él y todo el equipo de ATV.
+// `autor` es el id del coach o "cliente"; `de` dice de qué lado está ("coach" o "cliente").
+const C = (id, autor, hora, extra) => ({ id, autor, de: autor === 'cliente' ? 'cliente' : 'coach', hora, tipo: 'texto', ...extra })
 const CONVERSACIONES = {
-  'federico:juampi': [
-    { id: 'm1', de: 'coach', tipo: 'texto', texto: 'Buenas Fede, ¿cómo venís con el roadmap de ventas?', hora: '10:30' },
-    { id: 'm2', de: 'cliente', tipo: 'texto', texto: 'Bien, ya completé el SOP de follow-ups. Te lo paso así lo vemos', hora: '10:34' },
-    { id: 'm3', de: 'cliente', tipo: 'sop', titulo: 'SOP · ¿Cuántos follow-ups hago?', hora: '10:34' },
-    { id: 'm4', de: 'coach', tipo: 'texto', texto: 'Lo miré. El segundo follow-up está muy largo, dejalo en 2 líneas. El resto está perfecto', hora: '10:40' },
-    { id: 'm5', de: 'coach', tipo: 'roadmap', roadmap: 'r4', reemplaza: 'Ventas · v2', hora: '10:41' },
-    { id: 'm6', de: 'coach', tipo: 'texto', texto: 'Te dejé marcado el paso 3. Con eso lo vemos el jueves en el 1-1', hora: '10:42' },
+  federico: [
+    C('m1', 'juampi', '10:30', { texto: 'Buenas Fede, ¿cómo venís con el roadmap de ventas?' }),
+    C('m2', 'cliente', '10:34', { texto: 'Bien, ya completé el SOP de follow-ups. Te lo paso así lo vemos' }),
+    C('m3', 'cliente', '10:34', { tipo: 'sop', titulo: 'SOP · ¿Cuántos follow-ups hago?' }),
+    C('m4', 'juan', '10:36', { texto: 'Buenísimo Fede. Cuando lo cierres con Juampi lo sumamos al calendario de octubre' }),
+    C('m5', 'juampi', '10:40', { responde: 'm2', texto: 'Lo miré. El segundo follow-up está muy largo, dejalo en 2 líneas. El resto está perfecto' }),
+    C('m6', 'juampi', '10:41', { tipo: 'roadmap', roadmap: 'r4', reemplaza: 'Ventas · v2' }),
+    C('m7', 'juampi', '10:42', { texto: '@Federico te dejé marcado el paso 3. Con eso lo vemos el jueves en el 1-1' }),
+    C('m8', 'nick', '11:05', { texto: 'Ajusté el guion de setting con lo que vimos en la clase, te lo dejo acá' }),
+    C('m9', 'nick', '11:05', { tipo: 'roadmap', roadmap: 'r5' }),
+    C('m10', 'cliente', '11:10', { responde: 'm8', texto: 'Dale, gracias a los dos. Lo implemento esta semana' }),
   ],
-  'federico:juan': [
-    { id: 'm7', de: 'cliente', tipo: 'texto', texto: 'Juan, terminé el calendario de contenido de octubre', hora: 'ayer' },
-    { id: 'm8', de: 'coach', tipo: 'texto', texto: 'Buenísimo, seguí con el calendario. El viernes en la clase lo usamos de ejemplo', hora: 'ayer' },
-  ],
-  'federico:nick': [
-    { id: 'm9', de: 'coach', tipo: 'roadmap', roadmap: 'r5', hora: 'lun' },
-    { id: 'm10', de: 'coach', tipo: 'texto', texto: 'Ajusté el guion de setting con lo que vimos en la clase', hora: 'lun' },
-  ],
-  'ana:juampi': [{ id: 'm11', de: 'cliente', tipo: 'texto', texto: 'Te mando el calendario para que lo revises', hora: 'hace 1 h' }],
-  'inaki:juampi': [{ id: 'm12', de: 'cliente', tipo: 'texto', texto: 'Subí el dashboard de métricas, ¿lo ves?', hora: 'hace 2 h' }],
-  'leonel:juampi': [{ id: 'm13', de: 'coach', tipo: 'texto', texto: 'Leo, ¿cómo venís? Hace unos días que no te veo por acá', hora: 'hace 9 días' }],
-  'julian:juampi': [{ id: 'm14', de: 'coach', tipo: 'texto', texto: 'Perfecto, avanzá con el paso 5', hora: 'ayer' }],
-  'alvaro:juampi': [{ id: 'm15', de: 'coach', tipo: 'texto', texto: 'Dale, lo vemos en el grupal', hora: 'lun' }],
-  'miguel:juampi': [{ id: 'm16', de: 'coach', tipo: 'texto', texto: 'Lo dejamos listo para el lanzamiento', hora: 'hace 3 días' }],
+  ana: [C('m11', 'cliente', 'hace 1 h', { texto: 'Te mando el calendario para que lo revises' })],
+  inaki: [C('m12', 'cliente', 'hace 2 h', { texto: 'Subí el dashboard de métricas, ¿lo ves?' })],
+  leonel: [C('m13', 'juampi', 'hace 9 días', { texto: 'Leo, ¿cómo venís? Hace unos días que no te veo por acá' })],
+  julian: [C('m14', 'juampi', 'ayer', { texto: 'Perfecto, avanzá con el paso 5' })],
+  alvaro: [C('m15', 'juampi', 'lun', { texto: 'Dale, lo vemos en el grupal' })],
+  miguel: [C('m16', 'juampi', 'hace 3 días', { texto: 'Lo dejamos listo para el lanzamiento' })],
 }
 
 // Quién espera respuesta del coach y desde cuándo (para la bandeja).
@@ -92,12 +90,12 @@ const inicial = { clientes: CLIENTES, roadmaps: ROADMAPS, conversaciones: CONVER
 function reducer(state, accion) {
   switch (accion.accion) {
     case 'enviar': {
-      const { clave, mensaje } = accion
+      const { cliente, coach, mensaje } = accion
       const esperando = { ...state.esperando }
-      const [cliente] = clave.split(':')
       if (mensaje.de === 'coach') delete esperando[cliente]
       else esperando[cliente] = 'ahora'
-      return { ...state, esperando, conversaciones: { ...state.conversaciones, [clave]: [...(state.conversaciones[clave] ?? []), { id: nuevoId(), hora: ahora(), ...mensaje }] } }
+      const nuevo = { id: nuevoId(), hora: ahora(), autor: mensaje.de === 'coach' ? coach : 'cliente', ...mensaje }
+      return { ...state, esperando, conversaciones: { ...state.conversaciones, [cliente]: [...(state.conversaciones[cliente] ?? []), nuevo] } }
     }
     case 'asignar': {
       const { cliente, coach, titulo, tipo, link, vigente, avisar } = accion
@@ -107,8 +105,7 @@ function reducer(state, accion) {
       roadmaps.push({ id, cliente, coach, titulo, tipo, link, fecha: 'Hoy', estado: vigente ? 'vigente' : tipo === 'complementario' ? 'complementario' : 'base', paso: vigente ? [1, 7] : undefined })
       let conversaciones = state.conversaciones
       if (avisar) {
-        const clave = `${cliente}:${coach}`
-        conversaciones = { ...conversaciones, [clave]: [...(conversaciones[clave] ?? []), { id: nuevoId(), de: 'coach', tipo: 'roadmap', roadmap: id, reemplaza: anterior?.titulo, hora: ahora() }] }
+        conversaciones = { ...conversaciones, [cliente]: [...(conversaciones[cliente] ?? []), { id: nuevoId(), autor: coach, de: 'coach', tipo: 'roadmap', roadmap: id, reemplaza: anterior?.titulo, hora: ahora() }] }
       }
       return { ...state, roadmaps, conversaciones }
     }
@@ -145,8 +142,10 @@ export function PlataformaDemoProvider({ children }) {
       roadmapsDe: (cliente) => state.roadmaps.filter((r) => r.cliente === cliente),
       vigenteDe: (cliente) => state.roadmaps.find((r) => r.cliente === cliente && r.estado === 'vigente'),
       roadmap: (id) => state.roadmaps.find((r) => r.id === id),
-      conversacion: (cliente, coach) => state.conversaciones[`${cliente}:${coach}`] ?? [],
-      enviar: (cliente, coach, mensaje) => dispatch({ accion: 'enviar', clave: `${cliente}:${coach}`, mensaje }),
+      // El canal privado del cliente (el coach ya no separa conversaciones: es un canal compartido).
+      conversacion: (cliente) => state.conversaciones[cliente] ?? [],
+      mensaje: (cliente, id) => (state.conversaciones[cliente] ?? []).find((m) => m.id === id),
+      enviar: (cliente, coach, mensaje) => dispatch({ accion: 'enviar', cliente, coach, mensaje }),
       asignar: (datos) => dispatch({ ...datos, accion: 'asignar' }),
     }),
     [state, estilo],

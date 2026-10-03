@@ -1,160 +1,226 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CANALES, CLIENTE_DEMO, COACHES, NIVELES, usePlataforma } from '../../context/PlataformaDemo'
 import MacVentana from './MacVentana'
 
-const EQUIPO = ['juampi', 'juan', 'nick']
+// Miembros del canal privado de cada cliente: el equipo que lo acompaña según su nivel.
+const MIEMBROS = ['juampi', 'juan', 'nick']
 
-function Av({ coach, size = 32 }) {
-  const c = COACHES[coach]
+function persona(autor, cliente) {
+  if (autor === 'cliente') return { nombre: cliente.nombre.split(' ')[0], completo: cliente.nombre, color: 'var(--m-t1)', fondo: '#5a5a5f', tinta: '#fff', ini: cliente.nombre.slice(0, 2).toUpperCase(), rol: 'Cliente' }
+  const c = COACHES[autor]
+  return { nombre: c.nombre, completo: c.nombre, color: c.color, fondo: c.color, tinta: c.tinta, ini: c.ini, rol: c.rol }
+}
+
+function Av({ p, size = 36 }) {
   return (
-    <span className="mac-av" style={{ width: size, height: size, background: c.color, color: c.tinta }} aria-hidden="true">
-      {c.ini}
+    <span className="mac-av" style={{ width: size, height: size, background: p.fondo, color: p.tinta, fontSize: size > 30 ? 12 : 10 }} aria-hidden="true">
+      {p.ini}
     </span>
   )
 }
 
-function Fila({ etiqueta, valor, tono }) {
+// Texto con menciones (@Nombre) resaltadas.
+function ConMenciones({ texto, nombres }) {
+  const partes = texto.split(/(@[A-Za-zÁÉÍÓÚáéíóúñÑ]+)/g)
+  return partes.map((t, i) =>
+    t.startsWith('@') && nombres.includes(t.slice(1)) ? (
+      <span key={i} className="mac-mencion">
+        {t}
+      </span>
+    ) : (
+      <Fragment key={i}>{t}</Fragment>
+    ),
+  )
+}
+
+function Adjunto({ m }) {
+  const { roadmap } = usePlataforma()
+  if (m.tipo === 'sop') {
+    return (
+      <div className="mac-adjunto">
+        <span className="mac-doc mac-doc--chico mac-doc--azul" aria-hidden="true" />
+        <span className="mac-adjunto__txt">
+          <b>{m.titulo}</b>
+          <small>SOP completado desde el classroom</small>
+        </span>
+      </div>
+    )
+  }
+  const r = roadmap(m.roadmap)
+  if (!r) return null
   return (
-    <div className="mac-fila">
-      <span>{etiqueta}</span>
-      <b className={tono ? `mac-${tono}` : ''}>{valor}</b>
+    <div className={`mac-adjunto${r.estado === 'vigente' ? ' is-vigente' : ''}`}>
+      <span className="mac-doc mac-doc--chico" aria-hidden="true" />
+      <span className="mac-adjunto__txt">
+        <b>{r.titulo}</b>
+        <small>
+          Roadmap de {COACHES[r.coach].nombre}
+          {r.estado === 'vigente' && m.reemplaza ? ` · reemplaza a ${m.reemplaza}` : ''}
+        </small>
+      </span>
+      {r.estado === 'vigente' ? <span className="mac-pill mac-pill--rojo">Vigente</span> : r.estado === 'reemplazado' ? <span className="mac-pill">Reemplazado</span> : null}
+      <Link to="/roadmaps" className="mac-adjunto__abrir">
+        Abrir
+      </Link>
     </div>
   )
 }
 
-function Burbujas({ cliente, coach }) {
-  const { conversacion, roadmap, enviar } = usePlataforma()
-  const mensajes = conversacion(cliente, coach)
+// El canal privado del cliente, como en Discord: avatar, nombre, hora, respuestas y menciones.
+function CanalPrivado({ c }) {
+  const { conversacion, mensaje, enviar } = usePlataforma()
+  const mensajes = conversacion(c.id)
   const [texto, setTexto] = useState('')
+  const [respondiendo, setRespondiendo] = useState(null)
   const fin = useRef(null)
+  const inputRef = useRef(null)
+  const nombres = [c.nombre.split(' ')[0], ...MIEMBROS.map((id) => COACHES[id].nombre.split(' ')[0])]
 
   useEffect(() => {
     fin.current?.scrollIntoView({ block: 'end' })
-  }, [mensajes.length, coach])
+  }, [mensajes.length])
 
   function mandar(e) {
     e.preventDefault()
     if (!texto.trim()) return
-    enviar(cliente, coach, { de: 'cliente', tipo: 'texto', texto: texto.trim() })
+    enviar(c.id, null, { de: 'cliente', tipo: 'texto', texto: texto.trim(), responde: respondiendo?.id })
     setTexto('')
+    setRespondiendo(null)
   }
 
   return (
     <>
-      <div className="mac-hilo" role="log" aria-live="polite">
-        <span className="mac-hilo__dia">Hoy</span>
-        {mensajes.map((m) => {
-          const mio = m.de === 'cliente'
-          if (m.tipo === 'roadmap') {
-            const r = roadmap(m.roadmap)
-            if (!r) return null
-            return (
-              <div key={m.id} className="mac-linea">
-                <div className={`mac-adjunto${r.estado === 'vigente' ? ' is-vigente' : ''}`}>
-                  <span className="mac-doc mac-doc--chico" aria-hidden="true" />
-                  <span className="mac-adjunto__txt">
-                    <b>{r.titulo}</b>
-                    <small>
-                      Roadmap de {COACHES[r.coach].nombre}
-                      {r.estado === 'vigente' && m.reemplaza ? ` · reemplaza a ${m.reemplaza}` : ''}
-                    </small>
-                  </span>
-                  {r.estado === 'vigente' ? <span className="mac-pill mac-pill--rojo">Vigente</span> : r.estado === 'reemplazado' ? <span className="mac-pill">Reemplazado</span> : null}
-                  <Link to="/roadmaps" className="mac-adjunto__abrir">
-                    Abrir
-                  </Link>
-                </div>
-              </div>
-            )
-          }
-          if (m.tipo === 'sop') {
-            return (
-              <div key={m.id} className={`mac-linea${mio ? ' is-mio' : ''}`}>
-                <div className="mac-adjunto">
-                  <span className="mac-doc mac-doc--chico mac-doc--azul" aria-hidden="true" />
-                  <span className="mac-adjunto__txt">
-                    <b>{m.titulo}</b>
-                    <small>Completado desde el classroom</small>
-                  </span>
-                </div>
-              </div>
-            )
-          }
+      <div className="mac-discord" role="log" aria-live="polite">
+        <div className="mac-discord__inicio">
+          <span className="mac-discord__hash">#</span>
+          <b>Este es el comienzo de #{c.canal}</b>
+          <span>Tu canal privado con el equipo de ATV. Lo ven vos y tus coaches.</span>
+        </div>
+        {mensajes.map((m, i) => {
+          const p = persona(m.autor, c)
+          const previo = mensajes[i - 1]
+          const agrupado = previo && previo.autor === m.autor && !m.responde && previo.hora === m.hora
+          const citado = m.responde ? mensaje(c.id, m.responde) : null
+          const menciona = m.tipo === 'texto' && m.autor !== 'cliente' && m.texto.includes(`@${c.nombre.split(' ')[0]}`)
           return (
-            <div key={m.id} className={`mac-linea${mio ? ' is-mio' : ''}`}>
-              <div className={`mac-burbuja${mio ? ' is-mio' : ''}`} title={m.hora}>
-                {m.texto}
+            <div key={m.id} className={`mac-dmsg${agrupado ? ' is-agrupado' : ''}${menciona ? ' is-mencion' : ''}`}>
+              {citado ? (
+                <div className="mac-dmsg__cita">
+                  <span className="mac-dmsg__codo" aria-hidden="true" />
+                  <Av p={persona(citado.autor, c)} size={16} />
+                  <b style={{ color: persona(citado.autor, c).color }}>@{persona(citado.autor, c).nombre}</b>
+                  <span>{citado.texto ?? citado.titulo ?? 'Adjunto'}</span>
+                </div>
+              ) : null}
+              <div className="mac-dmsg__fila">
+                {agrupado ? <time className="mac-dmsg__hora-lateral">{m.hora}</time> : <Av p={p} />}
+                <div className="mac-dmsg__cuerpo">
+                  {agrupado ? null : (
+                    <div className="mac-dmsg__head">
+                      <b style={{ color: p.color }}>{p.completo}</b>
+                      {m.autor !== 'cliente' ? <span className="mac-rol">ATV</span> : null}
+                      <time>{m.hora}</time>
+                    </div>
+                  )}
+                  {m.tipo === 'texto' ? (
+                    <p>
+                      <ConMenciones texto={m.texto} nombres={nombres} />
+                    </p>
+                  ) : (
+                    <Adjunto m={m} />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="mac-dmsg__responder"
+                  onClick={() => {
+                    setRespondiendo({ id: m.id, nombre: p.nombre })
+                    inputRef.current?.focus()
+                  }}
+                >
+                  Responder
+                </button>
               </div>
             </div>
           )
         })}
-        <span className="mac-hilo__leido">Leído {mensajes[mensajes.length - 1]?.hora}</span>
         <span ref={fin} />
       </div>
-      <form className="mac-redactar" onSubmit={mandar}>
-        <label htmlFor="mac-mensaje" className="sr-only">
-          Mensaje para {COACHES[coach].nombre}
-        </label>
-        <input id="mac-mensaje" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={`Mensaje para ${COACHES[coach].nombre}`} autoComplete="off" />
-        <button type="submit" disabled={!texto.trim()} aria-label="Enviar">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" />
-          </svg>
-        </button>
+      <form className="mac-dredactar" onSubmit={mandar}>
+        {respondiendo ? (
+          <div className="mac-dredactar__resp">
+            <span>
+              Respondiendo a <b>{respondiendo.nombre}</b>
+            </span>
+            <button type="button" onClick={() => setRespondiendo(null)} aria-label="Cancelar respuesta">
+              ✕
+            </button>
+          </div>
+        ) : null}
+        <div className="mac-dredactar__caja">
+          <button type="button" className="mac-dredactar__mas" aria-label="Adjuntar un SOP o archivo" onClick={() => enviar(c.id, null, { de: 'cliente', tipo: 'sop', titulo: 'SOP · Seguimiento post-call' })}>
+            +
+          </button>
+          <label htmlFor="mac-mensaje" className="sr-only">
+            Mensaje para #{c.canal}
+          </label>
+          <input ref={inputRef} id="mac-mensaje" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={`Enviar mensaje a #${c.canal}`} autoComplete="off" />
+        </div>
       </form>
     </>
   )
 }
 
-// Mensajes con estética de macOS: barra lateral, hilo y un inspector a la derecha.
+function Fila({ etiqueta, valor }) {
+  return (
+    <div className="mac-fila">
+      <span>{etiqueta}</span>
+      <b>{valor}</b>
+    </div>
+  )
+}
+
+// Mensajes con estética de macOS y lógica de Discord: tu canal privado y los canales de la comunidad.
 export default function MensajesMac() {
   const { cliente, conversacion, vigenteDe } = usePlataforma()
   const yo = cliente(CLIENTE_DEMO)
   const vigente = vigenteDe(CLIENTE_DEMO)
   const nivel = NIVELES[yo.nivel]
-  const [activo, setActivo] = useState({ tipo: 'coach', id: 'juampi' })
+  const [activo, setActivo] = useState('privado')
   const [verLista, setVerLista] = useState(true)
-  const [busca, setBusca] = useState('')
+  const msgs = conversacion(CLIENTE_DEMO)
+  const ultimo = msgs[msgs.length - 1]
+  const canal = activo === 'privado' ? null : CANALES.find((c) => c.id === activo)
 
-  const abrir = (sel) => {
-    setActivo(sel)
+  const abrir = (id) => {
+    setActivo(id)
     setVerLista(false)
   }
-  const coach = activo.tipo === 'coach' ? COACHES[activo.id] : null
-  const canal = activo.tipo === 'canal' ? CANALES.find((c) => c.id === activo.id) : null
-  const q = busca.trim().toLowerCase()
 
   return (
     <MacVentana titulo="Mensajes">
       <div className={`mac-tres${verLista ? ' ver-lista' : ' ver-detalle'}`}>
-        <aside className="mac-lateral" aria-label="Conversaciones">
-          <label htmlFor="mac-buscar" className="sr-only">
-            Buscar
-          </label>
-          <input id="mac-buscar" className="mac-buscar" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar" />
-          <p className="mac-seccion">Equipo ATV</p>
-          {EQUIPO.filter((id) => !q || COACHES[id].nombre.toLowerCase().includes(q)).map((id) => {
-            const msgs = conversacion(CLIENTE_DEMO, id)
-            const ultimo = msgs[msgs.length - 1]
-            const on = activo.tipo === 'coach' && activo.id === id
-            return (
-              <button key={id} type="button" className={`mac-item mac-item--conv${on ? ' is-on' : ''}`} onClick={() => abrir({ tipo: 'coach', id })}>
-                {id === 'juampi' && !on ? <span className="mac-punto" aria-label="Sin leer" /> : <span className="mac-punto is-vacio" />}
-                <Av coach={id} size={34} />
-                <span className="mac-item__txt">
-                  <span className="mac-item__fila">
-                    <b>{COACHES[id].nombre}</b>
-                    <time>{ultimo?.hora}</time>
-                  </span>
-                  <span className="mac-item__sub">{ultimo?.tipo === 'roadmap' ? 'Roadmap adjunto' : ultimo?.tipo === 'sop' ? 'SOP adjunto' : ultimo?.texto}</span>
-                </span>
-              </button>
-            )
-          })}
-          <p className="mac-seccion">Canales</p>
-          {CANALES.filter((c) => !q || c.nombre.includes(q)).map((c) => (
-            <button key={c.id} type="button" className={`mac-item mac-item--canal${activo.tipo === 'canal' && activo.id === c.id ? ' is-on' : ''}`} onClick={() => abrir({ tipo: 'canal', id: c.id })}>
+        <aside className="mac-lateral" aria-label="Canales">
+          <p className="mac-seccion">Tu canal</p>
+          <button type="button" className={`mac-item mac-item--conv${activo === 'privado' ? ' is-on' : ''}`} onClick={() => abrir('privado')}>
+            <span className="mac-hash mac-hash--grande" aria-hidden="true">
+              #
+            </span>
+            <span className="mac-item__txt">
+              <span className="mac-item__fila">
+                <b>{yo.canal}</b>
+                <time>{ultimo?.hora}</time>
+              </span>
+              <span className="mac-item__sub">
+                {ultimo ? `${persona(ultimo.autor, yo).nombre}: ${ultimo.texto ?? 'adjunto'}` : 'Sin mensajes'}
+              </span>
+            </span>
+            {activo !== 'privado' ? <span className="mac-cuenta mac-cuenta--rojo">2</span> : null}
+          </button>
+          <p className="mac-seccion">Comunidad ATV</p>
+          {CANALES.map((c) => (
+            <button key={c.id} type="button" className={`mac-item mac-item--canal${activo === c.id ? ' is-on' : ''}`} onClick={() => abrir(c.id)}>
               <span className="mac-hash" aria-hidden="true">
                 #
               </span>
@@ -165,41 +231,81 @@ export default function MensajesMac() {
         </aside>
 
         <section className="mac-principal">
-          <header className="mac-barra">
+          <header className="mac-barra mac-barra--canal">
             <button type="button" className="mac-atras" onClick={() => setVerLista(true)} aria-label="Volver">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M7.5 2.5L4 6l3.5 3.5" />
               </svg>
             </button>
-            <span className="mac-barra__para">Para:</span>
-            <b>{coach ? coach.nombre : `#${canal.nombre}`}</b>
-            <span className="mac-barra__sub">{coach ? `${coach.rol} · responde en ${coach.responde}` : 'Solo publica el equipo de ATV'}</span>
+            <span className="mac-hash" aria-hidden="true">
+              #
+            </span>
+            <b>{canal ? canal.nombre : yo.canal}</b>
+            <span className="mac-barra__sub">{canal ? 'Solo publica el equipo de ATV' : `Canal privado · ${MIEMBROS.length + 1} miembros`}</span>
           </header>
-          {coach ? (
-            <Burbujas cliente={CLIENTE_DEMO} coach={coach.id} />
-          ) : (
-            <div className="mac-hilo">
-              {canal.posts.map((p) => (
-                <article key={p.id} className="mac-post">
-                  <header>
-                    <Av coach={p.autor} size={26} />
-                    <b>{COACHES[p.autor].nombre}</b>
-                    <time>{p.fecha}</time>
-                  </header>
-                  <h3>{p.titulo}</h3>
-                  <p>{p.texto}</p>
-                </article>
-              ))}
+          {canal ? (
+            <div className="mac-discord">
+              {canal.posts.map((p) => {
+                const per = persona(p.autor, yo)
+                return (
+                  <div key={p.id} className="mac-dmsg">
+                    <div className="mac-dmsg__fila">
+                      <Av p={per} />
+                      <div className="mac-dmsg__cuerpo">
+                        <div className="mac-dmsg__head">
+                          <b style={{ color: per.color }}>{per.completo}</b>
+                          <span className="mac-rol">ATV</span>
+                          <time>{p.fecha}</time>
+                        </div>
+                        <p>
+                          <b className="mac-post__titulo">{p.titulo}</b>
+                          <br />
+                          {p.texto}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
+          ) : (
+            <CanalPrivado c={yo} />
           )}
         </section>
 
-        <aside className="mac-inspector" aria-label="Tu programa">
-          <p className="mac-seccion">Programa</p>
-          <div className="mac-grupo">
-            <Fila etiqueta="Nivel" valor={nivel.nombre} />
-            <Fila etiqueta="Mes" valor={`${yo.mes} de ${nivel.meses}`} />
-            <Fila etiqueta="Incluye" valor={nivel.incluye} />
+        <aside className="mac-inspector" aria-label="Miembros y programa">
+          <p className="mac-seccion">Equipo ATV — {MIEMBROS.length}</p>
+          <div className="mac-miembros">
+            {MIEMBROS.map((id) => {
+              const p = persona(id, yo)
+              return (
+                <div key={id} className="mac-miembro">
+                  <span className="mac-miembro__av">
+                    <Av p={p} size={30} />
+                    <i className={id === 'franco' ? '' : 'is-online'} />
+                  </span>
+                  <span>
+                    <b style={{ color: p.color }}>{p.nombre}</b>
+                    <small>{p.rol}</small>
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+          <p className="mac-seccion">Cliente — 1</p>
+          <div className="mac-miembros">
+            <div className="mac-miembro">
+              <span className="mac-miembro__av">
+                <Av p={persona('cliente', yo)} size={30} />
+                <i className="is-online" />
+              </span>
+              <span>
+                <b>{yo.nombre}</b>
+                <small>
+                  {nivel.nombre} · mes {yo.mes} de {nivel.meses}
+                </small>
+              </span>
+            </div>
           </div>
           <p className="mac-seccion">Roadmap vigente</p>
           {vigente ? (
@@ -224,22 +330,6 @@ export default function MensajesMac() {
             <Fila etiqueta="Cuándo" valor="Jue 8/10 · 18:00" />
             <Fila etiqueta="Con" valor="Juampi" />
           </div>
-          <p className="mac-seccion">SOPs</p>
-          <div className="mac-grupo">
-            <Fila etiqueta="Completos" valor={`${yo.sops[0]} de ${yo.sops[1]}`} />
-            <div className="mac-progreso" aria-hidden="true">
-              <i style={{ width: `${(yo.sops[0] / yo.sops[1]) * 100}%` }} />
-            </div>
-          </div>
-          <button type="button" className="mac-aviso" onClick={() => abrir({ tipo: 'canal', id: 'lo-nuevo' })}>
-            <span className="mac-aviso__icono" aria-hidden="true">
-              ✦
-            </span>
-            <span>
-              <b>Llega en octubre</b>
-              <small>Agente de setting con IA, configurado con tus llamadas.</small>
-            </span>
-          </button>
         </aside>
       </div>
     </MacVentana>

@@ -13,7 +13,7 @@
   --m-acento-suave: rgba(197, 72, 74, 0.22);
   --m-gris-burbuja: #3a3a3d;
   --m-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
-  min-height: 100dvh; box-sizing: border-box; padding: 22px; display: flex;
+  color-scheme: dark; min-height: 100dvh; box-sizing: border-box; padding: 22px; display: flex;
   font-family: var(--m-font); color: var(--m-t1); -webkit-font-smoothing: antialiased;
   background:
     radial-gradient(1200px 700px at 85% 110%, rgba(176, 69, 69, 0.35), transparent 60%),
@@ -194,6 +194,88 @@
 .mac-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 0 4px; text-align: center; }
 .mac-preview b { font-size: 14px; font-weight: 600; }
 .mac-preview small { font-size: 11.5px; color: var(--m-t3); }
+
+/* ---------- canal tipo Discord ---------- */
+.mac-hash--grande { font-size: 18px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, 0.08); }
+.mac-item.is-on .mac-hash--grande { background: rgba(255, 255, 255, 0.2); }
+.mac-cuenta--rojo { min-width: 18px; text-align: center; padding: 1px 6px; border-radius: 999px; background: var(--m-acento); color: #fff !important; font-weight: 600; font-size: 11px; }
+.mac-barra--canal { align-items: center; }
+.mac-barra--canal .mac-hash { width: auto; font-size: 17px; }
+.mac-discord { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 0 14px; display: flex; flex-direction: column; }
+.mac-discord__inicio { display: flex; flex-direction: column; gap: 4px; padding: 18px 20px 20px; margin-bottom: 8px; border-bottom: 1px solid var(--m-linea); }
+.mac-discord__hash { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-size: 28px; font-weight: 300; background: rgba(255, 255, 255, 0.08); margin-bottom: 8px; }
+.mac-discord__inicio b { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.mac-discord__inicio span:last-child { font-size: 13px; color: var(--m-t3); }
+.mac-dmsg { position: relative; padding: 6px 20px 2px; margin-top: 10px; }
+.mac-dmsg.is-agrupado { margin-top: 0; padding-top: 1px; }
+.mac-dmsg:hover { background: rgba(255, 255, 255, 0.025); }
+.mac-dmsg.is-mencion { background: rgba(250, 168, 26, 0.08); box-shadow: inset 2px 0 0 #faa81a; }
+.mac-dmsg__fila { display: flex; gap: 14px; align-items: flex-start; }
+.mac-dmsg__cuerpo { flex: 1; min-width: 0; }
+.mac-dmsg__head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 1px; }
+.mac-dmsg__head b { font-size: 14px; font-weight: 600; }
+.mac-dmsg__head time { font-size: 11px; color: var(--m-t3); }
+.mac-rol { font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; padding: 1px 5px; border-radius: 4px; color: #fff; background: var(--m-acento); transform: translateY(-1px); }
+.mac-dmsg p { margin: 0; font-size: 14px; line-height: 1.45; color: #dcdcde; overflow-wrap: anywhere; }
+.mac-dmsg .mac-adjunto { margin: 4px 0 2px; }
+.mac-dmsg__hora-lateral { width: 36px; flex: none; padding-top: 3px; text-align: right; font-size: 10px; color: transparent; }
+.mac-dmsg:hover .mac-dmsg__hora-lateral { color: var(--m-t3); }
+.mac-dmsg__cita { display: flex; align-items: center; gap: 6px; margin: 0 0 4px 18px; font-size: 12.5px; color: var(--m-t3); min-width: 0; }
+.mac-dmsg__cita b { font-weight: 600; flex: none; }
+.mac-dmsg__cita > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mac-dmsg__codo { flex: none; width: 30px; height: 10px; margin-top: 8px; border-left: 2px solid #4e4e52; border-top: 2px solid #4e4e52; border-top-left-radius: 6px; }
+.mac-dmsg__responder { position: absolute; right: 16px; top: -10px; opacity: 0; appearance: none; border: 0; cursor: pointer; font-size: 11.5px; color: var(--m-t1); padding: 4px 10px; border-radius: 6px; background: #2c2c2f; box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.16), 0 4px 12px rgba(0, 0, 0, 0.4); transition: opacity 120ms ease; }
+.mac-dmsg:hover .mac-dmsg__responder, .mac-dmsg__responder:focus-visible { opacity: 1; }
+.mac-mencion { padding: 0 3px; border-radius: 4px; font-weight: 500; color: #c9cdfb; background: rgba(88, 101, 242, 0.3); }
+.mac-post__titulo { color: var(--m-t1); font-weight: 600; }
+.mac-dredactar { flex: none; margin: 4px 16px 16px; display: flex; flex-direction: column; }
+.mac-dredactar__resp { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; border-radius: 9px 9px 0 0; background: #2a2a2d; font-size: 12.5px; color: var(--m-t3); }
+.mac-dredactar__resp b { color: var(--m-t1); font-weight: 600; }
+.mac-dredactar__resp button { appearance: none; border: 0; background: transparent; color: var(--m-t3); cursor: pointer; font-size: 12px; }
+.mac-dredactar__caja { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 8px; border-radius: 9px; background: #2f2f32; box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.1); }
+.mac-dredactar__resp + .mac-dredactar__caja { border-top-left-radius: 0; border-top-right-radius: 0; }
+.mac-dredactar__caja:focus-within { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22); }
+.mac-dredactar__mas { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer; background: #8e8e93; color: #2f2f32; font-size: 18px; font-weight: 700; line-height: 1; display: grid; place-items: center; }
+.mac-dredactar__caja input { flex: 1; min-width: 0; height: 32px; border: 0; background: transparent; color: var(--m-t1); font-size: 14px; outline: none; }
+.mac-dredactar__caja input::placeholder { color: var(--m-t3); }
+.mac-miembros { display: flex; flex-direction: column; gap: 2px; }
+.mac-miembro { display: flex; align-items: center; gap: 10px; padding: 5px 6px; border-radius: 7px; }
+.mac-miembro:hover { background: rgba(255, 255, 255, 0.05); }
+.mac-miembro__av { position: relative; flex: none; }
+.mac-miembro__av i { position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px; border-radius: 50%; background: #8e8e93; box-shadow: 0 0 0 2px var(--m-inspector); }
+.mac-miembro__av i.is-online { background: #30d158; }
+.mac-miembro > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.mac-miembro b { font-size: 13px; font-weight: 600; }
+.mac-miembro small { font-size: 11px; color: var(--m-t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- lienzo de roadmaps (Excalidraw con materiales de Mac) ---------- */
+.mac-lienzo { position: relative; flex: 1; min-height: 0; margin-top: 12px; overflow: hidden; cursor: grab; touch-action: none; border-top: 1px solid var(--m-linea);
+  background-color: #1b1b1d; background-image: linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px); background-size: 24px 24px; }
+.mac-lienzo:active { cursor: grabbing; }
+.mac-lienzo__mundo { position: absolute; left: 0; top: 0; transform-origin: 0 0; transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1); }
+.mac-lienzo:active .mac-lienzo__mundo { transition: none; }
+.mac-lienzo__flechas { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.mac-lienzo__flechas path { fill: none; stroke: #6e6e73; stroke-width: 1.5; }
+.mac-zona { position: absolute; box-sizing: border-box; padding: 14px 16px 16px; border-radius: 14px; background: rgba(44, 44, 47, 0.7); box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 12px 30px -16px rgba(0, 0, 0, 0.7); display: flex; flex-direction: column; gap: 14px; }
+.mac-zona::before { content: ''; position: absolute; left: 14px; right: 14px; top: 0; height: 2px; border-radius: 0 0 2px 2px; background: var(--zona); opacity: 0.8; }
+.mac-zona header { display: flex; align-items: center; gap: 9px; }
+.mac-zona header > span:last-child { display: flex; flex-direction: column; }
+.mac-zona header b { font-size: 14px; font-weight: 600; }
+.mac-zona header small { font-size: 11px; color: var(--m-t3); }
+.mac-zona__hojas { display: flex; gap: 26px; align-items: flex-start; }
+.mac-zona .mac-archivo { width: 112px; padding: 8px 4px 6px; }
+.mac-zona--gris { background: rgba(38, 38, 41, 0.7); }
+.mac-herramientas { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; padding: 4px 6px; border-radius: 10px; background: rgba(44, 44, 47, 0.85); backdrop-filter: blur(20px); box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 10px 30px -10px rgba(0, 0, 0, 0.8); cursor: default; }
+.mac-herramientas button { width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--m-t1); font-size: 16px; cursor: pointer; }
+.mac-herramientas button:hover { background: rgba(255, 255, 255, 0.08); }
+.mac-herramientas span { width: 44px; text-align: center; font-size: 12px; color: var(--m-t2); font-variant-numeric: tabular-nums; }
+.mac-herramientas i { width: 1px; height: 18px; margin: 0 6px; background: var(--m-linea); }
+.mac-herramientas label { display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; font-size: 12px; color: var(--m-t2); cursor: pointer; }
+.mac-herramientas input { accent-color: var(--m-acento); }
+@media (max-width: 760px) {
+  .mac-dmsg { padding-left: 12px; padding-right: 12px; }
+  .mac-dmsg__fila { gap: 10px; }
+}
 
 /* pantallas chicas: sin márgenes de escritorio, inspector oculto y lista/detalle como en el iPhone */
 @media (max-width: 1100px) {

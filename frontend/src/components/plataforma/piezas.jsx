@@ -68,6 +68,7 @@ function Mensaje({ m, mio, yo }) {
   return (
     <div className={`pf-msg-row${mio ? ' is-mio' : ''}`}>
       <div className={`pf-burbuja${mio ? ' is-mio' : ''}`}>
+        {mio ? null : <span className="pf-burbuja__autor" style={{ color: COACHES[m.autor]?.color }}>{COACHES[m.autor]?.nombre ?? 'Cliente'}</span>}
         {m.texto}
         <time>{m.hora}</time>
       </div>
@@ -98,7 +99,7 @@ export function Chat({ cliente, coach, yo, placeholder, acciones, rapidas = [] }
       <div className="pf-chat__lista" role="log" aria-live="polite">
         <span className="pf-chat__dia">Hoy</span>
         {mensajes.map((m) => (
-          <Mensaje key={m.id} m={m} mio={m.de === yo} yo={yo} />
+          <Mensaje key={m.id} m={m} mio={yo === 'cliente' ? m.autor === 'cliente' : m.autor === coach} yo={yo} />
         ))}
         <span ref={finRef} />
       </div>
