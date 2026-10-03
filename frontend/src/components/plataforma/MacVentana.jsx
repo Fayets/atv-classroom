@@ -19,6 +19,7 @@ export function SelectorEstilo({ flotante = false }) {
       {[
         ['atv', 'ATV'],
         ['mac', 'Mac'],
+        ['claro', 'Claro'],
       ].map(([id, nombre]) => (
         <button key={id} type="button" aria-pressed={estilo === id} className={estilo === id ? 'is-on' : ''} onClick={() => setEstilo(id)}>
           {nombre}

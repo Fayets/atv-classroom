@@ -61,7 +61,7 @@ export default function RoadmapsPage() {
   }
   const acercar = (d) => setZoom((z) => Math.min(1.5, Math.max(0.5, Math.round((z + d) * 10) / 10)))
 
-  if (estilo === 'mac') return <RoadmapsMac />
+  if (estilo === 'mac' || estilo === 'claro') return <RoadmapsMac />
 
   return (
     <div className="app-shell im-root">

@@ -1,7 +1,7 @@
 /* Tema "Mac" para toda la app (vista previa). Se activa con html[data-estilo="mac"]:
    cada página es una ventana de macOS sobre el escritorio, con los tokens del classroom pasados a los de Mac. */
 
-html[data-estilo='mac'] {
+html:is([data-estilo='mac'], [data-estilo='claro']) {
   --mac-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
   --mac-acento: #c5484a;
   /* mismas variables que la ventana de mac.css, para las piezas que viven fuera de ella */
@@ -17,7 +17,7 @@ html[data-estilo='mac'] {
   --m-gris-burbuja: #3a3a3d;
   color-scheme: dark;
 }
-html[data-estilo='mac'] body {
+html:is([data-estilo='mac'], [data-estilo='claro']) body {
   font-family: var(--mac-font);
   background:
     radial-gradient(1200px 700px at 85% 110%, rgba(176, 69, 69, 0.35), transparent 60%),
@@ -27,7 +27,7 @@ html[data-estilo='mac'] body {
 }
 
 /* ---------- la ventana ---------- */
-html[data-estilo='mac'] .app-shell {
+html:is([data-estilo='mac'], [data-estilo='claro']) .app-shell {
   margin: 0;
   height: 100dvh;
   min-height: 0;
@@ -41,7 +41,7 @@ html[data-estilo='mac'] .app-shell {
 }
 
 /* tokens del classroom en versión Mac */
-html[data-estilo='mac'] .im-root {
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-root {
   --pc-bg: #1e1e20;
   --pc-s1: #2a2a2d;
   --pc-s2: #323236;
@@ -60,12 +60,12 @@ html[data-estilo='mac'] .im-root {
   --pf-head: 52px;
   background: #1e1e20;
 }
-html[data-estilo='mac'] .im-root h1,
-html[data-estilo='mac'] .im-root h2,
-html[data-estilo='mac'] .im-root h3 { font-family: var(--mac-font); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-root h1,
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-root h2,
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-root h3 { font-family: var(--mac-font); }
 
 /* ---------- barra de título ---------- */
-html[data-estilo='mac'] .app-header {
+html:is([data-estilo='mac'], [data-estilo='claro']) .app-header {
   top: 0;
   height: 52px;
   padding: 0 14px 0 82px;
@@ -74,7 +74,7 @@ html[data-estilo='mac'] .app-header {
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
   backdrop-filter: none;
 }
-html[data-estilo='mac'] .app-header::before {
+html:is([data-estilo='mac'], [data-estilo='claro']) .app-header::before {
   content: '';
   position: absolute;
   left: 18px;
@@ -86,8 +86,8 @@ html[data-estilo='mac'] .app-header::before {
   box-shadow: 20px 0 0 #febc2e, 40px 0 0 #28c840;
   transform: translateY(-50%);
 }
-html[data-estilo='mac'] .app-header__logo-img { width: 18px; }
-html[data-estilo='mac'] .app-header__nav {
+html:is([data-estilo='mac'], [data-estilo='claro']) .app-header__logo-img { width: 18px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .app-header__nav {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -98,13 +98,13 @@ html[data-estilo='mac'] .app-header__nav {
   box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
   font-family: var(--mac-font);
 }
-html[data-estilo='mac'] .app-header__navlink { padding: 4px 14px; border-radius: 5px; font-size: 12.5px; font-weight: 500; color: #b4b4b9; }
-html[data-estilo='mac'] .app-header__navlink:hover { background: transparent; color: #ececee; }
-html[data-estilo='mac'] .app-header__navlink.is-active { background: #636366; color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
-html[data-estilo='mac'] .app-header__badge { background: #ff453a; font-size: 10px; padding: 2px 5px; }
-html[data-estilo='mac'] .app-header__user { display: flex; align-items: center; gap: 12px; }
-html[data-estilo='mac'] .app-header__avatar { width: 26px; height: 26px; font-size: 10px; border: 0; color: #ececee; background: linear-gradient(#5a5a5f, #3d3d41); }
-html[data-estilo='mac'] .app-header__menu {
+html:is([data-estilo='mac'], [data-estilo='claro']) .app-header__navlink { padding: 4px 14px; border-radius: 5px; font-size: 12.5px; font-weight: 500; color: #b4b4b9; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .app-header__navlink:hover { background: transparent; color: #ececee; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .app-header__navlink.is-active { background: #636366; color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .app-header__badge { background: #ff453a; font-size: 10px; padding: 2px 5px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .app-header__user { display: flex; align-items: center; gap: 12px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .app-header__avatar { width: 26px; height: 26px; font-size: 10px; border: 0; color: #ececee; background: linear-gradient(#5a5a5f, #3d3d41); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .app-header__menu {
   border-radius: 10px;
   background: rgba(44, 44, 47, 0.92);
   backdrop-filter: blur(24px) saturate(1.5);
@@ -113,49 +113,49 @@ html[data-estilo='mac'] .app-header__menu {
 }
 
 /* ---------- controles ---------- */
-html[data-estilo='mac'] .pc-btn { height: 30px; padding: 0 12px; border-radius: 7px; font-size: 13px; font-weight: 500; font-family: var(--mac-font); }
-html[data-estilo='mac'] .pc-btn--lg { height: 36px; padding: 0 16px; }
-html[data-estilo='mac'] .pc-complete { background: var(--mac-acento); box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.25); }
-html[data-estilo='mac'] .pc-complete:not(.is-done):hover { background: #d0524f; }
-html[data-estilo='mac'] .pc-btn--light { background: #5b5b5f; color: #fff; box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.2); }
-html[data-estilo='mac'] .pc-btn--light:hover:not(:disabled) { background: #6a6a6e; }
-html[data-estilo='mac'] .pc-btn--ghost { background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.12); color: #ececee; }
-html[data-estilo='mac'] .im-root input,
-html[data-estilo='mac'] .im-root textarea { font-family: var(--mac-font); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pc-btn { height: 30px; padding: 0 12px; border-radius: 7px; font-size: 13px; font-weight: 500; font-family: var(--mac-font); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pc-btn--lg { height: 36px; padding: 0 16px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pc-complete { background: var(--mac-acento); box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.25); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pc-complete:not(.is-done):hover { background: #d0524f; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pc-btn--light { background: #5b5b5f; color: #fff; box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.2); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pc-btn--light:hover:not(:disabled) { background: #6a6a6e; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pc-btn--ghost { background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.12); color: #ececee; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-root input,
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-root textarea { font-family: var(--mac-font); }
 
 /* ---------- inicio y guía ---------- */
-html[data-estilo='mac'] .im-hero h1 { font-weight: 700; letter-spacing: -0.035em; }
-html[data-estilo='mac'] .im-ask__form { border-radius: 12px; }
-html[data-estilo='mac'] .im-ask__hints button { border-radius: 7px; font-size: 12.5px; }
-html[data-estilo='mac'] .im-route { border-radius: 12px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-hero h1 { font-weight: 700; letter-spacing: -0.035em; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-ask__form { border-radius: 12px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-ask__hints button { border-radius: 7px; font-size: 12.5px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-route { border-radius: 12px; }
 
 /* ---------- material y clase ---------- */
-html[data-estilo='mac'] .mt-card { border-radius: 12px; }
-html[data-estilo='mac'] .ms-panel,
-html[data-estilo='mac'] .ms-indice__panel { border-radius: 12px; }
-html[data-estilo='mac'] .ms-indice__panel { background: rgba(44, 44, 47, 0.92); backdrop-filter: blur(30px) saturate(1.5); }
-html[data-estilo='mac'] .ms-barra { position: sticky; top: 52px; z-index: 5; background: #1e1e20; }
-html[data-estilo='mac'] .ms-panel { top: 150px; }
-html[data-estilo='mac'] .ms-seg { height: 4px; }
-html[data-estilo='mac'] .mt-nav__btn { border-radius: 10px; }
-html[data-estilo='mac'] kbd { font-family: var(--mac-font); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .mt-card { border-radius: 12px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .ms-panel,
+html:is([data-estilo='mac'], [data-estilo='claro']) .ms-indice__panel { border-radius: 12px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .ms-indice__panel { background: rgba(44, 44, 47, 0.92); backdrop-filter: blur(30px) saturate(1.5); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .ms-barra { position: sticky; top: 52px; z-index: 5; background: #1e1e20; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .ms-panel { top: 150px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .ms-seg { height: 4px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .mt-nav__btn { border-radius: 10px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) kbd { font-family: var(--mac-font); }
 
 /* ---------- vistas del coach ---------- */
-html[data-estilo='mac'] .pf-metrica,
-html[data-estilo='mac'] .pf-box,
-html[data-estilo='mac'] .pf-tabla-wrap { border-radius: 10px; }
-html[data-estilo='mac'] .pf-lista { background: rgba(46, 46, 50, 0.72); }
-html[data-estilo='mac'] .pf-conv.is-on { background: var(--mac-acento); }
-html[data-estilo='mac'] .pf-conv.is-on .pf-conv__ultimo,
-html[data-estilo='mac'] .pf-conv.is-on time { color: rgba(255, 255, 255, 0.85); }
-html[data-estilo='mac'] .pf-burbuja { border-radius: 18px; }
-html[data-estilo='mac'] .pf-burbuja.is-mio { background: var(--mac-acento); box-shadow: none; color: #fff; }
-html[data-estilo='mac'] .pf-burbuja.is-mio time { color: rgba(255, 255, 255, 0.7); }
-html[data-estilo='mac'] .pf-drawer__panel { background: rgba(40, 40, 43, 0.96); backdrop-filter: blur(30px); }
-html[data-estilo='mac'] .pf-chips button.is-on { background: #636366; color: #fff; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-metrica,
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-box,
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-tabla-wrap { border-radius: 10px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-lista { background: rgba(46, 46, 50, 0.72); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-conv.is-on { background: var(--mac-acento); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-conv.is-on .pf-conv__ultimo,
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-conv.is-on time { color: rgba(255, 255, 255, 0.85); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-burbuja { border-radius: 18px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-burbuja.is-mio { background: var(--mac-acento); box-shadow: none; color: #fff; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-burbuja.is-mio time { color: rgba(255, 255, 255, 0.7); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-drawer__panel { background: rgba(40, 40, 43, 0.96); backdrop-filter: blur(30px); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-chips button.is-on { background: #636366; color: #fff; }
 
 /* ---------- login: el formulario en una ventana ---------- */
-html[data-estilo='mac'] .lg-root {
+html:is([data-estilo='mac'], [data-estilo='claro']) .lg-root {
   --lg-bg: #1e1e20;
   --lg-s1: #2a2a2d;
   --lg-red: #c5484a;
@@ -165,7 +165,7 @@ html[data-estilo='mac'] .lg-root {
   overflow: hidden;
   font-family: var(--mac-font);
 }
-html[data-estilo='mac'] .lg-root::before {
+html:is([data-estilo='mac'], [data-estilo='claro']) .lg-root::before {
   content: '';
   position: absolute;
   z-index: 2;
@@ -177,45 +177,45 @@ html[data-estilo='mac'] .lg-root::before {
   background: #ff5f57;
   box-shadow: 20px 0 0 #febc2e, 40px 0 0 #28c840;
 }
-html[data-estilo='mac'] .lg-root input,
-html[data-estilo='mac'] .lg-root button { font-family: var(--mac-font); }
-html[data-estilo='mac'] .lg-brand__panel { border-radius: 10px; }
-html[data-estilo='mac'] .lg-brand { padding-top: 44px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .lg-root input,
+html:is([data-estilo='mac'], [data-estilo='claro']) .lg-root button { font-family: var(--mac-font); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .lg-brand__panel { border-radius: 10px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .lg-brand { padding-top: 44px; }
 
 @media (max-width: 760px) {
-  html[data-estilo='mac'] .app-shell,
-  html[data-estilo='mac'] .lg-root { margin: 0; height: 100dvh; min-height: 100dvh; border-radius: 0; }
-  html[data-estilo='mac'] .app-header { padding-left: 14px; }
-  html[data-estilo='mac'] .app-header::before,
-  html[data-estilo='mac'] .lg-root::before { display: none; }
-  html[data-estilo='mac'] .app-header__nav { position: static; transform: none; overflow-x: auto; }
-  html[data-estilo='mac'] .app-header__navlink { padding: 4px 9px; }
-  html[data-estilo='mac'] .app-header .mac-estilo { display: none; }
+  html:is([data-estilo='mac'], [data-estilo='claro']) .app-shell,
+  html:is([data-estilo='mac'], [data-estilo='claro']) .lg-root { margin: 0; height: 100dvh; min-height: 100dvh; border-radius: 0; }
+  html:is([data-estilo='mac'], [data-estilo='claro']) .app-header { padding-left: 14px; }
+  html:is([data-estilo='mac'], [data-estilo='claro']) .app-header::before,
+  html:is([data-estilo='mac'], [data-estilo='claro']) .lg-root::before { display: none; }
+  html:is([data-estilo='mac'], [data-estilo='claro']) .app-header__nav { position: static; transform: none; overflow-x: auto; }
+  html:is([data-estilo='mac'], [data-estilo='claro']) .app-header__navlink { padding: 4px 9px; }
+  html:is([data-estilo='mac'], [data-estilo='claro']) .app-header .mac-estilo { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  html[data-estilo='mac'] .app-shell { animation: none; }
+  html:is([data-estilo='mac'], [data-estilo='claro']) .app-shell { animation: none; }
 }
 
 /* ---------- todo el ancho: la ventana ocupa el navegador y el contenido usa el ancho disponible ---------- */
-html[data-estilo='mac'] .im-home,
-html[data-estilo='mac'] .im-frente,
-html[data-estilo='mac'] .mt-grid-page,
-html[data-estilo='mac'] .ms-page,
-html[data-estilo='mac'] .pf-clientes { max-width: none; padding-left: clamp(16px, 3vw, 40px); padding-right: clamp(16px, 3vw, 40px); }
-html[data-estilo='mac'] .mt-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
-html[data-estilo='mac'] .im-route { max-width: none; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-home,
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-frente,
+html:is([data-estilo='mac'], [data-estilo='claro']) .mt-grid-page,
+html:is([data-estilo='mac'], [data-estilo='claro']) .ms-page,
+html:is([data-estilo='mac'], [data-estilo='claro']) .pf-clientes { max-width: none; padding-left: clamp(16px, 3vw, 40px); padding-right: clamp(16px, 3vw, 40px); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .mt-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-route { max-width: none; }
 
 /* inicio: el saludo, la pregunta y la conversación con la guía van centrados */
-html[data-estilo='mac'] .im-ask { align-items: center; }
-html[data-estilo='mac'] .im-ask > * { width: 100%; max-width: 900px; }
-html[data-estilo='mac'] .im-hero h1 { text-align: center; transform-origin: center bottom; }
-html[data-estilo='mac'] .im-ask__hints { justify-content: center; }
-html[data-estilo='mac'] .im-ask__form { margin-left: auto; margin-right: auto; }
-html[data-estilo='mac'] .im-ask > .im-hero { max-width: 1240px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-ask { align-items: center; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-ask > * { width: 100%; max-width: 900px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-hero h1 { text-align: center; transform-origin: center bottom; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-ask__hints { justify-content: center; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-ask__form { margin-left: auto; margin-right: auto; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-ask > .im-hero { max-width: 1240px; }
 
 /* inicio centrado también en vertical: la pregunta queda en el medio de la ventana */
-html[data-estilo='mac'] .im-home { min-height: calc(100dvh - 52px); gap: 48px; padding-top: 24px; }
-html[data-estilo='mac'] .im-ask { flex: 1 0 auto; justify-content: center; min-height: min(62vh, 620px); }
-html[data-estilo='mac'] .im-home:has(.im-ask.is-chat) .im-ask { flex: 0 0 auto; justify-content: flex-start; min-height: 0; }
-html[data-estilo='mac'] .im-sec { width: 100%; max-width: 1100px; margin: 0 auto; }
-html[data-estilo='mac'] .im-foot { width: 100%; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-home { min-height: calc(100dvh - 52px); gap: 48px; padding-top: 24px; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-ask { flex: 1 0 auto; justify-content: center; min-height: min(62vh, 620px); }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-home:has(.im-ask.is-chat) .im-ask { flex: 0 0 auto; justify-content: flex-start; min-height: 0; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-sec { width: 100%; max-width: 1100px; margin: 0 auto; }
+html:is([data-estilo='mac'], [data-estilo='claro']) .im-foot { width: 100%; }

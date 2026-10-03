@@ -46,7 +46,7 @@ export default function MensajesPage() {
   const coach = activo.tipo === 'coach' ? COACHES[activo.id] : null
   const canal = activo.tipo === 'canal' ? CANALES.find((c) => c.id === activo.id) : null
 
-  if (estilo === 'mac') return <MensajesMac />
+  if (estilo === 'mac' || estilo === 'claro') return <MensajesMac />
 
   return (
     <div className="app-shell im-root">

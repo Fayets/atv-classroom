@@ -121,7 +121,8 @@ export function PlataformaDemoProvider({ children }) {
   // Estilo visual de la vista previa: "atv" (el del classroom) o "mac" (ventana de macOS). Se recuerda por navegador.
   const [estilo, setEstiloState] = useState(() => {
     try {
-      return localStorage.getItem('atv_estilo') === 'mac' ? 'mac' : 'atv'
+      const e = localStorage.getItem('atv_estilo')
+      return ['mac', 'claro'].includes(e) ? e : 'atv'
     } catch {
       return 'atv'
     }

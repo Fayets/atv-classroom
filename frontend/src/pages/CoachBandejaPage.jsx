@@ -120,7 +120,7 @@ export default function CoachBandejaPage() {
               </button>
             </div>
             {c.nivel === 'mid' ? <p className="pf-regla">Mid incluye revisión mensual con vos. Personalización extra es un upsell.</p> : null}
-            {estilo === 'mac' ? (
+            {estilo === 'mac' || estilo === 'claro' ? (
               <CanalPrivado key={c.id} c={c} yo={COACH_DEMO} />
             ) : (
             <Chat

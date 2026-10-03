@@ -1,0 +1,193 @@
+/* Tema "Claro": la misma ventana de macOS que el tema Mac, en modo claro.
+   Hereda todas las reglas de tema-mac.css y mac.css; acá solo cambian los colores. */
+
+html[data-estilo='claro'] {
+  --mac-acento: #c0392b;
+  --m-bg: #ffffff;
+  --m-lateral: rgba(246, 246, 248, 0.86);
+  --m-inspector: #f5f5f7;
+  --m-grupo: #ffffff;
+  --m-linea: rgba(0, 0, 0, 0.08);
+  --m-t1: #1d1d1f;
+  --m-t2: #3a3a3c;
+  --m-t3: #6e6e73;
+  --m-acento: #c0392b;
+  --m-acento-suave: rgba(192, 57, 43, 0.14);
+  --m-gris-burbuja: #e9e9eb;
+  color-scheme: light;
+}
+html[data-estilo='claro'] body { background: #e5e5ea; }
+html[data-estilo='claro'] .app-shell { background: #ffffff; scrollbar-color: rgba(0, 0, 0, 0.22) transparent; }
+html[data-estilo='claro'] .im-root {
+  --pc-bg: #ffffff;
+  --pc-s1: #f5f5f7;
+  --pc-s2: #ececef;
+  --pc-s3: #e2e2e6;
+  --pc-line: rgba(0, 0, 0, 0.08);
+  --pc-line2: rgba(0, 0, 0, 0.14);
+  --pc-t1: #1d1d1f;
+  --pc-t2: #3a3a3c;
+  --pc-t3: #6e6e73;
+  --pc-t4: #8e8e93;
+  --pc-red: #c0392b;
+  --pc-red2: #d64535;
+  --pc-red-soft: rgba(192, 57, 43, 0.12);
+  --pc-ok: #1f9d55;
+  background: #ffffff;
+}
+html[data-estilo='claro'] .im-root ::selection { background: var(--mac-acento); color: #fff; }
+
+/* ---------- barra de título y menú ---------- */
+html[data-estilo='claro'] .app-header { background: #f6f6f8; border-bottom-color: rgba(0, 0, 0, 0.12); box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.6); }
+html[data-estilo='claro'] .app-header__nav { background: rgba(0, 0, 0, 0.06); box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
+html[data-estilo='claro'] .app-header__navlink { color: #3a3a3c; }
+html[data-estilo='claro'] .app-header__navlink:hover { color: #1d1d1f; }
+html[data-estilo='claro'] .app-header__navlink.is-active { background: #ffffff; color: #1d1d1f; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18); }
+html[data-estilo='claro'] .app-header__avatar { color: #1d1d1f; background: linear-gradient(#e8e8ec, #d6d6dc); }
+html[data-estilo='claro'] .app-header__menu { background: rgba(250, 250, 252, 0.94); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 16px 40px -8px rgba(0, 0, 0, 0.25); }
+html[data-estilo='claro'] .app-header__menu-name { color: #1d1d1f; }
+html[data-estilo='claro'] .app-header__menu-email,
+html[data-estilo='claro'] .app-header__menu-link,
+html[data-estilo='claro'] .app-header__menu-logout { color: #3a3a3c; }
+html[data-estilo='claro'] .mac-estilo { background: rgba(0, 0, 0, 0.06); box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
+html[data-estilo='claro'] .mac-estilo button { color: #6e6e73; }
+html[data-estilo='claro'] .mac-estilo button.is-on { background: var(--mac-acento); color: #fff; }
+
+/* ---------- controles ---------- */
+html[data-estilo='claro'] .pc-btn--light { background: #1d1d1f; color: #fff; box-shadow: none; }
+html[data-estilo='claro'] .pc-btn--light:hover:not(:disabled) { background: #343436; }
+html[data-estilo='claro'] .pc-btn--ghost { background: #ffffff; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14); color: #1d1d1f; }
+html[data-estilo='claro'] .pc-btn--ghost:hover:not(:disabled) { background: #f2f2f4; }
+html[data-estilo='claro'] .pc-check { border-color: #c7c7cc; }
+html[data-estilo='claro'] .pc-check svg { stroke: #fff; }
+html[data-estilo='claro'] .im-ask__form { background: #ffffff; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), 0 8px 30px -18px rgba(0, 0, 0, 0.35); }
+html[data-estilo='claro'] .im-ask__hints button:hover,
+html[data-estilo='claro'] .im-sol__areas label:not(.is-on):hover { background: #f2f2f4; }
+html[data-estilo='claro'] .im-route { background: linear-gradient(140deg, rgba(192, 57, 43, 0.1), rgba(192, 57, 43, 0.02) 55%), #ffffff; box-shadow: inset 0 0 0 1px rgba(192, 57, 43, 0.3); }
+html[data-estilo='claro'] .im-route--coach { background: #f5f5f7; }
+html[data-estilo='claro'] .im-route__steps li { background: #ffffff; box-shadow: inset 0 0 0 1px var(--pc-line); }
+html[data-estilo='claro'] .im-burbuja,
+html[data-estilo='claro'] .im-user { background: #ececef; }
+html[data-estilo='claro'] .im-sol__field input,
+html[data-estilo='claro'] .im-sol__field textarea,
+html[data-estilo='claro'] .im-plantilla__tuya input,
+html[data-estilo='claro'] .im-sop__form input,
+html[data-estilo='claro'] .ms-indice__buscar input,
+html[data-estilo='claro'] .pf-campo input { background: #ffffff; }
+html[data-estilo='claro'] .im-coach__av { color: #fff; }
+html[data-estilo='claro'] .mt-card { box-shadow: inset 0 0 0 1px var(--pc-line), 0 8px 24px -16px rgba(0, 0, 0, 0.3); }
+html[data-estilo='claro'] .mt-card__cover { background: #111; }
+html[data-estilo='claro'] .mt-bar { background: rgba(0, 0, 0, 0.08); }
+html[data-estilo='claro'] .ms-seg { background: rgba(0, 0, 0, 0.1); }
+html[data-estilo='claro'] .ms-indice__fondo { background: rgba(0, 0, 0, 0.3); }
+html[data-estilo='claro'] .ms-indice__panel { background: rgba(250, 250, 252, 0.94); }
+html[data-estilo='claro'] .ms-indice__item:hover,
+html[data-estilo='claro'] .ms-indice__item:focus-visible { background: rgba(0, 0, 0, 0.05); }
+html[data-estilo='claro'] .ms-claves label.is-done { background: rgba(31, 157, 85, 0.08); }
+html[data-estilo='claro'] .ms-claves label.is-done span { text-decoration-color: rgba(0, 0, 0, 0.3); }
+html[data-estilo='claro'] .mt-nav__btn--prev:hover { background: #f2f2f4; }
+html[data-estilo='claro'] .mt-nav__btn--next { background: linear-gradient(120deg, rgba(192, 57, 43, 0.12), rgba(192, 57, 43, 0.03) 70%), #ffffff; }
+html[data-estilo='claro'] .mt-nav__btn--next .mt-nav__txt small { color: #c0392b; }
+html[data-estilo='claro'] .mt-nav__ico { background: #f2f2f4; }
+html[data-estilo='claro'] .pf-metrica.is-alerta { background: rgba(192, 57, 43, 0.08); }
+html[data-estilo='claro'] .pf-metrica.is-alerta span { color: #c0392b; }
+html[data-estilo='claro'] .pf-rojo { color: #c0392b; }
+html[data-estilo='claro'] .pf-warn { color: #b7791f; }
+html[data-estilo='claro'] .pf-okc { color: #1f9d55; }
+html[data-estilo='claro'] .pf-box--oro { background: rgba(214, 165, 72, 0.12); }
+html[data-estilo='claro'] .pf-eyebrow--oro { color: #9a6b12; }
+html[data-estilo='claro'] .pf-drawer__fondo { background: rgba(0, 0, 0, 0.3); }
+html[data-estilo='claro'] .pf-drawer__panel { background: rgba(250, 250, 252, 0.97); box-shadow: -30px 0 60px -20px rgba(0, 0, 0, 0.25), inset 1px 0 0 var(--pc-line2); }
+html[data-estilo='claro'] .pf-tabla tbody tr:hover { background: rgba(0, 0, 0, 0.025); }
+html[data-estilo='claro'] .pf-nivel--entry { color: #3a3a3c; background: #e2e2e6; }
+html[data-estilo='claro'] .pf-nivel--mid { color: #c0392b; background: rgba(192, 57, 43, 0.12); }
+html[data-estilo='claro'] .im-open__x:hover { background: #f2f2f4; }
+html[data-estilo='claro'] .im-ask__hints button,
+html[data-estilo='claro'] .pf-chips button { color: #3a3a3c; }
+
+/* ---------- ventana de Mensajes y Roadmaps (mac.css) ---------- */
+html[data-estilo='claro'] .mac-escritorio {
+  /* la ventana de mac.css define sus propias variables: acá se pisan con las claras */
+  --m-bg: #ffffff;
+  --m-lateral: rgba(246, 246, 248, 0.86);
+  --m-inspector: #f5f5f7;
+  --m-grupo: #ffffff;
+  --m-linea: rgba(0, 0, 0, 0.08);
+  --m-t1: #1d1d1f;
+  --m-t2: #3a3a3c;
+  --m-t3: #6e6e73;
+  --m-acento: #c0392b;
+  --m-acento-suave: rgba(192, 57, 43, 0.14);
+  --m-gris-burbuja: #e9e9eb;
+  background: #e5e5ea;
+}
+html[data-estilo='claro'] .mac-titulo { background: #f6f6f8; border-bottom-color: rgba(0, 0, 0, 0.12); box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.6); }
+html[data-estilo='claro'] .mac-nav { background: rgba(0, 0, 0, 0.06); box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
+html[data-estilo='claro'] .mac-nav a { color: #3a3a3c; }
+html[data-estilo='claro'] .mac-nav a.is-on { background: #ffffff; color: #1d1d1f; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18); }
+html[data-estilo='claro'] .mac-avatar { color: #1d1d1f; background: linear-gradient(#e8e8ec, #d6d6dc); }
+html[data-estilo='claro'] .mac-lateral { border-right-color: rgba(0, 0, 0, 0.1); }
+html[data-estilo='claro'] .mac-inspector { border-left-color: rgba(0, 0, 0, 0.1); }
+html[data-estilo='claro'] .mac-buscar { background: rgba(0, 0, 0, 0.06); }
+html[data-estilo='claro'] .mac-item:hover { background: rgba(0, 0, 0, 0.05); }
+html[data-estilo='claro'] .mac-hash--grande { background: rgba(0, 0, 0, 0.06); }
+html[data-estilo='claro'] .mac-grupo { box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1); }
+html[data-estilo='claro'] .mac-grupo--link:hover { background: #f2f2f4; }
+html[data-estilo='claro'] .mac-progreso { background: rgba(0, 0, 0, 0.08); }
+html[data-estilo='claro'] .mac-progreso i { background: #1f9d55; }
+html[data-estilo='claro'] .mac-rojo { color: #c0392b; }
+html[data-estilo='claro'] .mac-aviso { background: rgba(31, 157, 85, 0.1); box-shadow: inset 0 0 0 0.5px rgba(31, 157, 85, 0.35); }
+html[data-estilo='claro'] .mac-aviso__icono { color: #1f9d55; }
+html[data-estilo='claro'] .mac-boton:disabled { background: #d6d6dc; color: #6e6e73; }
+html[data-estilo='claro'] .mac-post { background: #f5f5f7; box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.08); }
+html[data-estilo='claro'] .mac-adjunto { background: #f5f5f7; box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1); }
+html[data-estilo='claro'] .mac-adjunto__abrir { background: rgba(0, 0, 0, 0.06); }
+html[data-estilo='claro'] .mac-adjunto__abrir:hover { background: rgba(0, 0, 0, 0.1); }
+html[data-estilo='claro'] .mac-pill { background: rgba(0, 0, 0, 0.07); }
+html[data-estilo='claro'] .mac-doc--chico::after { background: linear-gradient(225deg, #f5f5f7 50%, #c9cacf 50%); }
+html[data-estilo='claro'] .mac-doc::after,
+html[data-estilo='claro'] .mac-archivo .mac-doc::after { background: linear-gradient(225deg, #f4f4f6 50%, #c9cacf 50%); }
+html[data-estilo='claro'] .mac-doc { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), inset 0 0 0 0.5px rgba(0, 0, 0, 0.15); }
+
+/* canal tipo Discord */
+html[data-estilo='claro'] .mac-discord__hash { background: rgba(0, 0, 0, 0.06); }
+html[data-estilo='claro'] .mac-dmsg:hover { background: rgba(0, 0, 0, 0.03); }
+html[data-estilo='claro'] .mac-dmsg.is-mencion { background: rgba(250, 168, 26, 0.12); }
+html[data-estilo='claro'] .mac-dmsg p { color: #1d1d1f; }
+html[data-estilo='claro'] .mac-dmsg__codo { border-color: #c7c7cc; }
+html[data-estilo='claro'] .mac-dmsg__responder { background: #ffffff; color: #1d1d1f; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.14), 0 4px 12px rgba(0, 0, 0, 0.15); }
+html[data-estilo='claro'] .mac-mencion { color: #3b47c9; background: rgba(88, 101, 242, 0.14); }
+html[data-estilo='claro'] .mac-dredactar__resp { background: #ececef; }
+html[data-estilo='claro'] .mac-dredactar__caja { background: #f2f2f4; box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1); }
+html[data-estilo='claro'] .mac-dredactar__caja:focus-within { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.22); }
+html[data-estilo='claro'] .mac-dredactar__mas { background: #c7c7cc; color: #ffffff; }
+html[data-estilo='claro'] .mac-miembro:hover { background: rgba(0, 0, 0, 0.04); }
+html[data-estilo='claro'] .mac-miembro__av i { background: #c7c7cc; box-shadow: 0 0 0 2px var(--m-inspector); }
+html[data-estilo='claro'] .mac-miembro__av i.is-online { background: #1f9d55; }
+html[data-estilo='claro'] .mac-burbuja { color: #1d1d1f; }
+html[data-estilo='claro'] .mac-burbuja.is-mio { color: #fff; }
+html[data-estilo='claro'] .mac-redactar { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14); }
+html[data-estilo='claro'] .mac-redactar button:disabled { background: #d6d6dc; color: #8e8e93; }
+
+/* lienzo de roadmaps */
+html[data-estilo='claro'] .mac-lienzo { background-color: #f3f3f5; background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px); border-top-color: rgba(0, 0, 0, 0.1); }
+html[data-estilo='claro'] .mac-lienzo__flechas path { stroke: #a1a1a6; }
+html[data-estilo='claro'] #mac-punta path { fill: #a1a1a6; }
+html[data-estilo='claro'] .mac-zona { background: rgba(255, 255, 255, 0.9); box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 12px 30px -18px rgba(0, 0, 0, 0.3); }
+html[data-estilo='claro'] .mac-zona--gris { background: rgba(245, 245, 247, 0.9); }
+html[data-estilo='claro'] .mac-archivo:hover { background: rgba(0, 0, 0, 0.04); }
+html[data-estilo='claro'] .mac-archivo.is-sel { background: rgba(0, 0, 0, 0.07); }
+html[data-estilo='claro'] .mac-archivo--reemplazado { opacity: 0.55; }
+html[data-estilo='claro'] .mac-archivo--vigente .mac-doc { box-shadow: 0 0 0 2px var(--m-acento), 0 6px 18px -4px rgba(192, 57, 43, 0.4); }
+html[data-estilo='claro'] .mac-banda { background: rgba(192, 57, 43, 0.08); box-shadow: inset 0 0 0 0.5px rgba(192, 57, 43, 0.4); }
+html[data-estilo='claro'] .mac-banda small { color: #c0392b; }
+html[data-estilo='claro'] .mac-herramientas { background: rgba(255, 255, 255, 0.9); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.14), 0 10px 30px -10px rgba(0, 0, 0, 0.3); }
+html[data-estilo='claro'] .mac-herramientas button:hover { background: rgba(0, 0, 0, 0.06); }
+html[data-estilo='claro'] .mac-bloqueado { background: #ececef; }
+
+/* login */
+html[data-estilo='claro'] .lg-root { --lg-bg: #ffffff; --lg-s1: #f5f5f7; --lg-line: rgba(0, 0, 0, 0.1); --lg-line2: rgba(0, 0, 0, 0.16); --lg-t1: #1d1d1f; --lg-t2: #3a3a3c; --lg-t3: #6e6e73; --lg-red: #c0392b; --lg-red2: #d64535; }
+html[data-estilo='claro'] .lg-root input { background: #ffffff; color: #1d1d1f; }
+html[data-estilo='claro'] .ms-barra { background: #ffffff; }
+html[data-estilo='claro'] .lg-ecuacion { color: #e8e8ec; }
+html[data-estilo='claro'] .lg-ecuacion span { color: #e8e8ec; }
