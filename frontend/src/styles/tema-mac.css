@@ -28,14 +28,13 @@ html[data-estilo='mac'] body {
 
 /* ---------- la ventana ---------- */
 html[data-estilo='mac'] .app-shell {
-  margin: 22px;
-  height: calc(100dvh - 44px);
+  margin: 0;
+  height: 100dvh;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  border-radius: 12px;
+  border-radius: 0;
   background: #1e1e20;
-  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.6), 0 30px 80px -10px rgba(0, 0, 0, 0.75);
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
   animation: mac-abrir 260ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -58,7 +57,7 @@ html[data-estilo='mac'] .im-root {
   --pc-red-soft: rgba(197, 72, 74, 0.22);
   --pc-ok: #30d158;
   --pc-font: var(--mac-font);
-  --pf-head: 96px;
+  --pf-head: 52px;
   background: #1e1e20;
 }
 html[data-estilo='mac'] .im-root h1,
@@ -162,12 +161,9 @@ html[data-estilo='mac'] .lg-root {
   --lg-red: #c5484a;
   --lg-red2: #ff6b6b;
   position: relative;
-  margin: 22px;
-  min-height: calc(100dvh - 44px);
-  border-radius: 12px;
+  min-height: 100dvh;
   overflow: hidden;
   font-family: var(--mac-font);
-  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.6), 0 30px 80px -10px rgba(0, 0, 0, 0.75);
 }
 html[data-estilo='mac'] .lg-root::before {
   content: '';
@@ -199,3 +195,12 @@ html[data-estilo='mac'] .lg-brand { padding-top: 44px; }
 @media (prefers-reduced-motion: reduce) {
   html[data-estilo='mac'] .app-shell { animation: none; }
 }
+
+/* ---------- todo el ancho: la ventana ocupa el navegador y el contenido usa el ancho disponible ---------- */
+html[data-estilo='mac'] .im-home,
+html[data-estilo='mac'] .im-frente,
+html[data-estilo='mac'] .mt-grid-page,
+html[data-estilo='mac'] .ms-page,
+html[data-estilo='mac'] .pf-clientes { max-width: none; padding-left: clamp(16px, 3vw, 40px); padding-right: clamp(16px, 3vw, 40px); }
+html[data-estilo='mac'] .mt-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+html[data-estilo='mac'] .im-route { max-width: none; }
