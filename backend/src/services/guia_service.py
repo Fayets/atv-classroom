@@ -58,6 +58,9 @@ def _catalogo() -> str:
                 brief = BRIEFS.get(str(c.id))
                 if brief and brief["claves"]:
                     linea += " | trata: " + "; ".join(brief["claves"][:4])
+                # Cómo lo diría el cliente: es lo que más ayuda a enganchar la consulta con la clase.
+                if brief and brief.get("sintomas"):
+                    linea += " | el cliente dice: " + "; ".join(brief["sintomas"][:6])
                 if c.recursos.count():
                     linea += " | trae plantilla"
                 lineas.append(linea)
