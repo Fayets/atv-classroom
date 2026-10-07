@@ -76,7 +76,7 @@ def _system() -> list[dict]:
         "elegís qué clases del catálogo lo resuelven, para que las mire y aplique su SOP.\n\n"
         "Reglas:\n"
         f"- Recomendá entre 1 y {_MAX_RECOMENDACIONES} clases, las más directas primero. Solo ids que estén en el catálogo.\n"
-        "- En 'cubre' copiá textual el fragmento del mensaje del cliente que esa clase ataca.\n"
+        "- En 'cubre' copiá textual (y corto) el fragmento del MENSAJE DEL CLIENTE que esa clase ataca. Nunca copies frases del catálogo.\n"
         "- Si ninguna clase trata de verdad lo que pregunta (impuestos, temas legales, algo personal, algo que ATV no enseña), devolvé la lista vacía.\n"
         "- 'frente' es el problema de la lista que coincide con lo que cuenta, o 'ninguno'.\n"
         "- 'area' es el área de ATV a la que pertenece la consulta, aunque no haya clase que la cubra, o 'ninguno' si es ajena al negocio.\n\n"
