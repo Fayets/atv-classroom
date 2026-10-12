@@ -16,7 +16,7 @@ from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
 from src.models import Admin, Canal, ClienteExterno, LecturaCanal, Mencion, MensajeCanal
-from src.services.auth_service import _tiene_acceso, es_equipo
+from src.services.auth_service import _emails_del_cliente, _tiene_acceso, es_equipo
 from src.services.tiempo_real import puede_ver
 
 MAX_TEXTO = 4000
@@ -32,7 +32,15 @@ def habilitada_para(sesion: dict) -> bool:
     Antes del lanzamiento, los mails de MENSAJES_PRUEBA (separados por coma) ya la ven, para probar."""
     if es_equipo(sesion) or config("MENSAJES_CLIENTES", default=False, cast=bool):
         return True
-    return (sesion.get("email") or "").strip().lower() in _mails_de_prueba()
+    prueba = _mails_de_prueba()
+    if not prueba:
+        return False
+    if (sesion.get("email") or "").strip().lower() in prueba:
+        return True
+    # El cliente puede haber entrado con un mail secundario de su ficha: se miran todos.
+    with db_session:
+        cliente = ClienteExterno.get(id=sesion["usuario_id"])
+        return bool(cliente) and bool(_emails_del_cliente(cliente) & prueba)
 
 
 def clientes_habilitados() -> bool:
