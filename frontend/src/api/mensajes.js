@@ -1,5 +1,9 @@
 import { request } from './client'
 
+export function fetchHabilitada() {
+  return request('/api/mensajes/habilitada')
+}
+
 export function fetchCanales() {
   return request('/api/mensajes/canales')
 }

@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchAuthConfig } from '../api/client'
-import { fetchNoLeidos } from '../api/mensajes'
+import { fetchHabilitada, fetchNoLeidos } from '../api/mensajes'
 import AvisoMencion from '../components/mensajes/AvisoMencion'
 import { useAuth } from './AuthContext'
 
@@ -33,11 +32,11 @@ export function MensajeriaProvider({ children }) {
     }, espera)
   }, [])
 
-  // Hasta el lanzamiento, la mensajería es solo del equipo (MENSAJES_CLIENTES en el backend).
+  // Hasta el lanzamiento la usan el equipo y los mails de prueba (MENSAJES_CLIENTES / MENSAJES_PRUEBA en el backend).
   useEffect(() => {
     if (!token || isEquipo) return
-    fetchAuthConfig()
-      .then((cfg) => setClientesHabilitados(Boolean(cfg?.mensajes_clientes)))
+    fetchHabilitada()
+      .then((r) => setClientesHabilitados(Boolean(r?.habilitada)))
       .catch(() => null)
   }, [token, isEquipo])
 

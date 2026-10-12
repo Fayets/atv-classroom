@@ -272,3 +272,12 @@ def test_el_coach_solo_ve_donde_lo_etiquetan_y_la_alerta_mide_la_demora(coach, c
     pend = svc.menciones(dict(coach_real))["alertas"][0]
     assert svc.resolver_mencion(dict(coach_real), pend["id"])["respondida_en"]
     assert svc.menciones(dict(coach_real))["pendientes"] == 0
+
+
+def test_mail_de_prueba_la_ve_antes_del_lanzamiento(monkeypatch):
+    from src.services import mensajeria_service
+
+    valores = {"MENSAJES_CLIENTES": False, "MENSAJES_PRUEBA": "Prueba@Atvos.io, otro@x.com"}
+    monkeypatch.setattr(mensajeria_service, "config", lambda clave, **k: valores.get(clave, k.get("default")))
+    assert mensajeria_service.habilitada_para({"usuario_id": 5, "email": "prueba@atvos.io", "rol": "mid"})
+    assert not mensajeria_service.habilitada_para({"usuario_id": 6, "email": "cliente@x.com", "rol": "mid"})

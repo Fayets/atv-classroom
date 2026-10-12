@@ -22,9 +22,17 @@ from src.services.tiempo_real import puede_ver
 MAX_TEXTO = 4000
 
 
+def _mails_de_prueba() -> set[str]:
+    crudo = str(config("MENSAJES_PRUEBA", default="") or "")
+    return {m.strip().lower() for m in crudo.split(",") if m.strip()}
+
+
 def habilitada_para(sesion: dict) -> bool:
-    """El equipo siempre la usa; los clientes, recién cuando MENSAJES_CLIENTES=1 (lanzamiento)."""
-    return es_equipo(sesion) or config("MENSAJES_CLIENTES", default=False, cast=bool)
+    """El equipo siempre la usa; los clientes, recién cuando MENSAJES_CLIENTES=1 (lanzamiento).
+    Antes del lanzamiento, los mails de MENSAJES_PRUEBA (separados por coma) ya la ven, para probar."""
+    if es_equipo(sesion) or config("MENSAJES_CLIENTES", default=False, cast=bool):
+        return True
+    return (sesion.get("email") or "").strip().lower() in _mails_de_prueba()
 
 
 def clientes_habilitados() -> bool:

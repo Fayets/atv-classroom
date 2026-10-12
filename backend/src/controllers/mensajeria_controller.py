@@ -47,6 +47,12 @@ class CanalNuevo(BaseModel):
     descripcion: str | None = Field(default=None, max_length=300)
 
 
+@router.get("/habilitada")
+def habilitada(sesion: dict = Depends(obtener_sesion_desde_request)):
+    """Si este usuario ya ve la mensajería (equipo, lanzamiento o mail de prueba)."""
+    return {"habilitada": habilitada_para(sesion)}
+
+
 @router.get("/canales")
 def canales(sesion: dict = Depends(sesion_mensajes)):
     return service.listar_canales(sesion)
