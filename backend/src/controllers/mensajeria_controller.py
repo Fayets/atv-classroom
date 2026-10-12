@@ -139,7 +139,12 @@ async def tiempo_real(websocket: WebSocket):
                 canal = await run_in_threadpool(service.canal_visible_info, sesion, canal_id)
                 if canal is not None:
                     await hub.emitir(
-                        {"tipo": "escribiendo", "canal_id": canal_id, "nombre": sesion["nombre"]},
+                        {
+                            "tipo": "escribiendo",
+                            "canal_id": canal_id,
+                            "nombre": sesion["nombre"],
+                            "activo": evento.get("activo") is not False,
+                        },
                         canal,
                         excepto=websocket,
                     )

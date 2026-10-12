@@ -78,7 +78,12 @@ export default function Conversacion({ canalId, item, onVolver }) {
             d ? { ...d, lecturas: { ...d.lecturas, [ev.lector]: Math.max(d.lecturas[ev.lector] || 0, ev.ultimo_id) } } : d,
           )
         } else if (ev.tipo === 'escribiendo' && ev.canal_id === canalId) {
-          setEscriben((e) => ({ ...e, [ev.nombre]: Date.now() }))
+          setEscriben((e) => {
+            const copia = { ...e }
+            if (ev.activo === false) delete copia[ev.nombre]
+            else copia[ev.nombre] = Date.now()
+            return copia
+          })
         } else if (ev.tipo === 'reconectado') {
           // Al volver la conexión se trae lo que llegó mientras estaba cortada.
           const actuales = mensajesRef.current
@@ -182,6 +187,7 @@ export default function Conversacion({ canalId, item, onVolver }) {
     }
     setPendientes((p) => [...p, provisorio])
     setTexto('')
+    ultimoAvisoEscribiendo.current = 0
     setRespondiendo(null)
     pegadoAbajo.current = true
     try {
@@ -201,6 +207,11 @@ export default function Conversacion({ canalId, item, onVolver }) {
 
   function alEscribir(e) {
     setTexto(e.target.value)
+    if (!e.target.value.trim()) {
+      if (ultimoAvisoEscribiendo.current) avisarEscribiendo(canalId, false)
+      ultimoAvisoEscribiendo.current = 0
+      return
+    }
     if (Date.now() - ultimoAvisoEscribiendo.current > 3000) {
       ultimoAvisoEscribiendo.current = Date.now()
       avisarEscribiendo(canalId)
@@ -379,7 +390,19 @@ export default function Conversacion({ canalId, item, onVolver }) {
       </div>
 
       <div className="msj-escribiendo" aria-live="polite">
-        {nombresEscribiendo.length ? `${nombresEscribiendo.join(', ')} ${nombresEscribiendo.length > 1 ? 'están' : 'está'} escribiendo…` : ''}
+        {nombresEscribiendo.length ? (
+          <>
+            <span className="msj-puntos" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span>
+              <b>{nombresEscribiendo.map((n) => n.split(' ')[0]).join(', ')}</b>{' '}
+              {nombresEscribiendo.length > 1 ? 'están escribiendo…' : 'está escribiendo…'}
+            </span>
+          </>
+        ) : null}
       </div>
 
       {error ? (

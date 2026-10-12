@@ -9,7 +9,7 @@ import { useMensajeria } from '../context/MensajeriaContext'
 import { cuandoCorto, haceCuanto } from '../utils/mensajes'
 import '../styles/mensajes.css'
 
-function ItemCanal({ c, activo, onAbrir, isEquipo }) {
+function ItemCanal({ c, activo, onAbrir, isEquipo, escribe }) {
   const privado = c.tipo === 'cliente'
   const titulo = privado && isEquipo ? c.cliente?.nombre || c.nombre : privado ? 'Mi canal' : c.nombre
   return (
@@ -27,7 +27,9 @@ function ItemCanal({ c, activo, onAbrir, isEquipo }) {
           <time>{c.ultimo ? cuandoCorto(c.ultimo.creado_en) : ''}</time>
         </span>
         <span className="msj-item__sub">
-          {isEquipo && c.esperando_desde ? (
+          {escribe ? (
+            <em className="is-escribiendo">{isEquipo ? `${escribe.split(' ')[0]} está escribiendo…` : 'escribiendo…'}</em>
+          ) : isEquipo && c.esperando_desde ? (
             <em>Espera respuesta · {haceCuanto(c.esperando_desde)}</em>
           ) : c.ultimo ? (
             `${c.ultimo.autor_nombre.split(' ')[0]}: ${c.ultimo.texto}`
@@ -84,6 +86,8 @@ export default function MensajesPage() {
   const [error, setError] = useState('')
   const [buscar, setBuscar] = useState('')
   const recarga = useRef(null)
+  const { user } = useAuth()
+  const [escriben, setEscriben] = useState({})
   const activo = Number(params.get('c')) || null
 
   const cargar = useCallback(() => {
@@ -106,6 +110,40 @@ export default function MensajesPage() {
       }),
     [suscribir, cargar],
   )
+
+  // "escribiendo…" en la lista de chats, como en WhatsApp: se apaga a los 5 s o cuando llega el mensaje.
+  useEffect(
+    () =>
+      suscribir((ev) => {
+        if (ev.tipo === 'escribiendo' && ev.nombre !== user?.nombre) {
+          setEscriben((e) => {
+            const copia = { ...e }
+            if (ev.activo === false) delete copia[ev.canal_id]
+            else copia[ev.canal_id] = { nombre: ev.nombre, cuando: Date.now() }
+            return copia
+          })
+        } else if (ev.tipo === 'mensaje') {
+          setEscriben((e) => {
+            if (!e[ev.mensaje.canal_id]) return e
+            const copia = { ...e }
+            delete copia[ev.mensaje.canal_id]
+            return copia
+          })
+        }
+      }),
+    [suscribir, user],
+  )
+
+  useEffect(() => {
+    if (!Object.keys(escriben).length) return undefined
+    const t = setInterval(() => {
+      setEscriben((e) => {
+        const vigentes = Object.fromEntries(Object.entries(e).filter(([, v]) => Date.now() - v.cuando < 5000))
+        return Object.keys(vigentes).length === Object.keys(e).length ? e : vigentes
+      })
+    }, 1000)
+    return () => clearInterval(t)
+  }, [escriben])
 
   // Sin conexión en vivo, la bandeja se refresca sola cada 30 segundos.
   useEffect(() => {
@@ -165,17 +203,17 @@ export default function MensajesPage() {
 
           {isEquipo && esperando.length ? <p className="msj-seccion">Esperan respuesta — {esperando.length}</p> : null}
           {esperando.map((c) => (
-            <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} />
+            <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
           ))}
 
           {resto.length ? <p className="msj-seccion">{isEquipo ? `Clientes — ${resto.length}` : 'Tu canal'}</p> : null}
           {resto.map((c) => (
-            <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} />
+            <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
           ))}
 
           {anuncios.length ? <p className="msj-seccion">Comunidad ATV</p> : null}
           {anuncios.map((c) => (
-            <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} />
+            <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
           ))}
         </aside>
 

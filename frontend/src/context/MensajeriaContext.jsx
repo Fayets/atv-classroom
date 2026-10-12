@@ -98,9 +98,9 @@ export function MensajeriaProvider({ children }) {
     return () => suscriptores.current.delete(fn)
   }, [])
 
-  const avisarEscribiendo = useCallback((canalId) => {
+  const avisarEscribiendo = useCallback((canalId, activo = true) => {
     const ws = socket.current
-    if (ws?.readyState === 1) ws.send(JSON.stringify({ tipo: 'escribiendo', canal_id: canalId }))
+    if (ws?.readyState === 1) ws.send(JSON.stringify({ tipo: 'escribiendo', canal_id: canalId, activo }))
   }, [])
 
   const valor = useMemo(

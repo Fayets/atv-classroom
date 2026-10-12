@@ -194,3 +194,34 @@ def test_clientes_no_entran_hasta_el_lanzamiento(monkeypatch):
         mc.sesion_mensajes(_cliente(CLI_A))
     assert e.value.status_code == 403
     assert mc.sesion_mensajes({"usuario_id": 1, "nombre": "x", "email": "x@y.com", "rol": "coach"})["rol"] == "coach"
+
+
+def test_escribiendo_le_llega_al_otro_y_no_a_quien_escribe(coach, monkeypatch):
+    import main
+
+    http = TestClient(main.app)
+    from src.models import Admin
+
+    tokens = []
+    for n in ("uno", "dos"):
+        email = f"{_PREFIJO}-tipeo-{n}@atvos-prueba.com"
+        with db_session:
+            Admin(email=email, nombre=f"Coach {n}", rol="coach")
+        monkeypatch.setattr(
+            google_service, "verificar_credencial", lambda _c, e=email, n=n: {"sub": f"tipeo-{n}", "email": e, "nombre": f"Coach {n}", "foto": None}
+        )
+        tokens.append(http.post("/api/auth/google", json={"credencial": "x" * 30}).json()["token"])
+    canal = _canal_de(_cliente(CLI_A))
+
+    with http.websocket_connect("/api/ws") as uno, http.websocket_connect("/api/ws") as dos:
+        for ws, tok in ((uno, tokens[0]), (dos, tokens[1])):
+            ws.send_json({"tipo": "auth", "token": tok})
+            assert ws.receive_json()["tipo"] == "listo"
+        uno.send_json({"tipo": "escribiendo", "canal_id": canal})
+        evento = dos.receive_json()
+        assert evento == {"tipo": "escribiendo", "canal_id": canal, "nombre": "Coach uno", "activo": True}
+        uno.send_json({"tipo": "escribiendo", "canal_id": canal, "activo": False})
+        assert dos.receive_json()["activo"] is False
+        # Quien escribe no recibe su propio aviso: su próximo evento es el pong.
+        uno.send_json({"tipo": "ping"})
+        assert uno.receive_json()["tipo"] == "pong"
