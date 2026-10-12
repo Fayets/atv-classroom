@@ -8,7 +8,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': api,
+      // ws: true para que el WebSocket de mensajes (/api/ws) también pase por el proxy.
+      '/api': { target: api, ws: true },
       '/health': api,
       '/uploads': api,
     },

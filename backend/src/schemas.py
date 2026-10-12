@@ -27,6 +27,7 @@ class GoogleLoginRequest(BaseModel):
 
 class AuthConfigResponse(BaseModel):
     google_client_id: str | None = None
+    mensajes_clientes: bool = False
 
 
 class SessionProfileResponse(BaseModel):

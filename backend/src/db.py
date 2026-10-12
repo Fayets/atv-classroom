@@ -40,6 +40,21 @@ def init_db() -> None:
     )
     _apply_migrations()
     db.generate_mapping(create_tables=True)
+    _crear_indices()
+
+
+def _crear_indices() -> None:
+    """Índices que Pony no crea solo (corren después de crear las tablas)."""
+    conn = psycopg2.connect(**_psycopg2_connect_kwargs())
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f'CREATE INDEX IF NOT EXISTS idx_mensajes_canal_canal_id '
+                    f'ON "{DB_SCHEMA}"."mensajes_canal" (canal, id)'
+                )
+    finally:
+        conn.close()
 
 
 def _apply_migrations() -> None:

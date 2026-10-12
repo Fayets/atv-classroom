@@ -291,12 +291,22 @@ def token_desde_request(request: Request) -> str | None:
     return auth_header.removeprefix("Bearer ").strip() or None
 
 
-def obtener_sesion_desde_request(request: Request) -> dict:
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="No autorizado.")
+def sesion_desde_token(token: str) -> dict | None:
+    """Lo mismo que valida cada request, para conexiones que no son HTTP (WebSocket)."""
+    try:
+        return _validar_token(token)
+    except HTTPException:
+        return None
 
-    token = auth_header.removeprefix("Bearer ").strip()
+
+def obtener_sesion_desde_request(request: Request) -> dict:
+    token = token_desde_request(request)
+    if not token:
+        raise HTTPException(status_code=401, detail="No autorizado.")
+    return _validar_token(token)
+
+
+def _validar_token(token: str) -> dict:
     sesion = _obtener_sesion(token)
     if sesion is None:
         raise HTTPException(status_code=401, detail="Sesión inválida o expirada.")

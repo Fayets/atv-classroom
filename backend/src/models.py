@@ -185,3 +185,48 @@ class SolicitudSop(db.Entity):
     estado = Required(str, default="pendiente")
     avisado_discord = Required(bool, default=False)
     creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class Canal(db.Entity):
+    """Mensajería: "cliente" es el canal privado de un cliente con todo el equipo;
+    "anuncios" es un canal que leen todos y donde escribe solo el equipo."""
+
+    _table_ = (DB_SCHEMA, "canales")
+
+    id = PrimaryKey(int, auto=True)
+    tipo = Required(str)
+    cliente_id = Optional(int, nullable=True, unique=True)
+    nombre = Required(str)
+    descripcion = Optional(str, nullable=True)
+    ultimo_mensaje_en = Optional(datetime, nullable=True)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    mensajes = Set("MensajeCanal")
+
+
+class MensajeCanal(db.Entity):
+    """autor_tipo: "cliente" (id de clients.clientes) o "admin" (id de admins: todo el equipo)."""
+
+    _table_ = (DB_SCHEMA, "mensajes_canal")
+
+    id = PrimaryKey(int, auto=True)
+    canal = Required(Canal)
+    autor_tipo = Required(str)
+    autor_id = Required(int)
+    texto = Required(str)
+    respuesta_a = Optional(int, nullable=True)
+    editado_en = Optional(datetime, nullable=True)
+    borrado = Required(bool, default=False)
+    creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class LecturaCanal(db.Entity):
+    """Hasta qué mensaje leyó cada persona en cada canal (para los no leídos)."""
+
+    _table_ = (DB_SCHEMA, "lecturas_canal")
+
+    id = PrimaryKey(int, auto=True)
+    canal_id = Required(int)
+    lector_tipo = Required(str)
+    lector_id = Required(int)
+    ultimo_leido_id = Required(int, default=0)
+    composite_key(canal_id, lector_tipo, lector_id)

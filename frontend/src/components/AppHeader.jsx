@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useMensajeria } from '../context/MensajeriaContext'
+import '../styles/mensajes.css'
 import { getUserInitials } from '../utils/user'
 
 export default function AppHeader() {
-  const { user, logout, isAdmin } = useAuth()
+  const { user, logout, isAdmin, isEquipo } = useAuth()
+  const { resumen, habilitada } = useMensajeria()
+  // Al equipo le importa a cuántos clientes les debe respuesta; al cliente, cuántos mensajes no leyó.
+  const contador = isEquipo ? resumen.esperando : resumen.no_leidos
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
@@ -48,6 +53,17 @@ export default function AppHeader() {
         </Link>
       </div>
 
+      <div className="app-header__right">
+      {habilitada ? (
+        <NavLink to="/mensajes" className={({ isActive }) => `app-header__mensajes${isActive ? ' is-on' : ''}`}>
+          Mensajes
+          {contador ? (
+            <span className="msj-cuenta" aria-label={isEquipo ? `${contador} esperan respuesta` : `${contador} sin leer`}>
+              {contador > 99 ? '99+' : contador}
+            </span>
+          ) : null}
+        </NavLink>
+      ) : null}
       <div className="app-header__user" ref={menuRef}>
         <button
           type="button"
@@ -103,6 +119,7 @@ export default function AppHeader() {
             </button>
           </div>
         ) : null}
+      </div>
       </div>
     </header>
   )

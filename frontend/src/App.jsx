@@ -11,11 +11,13 @@ import { setUnauthorizedHandler } from './api/client'
 import AdminRoute from './components/AdminRoute'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { MensajeriaProvider } from './context/MensajeriaContext'
 import AdminPage from './pages/AdminPage'
 import EquipoPage from './pages/EquipoPage'
 import FrentePage from './pages/FrentePage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
+import MensajesPage from './pages/MensajesPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 import ProgramaDetailPage from './pages/ProgramaDetailPage'
 import ProgramasGridPage from './pages/ProgramasGridPage'
@@ -61,6 +63,14 @@ function AppRoutes() {
             <AdminRoute>
               <AdminPage />
             </AdminRoute>
+          }
+        />
+        <Route
+          path="/mensajes"
+          element={
+            <ProtectedRoute>
+              <MensajesPage />
+            </ProtectedRoute>
           }
         />
         <Route
@@ -131,7 +141,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <MensajeriaProvider>
+          <AppRoutes />
+        </MensajeriaProvider>
       </AuthProvider>
     </BrowserRouter>
   )

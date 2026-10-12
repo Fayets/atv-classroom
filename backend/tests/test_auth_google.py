@@ -53,7 +53,7 @@ def _crear_miembro(email, rol="coach", area="ventas"):
 
 def test_config_expone_client_id(cliente_http, monkeypatch):
     monkeypatch.setattr(google_service, "client_id", lambda: "abc.apps.googleusercontent.com")
-    assert cliente_http.get("/api/auth/config").json() == {"google_client_id": "abc.apps.googleusercontent.com"}
+    assert cliente_http.get("/api/auth/config").json()["google_client_id"] == "abc.apps.googleusercontent.com"
 
 
 def test_cuenta_que_no_es_del_equipo_no_entra(cliente_http, monkeypatch):

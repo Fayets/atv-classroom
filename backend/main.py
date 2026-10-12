@@ -11,6 +11,8 @@ from src.controllers.chat_controller import router as chat_router
 from src.controllers.clase_controller import router as clase_router
 from src.controllers.equipo_controller import router as equipo_router
 from src.controllers.frente_controller import router as frente_router
+from src.controllers.mensajeria_controller import router as mensajes_router
+from src.controllers.mensajeria_controller import ws_router as mensajes_ws_router
 from src.controllers.programa_controller import router as programa_router
 from src.db import init_db
 from src.schemas import HealthResponse
@@ -56,6 +58,8 @@ app.include_router(programa_router)
 app.include_router(clase_router)
 app.include_router(frente_router)
 app.include_router(chat_router)
+app.include_router(mensajes_router)
+app.include_router(mensajes_ws_router)
 
 ensure_upload_dirs()
 # En producción solo /api llega al backend: los PDF se sirven por /api/uploads (y /uploads para links viejos).

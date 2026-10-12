@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src import schemas
 from src.services import freno_login, google_service
+from src.services.mensajeria_service import clientes_habilitados
 from src.services.auth_service import (
     cerrar_sesion,
     login,
@@ -17,7 +18,10 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 @router.get("/config", response_model=schemas.AuthConfigResponse)
 def config_endpoint():
     """Lo público que necesita la pantalla de login (el client id de Google no es secreto)."""
-    return {"google_client_id": google_service.client_id() or None}
+    return {
+        "google_client_id": google_service.client_id() or None,
+        "mensajes_clientes": clientes_habilitados(),
+    }
 
 
 @router.post("/login", response_model=schemas.LoginResponse)

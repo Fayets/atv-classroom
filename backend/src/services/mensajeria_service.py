@@ -1,0 +1,386 @@
+"""Mensajería del classroom: un canal privado por cliente con todo el equipo, más canales
+de anuncios que leen todos y donde escribe solo el equipo.
+
+Autores y lectores se identifican por (tipo, id): "cliente" es clients.clientes y "admin" es
+cualquier miembro del equipo (tabla admins, con rol admin o coach)."""
+
+import time
+from collections import defaultdict, deque
+from datetime import datetime
+
+from decouple import config
+from fastapi import HTTPException
+from pony.orm import db_session
+
+from src.db import DB_SCHEMA, db
+from src.models import Admin, Canal, ClienteExterno, LecturaCanal, MensajeCanal
+from src.services.auth_service import _tiene_acceso, es_equipo
+from src.services.tiempo_real import puede_ver
+
+MAX_TEXTO = 4000
+
+
+def habilitada_para(sesion: dict) -> bool:
+    """El equipo siempre la usa; los clientes, recién cuando MENSAJES_CLIENTES=1 (lanzamiento)."""
+    return es_equipo(sesion) or config("MENSAJES_CLIENTES", default=False, cast=bool)
+
+
+def clientes_habilitados() -> bool:
+    return config("MENSAJES_CLIENTES", default=False, cast=bool)
+_PAGINA = 50
+_RECUPERO_MAX = 200
+_TOPE_POR_MINUTO = 20
+_envios_recientes: dict[tuple, deque] = defaultdict(deque)
+
+
+def _iso(momento: datetime | None) -> str | None:
+    return momento.isoformat(timespec="seconds") + "Z" if momento else None
+
+
+def _yo(sesion: dict) -> tuple[str, int]:
+    return ("admin" if es_equipo(sesion) else "cliente", sesion["usuario_id"])
+
+
+def _info(canal: Canal) -> dict:
+    return {"tipo": canal.tipo, "cliente_id": canal.cliente_id}
+
+
+def _canal_visible(sesion: dict, canal_id: int) -> Canal:
+    canal = Canal.get(id=canal_id)
+    if canal is None or not puede_ver(sesion, _info(canal)):
+        # Mismo error exista o no: no se revela qué canales hay.
+        raise HTTPException(status_code=404, detail="Canal no encontrado.")
+    return canal
+
+
+def _frenar_rafaga(clave: tuple) -> None:
+    ahora = time.time()
+    envios = _envios_recientes[clave]
+    while envios and ahora - envios[0] > 60:
+        envios.popleft()
+    if len(envios) >= _TOPE_POR_MINUTO:
+        raise HTTPException(status_code=429, detail="Estás mandando muchos mensajes seguidos. Esperá un momento.")
+    envios.append(ahora)
+
+
+class _Autores:
+    """Nombres y fotos de quienes escriben, buscados una vez por pedido."""
+
+    def __init__(self) -> None:
+        self._cache: dict[tuple, dict] = {}
+
+    def de(self, tipo: str, autor_id: int) -> dict:
+        clave = (tipo, autor_id)
+        if clave not in self._cache:
+            if tipo == "admin":
+                a = Admin.get(id=autor_id)
+                self._cache[clave] = {
+                    "tipo": "equipo",
+                    "id": autor_id,
+                    "nombre": (a.nombre or a.email) if a else "Equipo ATV",
+                    "foto_url": a.foto_url if a else None,
+                    "rol": (a.rol or "admin") if a else None,
+                    "area": a.area if a else None,
+                }
+            else:
+                c = ClienteExterno.get(id=autor_id)
+                self._cache[clave] = {
+                    "tipo": "cliente",
+                    "id": autor_id,
+                    "nombre": (c.nombre or c.email) if c else "Cliente",
+                    "foto_url": None,
+                    "rol": None,
+                    "area": None,
+                }
+        return self._cache[clave]
+
+
+def _recorte(texto: str, largo: int = 140) -> str:
+    texto = " ".join(texto.split())
+    return texto if len(texto) <= largo else texto[: largo - 1] + "…"
+
+
+def _mensaje_dict(m: MensajeCanal, autores: _Autores) -> dict:
+    respuesta = None
+    if m.respuesta_a:
+        original = MensajeCanal.get(id=m.respuesta_a)
+        if original is not None:
+            respuesta = {
+                "id": original.id,
+                "autor_nombre": autores.de(original.autor_tipo, original.autor_id)["nombre"],
+                "texto": None if original.borrado else _recorte(original.texto),
+            }
+    return {
+        "id": m.id,
+        "canal_id": m.canal.id,
+        "autor": autores.de(m.autor_tipo, m.autor_id),
+        "texto": None if m.borrado else m.texto,
+        "borrado": m.borrado,
+        "editado": m.editado_en is not None,
+        "respuesta_a": respuesta,
+        "creado_en": _iso(m.creado_en),
+    }
+
+
+def _nombre_canal(cliente: ClienteExterno) -> str:
+    return (cliente.nombre or cliente.email or f"cliente-{cliente.id}").strip()
+
+
+def _asegurar_canales_de_clientes() -> None:
+    """Cada cliente con acceso tiene su canal; se crea la primera vez que alguien lo necesita."""
+    con_canal = set()
+    for canal in Canal.select()[:]:
+        if canal.cliente_id is not None:
+            con_canal.add(canal.cliente_id)
+    for cliente in ClienteExterno.select()[:]:
+        if cliente.id not in con_canal and _tiene_acceso(cliente):
+            Canal(tipo="cliente", cliente_id=cliente.id, nombre=_nombre_canal(cliente))
+
+
+def _canal_del_cliente(cliente_id: int) -> Canal:
+    canal = Canal.get(cliente_id=cliente_id)
+    if canal is None:
+        cliente = ClienteExterno.get(id=cliente_id)
+        canal = Canal(tipo="cliente", cliente_id=cliente_id, nombre=_nombre_canal(cliente) if cliente else "Mi canal")
+        db.flush()
+    return canal
+
+
+def _resumen_canales(lector: tuple[str, int]) -> dict[int, dict]:
+    """Una sola consulta para toda la bandeja: por canal, el último mensaje, los no leídos del
+    lector y desde cuándo espera respuesta el cliente (su primer mensaje después del último del equipo)."""
+    s = DB_SCHEMA
+    lector_tipo, lector_id = lector
+    filas = db.select(
+        f"""SELECT c.id, u.id, u.texto, u.autor_tipo, u.autor_id, u.creado_en,
+          (SELECT count(*) FROM "{s}"."mensajes_canal" m
+             WHERE m.canal = c.id AND NOT m.borrado
+               AND m.id > COALESCE(l.ultimo_leido_id, 0)
+               AND NOT (m.autor_tipo = $lector_tipo AND m.autor_id = $lector_id)),
+          (SELECT min(m.creado_en) FROM "{s}"."mensajes_canal" m
+             WHERE m.canal = c.id AND NOT m.borrado AND m.autor_tipo = 'cliente'
+               AND m.id > COALESCE((SELECT max(t.id) FROM "{s}"."mensajes_canal" t
+                                    WHERE t.canal = c.id AND NOT t.borrado AND t.autor_tipo = 'admin'), 0))
+        FROM "{s}"."canales" c
+        LEFT JOIN "{s}"."lecturas_canal" l
+          ON l.canal_id = c.id AND l.lector_tipo = $lector_tipo AND l.lector_id = $lector_id
+        LEFT JOIN LATERAL (
+          SELECT m.id, m.texto, m.autor_tipo, m.autor_id, m.creado_en FROM "{s}"."mensajes_canal" m
+          WHERE m.canal = c.id AND NOT m.borrado ORDER BY m.id DESC LIMIT 1
+        ) u ON TRUE"""
+    )
+    resumen = {}
+    for canal_id, u_id, u_texto, u_tipo, u_autor, u_fecha, no_leidos, espera in filas:
+        resumen[canal_id] = {
+            "ultimo": {"id": u_id, "texto": u_texto, "autor_tipo": u_tipo, "autor_id": u_autor, "creado_en": u_fecha}
+            if u_id
+            else None,
+            "no_leidos": int(no_leidos or 0),
+            "esperando_desde": espera,
+        }
+    return resumen
+
+
+class MensajeriaServices:
+    def listar_canales(self, sesion: dict) -> list[dict]:
+        equipo = es_equipo(sesion)
+        with db_session:
+            if equipo:
+                _asegurar_canales_de_clientes()
+            else:
+                _canal_del_cliente(sesion["usuario_id"])
+            db.flush()
+            resumen = _resumen_canales(_yo(sesion))
+            autores = _Autores()
+            clientes = {}
+            if equipo:
+                for c in ClienteExterno.select()[:]:
+                    clientes[c.id] = c
+
+            items = []
+            for canal in Canal.select()[:]:
+                if not puede_ver(sesion, _info(canal)):
+                    continue
+                cliente = clientes.get(canal.cliente_id) if canal.cliente_id else None
+                if equipo and canal.tipo == "cliente" and (cliente is None or not _tiene_acceso(cliente)):
+                    continue  # clientes vencidos fuera de la bandeja
+                datos = resumen.get(canal.id, {})
+                ultimo = datos.get("ultimo")
+                items.append(
+                    {
+                        "id": canal.id,
+                        "tipo": canal.tipo,
+                        "nombre": canal.nombre,
+                        "descripcion": canal.descripcion,
+                        "cliente": {
+                            "id": cliente.id,
+                            "nombre": cliente.nombre or cliente.email,
+                            "plan": cliente.plan_actual,
+                            "responsable": cliente.responsable,
+                            "vence": cliente.fecha_vencimiento.isoformat() if cliente.fecha_vencimiento else None,
+                        }
+                        if cliente is not None
+                        else None,
+                        "ultimo": {
+                            "texto": _recorte(ultimo["texto"], 90),
+                            "autor_nombre": autores.de(ultimo["autor_tipo"], ultimo["autor_id"])["nombre"],
+                            "de": "cliente" if ultimo["autor_tipo"] == "cliente" else "equipo",
+                            "creado_en": _iso(ultimo["creado_en"]),
+                        }
+                        if ultimo
+                        else None,
+                        "no_leidos": datos.get("no_leidos", 0),
+                        "esperando_desde": _iso(datos.get("esperando_desde")),
+                    }
+                )
+        # Anuncios arriba; después quien espera respuesta (el que más espera primero); después lo más reciente.
+        anuncios = [c for c in items if c["tipo"] == "anuncios"]
+        esperando = [c for c in items if c["tipo"] != "anuncios" and c["esperando_desde"]]
+        esperando.sort(key=lambda c: c["esperando_desde"])
+        resto = [c for c in items if c["tipo"] != "anuncios" and not c["esperando_desde"]]
+        # Sin novedades: lo más reciente arriba y, entre los que no tienen mensajes, por nombre.
+        resto.sort(key=lambda c: c["nombre"].lower())
+        resto.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
+        return anuncios + esperando + resto
+
+    def mensajes(self, sesion: dict, canal_id: int, antes_de: int | None = None, despues_de: int | None = None) -> dict:
+        # SQL directo: Pony no puede descompilar lambdas en Python 3.13.
+        tabla = f'"{DB_SCHEMA}"."mensajes_canal"'
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            cid = canal.id
+            hay_mas = False
+            if despues_de is not None:
+                # Recupero tras una reconexión: lo nuevo, en orden, con tope.
+                desde = int(despues_de)
+                tope = _RECUPERO_MAX
+                lista = list(MensajeCanal.select_by_sql(
+                    f"SELECT * FROM {tabla} WHERE canal = $cid AND id > $desde ORDER BY id LIMIT $tope"
+                ))
+            else:
+                hasta = int(antes_de) if antes_de is not None else 2**31 - 1
+                tope = _PAGINA + 1
+                lista = list(MensajeCanal.select_by_sql(
+                    f"SELECT * FROM {tabla} WHERE canal = $cid AND id < $hasta ORDER BY id DESC LIMIT $tope"
+                ))
+                hay_mas = len(lista) > _PAGINA
+                lista = list(reversed(lista[:_PAGINA]))
+            autores = _Autores()
+            salida = []
+            for m in lista:
+                salida.append(_mensaje_dict(m, autores))
+            return {
+                "canal": {"id": canal.id, "tipo": canal.tipo, "nombre": canal.nombre, "descripcion": canal.descripcion},
+                "mensajes": salida,
+                "hay_mas": hay_mas,
+                "lecturas": self._lecturas(canal),
+                "puede_escribir": self._puede_escribir(sesion, canal),
+            }
+
+    def _lecturas(self, canal: Canal) -> dict:
+        """Hasta dónde leyó el cliente y hasta dónde leyó alguien del equipo (para el "visto")."""
+        cid = canal.id
+        filas = db.select(
+            f'SELECT lector_tipo, max(ultimo_leido_id) FROM "{DB_SCHEMA}"."lecturas_canal" '
+            "WHERE canal_id = $cid GROUP BY lector_tipo"
+        )
+        lecturas = {"cliente": 0, "equipo": 0}
+        for tipo, ultimo in filas:
+            lecturas["cliente" if tipo == "cliente" else "equipo"] = int(ultimo or 0)
+        return lecturas
+
+    @staticmethod
+    def _puede_escribir(sesion: dict, canal: Canal) -> bool:
+        if es_equipo(sesion):
+            return True
+        return canal.tipo == "cliente" and canal.cliente_id == sesion["usuario_id"]
+
+    def enviar(self, sesion: dict, canal_id: int, texto: str, respuesta_a: int | None) -> tuple[dict, dict]:
+        texto = (texto or "").strip()
+        if not texto:
+            raise HTTPException(status_code=422, detail="El mensaje está vacío.")
+        if len(texto) > MAX_TEXTO:
+            raise HTTPException(status_code=422, detail=f"El mensaje supera los {MAX_TEXTO} caracteres.")
+        yo = _yo(sesion)
+        _frenar_rafaga(yo)
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            if not self._puede_escribir(sesion, canal):
+                raise HTTPException(status_code=403, detail="En este canal escribe solo el equipo.")
+            if respuesta_a is not None:
+                original = MensajeCanal.get(id=respuesta_a)
+                if original is None or original.canal.id != canal.id:
+                    raise HTTPException(status_code=422, detail="El mensaje al que respondés no está en este canal.")
+            m = MensajeCanal(canal=canal, autor_tipo=yo[0], autor_id=yo[1], texto=texto, respuesta_a=respuesta_a)
+            canal.ultimo_mensaje_en = datetime.utcnow()
+            db.flush()
+            self._marcar(canal.id, yo, m.id)
+            return _mensaje_dict(m, _Autores()), _info(canal)
+
+    def editar(self, sesion: dict, mensaje_id: int, texto: str) -> tuple[dict, dict]:
+        texto = (texto or "").strip()
+        if not texto or len(texto) > MAX_TEXTO:
+            raise HTTPException(status_code=422, detail="Texto inválido.")
+        with db_session:
+            m = MensajeCanal.get(id=mensaje_id)
+            if m is None or not puede_ver(sesion, _info(m.canal)):
+                raise HTTPException(status_code=404, detail="Mensaje no encontrado.")
+            if (m.autor_tipo, m.autor_id) != _yo(sesion) or m.borrado:
+                raise HTTPException(status_code=403, detail="Solo podés editar tus propios mensajes.")
+            m.texto = texto
+            m.editado_en = datetime.utcnow()
+            return _mensaje_dict(m, _Autores()), _info(m.canal)
+
+    def borrar(self, sesion: dict, mensaje_id: int) -> tuple[dict, dict]:
+        with db_session:
+            m = MensajeCanal.get(id=mensaje_id)
+            if m is None or not puede_ver(sesion, _info(m.canal)):
+                raise HTTPException(status_code=404, detail="Mensaje no encontrado.")
+            es_mio = (m.autor_tipo, m.autor_id) == _yo(sesion)
+            if not es_mio and sesion.get("rol") != "admin":
+                raise HTTPException(status_code=403, detail="Solo podés borrar tus propios mensajes.")
+            m.borrado = True  # se conserva el registro; el texto deja de mostrarse
+            return _mensaje_dict(m, _Autores()), _info(m.canal)
+
+    @staticmethod
+    def _marcar(canal_id: int, lector: tuple[str, int], ultimo_id: int) -> None:
+        lectura = LecturaCanal.get(canal_id=canal_id, lector_tipo=lector[0], lector_id=lector[1])
+        if lectura is None:
+            LecturaCanal(canal_id=canal_id, lector_tipo=lector[0], lector_id=lector[1], ultimo_leido_id=ultimo_id)
+        elif ultimo_id > lectura.ultimo_leido_id:
+            lectura.ultimo_leido_id = ultimo_id
+
+    def marcar_leido(self, sesion: dict, canal_id: int, ultimo_id: int) -> tuple[dict, dict]:
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            cid = canal.id
+            tope = db.select(f'SELECT COALESCE(max(id), 0) FROM "{DB_SCHEMA}"."mensajes_canal" WHERE canal = $cid')[0] or 0
+            self._marcar(canal.id, _yo(sesion), min(ultimo_id, tope))
+            evento = {"canal_id": canal.id, "lector": "cliente" if _yo(sesion)[0] == "cliente" else "equipo", "ultimo_id": min(ultimo_id, tope)}
+            return evento, _info(canal)
+
+    def no_leidos(self, sesion: dict) -> dict:
+        canales = self.listar_canales(sesion)
+        total = 0
+        esperando = 0
+        for c in canales:
+            total += c["no_leidos"]
+            if c["esperando_desde"]:
+                esperando += 1
+        return {"no_leidos": total, "esperando": esperando if es_equipo(sesion) else 0}
+
+    def crear_canal_anuncios(self, nombre: str, descripcion: str | None) -> dict:
+        nombre = (nombre or "").strip().lower().replace(" ", "-")
+        if not nombre:
+            raise HTTPException(status_code=422, detail="Poné un nombre para el canal.")
+        with db_session:
+            canal = Canal(tipo="anuncios", nombre=nombre, descripcion=(descripcion or "").strip() or None)
+            db.flush()
+            return {"id": canal.id, "tipo": canal.tipo, "nombre": canal.nombre, "descripcion": canal.descripcion}
+
+    def canal_visible_info(self, sesion: dict, canal_id: int) -> dict | None:
+        with db_session:
+            try:
+                return _info(_canal_visible(sesion, canal_id))
+            except HTTPException:
+                return None
