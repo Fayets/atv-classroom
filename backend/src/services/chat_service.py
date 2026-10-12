@@ -24,7 +24,7 @@ def _sesion_horas_inactividad() -> int:
 
 
 def tipo_usuario_desde_sesion(sesion: dict) -> str:
-    return _TIPO_ADMIN if sesion.get("rol") == "admin" else _TIPO_CLIENTE
+    return _TIPO_ADMIN if sesion.get("rol") in ("admin", "coach") else _TIPO_CLIENTE
 
 
 def _mensajes_por_sesion(sesion_id: str) -> list[Mensaje]:

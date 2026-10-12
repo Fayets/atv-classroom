@@ -89,3 +89,21 @@ export function deleteAdminRecurso(recursoId) {
     method: 'DELETE',
   })
 }
+
+export function fetchEquipo() {
+  return adminRequest('/api/admin/equipo')
+}
+
+export function crearMiembroEquipo(data) {
+  return adminRequest('/api/admin/equipo', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function actualizarMiembroEquipo(miembroId, data) {
+  return adminRequest(`/api/admin/equipo/${miembroId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}

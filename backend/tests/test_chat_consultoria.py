@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
-from src.db import init_db
+from src.db import db, init_db
 from src.services import agent_service, knowledge_service
 from src.services.chat_service import (
     cargar_historial,
@@ -67,7 +67,8 @@ class ModoConsultoriaTests(unittest.TestCase):
 class ChatMemoriaTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        init_db()
+        if db.provider is None:
+            init_db()
 
     def test_historial_persiste_tres_turnos(self):
         sesion_id = f"test-{datetime.utcnow().timestamp()}"

@@ -6,13 +6,36 @@ from src.db import DB_SCHEMA, db
 
 
 class Admin(db.Entity):
+    """Miembro del equipo de ATV. rol: "admin" (edita el classroom) o "coach".
+    El equipo entra con Google; la contraseña queda solo para el admin original."""
+
     _table_ = (DB_SCHEMA, "admins")
 
     id = PrimaryKey(int, auto=True)
     email = Required(str, unique=True)
     nombre = Optional(str)
-    password_hash = Required(str)
+    password_hash = Optional(str, nullable=True)
     activo = Required(bool, default=True)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    rol = Required(str, default="admin")
+    area = Optional(str, nullable=True)
+    google_sub = Optional(str, nullable=True)
+    foto_url = Optional(str, nullable=True)
+
+
+class SesionGuardada(db.Entity):
+    """Sesiones en la base: sobreviven a un deploy. Se guarda el hash del token, nunca el token."""
+
+    _table_ = (DB_SCHEMA, "sesiones")
+
+    id = PrimaryKey(int, auto=True)
+    token_hash = Required(str, unique=True)
+    usuario_id = Required(int)
+    tipo = Required(str)
+    rol = Required(str)
+    nombre = Required(str)
+    email = Required(str)
+    expira_en = Required(datetime)
     creado_en = Required(datetime, default=datetime.utcnow)
 
 

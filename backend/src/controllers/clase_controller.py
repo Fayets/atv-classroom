@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from src import schemas
-from src.services.auth_service import obtener_sesion_desde_request
+from src.services.auth_service import ROLES_EQUIPO, obtener_sesion_desde_request
 from src.services.clase_service import ClaseServices
 
 router = APIRouter(prefix="/api/clases", tags=["clases"])
@@ -9,7 +9,7 @@ service = ClaseServices()
 
 
 def _tipo_desde_rol(rol: str) -> str:
-    return "admin" if rol == "admin" else "cliente"
+    return "admin" if rol in ROLES_EQUIPO else "cliente"
 
 
 @router.get("/{clase_id}", response_model=schemas.ClaseDetalleResponse)

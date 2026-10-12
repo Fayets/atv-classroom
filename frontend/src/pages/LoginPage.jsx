@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ApiError } from '../api/client'
+import { ApiError, fetchAuthConfig } from '../api/client'
+import GoogleButton from '../components/GoogleButton'
 import { useAuth } from '../context/AuthContext'
 import '../styles/login.css'
 
@@ -16,7 +17,8 @@ function validarEmail(value) {
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { isAuthenticated, isAdmin, login } = useAuth()
+  const { isAuthenticated, isAdmin, login, loginGoogle } = useAuth()
+  const [googleClientId, setGoogleClientId] = useState(null)
 
   const [email, setEmail] = useState('')
   const [contrasena, setContrasena] = useState('')
@@ -28,6 +30,32 @@ export default function LoginPage() {
   useEffect(() => {
     if (isAuthenticated) navigate(isAdmin ? '/admin' : '/', { replace: true })
   }, [isAuthenticated, isAdmin, navigate])
+
+  useEffect(() => {
+    let vivo = true
+    fetchAuthConfig()
+      .then((cfg) => vivo && setGoogleClientId(cfg?.google_client_id || null))
+      .catch(() => null)
+    return () => {
+      vivo = false
+    }
+  }, [])
+
+  const handleGoogle = useCallback(
+    async (credencial) => {
+      setError('')
+      setCargando(true)
+      try {
+        const user = await loginGoogle(credencial)
+        navigate(user.rol === 'admin' ? '/admin' : '/', { replace: true })
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No pudimos iniciar tu sesión con Google.')
+      } finally {
+        setCargando(false)
+      }
+    },
+    [loginGoogle, navigate],
+  )
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -136,6 +164,14 @@ export default function LoginPage() {
             {cargando ? 'Entrando…' : 'Entrar'}
           </button>
 
+          {googleClientId ? (
+            <div className="lg-google">
+              <p className="lg-google__titulo">
+                <span>Equipo ATV</span>
+              </p>
+              <GoogleButton clientId={googleClientId} onCredential={handleGoogle} />
+            </div>
+          ) : null}
         </form>
       </main>
     </div>

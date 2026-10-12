@@ -41,8 +41,15 @@ function buildHeaders(includeAuth = true) {
   return headers
 }
 
+// Un 401 en estas rutas es un login fallido, no una sesión vencida.
+const RUTAS_SIN_SESION = ['/api/auth/login', '/api/auth/google', '/api/auth/logout']
+
+function cortaSesion(res, url) {
+  return res.status === 401 && !RUTAS_SIN_SESION.some((ruta) => url.includes(ruta))
+}
+
 async function parseResponse(res, url) {
-  if (res.status === 401 && !url.includes('/api/auth/login')) {
+  if (cortaSesion(res, url)) {
     unauthorizedHandler?.()
   }
 
@@ -54,10 +61,6 @@ async function parseResponse(res, url) {
   }
 
   const data = await res.json().catch(() => ({}))
-
-  if (res.status === 401 && !url.includes('/api/auth/login')) {
-    unauthorizedHandler?.()
-  }
 
   if (!res.ok) {
     const detail = data.detail
@@ -115,6 +118,25 @@ export async function loginRequest(email, contrasena) {
     },
     false,
   )
+}
+
+export async function fetchAuthConfig() {
+  return request('/api/auth/config', {}, false)
+}
+
+export async function loginGoogleRequest(credencial) {
+  return request(
+    '/api/auth/google',
+    {
+      method: 'POST',
+      body: JSON.stringify({ credencial }),
+    },
+    false,
+  )
+}
+
+export async function logoutRequest() {
+  return request('/api/auth/logout', { method: 'POST' }).catch(() => null)
 }
 
 export async function fetchProgramas() {

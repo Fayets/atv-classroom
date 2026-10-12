@@ -58,7 +58,11 @@ export default function AppHeader() {
           aria-haspopup="true"
           onClick={() => setMenuOpen((open) => !open)}
         >
-          {initials}
+          {user?.foto_url ? (
+            <img className="app-header__avatar-img" src={user.foto_url} alt="" referrerPolicy="no-referrer" />
+          ) : (
+            initials
+          )}
         </button>
 
         {menuOpen ? (
@@ -77,6 +81,16 @@ export default function AppHeader() {
                 onClick={() => setMenuOpen(false)}
               >
                 Configuración de módulos
+              </Link>
+            ) : null}
+            {isAdmin ? (
+              <Link
+                to="/admin/equipo"
+                className="app-header__menu-link"
+                role="menuitem"
+                onClick={() => setMenuOpen(false)}
+              >
+                Equipo
               </Link>
             ) : null}
             <button

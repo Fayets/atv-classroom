@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from src import schemas
-from src.services.auth_service import obtener_sesion_desde_request
+from src.services.auth_service import ROLES_EQUIPO, obtener_sesion_desde_request
 from src.services.programa_service import ProgramaServices
 
 router = APIRouter(prefix="/api/programas", tags=["programas"])
@@ -9,7 +9,7 @@ service = ProgramaServices()
 
 
 def _tipo_desde_rol(rol: str) -> str:
-    return "admin" if rol == "admin" else "cliente"
+    return "admin" if rol in ROLES_EQUIPO else "cliente"
 
 
 @router.get("", response_model=list[schemas.ProgramaListItem])

@@ -18,6 +18,15 @@ class LoginResponse(BaseModel):
     email: EmailStr
     rol: str
     dias_restantes: int | None = None
+    foto_url: str | None = None
+
+
+class GoogleLoginRequest(BaseModel):
+    credencial: str = Field(min_length=20, max_length=4096)
+
+
+class AuthConfigResponse(BaseModel):
+    google_client_id: str | None = None
 
 
 class SessionProfileResponse(BaseModel):
@@ -27,6 +36,33 @@ class SessionProfileResponse(BaseModel):
     rol: str
     dias_restantes: int | None = None
     fecha_vencimiento: str | None = None
+    foto_url: str | None = None
+
+
+class MiembroEquipo(BaseModel):
+    id: int
+    email: EmailStr
+    nombre: str
+    rol: str
+    area: str | None = None
+    activo: bool
+    foto_url: str | None = None
+    con_google: bool
+    con_clave: bool
+
+
+class MiembroEquipoCreate(BaseModel):
+    email: EmailStr
+    nombre: str = Field(default="", max_length=120)
+    rol: str = "coach"
+    area: str | None = None
+
+
+class MiembroEquipoPatch(BaseModel):
+    nombre: str | None = Field(default=None, max_length=120)
+    rol: str | None = None
+    area: str | None = None
+    activo: bool | None = None
 
 
 class ProgramaListItem(BaseModel):

@@ -1,24 +1,39 @@
+import hashlib
 import json
 import secrets
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import bcrypt
 from fastapi import HTTPException, Request
 from pony.orm import db_session
 
 from src.db import db
-from src.models import Admin, ClienteExterno
+from src.models import Admin, ClienteExterno, SesionGuardada
 
 TOKEN_TTL = timedelta(days=7)
+ROLES_EQUIPO = ("admin", "coach")
+
+# Caché en memoria de las sesiones guardadas en la base: evita una consulta por request.
 _sessions: dict[str, dict] = {}
+
+
+def es_equipo(sesion: dict) -> bool:
+    return sesion.get("rol") in ROLES_EQUIPO
+
+
+def tipo_de_sesion(sesion: dict) -> str:
+    """'admin' para cualquier miembro del equipo (su id es de la tabla admins), 'cliente' si no."""
+    return "admin" if es_equipo(sesion) else "cliente"
 
 
 def _hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
-def _verify_password(password: str, password_hash: str) -> bool:
+def _verify_password(password: str, password_hash: str | None) -> bool:
+    if not password_hash:
+        return False
     return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
 
 
@@ -88,23 +103,86 @@ def _tiene_acceso(cliente: ClienteExterno) -> bool:
     return cliente.fecha_vencimiento is None or cliente.fecha_vencimiento >= date.today()
 
 
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _a_epoch(momento: datetime) -> float:
+    return (momento - datetime(1970, 1, 1)).total_seconds()
+
+
 def _crear_token(session_data: dict) -> str:
     token = secrets.token_urlsafe(32)
-    _sessions[token] = {
-        **session_data,
-        "expires_at": time.time() + TOKEN_TTL.total_seconds(),
-    }
+    expira = datetime.utcnow() + TOKEN_TTL
+    with db_session:
+        SesionGuardada(
+            token_hash=_hash_token(token),
+            usuario_id=session_data["usuario_id"],
+            tipo=session_data["tipo"],
+            rol=session_data["rol"],
+            nombre=session_data["nombre"],
+            email=session_data["email"],
+            expira_en=expira,
+        )
+    _sessions[token] = {**session_data, "expires_at": _a_epoch(expira)}
     return token
 
 
 def _obtener_sesion(token: str) -> dict | None:
     sesion = _sessions.get(token)
     if sesion is None:
-        return None
+        with db_session:
+            guardada = SesionGuardada.get(token_hash=_hash_token(token))
+            if guardada is None:
+                return None
+            sesion = {
+                "usuario_id": guardada.usuario_id,
+                "tipo": guardada.tipo,
+                "rol": guardada.rol,
+                "nombre": guardada.nombre,
+                "email": guardada.email,
+                "expires_at": _a_epoch(guardada.expira_en),
+            }
+        _sessions[token] = sesion
     if time.time() > sesion["expires_at"]:
-        del _sessions[token]
+        cerrar_sesion(token)
         return None
     return sesion
+
+
+def cerrar_sesion(token: str) -> None:
+    _sessions.pop(token, None)
+    with db_session:
+        guardada = SesionGuardada.get(token_hash=_hash_token(token))
+        if guardada is not None:
+            guardada.delete()
+
+
+def cerrar_sesiones_de_admin(admin_id: int) -> None:
+    """Al dar de baja a alguien del equipo se le cortan todas las sesiones abiertas."""
+    for token, sesion in list(_sessions.items()):
+        if sesion.get("tipo") == "admin" and sesion.get("usuario_id") == admin_id:
+            _sessions.pop(token, None)
+    with db_session:
+        for guardada in SesionGuardada.select()[:]:
+            if guardada.tipo == "admin" and guardada.usuario_id == admin_id:
+                guardada.delete()
+
+
+def _sesion_de_admin(admin: Admin) -> dict:
+    session_data = {
+        "usuario_id": admin.id,
+        "nombre": admin.nombre or admin.email,
+        "email": admin.email,
+        "rol": admin.rol or "admin",
+        "tipo": "admin",
+    }
+    return {
+        "token": _crear_token(session_data),
+        **{k: v for k, v in session_data.items() if k != "tipo"},
+        "dias_restantes": None,
+        "foto_url": admin.foto_url,
+    }
 
 
 def crear_admin(*, email: str, password: str, nombre: str | None = None) -> Admin:
@@ -152,19 +230,7 @@ def login(email: str, contrasena: str) -> dict:
                 raise HTTPException(status_code=401, detail="Email o contrasena incorrectos.")
             if not _verify_password(contrasena, admin.password_hash):
                 raise HTTPException(status_code=401, detail="Email o contrasena incorrectos.")
-
-            session_data = {
-                "usuario_id": admin.id,
-                "nombre": admin.nombre or admin.email,
-                "email": admin.email,
-                "rol": "admin",
-                "tipo": "admin",
-            }
-            return {
-                "token": _crear_token(session_data),
-                **{k: v for k, v in session_data.items() if k != "tipo"},
-                "dias_restantes": None,
-            }
+            return _sesion_de_admin(admin)
 
         # Un mail puede estar en más de una ficha (ej. cliente que recompró): gana la que tenga
         # la clave correcta y, entre esas, la que siga con acceso.
@@ -198,6 +264,33 @@ def login(email: str, contrasena: str) -> dict:
         }
 
 
+def login_google(datos: dict) -> dict:
+    """datos: lo que devolvió Google ya verificado (sub, email, nombre, foto).
+    Solo entra quien esté cargado y activo en el equipo; el primer ingreso ata la cuenta de Google."""
+    with db_session:
+        admin = _buscar_admin_por_email(datos["email"])
+        if admin is None or not admin.activo:
+            raise HTTPException(
+                status_code=403,
+                detail="Tu cuenta de Google no está habilitada en el equipo de ATV. Pedile acceso a un admin.",
+            )
+        if admin.google_sub and admin.google_sub != datos["sub"]:
+            raise HTTPException(status_code=403, detail="Esa cuenta de Google no coincide con la registrada.")
+        admin.google_sub = datos["sub"]
+        if datos.get("foto"):
+            admin.foto_url = datos["foto"]
+        if not admin.nombre and datos.get("nombre"):
+            admin.nombre = datos["nombre"]
+        return _sesion_de_admin(admin)
+
+
+def token_desde_request(request: Request) -> str | None:
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    return auth_header.removeprefix("Bearer ").strip() or None
+
+
 def obtener_sesion_desde_request(request: Request) -> dict:
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
@@ -213,7 +306,7 @@ def obtener_sesion_desde_request(request: Request) -> dict:
         with db_session:
             cliente = ClienteExterno.get(id=sesion["usuario_id"])
             if cliente is None or not _tiene_acceso(cliente):
-                _sessions.pop(token, None)
+                cerrar_sesion(token)
                 raise HTTPException(status_code=401, detail="Tu acceso al Classroom venció.")
 
     return {
@@ -225,7 +318,10 @@ def obtener_sesion_desde_request(request: Request) -> dict:
 
 
 def obtener_perfil_sesion(sesion: dict) -> dict:
-    if sesion["rol"] == "admin":
+    if es_equipo(sesion):
+        with db_session:
+            admin = Admin.get(id=sesion["usuario_id"])
+            foto = admin.foto_url if admin else None
         return {
             "usuario_id": sesion["usuario_id"],
             "nombre": sesion["nombre"],
@@ -233,6 +329,7 @@ def obtener_perfil_sesion(sesion: dict) -> dict:
             "rol": sesion["rol"],
             "dias_restantes": None,
             "fecha_vencimiento": None,
+            "foto_url": foto,
         }
 
     with db_session:

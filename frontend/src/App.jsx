@@ -12,6 +12,7 @@ import AdminRoute from './components/AdminRoute'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import AdminPage from './pages/AdminPage'
+import EquipoPage from './pages/EquipoPage'
 import FrentePage from './pages/FrentePage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
@@ -59,6 +60,14 @@ function AppRoutes() {
           element={
             <AdminRoute>
               <AdminPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/equipo"
+          element={
+            <AdminRoute>
+              <EquipoPage />
             </AdminRoute>
           }
         />

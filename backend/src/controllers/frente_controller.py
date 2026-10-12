@@ -4,7 +4,7 @@ import time
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from src.services.auth_service import obtener_sesion_desde_request
+from src.services.auth_service import obtener_sesion_desde_request, tipo_de_sesion
 from src.services.frente_service import FrenteServices
 from src.services.guia_service import recomendar
 from src.services.solicitud_service import SolicitudServices, avisar_pedido_ayuda
@@ -39,7 +39,7 @@ class SolicitudSopRequest(BaseModel):
 
 
 def _tipo(sesion: dict) -> str:
-    return "admin" if sesion["rol"] == "admin" else "cliente"
+    return tipo_de_sesion(sesion)
 
 
 @router.get("/frentes")

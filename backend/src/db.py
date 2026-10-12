@@ -51,6 +51,12 @@ def _apply_migrations() -> None:
                     f'ALTER TABLE "{DB_SCHEMA}"."clase" '
                     f"ADD COLUMN IF NOT EXISTS descripcion TEXT"
                 )
+                # Equipo: coaches además del admin, login con Google (sin contraseña).
+                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."admins" ADD COLUMN IF NOT EXISTS rol VARCHAR NOT NULL DEFAULT \'admin\'')
+                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."admins" ADD COLUMN IF NOT EXISTS area VARCHAR')
+                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."admins" ADD COLUMN IF NOT EXISTS google_sub VARCHAR')
+                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."admins" ADD COLUMN IF NOT EXISTS foto_url VARCHAR')
+                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."admins" ALTER COLUMN password_hash DROP NOT NULL')
                 # Frente: un link por plantilla de SOP y la revisión con el coach (reemplaza "automatizar").
                 cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."frente" ADD COLUMN IF NOT EXISTS sops_json TEXT')
                 cur.execute(

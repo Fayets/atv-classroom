@@ -10,7 +10,7 @@ function mensajeDiasRestantes(dias) {
 }
 
 export default function AccesoRestante() {
-  const { isAdmin, user } = useAuth()
+  const { isEquipo: isAdmin, user } = useAuth()
   const [diasRestantes, setDiasRestantes] = useState(user?.dias_restantes ?? null)
 
   useEffect(() => {
