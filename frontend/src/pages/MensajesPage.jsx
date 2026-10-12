@@ -180,7 +180,7 @@ export default function MensajesPage() {
   return (
     <div className="app-shell msj-root">
       <AppHeader />
-      <div className={`msj-layout${activo ? ' ver-conv' : ' ver-lista'}${isEquipo ? ' con-panel' : ''}`}>
+      <div className={`msj-layout${activo ? ' ver-conv' : ' ver-lista'}${isEquipo && item?.cliente ? ' con-panel' : ''}`}>
         <aside className="msj-lateral" aria-label="Canales">
           <div className="msj-lateral__head">
             <h1>Mensajes</h1>
