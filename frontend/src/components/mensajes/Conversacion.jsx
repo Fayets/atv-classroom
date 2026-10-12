@@ -3,6 +3,7 @@ import { borrarMensaje, editarMensaje, enviarMensaje, fetchMensajes, marcarLeido
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
 import { claveAutor, etiquetaDia, hora, mismoDia } from '../../utils/mensajes'
+import Alerta from './Alerta'
 import Avatar from './Avatar'
 import TextoMensaje from './TextoMensaje'
 
@@ -27,6 +28,7 @@ export default function Conversacion({ canalId, item, onVolver }) {
   const [editando, setEditando] = useState(null)
   const [escriben, setEscriben] = useState({})
   const [cargandoAntes, setCargandoAntes] = useState(false)
+  const [aBorrar, setABorrar] = useState(null)
   const lista = useRef(null)
   const caja = useRef(null)
   const pegadoAbajo = useRef(true)
@@ -240,7 +242,7 @@ export default function Conversacion({ canalId, item, onVolver }) {
   }
 
   async function borrar(m) {
-    if (!window.confirm('¿Borrar este mensaje? Se va a ver como "mensaje borrado".')) return
+    setABorrar(null)
     try {
       const r = await borrarMensaje(m.id)
       setMensajes((lista) => lista.map((x) => (x.id === r.id ? r : x)))
@@ -376,7 +378,7 @@ export default function Conversacion({ canalId, item, onVolver }) {
                         </button>
                       ) : null}
                       {mio || isAdmin ? (
-                        <button type="button" onClick={() => borrar(m)}>
+                        <button type="button" onClick={() => setABorrar(m)}>
                           Borrar
                         </button>
                       ) : null}
@@ -409,6 +411,17 @@ export default function Conversacion({ canalId, item, onVolver }) {
         <p className="msj-error" role="alert">
           {error}
         </p>
+      ) : null}
+
+      {aBorrar ? (
+        <Alerta
+          titulo="¿Borrar este mensaje?"
+          texto="Se va a borrar para todos los que están en el canal. En su lugar va a quedar la leyenda “Mensaje borrado”."
+          confirmar="Borrar"
+          peligro
+          onConfirmar={() => borrar(aBorrar)}
+          onCancelar={() => setABorrar(null)}
+        />
       ) : null}
 
       {datos.puede_escribir ? (
