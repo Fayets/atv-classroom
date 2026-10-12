@@ -128,6 +128,11 @@ def test_admin_gestiona_el_equipo_y_la_baja_corta_la_sesion(cliente_http, monkey
 
 
 def test_el_admin_con_clave_sigue_entrando(cliente_http):
-    r = cliente_http.post("/api/auth/login", json={"email": "admin@atvos.io", "contrasena": "atv-admin-2024"})
+    from src.services.auth_service import crear_admin
+
+    email = f"{_PREFIJO}-clave@atvos-prueba.com"
+    clave = secrets.token_urlsafe(12)
+    crear_admin(email=email, password=clave, nombre="Admin con clave")
+    r = cliente_http.post("/api/auth/login", json={"email": email, "contrasena": clave})
     assert r.status_code == 200 and r.json()["rol"] == "admin"
     cliente_http.post("/api/auth/logout", headers={"Authorization": f"Bearer {r.json()['token']}"})

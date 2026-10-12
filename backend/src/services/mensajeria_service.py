@@ -4,16 +4,18 @@ de anuncios que leen todos y donde escribe solo el equipo.
 Autores y lectores se identifican por (tipo, id): "cliente" es clients.clientes y "admin" es
 cualquier miembro del equipo (tabla admins, con rol admin o coach)."""
 
+import re
 import time
+import unicodedata
 from collections import defaultdict, deque
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from decouple import config
 from fastapi import HTTPException
 from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
-from src.models import Admin, Canal, ClienteExterno, LecturaCanal, MensajeCanal
+from src.models import Admin, Canal, ClienteExterno, LecturaCanal, Mencion, MensajeCanal
 from src.services.auth_service import _tiene_acceso, es_equipo
 from src.services.tiempo_real import puede_ver
 
@@ -42,12 +44,24 @@ def _yo(sesion: dict) -> tuple[str, int]:
 
 
 def _info(canal: Canal) -> dict:
-    return {"tipo": canal.tipo, "cliente_id": canal.cliente_id}
+    return {"id": canal.id, "tipo": canal.tipo, "cliente_id": canal.cliente_id}
+
+
+def canales_de_coach(admin_id: int) -> set[int]:
+    """Los canales donde etiquetaron a este coach: los únicos de clientes que puede ver."""
+    filas = db.select(f'SELECT DISTINCT canal_id FROM "{DB_SCHEMA}"."menciones" WHERE admin_id = $admin_id')
+    return {int(f) for f in filas}
+
+
+def _ve(sesion: dict, canal: dict) -> bool:
+    if sesion.get("rol") == "coach" and "canales_coach" not in sesion:
+        sesion["canales_coach"] = canales_de_coach(sesion["usuario_id"])
+    return puede_ver(sesion, canal)
 
 
 def _canal_visible(sesion: dict, canal_id: int) -> Canal:
     canal = Canal.get(id=canal_id)
-    if canal is None or not puede_ver(sesion, _info(canal)):
+    if canal is None or not _ve(sesion, _info(canal)):
         # Mismo error exista o no: no se revela qué canales hay.
         raise HTTPException(status_code=404, detail="Canal no encontrado.")
     return canal
@@ -181,13 +195,70 @@ def _resumen_canales(lector: tuple[str, int]) -> dict[int, dict]:
     return resumen
 
 
+def _normal(texto: str) -> str:
+    sin_tildes = unicodedata.normalize("NFD", texto.lower())
+    return "".join(c for c in sin_tildes if unicodedata.category(c) != "Mn")
+
+
+def equipo_para_mencionar() -> list[dict]:
+    """El equipo activo, para el autocompletado de @ (lo ven también los clientes)."""
+    equipo = []
+    for a in list(Admin.select()):
+        if a.activo and a.nombre:
+            equipo.append({"id": a.id, "nombre": a.nombre, "area": a.area, "rol": a.rol or "admin", "foto_url": a.foto_url})
+    equipo.sort(key=lambda m: m["nombre"].lower())
+    return equipo
+
+
+def _detectar_menciones(texto: str, ids_enviados: list[int] | None) -> set[int]:
+    """Los ids que marcó el autocompletado (si siguen escritos) más cualquier @Nombre que coincida
+    con un solo miembro activo del equipo, por nombre completo o por primer nombre."""
+    equipo = equipo_para_mencionar()
+    texto_n = _normal(texto)
+    ids = set()
+    validos = {m["id"]: m for m in equipo}
+    for i in ids_enviados or []:
+        if i in validos:
+            ids.add(i)
+    por_primer_nombre = defaultdict(list)
+    for m in equipo:
+        por_primer_nombre[_normal(m["nombre"].split()[0])].append(m["id"])
+        if f"@{_normal(m['nombre'])}" in texto_n:
+            ids.add(m["id"])
+    for palabra in re.findall(r"@([\w]+)", texto_n):
+        candidatos = por_primer_nombre.get(palabra, [])
+        if len(candidatos) == 1:
+            ids.add(candidatos[0])
+    return ids
+
+
+def _mencion_dict(men: Mencion, autores: "_Autores", ahora: datetime) -> dict | None:
+    m = MensajeCanal.get(id=men.mensaje_id)
+    canal = Canal.get(id=men.canal_id)
+    if m is None or canal is None or m.borrado:
+        return None
+    hasta = men.respondida_en or ahora
+    return {
+        "id": men.id,
+        "canal_id": canal.id,
+        "canal_nombre": canal.nombre,
+        "mensaje_id": m.id,
+        "autor": autores.de(m.autor_tipo, m.autor_id),
+        "texto": _recorte(m.texto, 220),
+        "creado_en": _iso(men.creado_en),
+        "respondida_en": _iso(men.respondida_en),
+        "estado": "respondida" if men.respondida_en else "pendiente",
+        "minutos": max(0, int((hasta - men.creado_en).total_seconds() // 60)),
+    }
+
+
 class MensajeriaServices:
     def listar_canales(self, sesion: dict) -> list[dict]:
         equipo = es_equipo(sesion)
         with db_session:
-            if equipo:
+            if sesion.get("rol") == "admin":
                 _asegurar_canales_de_clientes()
-            else:
+            elif not equipo:
                 _canal_del_cliente(sesion["usuario_id"])
             db.flush()
             resumen = _resumen_canales(_yo(sesion))
@@ -199,7 +270,7 @@ class MensajeriaServices:
 
             items = []
             for canal in Canal.select()[:]:
-                if not puede_ver(sesion, _info(canal)):
+                if not _ve(sesion, _info(canal)):
                     continue
                 cliente = clientes.get(canal.cliente_id) if canal.cliente_id else None
                 if equipo and canal.tipo == "cliente" and (cliente is None or not _tiene_acceso(cliente)):
@@ -295,7 +366,9 @@ class MensajeriaServices:
             return True
         return canal.tipo == "cliente" and canal.cliente_id == sesion["usuario_id"]
 
-    def enviar(self, sesion: dict, canal_id: int, texto: str, respuesta_a: int | None) -> tuple[dict, dict]:
+    def enviar(
+        self, sesion: dict, canal_id: int, texto: str, respuesta_a: int | None, menciones: list[int] | None = None
+    ) -> tuple[dict, dict]:
         texto = (texto or "").strip()
         if not texto:
             raise HTTPException(status_code=422, detail="El mensaje está vacío.")
@@ -315,7 +388,22 @@ class MensajeriaServices:
             canal.ultimo_mensaje_en = datetime.utcnow()
             db.flush()
             self._marcar(canal.id, yo, m.id)
-            return _mensaje_dict(m, _Autores()), _info(canal)
+            if yo[0] == "admin":
+                # Escribir en el canal responde las alertas abiertas de quien escribe.
+                for abierta in list(Mencion.select_by_sql(
+                    f'SELECT * FROM "{DB_SCHEMA}"."menciones" WHERE canal_id = $cid AND admin_id = $aid AND respondida_en IS NULL',
+                    globals={"cid": canal.id, "aid": yo[1]},
+                )):
+                    abierta.respondida_en = m.creado_en
+            nuevas = []
+            for admin_id in _detectar_menciones(texto, menciones):
+                if yo == ("admin", admin_id):
+                    continue
+                nuevas.append(Mencion(mensaje_id=m.id, canal_id=canal.id, admin_id=admin_id, creado_en=m.creado_en))
+            db.flush()
+            datos = _mensaje_dict(m, _Autores())
+            datos["menciones"] = [n.admin_id for n in nuevas]
+            return datos, _info(canal)
 
     def editar(self, sesion: dict, mensaje_id: int, texto: str) -> tuple[dict, dict]:
         texto = (texto or "").strip()
@@ -323,7 +411,7 @@ class MensajeriaServices:
             raise HTTPException(status_code=422, detail="Texto inválido.")
         with db_session:
             m = MensajeCanal.get(id=mensaje_id)
-            if m is None or not puede_ver(sesion, _info(m.canal)):
+            if m is None or not _ve(sesion, _info(m.canal)):
                 raise HTTPException(status_code=404, detail="Mensaje no encontrado.")
             if (m.autor_tipo, m.autor_id) != _yo(sesion) or m.borrado:
                 raise HTTPException(status_code=403, detail="Solo podés editar tus propios mensajes.")
@@ -334,7 +422,7 @@ class MensajeriaServices:
     def borrar(self, sesion: dict, mensaje_id: int) -> tuple[dict, dict]:
         with db_session:
             m = MensajeCanal.get(id=mensaje_id)
-            if m is None or not puede_ver(sesion, _info(m.canal)):
+            if m is None or not _ve(sesion, _info(m.canal)):
                 raise HTTPException(status_code=404, detail="Mensaje no encontrado.")
             es_mio = (m.autor_tipo, m.autor_id) == _yo(sesion)
             if not es_mio and sesion.get("rol") != "admin":
@@ -360,6 +448,9 @@ class MensajeriaServices:
             return evento, _info(canal)
 
     def no_leidos(self, sesion: dict) -> dict:
+        if sesion.get("rol") == "coach":
+            pendientes = self.menciones(sesion)["pendientes"]
+            return {"no_leidos": pendientes, "esperando": pendientes}
         canales = self.listar_canales(sesion)
         total = 0
         esperando = 0
@@ -384,3 +475,38 @@ class MensajeriaServices:
                 return _info(_canal_visible(sesion, canal_id))
             except HTTPException:
                 return None
+
+    def menciones(self, sesion: dict, dias: int = 30) -> dict:
+        """Alertas de quien pregunta: dónde lo etiquetaron, hace cuánto y cuánto tardó en responder."""
+        admin_id = sesion["usuario_id"]
+        desde = datetime.utcnow() - timedelta(days=dias)
+        ahora = datetime.utcnow()
+        with db_session:
+            filas = list(Mencion.select_by_sql(
+                f'SELECT * FROM "{DB_SCHEMA}"."menciones" WHERE admin_id = $admin_id AND creado_en >= $desde ORDER BY id DESC'
+            ))
+            autores = _Autores()
+            items = []
+            for men in filas:
+                d = _mencion_dict(men, autores, ahora)
+                if d is not None:
+                    items.append(d)
+        pendientes = [i for i in items if i["estado"] == "pendiente"]
+        pendientes.sort(key=lambda i: i["creado_en"])  # la que más espera, primero
+        respondidas = [i for i in items if i["estado"] == "respondida"]
+        semana = [i["minutos"] for i in respondidas if i["respondida_en"] >= _iso(ahora - timedelta(days=7))]
+        return {
+            "pendientes": len(pendientes),
+            "promedio_minutos": round(sum(semana) / len(semana)) if semana else None,
+            "respondidas_semana": len(semana),
+            "alertas": pendientes + respondidas,
+        }
+
+    def resolver_mencion(self, sesion: dict, mencion_id: int) -> dict:
+        with db_session:
+            men = Mencion.get(id=mencion_id)
+            if men is None or men.admin_id != sesion["usuario_id"]:
+                raise HTTPException(status_code=404, detail="Alerta no encontrada.")
+            if men.respondida_en is None:
+                men.respondida_en = datetime.utcnow()
+            return {"id": men.id, "respondida_en": _iso(men.respondida_en)}

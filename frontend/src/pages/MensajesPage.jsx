@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { fetchCanales } from '../api/mensajes'
 import AppHeader from '../components/AppHeader'
+import Alertas from '../components/mensajes/Alertas'
 import Avatar from '../components/mensajes/Avatar'
 import Conversacion from '../components/mensajes/Conversacion'
 import { useAuth } from '../context/AuthContext'
@@ -79,7 +80,7 @@ function PanelCliente({ item }) {
 }
 
 export default function MensajesPage() {
-  const { isEquipo } = useAuth()
+  const { isEquipo, isAdmin } = useAuth()
   const { suscribir, conectado } = useMensajeria()
   const [params, setParams] = useSearchParams()
   const [canales, setCanales] = useState(null)
@@ -89,6 +90,9 @@ export default function MensajesPage() {
   const { user } = useAuth()
   const [escriben, setEscriben] = useState({})
   const activo = Number(params.get('c')) || null
+  // El coach solo trabaja con alertas (donde lo etiquetaron); el admin elige entre la bandeja y sus alertas.
+  const esCoach = isEquipo && !isAdmin
+  const vista = esCoach ? 'alertas' : params.get('v') === 'alertas' ? 'alertas' : 'bandeja'
 
   const cargar = useCallback(() => {
     fetchCanales()
@@ -158,11 +162,11 @@ export default function MensajesPage() {
     if (!isEquipo) {
       const propio = canales.find((c) => c.tipo === 'cliente')
       if (propio) setParams({ c: String(propio.id) }, { replace: true })
-    } else if (window.matchMedia('(min-width: 900px)').matches) {
+    } else if (vista === 'bandeja' && window.matchMedia('(min-width: 900px)').matches) {
       const primero = canales.find((c) => c.tipo === 'cliente') || canales[0]
       setParams({ c: String(primero.id) }, { replace: true })
     }
-  }, [activo, canales, isEquipo, setParams])
+  }, [activo, canales, isEquipo, vista, setParams])
 
   const filtrados = useMemo(() => {
     if (!canales) return []
@@ -175,7 +179,8 @@ export default function MensajesPage() {
   const esperando = filtrados.filter((c) => c.tipo === 'cliente' && c.esperando_desde && isEquipo)
   const resto = filtrados.filter((c) => c.tipo === 'cliente' && !(c.esperando_desde && isEquipo))
   const item = canales?.find((c) => c.id === activo)
-  const abrir = (id) => setParams({ c: String(id) })
+  const abrir = (id) => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas', c: String(id) } : { c: String(id) })
+  const cambiarVista = (v) => setParams(v === 'alertas' ? { v: 'alertas' } : {})
 
   return (
     <div className="app-shell msj-root">
@@ -188,7 +193,18 @@ export default function MensajesPage() {
               {conectado ? 'En vivo' : 'Reconectando…'}
             </span>
           </div>
-          {isEquipo ? (
+          {isEquipo && !esCoach ? (
+            <div className="msj-segmento" role="tablist" aria-label="Vista">
+              <button type="button" role="tab" aria-selected={vista === 'bandeja'} className={vista === 'bandeja' ? 'is-on' : ''} onClick={() => cambiarVista('bandeja')}>
+                Clientes
+              </button>
+              <button type="button" role="tab" aria-selected={vista === 'alertas'} className={vista === 'alertas' ? 'is-on' : ''} onClick={() => cambiarVista('alertas')}>
+                Mis alertas
+              </button>
+            </div>
+          ) : null}
+          {vista === 'alertas' ? <Alertas activo={activo} onAbrir={abrir} /> : null}
+          {vista === 'bandeja' && isEquipo ? (
             <input
               className="msj-buscar"
               type="search"
@@ -198,6 +214,8 @@ export default function MensajesPage() {
               aria-label="Buscar cliente"
             />
           ) : null}
+          {vista === 'bandeja' ? (
+          <>
           {error ? <p className="msj-error">{error}</p> : null}
           {!canales ? <p className="msj-vacio">Cargando…</p> : null}
 
@@ -215,13 +233,17 @@ export default function MensajesPage() {
           {anuncios.map((c) => (
             <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
           ))}
+          </>
+          ) : null}
         </aside>
 
         <main className="msj-centro">
           {activo ? (
-            <Conversacion key={activo} canalId={activo} item={item} onVolver={() => setParams({})} />
+            <Conversacion key={activo} canalId={activo} item={item} onVolver={() => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas' } : {})} />
           ) : (
-            <div className="msj-vacio">Elegí un canal para ver la conversación.</div>
+            <div className="msj-vacio">
+              {vista === 'alertas' ? 'Elegí una alerta para ir a la conversación.' : 'Elegí un canal para ver la conversación.'}
+            </div>
           )}
         </main>
 

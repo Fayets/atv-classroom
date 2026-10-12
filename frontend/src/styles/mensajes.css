@@ -227,3 +227,57 @@
 @keyframes msj-alerta-fondo { from { opacity: 0; } }
 @keyframes msj-alerta-entra { from { opacity: 0; transform: scale(0.94); } }
 @media (prefers-reduced-motion: reduce) { .msj-alerta, .msj-alerta__fondo { animation: none; } }
+
+/* ---------- @menciones ---------- */
+.msj-mencion { padding: 0 3px; border-radius: 4px; background: rgba(10, 102, 214, 0.1); color: #0a66d6; font-weight: 600; }
+.msj-mencion.is-yo { background: rgba(192, 57, 43, 0.12); color: var(--m-acento); }
+.msj-m.is-mencion { background: rgba(255, 196, 0, 0.09); box-shadow: inset 3px 0 0 #f5b400; }
+.msj-redactar { position: relative; }
+.msj-sugerencias { position: absolute; left: 22px; right: 22px; bottom: calc(100% - 2px); margin: 0; padding: 6px; list-style: none; border-radius: 12px; background: rgba(250, 250, 252, 0.97); backdrop-filter: saturate(180%) blur(30px); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 14px 36px -10px rgba(0, 0, 0, 0.3); z-index: 5; }
+.msj-sugerencias button { width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 7px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--m-t1); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+.msj-sugerencias button span { margin-left: auto; font-size: 12px; color: var(--m-t3); text-transform: capitalize; }
+.msj-sugerencias button.is-on { background: var(--m-acento); color: #fff; }
+.msj-sugerencias button.is-on span { color: rgba(255, 255, 255, 0.85); }
+
+/* ---------- vista de alertas (coach) ---------- */
+.msj-segmento { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin: 0 0 10px; padding: 2px; border-radius: 9px; background: rgba(0, 0, 0, 0.06); }
+.msj-segmento button { padding: 5px 8px; border: 0; border-radius: 7px; background: transparent; color: var(--m-t2); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+.msj-segmento button.is-on { background: #fff; color: var(--m-t1); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
+.msj-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 2px 0 6px; }
+.msj-kpi { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.04); }
+.msj-kpi b { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: var(--m-t1); }
+.msj-kpi span { font-size: 11px; color: var(--m-t3); line-height: 1.3; }
+.msj-kpi.is-alerta b { color: var(--m-acento); }
+.msj-vacio--alertas { margin: 16px 6px; padding: 0; font-size: 13px; text-align: left; line-height: 1.45; }
+
+.msj-alerta-item { width: 100%; display: flex; gap: 10px; margin-bottom: 6px; padding: 10px; border: 0; border-radius: 12px; background: #fff; color: var(--m-t1); text-align: left; font: inherit; cursor: pointer; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.04); border-left: 3px solid transparent; }
+.msj-alerta-item:hover { box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 4px 12px -6px rgba(0, 0, 0, 0.2); }
+.msj-alerta-item.is-on { box-shadow: 0 0 0 2px var(--m-acento); }
+.msj-alerta-item.is-ok { border-left-color: #34c759; }
+.msj-alerta-item.is-aviso { border-left-color: #f5a623; }
+.msj-alerta-item.is-urgente { border-left-color: var(--m-acento); }
+.msj-alerta-item.is-respondida { background: transparent; box-shadow: none; opacity: 0.75; }
+.msj-alerta-item.is-respondida:hover { background: rgba(0, 0, 0, 0.04); }
+.msj-alerta-item__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.msj-alerta-item__fila { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.msj-alerta-item__fila b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msj-alerta-item__en { font-size: 12px; color: var(--m-t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msj-alerta-item__msg { font-size: 12.5px; line-height: 1.4; color: var(--m-t2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.msj-alerta-item__pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; }
+.msj-demora { font-size: 11.5px; font-weight: 600; color: var(--m-t3); }
+.msj-alerta-item.is-ok .msj-demora { color: #248a3d; }
+.msj-alerta-item.is-aviso .msj-demora { color: var(--m-aviso); }
+.msj-alerta-item.is-urgente .msj-demora { color: var(--m-acento); }
+.msj-alerta-item__ok { font-size: 11.5px; color: var(--m-t3); text-decoration: underline; text-underline-offset: 2px; }
+.msj-alerta-item__ok:hover { color: var(--m-t1); }
+
+/* ---------- notificación al estilo macOS (se ve en todo el classroom) ---------- */
+.msj-noti { --m-acento: #c0392b; --m-t1: #1d1d1f; position: fixed; top: 16px; right: 16px; z-index: 60; width: min(360px, calc(100vw - 32px)); display: flex; align-items: flex-start; border-radius: 16px; background: rgba(246, 246, 248, 0.92); backdrop-filter: saturate(180%) blur(30px); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 18px 44px -12px rgba(0, 0, 0, 0.35); color: #1d1d1f; animation: msj-noti-entra 320ms cubic-bezier(0.16, 1, 0.3, 1); }
+.msj-noti__cuerpo { flex: 1; min-width: 0; display: flex; gap: 10px; padding: 12px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.msj-noti__txt { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.msj-noti__app { font-size: 11px; color: #6e6e73; }
+.msj-noti__txt b { font-size: 13px; font-weight: 600; }
+.msj-noti__txt span:last-child { font-size: 13px; color: #3a3a3c; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.msj-noti__x { flex: none; margin: 8px 8px 0 0; width: 22px; height: 22px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.06); color: #6e6e73; font-size: 10px; cursor: pointer; }
+@keyframes msj-noti-entra { from { opacity: 0; transform: translateX(24px); } }
+@media (prefers-reduced-motion: reduce) { .msj-noti { animation: none; } }

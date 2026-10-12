@@ -54,3 +54,29 @@ export function iniciales(nombre) {
 export function claveAutor(autor) {
   return `${autor.tipo}:${autor.id}`
 }
+
+/** 25 → "25 min"; 130 → "2 h 10 min"; 3000 → "2 d 2 h". */
+export function duracion(minutos) {
+  if (minutos == null) return '—'
+  if (minutos < 1) return 'menos de 1 min'
+  if (minutos < 60) return `${minutos} min`
+  const h = Math.floor(minutos / 60)
+  if (h < 24) return minutos % 60 ? `${h} h ${minutos % 60} min` : `${h} h`
+  const d = Math.floor(h / 24)
+  return h % 24 ? `${d} d ${h % 24} h` : `${d} d`
+}
+
+/** Urgencia de una alerta sin responder: verde hasta 30 min, ámbar hasta 2 h, roja después. */
+export function urgencia(minutos) {
+  if (minutos < 30) return 'ok'
+  if (minutos < 120) return 'aviso'
+  return 'urgente'
+}
+
+export function normal(texto) {
+  return (texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
+export function primerNombre(nombre) {
+  return (nombre || '').trim().split(/\s+/)[0] || ''
+}

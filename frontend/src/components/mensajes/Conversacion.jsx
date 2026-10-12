@@ -1,8 +1,8 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { borrarMensaje, editarMensaje, enviarMensaje, fetchMensajes, marcarLeido } from '../../api/mensajes'
+import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMensajes, marcarLeido } from '../../api/mensajes'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
-import { claveAutor, etiquetaDia, hora, mismoDia } from '../../utils/mensajes'
+import { claveAutor, etiquetaDia, hora, mismoDia, normal, primerNombre } from '../../utils/mensajes'
 import Alerta from './Alerta'
 import Avatar from './Avatar'
 import TextoMensaje from './TextoMensaje'
@@ -29,6 +29,9 @@ export default function Conversacion({ canalId, item, onVolver }) {
   const [escriben, setEscriben] = useState({})
   const [cargandoAntes, setCargandoAntes] = useState(false)
   const [aBorrar, setABorrar] = useState(null)
+  const [equipo, setEquipo] = useState([])
+  const [sugerencias, setSugerencias] = useState(null) // { lista, indice, desde }
+  const mencionados = useRef(new Map()) // "@Nombre" escrito → id del miembro
   const lista = useRef(null)
   const caja = useRef(null)
   const pegadoAbajo = useRef(true)
@@ -61,6 +64,12 @@ export default function Conversacion({ canalId, item, onVolver }) {
       vivo = false
     }
   }, [canalId])
+
+  useEffect(() => {
+    fetchEquipoChat()
+      .then(setEquipo)
+      .catch(() => null)
+  }, [])
 
   // Eventos en vivo.
   useEffect(
@@ -187,13 +196,20 @@ export default function Conversacion({ canalId, item, onVolver }) {
       creado_en: new Date().toISOString(),
       enviando: true,
     }
+    // Solo cuentan las etiquetas elegidas que siguen escritas en el mensaje.
+    const ids = []
+    mencionados.current.forEach((id, marca) => {
+      if (limpio.includes(marca) && !ids.includes(id)) ids.push(id)
+    })
+    mencionados.current = new Map()
+    setSugerencias(null)
     setPendientes((p) => [...p, provisorio])
     setTexto('')
     ultimoAvisoEscribiendo.current = 0
     setRespondiendo(null)
     pegadoAbajo.current = true
     try {
-      const real = await enviarMensaje(canalId, limpio, provisorio.respuesta_a?.id ?? null)
+      const real = await enviarMensaje(canalId, limpio, provisorio.respuesta_a?.id ?? null, ids)
       setMensajes((m) => agregarSinDuplicar(m, [real]))
       setPendientes((p) => p.filter((x) => x.id !== id))
     } catch (err) {
@@ -207,8 +223,40 @@ export default function Conversacion({ canalId, item, onVolver }) {
     caja.current?.focus()
   }
 
+  function buscarSugerencias(valor, caret) {
+    const antes = valor.slice(0, caret)
+    const hallado = antes.match(/(^|\s)@([A-Za-zÁÉÍÓÚÜÑáéíóúüñ]*)$/)
+    if (!hallado || !equipo.length) {
+      setSugerencias(null)
+      return
+    }
+    const q = normal(hallado[2])
+    const lista = equipo
+      .filter((m) => m.id !== (isEquipo ? user?.usuario_id : null))
+      .filter((m) => !q || normal(m.nombre).split(/\s+/).some((p) => p.startsWith(q)))
+      .slice(0, 6)
+    setSugerencias(lista.length ? { lista, indice: 0, desde: caret - hallado[2].length - 1 } : null)
+  }
+
+  function elegir(miembro) {
+    const el = caja.current
+    const caret = el?.selectionStart ?? texto.length
+    const desde = sugerencias?.desde ?? caret
+    const marca = `@${primerNombre(miembro.nombre)}`
+    const nuevo = `${texto.slice(0, desde)}${marca} ${texto.slice(caret)}`
+    mencionados.current.set(marca, miembro.id)
+    setTexto(nuevo)
+    setSugerencias(null)
+    requestAnimationFrame(() => {
+      const pos = desde + marca.length + 1
+      el?.focus()
+      el?.setSelectionRange(pos, pos)
+    })
+  }
+
   function alEscribir(e) {
     setTexto(e.target.value)
+    buscarSugerencias(e.target.value, e.target.selectionStart)
     if (!e.target.value.trim()) {
       if (ultimoAvisoEscribiendo.current) avisarEscribiendo(canalId, false)
       ultimoAvisoEscribiendo.current = 0
@@ -221,6 +269,23 @@ export default function Conversacion({ canalId, item, onVolver }) {
   }
 
   function teclas(e) {
+    if (sugerencias) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        const paso = e.key === 'ArrowDown' ? 1 : -1
+        setSugerencias((sg) => ({ ...sg, indice: (sg.indice + paso + sg.lista.length) % sg.lista.length }))
+        return
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault()
+        elegir(sugerencias.lista[sugerencias.indice])
+        return
+      }
+      if (e.key === 'Escape') {
+        setSugerencias(null)
+        return
+      }
+    }
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
       mandar()
@@ -265,6 +330,8 @@ export default function Conversacion({ canalId, item, onVolver }) {
   const leidoPorElOtro = isEquipo ? datos.lecturas.cliente : datos.lecturas.equipo
   const miUltimo = [...mensajes].reverse().find((m) => claveAutor(m.autor) === yo)
   const nombresEscribiendo = Object.keys(escriben).filter((n) => n !== user?.nombre)
+  const nombresEquipo = new Set(equipo.map((m) => normal(primerNombre(m.nombre))))
+  const miPrimerNombre = isEquipo ? primerNombre(user?.nombre) : null
 
   return (
     <section className="msj-conv" aria-label={`Canal ${canal.nombre}`}>
@@ -326,7 +393,11 @@ export default function Conversacion({ canalId, item, onVolver }) {
                   <span>{etiquetaDia(m.creado_en)}</span>
                 </div>
               ) : null}
-              <article className={`msj-m${agrupado ? ' is-agrupado' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}`}>
+              <article
+                className={`msj-m${agrupado ? ' is-agrupado' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${
+                  miPrimerNombre && !mio && m.texto && normal(m.texto).includes(`@${normal(miPrimerNombre)}`) ? ' is-mencion' : ''
+                }`}
+              >
                 {m.respuesta_a ? (
                   <div className="msj-m__cita">
                     <span className="msj-m__codo" aria-hidden="true" />
@@ -349,7 +420,7 @@ export default function Conversacion({ canalId, item, onVolver }) {
                     ) : editando === m.id ? (
                       <Edicion texto={m.texto} onGuardar={(t) => guardarEdicion(m, t)} onCancelar={() => setEditando(null)} />
                     ) : (
-                      <TextoMensaje texto={m.texto} />
+                      <TextoMensaje texto={m.texto} nombres={nombresEquipo} yo={miPrimerNombre} />
                     )}
                     {m.editado && !m.borrado ? <span className="msj-editado">(editado)</span> : null}
                     {m.fallo ? (
@@ -436,6 +507,26 @@ export default function Conversacion({ canalId, item, onVolver }) {
               </button>
             </div>
           ) : null}
+          {sugerencias ? (
+            <ul className="msj-sugerencias" role="listbox" aria-label="Etiquetar a alguien del equipo">
+              {sugerencias.lista.map((m, i) => (
+                <li key={m.id} role="option" aria-selected={i === sugerencias.indice}>
+                  <button
+                    type="button"
+                    className={i === sugerencias.indice ? 'is-on' : ''}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      elegir(m)
+                    }}
+                  >
+                    <Avatar persona={{ ...m, tipo: 'equipo' }} size={24} />
+                    <b>{m.nombre}</b>
+                    <span>{m.area || (m.rol === 'admin' ? 'Admin' : 'Coach')}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <div className="msj-redactar__caja">
             <label htmlFor="msj-texto" className="sr-only">
               Mensaje para #{canal.nombre}
@@ -447,7 +538,7 @@ export default function Conversacion({ canalId, item, onVolver }) {
               value={texto}
               onChange={alEscribir}
               onKeyDown={teclas}
-              placeholder={`Escribí en #${canal.nombre}`}
+              placeholder={`Escribí en #${canal.nombre} · @ para etiquetar`}
               maxLength={4000}
             />
             <button type="submit" className="msj-enviar" disabled={!texto.trim()} aria-label="Enviar">

@@ -16,11 +16,28 @@ export function fetchMensajes(canalId, { antesDe, despuesDe } = {}) {
   return request(`/api/mensajes/canales/${canalId}/mensajes${sufijo}`)
 }
 
-export function enviarMensaje(canalId, texto, respuestaA = null) {
+export function enviarMensaje(canalId, texto, respuestaA = null, menciones = []) {
   return request(`/api/mensajes/canales/${canalId}/mensajes`, {
     method: 'POST',
-    body: JSON.stringify({ texto, respuesta_a: respuestaA }),
+    body: JSON.stringify({ texto, respuesta_a: respuestaA, menciones }),
   })
+}
+
+let equipoCache = null
+export function fetchEquipoChat() {
+  if (!equipoCache) equipoCache = request('/api/mensajes/equipo').catch((e) => {
+    equipoCache = null
+    throw e
+  })
+  return equipoCache
+}
+
+export function fetchMenciones() {
+  return request('/api/mensajes/menciones')
+}
+
+export function resolverMencion(mencionId) {
+  return request(`/api/mensajes/menciones/${mencionId}/resolver`, { method: 'POST' })
 }
 
 export function editarMensaje(mensajeId, texto) {

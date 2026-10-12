@@ -41,6 +41,11 @@ def _base():
         for l in LecturaCanal.select()[:]:
             if l.canal_id in ids_canal:
                 l.delete()
+        from src.models import Mencion
+
+        for men in list(Mencion.select()):
+            if men.canal_id in ids_canal:
+                men.delete()
         for c in Canal.select()[:]:
             if c.id in ids_canal:
                 c.delete()
@@ -61,12 +66,23 @@ def _sin_tope(monkeypatch):
 
 @pytest.fixture(scope="module")
 def coach():
+    """Admin del equipo: ve todos los canales (el coach solo ve donde lo etiquetan)."""
     from src.models import Admin
 
     with db_session:
-        a = Admin(email=f"{_PREFIJO}-coach@atvos-prueba.com", nombre="Coach Test", rol="coach", area="ventas")
+        a = Admin(email=f"{_PREFIJO}-admin@atvos-prueba.com", nombre="Admin Test", rol="admin", area="ventas")
         db.flush()
-        return {"usuario_id": a.id, "nombre": "Coach Test", "email": a.email, "rol": "coach"}
+        return {"usuario_id": a.id, "nombre": "Admin Test", "email": a.email, "rol": "admin"}
+
+
+@pytest.fixture(scope="module")
+def coach_real():
+    from src.models import Admin
+
+    with db_session:
+        a = Admin(email=f"{_PREFIJO}-juampi@atvos-prueba.com", nombre="Zebedeo Pruebatest", rol="coach", area="ventas")
+        db.flush()
+        return {"usuario_id": a.id, "nombre": "Zebedeo Pruebatest", "email": a.email, "rol": "coach"}
 
 
 def _canal_de(sesion_cliente):
@@ -161,7 +177,7 @@ def test_websocket_entrega_en_vivo(coach, monkeypatch):
     from src.models import Admin
 
     with db_session:
-        Admin(email=email, nombre="Coach WS", rol="coach")
+        Admin(email=email, nombre="Coach WS", rol="admin")
     monkeypatch.setattr(google_service, "verificar_credencial", lambda _c: {"sub": "ws", "email": email, "nombre": "Coach WS", "foto": None})
     token = http.post("/api/auth/google", json={"credencial": "x" * 30}).json()["token"]
     canal = _canal_de(_cliente(CLI_A))
@@ -206,7 +222,7 @@ def test_escribiendo_le_llega_al_otro_y_no_a_quien_escribe(coach, monkeypatch):
     for n in ("uno", "dos"):
         email = f"{_PREFIJO}-tipeo-{n}@atvos-prueba.com"
         with db_session:
-            Admin(email=email, nombre=f"Coach {n}", rol="coach")
+            Admin(email=email, nombre=f"Coach {n}", rol="admin")
         monkeypatch.setattr(
             google_service, "verificar_credencial", lambda _c, e=email, n=n: {"sub": f"tipeo-{n}", "email": e, "nombre": f"Coach {n}", "foto": None}
         )
@@ -225,3 +241,34 @@ def test_escribiendo_le_llega_al_otro_y_no_a_quien_escribe(coach, monkeypatch):
         # Quien escribe no recibe su propio aviso: su próximo evento es el pong.
         uno.send_json({"tipo": "ping"})
         assert uno.receive_json()["tipo"] == "pong"
+
+
+def test_el_coach_solo_ve_donde_lo_etiquetan_y_la_alerta_mide_la_demora(coach, coach_real):
+    a = _cliente(CLI_A)
+    canal = _canal_de(a)
+    # Sin etiqueta, el coach no ve el canal.
+    with pytest.raises(HTTPException):
+        svc.mensajes(dict(coach_real), canal)
+    assert all(c["tipo"] != "cliente" for c in svc.listar_canales(dict(coach_real)))
+
+    m, _ = svc.enviar(a, canal, "@Zebedeo no me queda claro el paso 3", None)
+    assert m["menciones"] == [coach_real["usuario_id"]]
+
+    alertas = svc.menciones(dict(coach_real))
+    assert alertas["pendientes"] == 1 and alertas["alertas"][0]["estado"] == "pendiente"
+    assert alertas["alertas"][0]["autor"]["tipo"] == "cliente"
+    assert svc.no_leidos(dict(coach_real))["esperando"] == 1
+
+    # Ahora ve el canal y, al responder, la alerta queda respondida con su demora.
+    assert svc.mensajes(dict(coach_real), canal)["mensajes"][-1]["id"] == m["id"]
+    svc.enviar(dict(coach_real), canal, "Te lo explico: es el guion de setting", None)
+    alertas = svc.menciones(dict(coach_real))
+    assert alertas["pendientes"] == 0 and alertas["alertas"][0]["estado"] == "respondida"
+    assert alertas["promedio_minutos"] is not None
+
+    # Etiquetar por el autocompletado (ids) también vale, aunque el texto diga otra cosa.
+    m2, _ = svc.enviar(coach, canal, "¿lo ves vos?", None, [coach_real["usuario_id"]])
+    assert m2["menciones"] == [coach_real["usuario_id"]]
+    pend = svc.menciones(dict(coach_real))["alertas"][0]
+    assert svc.resolver_mencion(dict(coach_real), pend["id"])["respondida_en"]
+    assert svc.menciones(dict(coach_real))["pendientes"] == 0

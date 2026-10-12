@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchAuthConfig } from '../api/client'
 import { fetchNoLeidos } from '../api/mensajes'
+import AvisoMencion from '../components/mensajes/AvisoMencion'
 import { useAuth } from './AuthContext'
 
 // Una sola conexión en vivo por pestaña, compartida por el contador del encabezado y la página de mensajes.
@@ -14,6 +15,8 @@ export function MensajeriaProvider({ children }) {
   const socket = useRef(null)
   const [conectado, setConectado] = useState(false)
   const [resumen, setResumen] = useState({ no_leidos: 0, esperando: 0 })
+  const [aviso, setAviso] = useState(null)
+  const cerrarAviso = useCallback(() => setAviso(null), [])
   const ultimoRefresco = useRef(0)
   const refrescoPendiente = useRef(null)
 
@@ -67,6 +70,10 @@ export function MensajeriaProvider({ children }) {
           return
         }
         if (evento.tipo === 'pong' || evento.tipo === 'error') return
+        if (evento.tipo === 'mencion') {
+          setAviso(evento)
+          refrescarResumen()
+        }
         if (evento.tipo === 'mensaje' || evento.tipo === 'leido' || evento.tipo === 'borrado') refrescarResumen()
         suscriptores.current.forEach((fn) => fn(evento))
       }
@@ -107,7 +114,12 @@ export function MensajeriaProvider({ children }) {
     () => ({ habilitada, conectado, resumen, suscribir, avisarEscribiendo, refrescarResumen }),
     [habilitada, conectado, resumen, suscribir, avisarEscribiendo, refrescarResumen],
   )
-  return <MensajeriaContext.Provider value={valor}>{children}</MensajeriaContext.Provider>
+  return (
+    <MensajeriaContext.Provider value={valor}>
+      {children}
+      <AvisoMencion aviso={aviso} onCerrar={cerrarAviso} />
+    </MensajeriaContext.Provider>
+  )
 }
 
 export function useMensajeria() {

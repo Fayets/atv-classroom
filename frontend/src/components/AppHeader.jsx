@@ -8,7 +8,7 @@ import { getUserInitials } from '../utils/user'
 export default function AppHeader() {
   const { user, logout, isAdmin, isEquipo } = useAuth()
   const { resumen, habilitada } = useMensajeria()
-  // Al equipo le importa a cuántos clientes les debe respuesta; al cliente, cuántos mensajes no leyó.
+  // Admin: clientes que esperan respuesta. Coach: alertas sin responder. Cliente: mensajes sin leer.
   const contador = isEquipo ? resumen.esperando : resumen.no_leidos
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -58,7 +58,7 @@ export default function AppHeader() {
         <NavLink to="/mensajes" className={({ isActive }) => `app-header__mensajes${isActive ? ' is-on' : ''}`}>
           Mensajes
           {contador ? (
-            <span className="msj-cuenta" aria-label={isEquipo ? `${contador} esperan respuesta` : `${contador} sin leer`}>
+            <span className="msj-cuenta" aria-label={isAdmin ? `${contador} esperan respuesta` : isEquipo ? `${contador} alertas sin responder` : `${contador} sin leer`}>
               {contador > 99 ? '99+' : contador}
             </span>
           ) : null}

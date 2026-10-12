@@ -6,7 +6,15 @@ from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from src.services.auth_service import obtener_sesion_desde_request, sesion_desde_token
-from src.services.mensajeria_service import MAX_TEXTO, MensajeriaServices, habilitada_para
+from pony.orm import db_session
+
+from src.services.mensajeria_service import (
+    MAX_TEXTO,
+    MensajeriaServices,
+    canales_de_coach,
+    equipo_para_mencionar,
+    habilitada_para,
+)
 from src.services.tiempo_real import hub
 
 router = APIRouter(prefix="/api/mensajes", tags=["mensajes"])
@@ -23,6 +31,7 @@ def sesion_mensajes(sesion: dict = Depends(obtener_sesion_desde_request)) -> dic
 class MensajeNuevo(BaseModel):
     texto: str = Field(min_length=1, max_length=MAX_TEXTO)
     respuesta_a: int | None = None
+    menciones: list[int] = Field(default_factory=list, max_length=20)
 
 
 class MensajeEdicion(BaseModel):
@@ -65,10 +74,36 @@ def mensajes(
     return service.mensajes(sesion, canal_id, antes_de=antes_de, despues_de=despues_de)
 
 
+@router.get("/equipo")
+def equipo(_sesion: dict = Depends(sesion_mensajes)):
+    """Para el autocompletado de @."""
+    with db_session:
+        return equipo_para_mencionar()
+
+
+@router.get("/menciones")
+def menciones(sesion: dict = Depends(sesion_mensajes)):
+    if sesion.get("rol") not in ("admin", "coach"):
+        raise HTTPException(status_code=403, detail="Solo para el equipo.")
+    return service.menciones(sesion)
+
+
+@router.post("/menciones/{mencion_id}/resolver")
+def resolver(mencion_id: int, sesion: dict = Depends(sesion_mensajes)):
+    return service.resolver_mencion(sesion, mencion_id)
+
+
 @router.post("/canales/{canal_id}/mensajes", status_code=201)
 async def enviar(canal_id: int, body: MensajeNuevo, sesion: dict = Depends(sesion_mensajes)):
-    mensaje, canal = await run_in_threadpool(service.enviar, sesion, canal_id, body.texto, body.respuesta_a)
+    mensaje, canal = await run_in_threadpool(
+        service.enviar, sesion, canal_id, body.texto, body.respuesta_a, body.menciones
+    )
+    # Primero se habilita el canal a los coaches etiquetados, así también les llega el mensaje.
+    for admin_id in mensaje.get("menciones", []):
+        hub.sumar_canal_a_coach(admin_id, canal["id"])
     await hub.emitir({"tipo": "mensaje", "mensaje": mensaje}, canal)
+    for admin_id in mensaje.get("menciones", []):
+        await hub.emitir_a_equipo(admin_id, {"tipo": "mencion", "canal_id": canal["id"], "mensaje": mensaje})
     return mensaje
 
 
@@ -113,6 +148,12 @@ async def tiempo_real(websocket: WebSocket):
         await websocket.close(code=4403)
         return
 
+    if sesion.get("rol") == "coach":
+        def _cargar():
+            with db_session:
+                return canales_de_coach(sesion["usuario_id"])
+
+        sesion["canales_coach"] = await run_in_threadpool(_cargar)
     hub.conectar(websocket, sesion)
     await websocket.send_json({"tipo": "listo"})
     try:

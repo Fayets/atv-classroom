@@ -230,3 +230,18 @@ class LecturaCanal(db.Entity):
     lector_id = Required(int)
     ultimo_leido_id = Required(int, default=0)
     composite_key(canal_id, lector_tipo, lector_id)
+
+
+class Mencion(db.Entity):
+    """Un @ a alguien del equipo en un mensaje. Para el coach es una alerta: queda pendiente
+    hasta que escribe en ese canal (o la marca como resuelta)."""
+
+    _table_ = (DB_SCHEMA, "menciones")
+
+    id = PrimaryKey(int, auto=True)
+    mensaje_id = Required(int)
+    canal_id = Required(int)
+    admin_id = Required(int)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    respondida_en = Optional(datetime, nullable=True)
+    composite_key(mensaje_id, admin_id)
