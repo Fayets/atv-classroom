@@ -45,16 +45,48 @@ export default function AppHeader() {
     navigate('/login', { replace: true })
   }
 
+  // Para el equipo, la barra es la de una app de macOS: semáforos, secciones al centro y el avatar.
+  const secciones = isEquipo
+    ? [
+        ['/mensajes', 'Mensajes', contador],
+        ['/classroom', 'Classroom'],
+        ...(isAdmin
+          ? [
+              ['/admin/equipo', 'Equipo'],
+              ['/admin', 'Módulos', null, true],
+            ]
+          : []),
+      ]
+    : null
+
   return (
-    <header className="app-header">
+    <header className={`app-header${isEquipo ? ' app-header--mac' : ''}`}>
       <div className="app-header__left">
+        {isEquipo ? (
+          <span className="mac-semaforo" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+        ) : null}
         <Link to="/" className="app-header__logo" aria-label="Inicio ATV">
           <img src="/atv-logo.png" alt="" className="app-header__logo-img" />
         </Link>
       </div>
 
+      {secciones ? (
+        <nav className="mac-nav" aria-label="Secciones">
+          {secciones.map(([to, label, cuenta, exacta]) => (
+            <NavLink key={to} to={to} end={Boolean(exacta)} className={({ isActive }) => (isActive ? 'is-on' : '')}>
+              {label}
+              {cuenta ? <span className="mac-nav__cuenta">{cuenta > 99 ? '99+' : cuenta}</span> : null}
+            </NavLink>
+          ))}
+        </nav>
+      ) : null}
+
       <div className="app-header__right">
-      {habilitada ? (
+      {habilitada && !isEquipo ? (
         <NavLink to="/mensajes" className={({ isActive }) => `app-header__mensajes${isActive ? ' is-on' : ''}`}>
           Mensajes
           {contador ? (
@@ -89,7 +121,7 @@ export default function AppHeader() {
             {user?.email ? (
               <p className="app-header__menu-email">{user.email}</p>
             ) : null}
-            {isAdmin ? (
+            {isAdmin && !secciones ? (
               <Link
                 to="/admin"
                 className="app-header__menu-link"
@@ -99,7 +131,7 @@ export default function AppHeader() {
                 Configuración de módulos
               </Link>
             ) : null}
-            {isAdmin ? (
+            {isAdmin && !secciones ? (
               <Link
                 to="/admin/equipo"
                 className="app-header__menu-link"

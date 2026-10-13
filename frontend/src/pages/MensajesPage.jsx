@@ -183,7 +183,7 @@ export default function MensajesPage() {
   const cambiarVista = (v) => setParams(v === 'alertas' ? { v: 'alertas' } : {})
 
   return (
-    <div className="app-shell msj-root">
+    <div className={`app-shell msj-root${isEquipo ? ' is-mac' : ''}`}>
       <AppHeader />
       <div className={`msj-layout${activo ? ' ver-conv' : ' ver-lista'}${isEquipo && item?.cliente ? ' con-panel' : ''}`}>
         <aside className="msj-lateral" aria-label="Canales">
