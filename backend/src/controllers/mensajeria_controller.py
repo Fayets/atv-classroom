@@ -1,7 +1,10 @@
 import asyncio
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
@@ -16,6 +19,7 @@ from src.services.mensajeria_service import (
     habilitada_para,
 )
 from src.services.tiempo_real import hub
+from src.storage import adjuntos as almacen
 
 router = APIRouter(prefix="/api/mensajes", tags=["mensajes"])
 ws_router = APIRouter(tags=["mensajes"])
@@ -29,9 +33,10 @@ def sesion_mensajes(sesion: dict = Depends(obtener_sesion_desde_request)) -> dic
 
 
 class MensajeNuevo(BaseModel):
-    texto: str = Field(min_length=1, max_length=MAX_TEXTO)
+    texto: str = Field(default="", max_length=MAX_TEXTO)
     respuesta_a: int | None = None
     menciones: list[int] = Field(default_factory=list, max_length=20)
+    adjuntos: list[int] = Field(default_factory=list, max_length=10)
 
 
 class MensajeEdicion(BaseModel):
@@ -102,7 +107,7 @@ def resolver(mencion_id: int, sesion: dict = Depends(sesion_mensajes)):
 @router.post("/canales/{canal_id}/mensajes", status_code=201)
 async def enviar(canal_id: int, body: MensajeNuevo, sesion: dict = Depends(sesion_mensajes)):
     mensaje, canal = await run_in_threadpool(
-        service.enviar, sesion, canal_id, body.texto, body.respuesta_a, body.menciones
+        service.enviar, sesion, canal_id, body.texto, body.respuesta_a, body.menciones, body.adjuntos
     )
     # Primero se habilita el canal a los coaches etiquetados, así también les llega el mensaje.
     for admin_id in mensaje.get("menciones", []):
@@ -111,6 +116,36 @@ async def enviar(canal_id: int, body: MensajeNuevo, sesion: dict = Depends(sesio
     for admin_id in mensaje.get("menciones", []):
         await hub.emitir_a_equipo(admin_id, {"tipo": "mencion", "canal_id": canal["id"], "mensaje": mensaje})
     return mensaje
+
+
+@router.post("/canales/{canal_id}/adjuntos", status_code=201)
+def subir_adjunto(canal_id: int, archivo: UploadFile = File(...), sesion: dict = Depends(sesion_mensajes)):
+    def partes():
+        while True:
+            bloque = archivo.file.read(1024 * 1024)
+            if not bloque:
+                break
+            yield bloque
+
+    return service.subir_adjunto(sesion, canal_id, archivo.filename or "archivo", partes())
+
+
+@router.get("/adjuntos/{adjunto_id}")
+def bajar_adjunto(adjunto_id: int, f: str = ""):
+    """Sin sesión a propósito: <img> y <audio> no mandan el token. Lo protege el link firmado (24 h)."""
+    ruta, nombre, tipo = service.archivo_adjunto(adjunto_id, f)
+    en_linea = tipo.startswith(almacen.EN_LINEA)
+    disposicion = "inline" if en_linea else "attachment"
+    ascii_nombre = nombre.encode("ascii", "ignore").decode() or "archivo"
+    headers = {
+        "Content-Disposition": f"{disposicion}; filename=\"{ascii_nombre}\"; filename*=UTF-8''{quote(nombre)}",
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "private, max-age=86400",
+    }
+    if tipo != "application/pdf":
+        # Nada de scripts al abrir el archivo (el visor de PDF del navegador queda afuera de esto).
+        headers["Content-Security-Policy"] = "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'"
+    return FileResponse(ruta, media_type=tipo, headers=headers)
 
 
 @router.patch("/{mensaje_id}")

@@ -1,8 +1,9 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMensajes, marcarLeido } from '../../api/mensajes'
+import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMensajes, marcarLeido, subirAdjunto } from '../../api/mensajes'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
-import { claveAutor, etiquetaDia, hora, mismoDia, normal, primerNombre } from '../../utils/mensajes'
+import { ACEPTA_ADJUNTOS, claveAutor, etiquetaDia, hora, mismoDia, normal, peso, primerNombre } from '../../utils/mensajes'
+import Adjuntos from './Adjuntos'
 import Alerta from './Alerta'
 import Avatar from './Avatar'
 import TextoMensaje from './TextoMensaje'
@@ -32,6 +33,9 @@ export default function Conversacion({ canalId, item, onVolver }) {
   const [equipo, setEquipo] = useState([])
   const [sugerencias, setSugerencias] = useState(null) // { lista, indice, desde }
   const mencionados = useRef(new Map()) // "@Nombre" escrito → id del miembro
+  const [archivos, setArchivos] = useState([]) // { clave, nombre, tamano, progreso, adjunto, error, vista }
+  const [arrastrando, setArrastrando] = useState(false)
+  const selector = useRef(null)
   const lista = useRef(null)
   const caja = useRef(null)
   const pegadoAbajo = useRef(true)
@@ -50,6 +54,7 @@ export default function Conversacion({ canalId, item, onVolver }) {
     setPendientes([])
     setRespondiendo(null)
     setEditando(null)
+    setArchivos([])
     setError('')
     leidoEnviado.current = 0
     pegadoAbajo.current = true
@@ -163,6 +168,11 @@ export default function Conversacion({ canalId, item, onVolver }) {
     return () => document.removeEventListener('visibilitychange', marcar)
   }, [marcar])
 
+  // Las imágenes cambian de alto al cargar: si estabas abajo de todo, se sigue abajo.
+  function bajarSiEstabaAbajo() {
+    if (pegadoAbajo.current && lista.current) lista.current.scrollTop = lista.current.scrollHeight
+  }
+
   function alScrollear() {
     const el = lista.current
     pegadoAbajo.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
@@ -183,19 +193,57 @@ export default function Conversacion({ canalId, item, onVolver }) {
     }
   }
 
+  function agregarArchivos(lista) {
+    const nuevos = Array.from(lista || []).slice(0, 10)
+    if (!nuevos.length) return
+    nuevos.forEach((archivo) => {
+      const clave = `${Date.now()}-${Math.random()}`
+      const vista = archivo.type.startsWith('image/') ? URL.createObjectURL(archivo) : null
+      setArchivos((a) => [...a, { clave, nombre: archivo.name || 'captura.png', tamano: archivo.size, progreso: 0, vista }])
+      subirAdjunto(canalId, archivo, (p) => setArchivos((a) => a.map((x) => (x.clave === clave ? { ...x, progreso: p } : x))))
+        .then((adjunto) => setArchivos((a) => a.map((x) => (x.clave === clave ? { ...x, progreso: 100, adjunto } : x))))
+        .catch((err) => setArchivos((a) => a.map((x) => (x.clave === clave ? { ...x, error: err.message } : x))))
+    })
+    caja.current?.focus()
+  }
+
+  function quitarArchivo(clave) {
+    setArchivos((a) => {
+      const x = a.find((y) => y.clave === clave)
+      if (x?.vista) URL.revokeObjectURL(x.vista)
+      return a.filter((y) => y.clave !== clave)
+    })
+  }
+
+  function alPegar(e) {
+    const imagenes = Array.from(e.clipboardData?.files || [])
+    if (imagenes.length) {
+      e.preventDefault()
+      agregarArchivos(imagenes)
+    }
+  }
+
+  const subiendo = archivos.some((a) => !a.adjunto && !a.error)
+  const listos = archivos.filter((a) => a.adjunto)
+
   async function mandar(e) {
     e?.preventDefault()
     const limpio = texto.trim()
-    if (!limpio) return
+    if (subiendo || (!limpio && !listos.length)) return
+    const adjuntosIds = listos.map((a) => a.adjunto.id)
+    const adjuntosVista = listos.map((a) => a.adjunto)
     const id = `tmp-${++temporal}`
     const provisorio = {
       id,
       texto: limpio,
       autor: { tipo: isEquipo ? 'equipo' : 'cliente', id: user.usuario_id, nombre: user.nombre, foto_url: user.foto_url },
       respuesta_a: respondiendo ? { id: respondiendo.id, autor_nombre: respondiendo.autor.nombre, texto: respondiendo.texto } : null,
+      adjuntos: adjuntosVista,
       creado_en: new Date().toISOString(),
       enviando: true,
     }
+    archivos.forEach((a) => a.vista && URL.revokeObjectURL(a.vista))
+    setArchivos([])
     // Solo cuentan las etiquetas elegidas que siguen escritas en el mensaje.
     const ids = []
     mencionados.current.forEach((id, marca) => {
@@ -209,7 +257,7 @@ export default function Conversacion({ canalId, item, onVolver }) {
     setRespondiendo(null)
     pegadoAbajo.current = true
     try {
-      const real = await enviarMensaje(canalId, limpio, provisorio.respuesta_a?.id ?? null, ids)
+      const real = await enviarMensaje(canalId, limpio, provisorio.respuesta_a?.id ?? null, ids, adjuntosIds)
       setMensajes((m) => agregarSinDuplicar(m, [real]))
       setPendientes((p) => p.filter((x) => x.id !== id))
     } catch (err) {
@@ -334,7 +382,25 @@ export default function Conversacion({ canalId, item, onVolver }) {
   const miPrimerNombre = isEquipo ? primerNombre(user?.nombre) : null
 
   return (
-    <section className="msj-conv" aria-label={`Canal ${canal.nombre}`}>
+    <section
+      className={`msj-conv${arrastrando ? ' is-arrastrando' : ''}`}
+      aria-label={`Canal ${canal.nombre}`}
+      onDragOver={(e) => {
+        if (!datos.puede_escribir || !e.dataTransfer?.types?.includes('Files')) return
+        e.preventDefault()
+        setArrastrando(true)
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setArrastrando(false)
+      }}
+      onDrop={(e) => {
+        if (!datos.puede_escribir) return
+        e.preventDefault()
+        setArrastrando(false)
+        agregarArchivos(e.dataTransfer.files)
+      }}
+    >
+      {arrastrando ? <div className="msj-soltar">Soltá para adjuntar</div> : null}
       <header className="msj-conv__barra">
         {onVolver ? (
           <button type="button" className="msj-volver" onClick={onVolver} aria-label="Volver a los canales">
@@ -420,7 +486,10 @@ export default function Conversacion({ canalId, item, onVolver }) {
                     ) : editando === m.id ? (
                       <Edicion texto={m.texto} onGuardar={(t) => guardarEdicion(m, t)} onCancelar={() => setEditando(null)} />
                     ) : (
-                      <TextoMensaje texto={m.texto} nombres={nombresEquipo} yo={miPrimerNombre} />
+                      <>
+                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} yo={miPrimerNombre} /> : null}
+                        <Adjuntos adjuntos={m.adjuntos} alCargar={bajarSiEstabaAbajo} />
+                      </>
                     )}
                     {m.editado && !m.borrado ? <span className="msj-editado">(editado)</span> : null}
                     {m.fallo ? (
@@ -443,7 +512,7 @@ export default function Conversacion({ canalId, item, onVolver }) {
                       >
                         Responder
                       </button>
-                      {mio ? (
+                      {mio && m.texto ? (
                         <button type="button" onClick={() => setEditando(m.id)}>
                           Editar
                         </button>
@@ -527,7 +596,44 @@ export default function Conversacion({ canalId, item, onVolver }) {
               ))}
             </ul>
           ) : null}
+          {archivos.length ? (
+            <ul className="msj-subidas">
+              {archivos.map((a) => (
+                <li key={a.clave} className={a.error ? 'is-error' : a.adjunto ? 'is-listo' : ''}>
+                  {a.vista ? <img src={a.vista} alt="" /> : <span className="msj-subidas__ext">{(a.nombre.split('.').pop() || '').slice(0, 4).toUpperCase()}</span>}
+                  <span className="msj-subidas__txt">
+                    <b>{a.nombre}</b>
+                    <small>{a.error ? a.error : a.adjunto ? peso(a.tamano) : `Subiendo… ${a.progreso}%`}</small>
+                  </span>
+                  {!a.adjunto && !a.error ? (
+                    <span className="msj-subidas__barra">
+                      <i style={{ width: `${a.progreso}%` }} />
+                    </span>
+                  ) : null}
+                  <button type="button" onClick={() => quitarArchivo(a.clave)} aria-label={`Quitar ${a.nombre}`}>
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <div className="msj-redactar__caja">
+            <input
+              ref={selector}
+              type="file"
+              multiple
+              accept={ACEPTA_ADJUNTOS}
+              hidden
+              onChange={(e) => {
+                agregarArchivos(e.target.files)
+                e.target.value = ''
+              }}
+            />
+            <button type="button" className="msj-clip" onClick={() => selector.current?.click()} aria-label="Adjuntar archivos" title="Adjuntar archivos (hasta 25 MB)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9" />
+              </svg>
+            </button>
             <label htmlFor="msj-texto" className="sr-only">
               Mensaje para #{canal.nombre}
             </label>
@@ -538,14 +644,15 @@ export default function Conversacion({ canalId, item, onVolver }) {
               value={texto}
               onChange={alEscribir}
               onKeyDown={teclas}
+              onPaste={alPegar}
               placeholder={`Escribí en #${canal.nombre} · @ para etiquetar`}
               maxLength={4000}
             />
-            <button type="submit" className="msj-enviar" disabled={!texto.trim()} aria-label="Enviar">
+            <button type="submit" className="msj-enviar" disabled={subiendo || (!texto.trim() && !listos.length)} aria-label={subiendo ? 'Esperá a que terminen de subir los archivos' : 'Enviar'}>
               ➤
             </button>
           </div>
-          <p className="msj-redactar__ayuda">Enter envía · Shift + Enter hace un salto de línea</p>
+          <p className="msj-redactar__ayuda">Enter envía · Shift + Enter hace un salto de línea · arrastrá o pegá archivos (hasta 25 MB)</p>
         </form>
       ) : (
         <p className="msj-solo-lectura">En este canal publica solo el equipo de ATV.</p>

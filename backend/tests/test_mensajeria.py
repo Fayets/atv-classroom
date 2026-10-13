@@ -41,11 +41,19 @@ def _base():
         for l in LecturaCanal.select()[:]:
             if l.canal_id in ids_canal:
                 l.delete()
-        from src.models import Mencion
+        from src.models import Adjunto, Mencion
 
         for men in list(Mencion.select()):
             if men.canal_id in ids_canal:
                 men.delete()
+        from src.storage import adjuntos as almacen
+
+        for adj in list(Adjunto.select()):
+            if adj.canal_id in ids_canal:
+                ruta = almacen.ruta_de(adj.archivo)
+                if ruta:
+                    ruta.unlink()
+                adj.delete()
         for c in Canal.select()[:]:
             if c.id in ids_canal:
                 c.delete()
@@ -281,3 +289,35 @@ def test_mail_de_prueba_la_ve_antes_del_lanzamiento(monkeypatch):
     monkeypatch.setattr(mensajeria_service, "config", lambda clave, **k: valores.get(clave, k.get("default")))
     assert mensajeria_service.habilitada_para({"usuario_id": 5, "email": "prueba@atvos.io", "rol": "mid"})
     assert not mensajeria_service.habilitada_para({"usuario_id": 6, "email": "cliente@x.com", "rol": "mid"})
+
+
+def test_adjuntos_se_suben_se_atan_y_se_bajan_con_link_firmado(coach):
+    import main
+
+    http = TestClient(main.app)
+    a = _cliente(CLI_A)
+    canal = _canal_de(a)
+    png = b"\x89PNG\r\n\x1a\n" + b"0" * 2000
+
+    adj = svc.subir_adjunto(a, canal, "captura del funnel.png", iter([png]))
+    assert adj["tipo_mime"] == "image/png" and adj["tamano"] == len(png)
+    with pytest.raises(HTTPException) as e:
+        svc.subir_adjunto(a, canal, "pagina.html", iter([b"<script>"]))
+    assert e.value.status_code == 415
+    # Otro cliente no puede subir al canal de A ni usar su archivo.
+    with pytest.raises(HTTPException):
+        svc.subir_adjunto(_cliente(CLI_B), canal, "x.png", iter([png]))
+
+    m, _ = svc.enviar(a, canal, "", None, None, [adj["id"]])
+    assert m["texto"] == "" and m["adjuntos"][0]["nombre"] == "captura del funnel.png"
+    with pytest.raises(HTTPException):
+        svc.enviar(a, canal, "de nuevo", None, None, [adj["id"]])  # ya está atado a un mensaje
+
+    url = svc.mensajes(coach, canal)["mensajes"][-1]["adjuntos"][0]["url"]
+    r = http.get(url)
+    assert r.status_code == 200 and r.content == png and r.headers["x-content-type-options"] == "nosniff"
+    assert http.get(url.split("?")[0] + "?f=1.falsa").status_code == 403
+
+    # Borrado el mensaje, el archivo deja de servirse.
+    svc.borrar(a, m["id"])
+    assert http.get(url).status_code == 404

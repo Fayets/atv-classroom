@@ -212,7 +212,7 @@ class MensajeCanal(db.Entity):
     canal = Required(Canal)
     autor_tipo = Required(str)
     autor_id = Required(int)
-    texto = Required(str)
+    texto = Optional(str)  # puede ir vacío si el mensaje solo lleva adjuntos
     respuesta_a = Optional(int, nullable=True)
     editado_en = Optional(datetime, nullable=True)
     borrado = Required(bool, default=False)
@@ -245,3 +245,21 @@ class Mencion(db.Entity):
     creado_en = Required(datetime, default=datetime.utcnow)
     respondida_en = Optional(datetime, nullable=True)
     composite_key(mensaje_id, admin_id)
+
+
+class Adjunto(db.Entity):
+    """Archivo de un mensaje. Se sube antes de enviar (mensaje_id vacío) y se ata al enviar.
+    Vive fuera de la carpeta pública: solo se baja con un link firmado."""
+
+    _table_ = (DB_SCHEMA, "adjuntos")
+
+    id = PrimaryKey(int, auto=True)
+    canal_id = Required(int)
+    mensaje_id = Optional(int, nullable=True)
+    subido_por_tipo = Required(str)
+    subido_por_id = Required(int)
+    nombre = Required(str)
+    archivo = Required(str, unique=True)
+    tipo_mime = Required(str)
+    tamano = Required(int)
+    creado_en = Required(datetime, default=datetime.utcnow)

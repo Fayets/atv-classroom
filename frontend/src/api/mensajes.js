@@ -1,4 +1,4 @@
-import { request } from './client'
+import { getStoredToken, request } from './client'
 
 export function fetchHabilitada() {
   return request('/api/mensajes/habilitada')
@@ -20,10 +20,36 @@ export function fetchMensajes(canalId, { antesDe, despuesDe } = {}) {
   return request(`/api/mensajes/canales/${canalId}/mensajes${sufijo}`)
 }
 
-export function enviarMensaje(canalId, texto, respuestaA = null, menciones = []) {
+export function enviarMensaje(canalId, texto, respuestaA = null, menciones = [], adjuntos = []) {
   return request(`/api/mensajes/canales/${canalId}/mensajes`, {
     method: 'POST',
-    body: JSON.stringify({ texto, respuesta_a: respuestaA, menciones }),
+    body: JSON.stringify({ texto, respuesta_a: respuestaA, menciones, adjuntos }),
+  })
+}
+
+/** Sube un archivo con progreso (fetch no informa el avance de subida; XMLHttpRequest sí). */
+export function subirAdjunto(canalId, archivo, alAvanzar) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `/api/mensajes/canales/${canalId}/adjuntos`)
+    const token = getStoredToken()
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+    xhr.upload.onprogress = (e) => e.lengthComputable && alAvanzar?.(Math.round((e.loaded / e.total) * 100))
+    xhr.onload = () => {
+      let data = {}
+      try {
+        data = JSON.parse(xhr.responseText)
+      } catch {
+        // respuesta sin JSON (por ejemplo, un 413 del proxy)
+      }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(data)
+      else if (xhr.status === 413) reject(new Error('El archivo pesa más de 25 MB.'))
+      else reject(new Error(typeof data.detail === 'string' ? data.detail : 'No se pudo subir el archivo.'))
+    }
+    xhr.onerror = () => reject(new Error('Se cortó la conexión al subir el archivo.'))
+    const form = new FormData()
+    form.append('archivo', archivo)
+    xhr.send(form)
   })
 }
 

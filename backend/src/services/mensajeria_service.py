@@ -15,11 +15,13 @@ from fastapi import HTTPException
 from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
-from src.models import Admin, Canal, ClienteExterno, LecturaCanal, Mencion, MensajeCanal
+from src.models import Adjunto, Admin, Canal, ClienteExterno, LecturaCanal, Mencion, MensajeCanal
+from src.storage import adjuntos as almacen
 from src.services.auth_service import _emails_del_cliente, _tiene_acceso, es_equipo
 from src.services.tiempo_real import puede_ver
 
 MAX_TEXTO = 4000
+MAX_ADJUNTOS = 10
 
 
 def _mails_de_prueba() -> set[str]:
@@ -130,7 +132,22 @@ def _recorte(texto: str, largo: int = 140) -> str:
     return texto if len(texto) <= largo else texto[: largo - 1] + "…"
 
 
-def _mensaje_dict(m: MensajeCanal, autores: _Autores) -> dict:
+def _adjunto_dict(a: Adjunto) -> dict:
+    return {"id": a.id, "nombre": a.nombre, "tipo_mime": a.tipo_mime, "tamano": a.tamano, "url": almacen.firmar(a.id)}
+
+
+def _adjuntos_de(mensaje_ids: list[int]) -> dict[int, list[dict]]:
+    """Los adjuntos de varios mensajes en una sola consulta."""
+    if not mensaje_ids:
+        return {}
+    ids = ",".join(str(int(i)) for i in mensaje_ids)
+    por_mensaje: dict[int, list[dict]] = defaultdict(list)
+    for a in list(Adjunto.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."adjuntos" WHERE mensaje_id IN ({ids}) ORDER BY id')):
+        por_mensaje[a.mensaje_id].append(_adjunto_dict(a))
+    return por_mensaje
+
+
+def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[dict]] | None = None) -> dict:
     respuesta = None
     if m.respuesta_a:
         original = MensajeCanal.get(id=m.respuesta_a)
@@ -138,13 +155,14 @@ def _mensaje_dict(m: MensajeCanal, autores: _Autores) -> dict:
             respuesta = {
                 "id": original.id,
                 "autor_nombre": autores.de(original.autor_tipo, original.autor_id)["nombre"],
-                "texto": None if original.borrado else _recorte(original.texto),
+                "texto": None if original.borrado else (_recorte(original.texto) if original.texto else "📎 Archivo adjunto"),
             }
     return {
         "id": m.id,
         "canal_id": m.canal.id,
         "autor": autores.de(m.autor_tipo, m.autor_id),
         "texto": None if m.borrado else m.texto,
+        "adjuntos": [] if m.borrado else (adjuntos if adjuntos is not None else _adjuntos_de([m.id])).get(m.id, []),
         "borrado": m.borrado,
         "editado": m.editado_en is not None,
         "respuesta_a": respuesta,
@@ -260,7 +278,7 @@ def _mencion_dict(men: Mencion, autores: "_Autores", ahora: datetime) -> dict | 
         "canal_nombre": canal.nombre,
         "mensaje_id": m.id,
         "autor": autores.de(m.autor_tipo, m.autor_id),
-        "texto": _recorte(m.texto, 220),
+        "texto": _recorte(m.texto, 220) if m.texto else "📎 Archivo adjunto",
         "creado_en": _iso(men.creado_en),
         "respondida_en": _iso(men.respondida_en),
         "estado": "respondida" if men.respondida_en else "pendiente",
@@ -309,7 +327,7 @@ class MensajeriaServices:
                         if cliente is not None
                         else None,
                         "ultimo": {
-                            "texto": _recorte(ultimo["texto"], 90),
+                            "texto": _recorte(ultimo["texto"], 90) if ultimo["texto"] else "📎 Archivo adjunto",
                             "autor_nombre": autores.de(ultimo["autor_tipo"], ultimo["autor_id"])["nombre"],
                             "de": "cliente" if ultimo["autor_tipo"] == "cliente" else "equipo",
                             "creado_en": _iso(ultimo["creado_en"]),
@@ -353,9 +371,10 @@ class MensajeriaServices:
                 hay_mas = len(lista) > _PAGINA
                 lista = list(reversed(lista[:_PAGINA]))
             autores = _Autores()
+            adjuntos = _adjuntos_de([m.id for m in lista])
             salida = []
             for m in lista:
-                salida.append(_mensaje_dict(m, autores))
+                salida.append(_mensaje_dict(m, autores, adjuntos))
             return {
                 "canal": {"id": canal.id, "tipo": canal.tipo, "nombre": canal.nombre, "descripcion": canal.descripcion},
                 "mensajes": salida,
@@ -383,11 +402,20 @@ class MensajeriaServices:
         return canal.tipo == "cliente" and canal.cliente_id == sesion["usuario_id"]
 
     def enviar(
-        self, sesion: dict, canal_id: int, texto: str, respuesta_a: int | None, menciones: list[int] | None = None
+        self,
+        sesion: dict,
+        canal_id: int,
+        texto: str,
+        respuesta_a: int | None,
+        menciones: list[int] | None = None,
+        adjuntos: list[int] | None = None,
     ) -> tuple[dict, dict]:
         texto = (texto or "").strip()
-        if not texto:
+        adjuntos = list(dict.fromkeys(adjuntos or []))
+        if not texto and not adjuntos:
             raise HTTPException(status_code=422, detail="El mensaje está vacío.")
+        if len(adjuntos) > MAX_ADJUNTOS:
+            raise HTTPException(status_code=422, detail=f"Podés mandar hasta {MAX_ADJUNTOS} archivos por mensaje.")
         if len(texto) > MAX_TEXTO:
             raise HTTPException(status_code=422, detail=f"El mensaje supera los {MAX_TEXTO} caracteres.")
         yo = _yo(sesion)
@@ -400,9 +428,22 @@ class MensajeriaServices:
                 original = MensajeCanal.get(id=respuesta_a)
                 if original is None or original.canal.id != canal.id:
                     raise HTTPException(status_code=422, detail="El mensaje al que respondés no está en este canal.")
+            propios = []
+            for adjunto_id in adjuntos:
+                a = Adjunto.get(id=adjunto_id)
+                if (
+                    a is None
+                    or a.canal_id != canal.id
+                    or a.mensaje_id is not None
+                    or (a.subido_por_tipo, a.subido_por_id) != yo
+                ):
+                    raise HTTPException(status_code=422, detail="Uno de los archivos no es válido. Volvé a subirlo.")
+                propios.append(a)
             m = MensajeCanal(canal=canal, autor_tipo=yo[0], autor_id=yo[1], texto=texto, respuesta_a=respuesta_a)
             canal.ultimo_mensaje_en = datetime.utcnow()
             db.flush()
+            for a in propios:
+                a.mensaje_id = m.id
             self._marcar(canal.id, yo, m.id)
             if yo[0] == "admin":
                 # Escribir en el canal responde las alertas abiertas de quien escribe.
@@ -526,3 +567,63 @@ class MensajeriaServices:
             if men.respondida_en is None:
                 men.respondida_en = datetime.utcnow()
             return {"id": men.id, "respondida_en": _iso(men.respondida_en)}
+
+    def subir_adjunto(self, sesion: dict, canal_id: int, nombre: str, partes) -> dict:
+        """partes: iterable de bloques de bytes del archivo (se corta si pasa el tope)."""
+        nombre = almacen.nombre_seguro(nombre)
+        tipo = almacen.tipo_permitido(nombre)
+        if tipo is None:
+            raise HTTPException(
+                status_code=415,
+                detail="Ese tipo de archivo no se puede adjuntar. Probá con imagen, PDF, Office, audio, video o ZIP.",
+            )
+        yo = _yo(sesion)
+        _frenar_rafaga(("adjunto",) + yo)
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            if not self._puede_escribir(sesion, canal):
+                raise HTTPException(status_code=403, detail="En este canal escribe solo el equipo.")
+        relativo, ruta = almacen.nuevo_archivo(canal_id, nombre)
+        total = 0
+        try:
+            with open(ruta, "wb") as destino:
+                for bloque in partes:
+                    total += len(bloque)
+                    if total > almacen.MAX_BYTES:
+                        raise HTTPException(status_code=413, detail="El archivo pesa más de 25 MB.")
+                    destino.write(bloque)
+        except Exception:
+            ruta.unlink(missing_ok=True)
+            raise
+        if total == 0:
+            ruta.unlink(missing_ok=True)
+            raise HTTPException(status_code=422, detail="El archivo está vacío.")
+        with db_session:
+            a = Adjunto(
+                canal_id=canal_id,
+                subido_por_tipo=yo[0],
+                subido_por_id=yo[1],
+                nombre=nombre,
+                archivo=relativo,
+                tipo_mime=tipo,
+                tamano=total,
+            )
+            db.flush()
+            return _adjunto_dict(a)
+
+    def archivo_adjunto(self, adjunto_id: int, firma: str) -> tuple:
+        """Para la descarga: valida el link firmado y devuelve (ruta, nombre, tipo)."""
+        if not almacen.firma_valida(adjunto_id, firma):
+            raise HTTPException(status_code=403, detail="El link del archivo venció. Volvé a abrir el chat.")
+        with db_session:
+            a = Adjunto.get(id=adjunto_id)
+            if a is None:
+                raise HTTPException(status_code=404, detail="Archivo no encontrado.")
+            if a.mensaje_id is not None:
+                m = MensajeCanal.get(id=a.mensaje_id)
+                if m is None or m.borrado:
+                    raise HTTPException(status_code=404, detail="Archivo no encontrado.")
+            ruta = almacen.ruta_de(a.archivo)
+            if ruta is None:
+                raise HTTPException(status_code=404, detail="Archivo no encontrado.")
+            return ruta, a.nombre, a.tipo_mime

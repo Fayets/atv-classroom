@@ -281,3 +281,40 @@
 .msj-noti__x { flex: none; margin: 8px 8px 0 0; width: 22px; height: 22px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.06); color: #6e6e73; font-size: 10px; cursor: pointer; }
 @keyframes msj-noti-entra { from { opacity: 0; transform: translateX(24px); } }
 @media (prefers-reduced-motion: reduce) { .msj-noti { animation: none; } }
+
+/* ---------- adjuntos ---------- */
+.msj-adj { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; max-width: 520px; }
+.msj-adj__imgs { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.msj-adj__imgs.is-grilla { grid-template-columns: 1fr 1fr; }
+.msj-adj__img { display: block; overflow: hidden; border-radius: 12px; background: var(--m-panel); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.1); }
+.msj-adj__img img { display: block; width: 100%; max-height: 320px; object-fit: cover; }
+.msj-adj__imgs.is-grilla .msj-adj__img img { height: 180px; }
+.msj-adj__media { display: flex; flex-direction: column; gap: 4px; }
+.msj-adj__media audio { width: min(360px, 100%); }
+.msj-adj__media video { width: 100%; max-height: 320px; border-radius: 12px; background: #000; }
+.msj-adj__media span { font-size: 12px; color: var(--m-t3); }
+.msj-adj__archivo { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: #fff; color: var(--m-t1); text-decoration: none; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.04); max-width: 360px; }
+.msj-adj__archivo:hover { background: #fafafa; }
+.msj-adj__ext, .msj-subidas__ext { flex: none; width: 38px; height: 46px; display: grid; place-items: center; border-radius: 6px; background: #e9e9eb; color: var(--m-t2); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; }
+.msj-adj__ext.is-pdf { background: var(--m-acento-suave); color: var(--m-acento); }
+.msj-adj__info { min-width: 0; display: flex; flex-direction: column; }
+.msj-adj__info b { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msj-adj__info small { font-size: 12px; color: var(--m-t3); }
+
+.msj-clip { flex: none; align-self: flex-end; width: 32px; height: 32px; display: grid; place-items: center; margin-left: -8px; border: 0; border-radius: 50%; background: transparent; color: var(--m-t3); cursor: pointer; }
+.msj-clip:hover { background: rgba(0, 0, 0, 0.06); color: var(--m-t1); }
+
+.msj-subidas { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; padding: 0; list-style: none; }
+.msj-subidas li { position: relative; display: flex; align-items: center; gap: 10px; width: 240px; padding: 8px 30px 8px 8px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.14); overflow: hidden; }
+.msj-subidas li.is-error { box-shadow: 0 0 0 1px rgba(192, 57, 43, 0.5); }
+.msj-subidas img { flex: none; width: 38px; height: 46px; border-radius: 6px; object-fit: cover; }
+.msj-subidas__txt { min-width: 0; display: flex; flex-direction: column; }
+.msj-subidas__txt b { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msj-subidas__txt small { font-size: 11.5px; color: var(--m-t3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msj-subidas li.is-error small { color: var(--m-acento); }
+.msj-subidas__barra { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(0, 0, 0, 0.06); }
+.msj-subidas__barra i { display: block; height: 100%; background: var(--m-acento); transition: width 160ms linear; }
+.msj-subidas li button { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.06); color: var(--m-t3); font-size: 9px; cursor: pointer; }
+
+.msj-conv { position: relative; }
+.msj-soltar { position: absolute; inset: 8px; z-index: 6; display: grid; place-items: center; border-radius: 16px; border: 2px dashed rgba(192, 57, 43, 0.55); background: rgba(255, 255, 255, 0.86); backdrop-filter: blur(6px); color: var(--m-acento); font-size: 15px; font-weight: 600; pointer-events: none; }

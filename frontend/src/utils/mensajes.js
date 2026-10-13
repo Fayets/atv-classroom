@@ -80,3 +80,13 @@ export function normal(texto) {
 export function primerNombre(nombre) {
   return (nombre || '').trim().split(/\s+/)[0] || ''
 }
+
+export function peso(bytes) {
+  if (bytes == null) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`
+}
+
+export const ACEPTA_ADJUNTOS =
+  '.jpg,.jpeg,.png,.gif,.webp,.heic,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.mp3,.m4a,.ogg,.wav,.webm,.mp4,.mov,.zip'
