@@ -9,7 +9,7 @@ import { IconoCarpeta } from './Finder'
 const PASOS = [
   ['entro', 'Entró'],
   ['discord', 'Discord'],
-  ['skool', 'Skool'],
+  ['skool', 'Classroom'], // en el onboarding, skool_used ahora es "abrió el classroom"
   ['formulario', 'Formulario'],
 ]
 const ESTADOS = {
