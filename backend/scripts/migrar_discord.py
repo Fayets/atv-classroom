@@ -15,6 +15,7 @@ Así los clientes siguen el hilo donde lo dejaron y el cerebro aprende de toda l
 Uso (dentro del contenedor del backend):
     python -m scripts.migrar_discord /tmp/discord            # solo muestra qué haría
     python -m scripts.migrar_discord /tmp/discord --aplicar  # importa
+Opciones: --mapa=canal=cliente_id,...  (ata canales sin cliente)  ·  --alias="Viejo=Nuevo,..." (misma persona)
 """
 
 import json
@@ -102,8 +103,13 @@ def main() -> None:
     carpeta = Path(sys.argv[1])
     aplicar = "--aplicar" in sys.argv
     # --mapa canal=cliente_id: ata un canal a un cliente a mano (para probar o corregir uno suelto).
-    mapa_manual = {}
+    mapa_manual, alias = {}, {}
     for arg in sys.argv[2:]:
+        # --alias="Emi=Emi Enrique,Juan=juancarrizo": la misma persona con otro nombre en Discord.
+        if arg.startswith("--alias="):
+            for par in arg[len("--alias="):].split(","):
+                viejo, _, nuevo = par.partition("=")
+                alias[viejo.strip()] = nuevo.strip()
         if arg.startswith("--mapa="):
             for par in arg[len("--mapa="):].split(","):
                 canal, _, cid = par.partition("=")
@@ -136,7 +142,10 @@ def main() -> None:
         if not cid:
             sin_cliente.append(f"{programa}/{canal}")
             continue
-        transcripts.append({"programa": programa, "canal": canal, "cliente_id": cid, "carpeta": txt.parent, "mensajes": parsear(txt)})
+        mensajes = parsear(txt)
+        for m in mensajes:
+            m["autor"] = alias.get(m["autor"], m["autor"])
+        transcripts.append({"programa": programa, "canal": canal, "cliente_id": cid, "carpeta": txt.parent, "mensajes": mensajes})
 
     canales_de_autor = defaultdict(set)
     for t in transcripts:
