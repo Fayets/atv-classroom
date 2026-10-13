@@ -47,6 +47,7 @@ CUENTA_DE = {
 EQUIPO_SIEMPRE = {"Fayet", "Maite", "Juan"}
 NOMBRE_VISIBLE = {"thiagoazcc": "Thiago", "FedeGM": "Fede", "juancarrizo": "Juan Cruz"}
 PROGRAMAS_SIN_CLIENTE = {"updates"}
+PROGRAMAS = {"advantage", "avanzados", "boost", "mentoria", "principiantes", "updates"}
 
 _CABECERA = re.compile(r"^\[(\d{4}-\d\d-\d\d \d\d:\d\d)\] (.+)$")
 
@@ -119,8 +120,9 @@ def main() -> None:
     from src.storage import adjuntos as almacen
 
     directorio = {}
-    if (carpeta / "_directorio.json").exists():
-        directorio = json.loads((carpeta / "_directorio.json").read_text(encoding="utf-8"))
+    candidatos = sorted(carpeta.rglob("_directorio.json"), key=lambda p: len(p.parts))
+    if candidatos:
+        directorio = json.loads(candidatos[0].read_text(encoding="utf-8"))
 
     with db_session:
         filas = db.select("SELECT categoria, canal, cliente_id FROM clients.discord_transcripts")
@@ -133,14 +135,19 @@ def main() -> None:
         nombres_cliente = {c.id: (c.nombre or c.email) for c in list(ClienteExterno.select())}
 
     # 1) Leer todo
-    transcripts, sin_cliente = [], []
-    for txt in sorted(carpeta.glob("*/*/*.txt")):
-        programa, canal = txt.parent.parent.name, txt.parent.name
+    transcripts, sin_cliente = [], set()
+    for txt in sorted(carpeta.rglob("*.txt")):
+        if "adjuntos" in txt.parts:
+            continue
+        # <programa>/<canal>/<canal>.txt (actual) o <programa>/<canal>.txt (viejo), a cualquier profundidad.
+        canal = txt.parent.name if txt.parent.name == txt.stem else txt.stem
+        ancestros = [p.name for p in txt.parents]
+        programa = next((a for a in ancestros if a in PROGRAMAS), txt.parent.parent.name)
         if programa in PROGRAMAS_SIN_CLIENTE:
             continue
         cid = mapa_manual.get(canal) or cliente_de.get((programa, canal)) or cliente_por_canal.get(canal)
         if not cid:
-            sin_cliente.append(f"{programa}/{canal}")
+            sin_cliente.add(f"{programa}/{canal}")
             continue
         mensajes = parsear(txt)
         for m in mensajes:
@@ -173,7 +180,7 @@ def main() -> None:
                 texto = (texto + "\n" if texto else "") + "\n".join(notas)
             if not texto and not archivos:
                 continue
-            clave = (t["cliente_id"], m["fecha"], m["autor"], texto)
+            clave = (t["cliente_id"], m["fecha"], m["autor"], " ".join(texto.split()))
             if clave in vistos:
                 continue
             vistos.add(clave)
@@ -210,7 +217,7 @@ def main() -> None:
         for a in dudosos:
             print(f"  {a:22s} {len(canales_de_autor[a]):3d} canales")
     if sin_cliente:
-        print(f"\nCanales sin cliente en atv-clients (no se importan): {', '.join(sin_cliente)}")
+        print(f"\nCanales sin cliente en atv-clients (no se importan): {', '.join(sorted(sin_cliente))}")
     print("\nMensajes por cliente (los 10 con más):")
     for cid, n in por_cliente.most_common(10):
         print(f"  {nombres_cliente.get(cid, cid)}: {n}")
@@ -257,7 +264,7 @@ def main() -> None:
         execute_values(
             cur,
             f'INSERT INTO "{DB_SCHEMA}"."mensajes_canal" (id, canal, autor_tipo, autor_id, texto, borrado, creado_en, autor_nombre) VALUES %s',
-            [(x["id"], canal_de[x["cliente_id"]], x["autor_tipo"], x["autor_id"], x["texto"], False, x["fecha"], x["autor_nombre"]) for x in todos],
+            [(x["id"], canal_de[x["cliente_id"]], x["autor_tipo"], x["autor_id"], x["texto"] or "", False, x["fecha"], x["autor_nombre"]) for x in todos],
             page_size=1000,
         )
         copiados = 0
