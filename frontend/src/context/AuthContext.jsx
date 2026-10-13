@@ -51,6 +51,16 @@ export function AuthProvider({ children }) {
     [guardarSesion],
   )
 
+  // Cambios del propio perfil (foto, días) sin volver a loguearse.
+  const actualizarUsuario = useCallback((cambios) => {
+    setUser((u) => {
+      if (!u) return u
+      const nuevo = { ...u, ...cambios }
+      localStorage.setItem('atv_classroom_user', JSON.stringify(nuevo))
+      return nuevo
+    })
+  }, [])
+
   const logout = useCallback(() => {
     // Se avisa al backend con el token todavía guardado; no se espera la respuesta.
     if (getStoredToken()) logoutRequest()
@@ -70,8 +80,9 @@ export function AuthProvider({ children }) {
       login,
       loginGoogle,
       logout,
+      actualizarUsuario,
     }),
-    [token, user, login, loginGoogle, logout],
+    [token, user, login, loginGoogle, logout, actualizarUsuario],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

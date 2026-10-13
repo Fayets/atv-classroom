@@ -511,3 +511,19 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 .msj-modal__botones button.is-peligro { margin-right: auto; background: none; color: #d70015; }
 .msj-modal__botones button.is-peligro:hover { background: rgba(215, 0, 21, 0.08); }
 .msj-modal__fondo .msj-alerta__fondo { position: fixed; inset: 0; z-index: 210; }
+
+/* menú de la cuenta (avatar arriba a la derecha): foto, nombre, mail en una línea, plan y días */
+html .app-header__menu { width: 280px; min-width: 0; padding: 8px; border-radius: 14px; }
+html .app-header__menu-perfil { display: flex; align-items: center; gap: 12px; padding: 8px 8px 10px; }
+html .app-header__menu-foto { flex: none; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: linear-gradient(#e8e8ec, #d6d6dc); color: #3a3a3c; font-size: 15px; font-weight: 600; }
+html .app-header__menu-foto img { width: 100%; height: 100%; object-fit: cover; }
+html .app-header__menu-quien { min-width: 0; }
+html .app-header__menu-name { margin: 0; padding: 0; font-size: 15px; font-weight: 650; color: #1d1d1f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html .app-header__menu-email { margin: 2px 0 0; padding: 0; border: 0; font-size: 12.5px; color: #8e8e93; word-break: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html .app-header__menu-plan { display: flex; align-items: center; gap: 8px; margin: 0 8px 8px; padding: 8px 10px; border-radius: 10px; background: #f2f2f7; font-size: 12.5px; color: #1a7f37; font-weight: 600; font-variant-numeric: tabular-nums; }
+html .app-header__menu-plan .is-poco { color: #b25000; }
+html .app-header__menu-chip { padding: 2px 8px; border-radius: 999px; background: #fff; color: #1d1d1f; font-weight: 650; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.1); }
+html .app-header__menu-sep { height: 1px; margin: 2px 6px 6px; background: rgba(0, 0, 0, 0.08); }
+html .app-header__menu-link, html .app-header__menu-logout { margin: 0; padding: 8px 10px; border-radius: 8px; font-size: 14px; color: #1d1d1f; }
+html .app-header__menu-logout { color: #d70015; }
+html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color: #d70015; }

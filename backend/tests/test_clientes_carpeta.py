@@ -30,7 +30,7 @@ def test_la_ficha_trae_todo_y_nada_secreto():
     f = svc.ficha(cliente["id"])
     assert f["cliente"]["id"] == cliente["id"]
     assert "password_hash" not in f["cliente"] and "session_id" not in f["cliente"]
-    for parte in ("pagos", "cuotas", "observaciones", "proximos_pasos", "archivos", "mensajes"):
+    for parte in ("pagos", "cuotas", "observaciones", "proximos_pasos", "archivos"):
         assert isinstance(f[parte], list)
     assert {"clases_completadas", "ultimas_clases", "frentes", "consultas_guia"} <= f["classroom"].keys()
 

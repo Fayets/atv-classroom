@@ -1,7 +1,7 @@
 """Carpeta Clientes del escritorio del admin: una carpeta por cliente y, adentro, su ficha completa.
 
 Lee el esquema `clients` (lo que carga atv-clients: plan, pagos, cuotas, observaciones, tableros)
-y suma lo que pasa en el classroom (progreso, frentes, mensajes y consultas a la guía).
+y suma lo que pasa en el classroom (progreso, frentes y consultas a la guía).
 Es solo lectura: nada de acá modifica atv-clients.
 """
 
@@ -89,15 +89,6 @@ class ClientesServices:
         if c.get("fathoms_url") and not any(a["url"] == c["fathoms_url"] for a in archivos):
             archivos.append({"tipo": "fathom", "titulo": "Llamadas en Fathom", "url": c["fathoms_url"], "creado_en": None})
 
-        mensajes = []
-        for m in reversed(f["mensajes"] or []):
-            equipo = m["autor_tipo"] == "admin"
-            mensajes.append({
-                "autor": (m["admin"] or "Equipo") if equipo else (c.get("nombre") or "Cliente"),
-                "equipo": equipo,
-                "texto": (m["texto"] or "Archivo adjunto")[:300],
-                "creado_en": m["creado_en"],
-            })
         return {
             "cliente": c,
             "pagos": f["pagos"] or [],
@@ -111,7 +102,6 @@ class ClientesServices:
                 "frentes": f["frentes"] or [],
                 "consultas_guia": f["consultas_guia"] or [],
             },
-            "mensajes": mensajes,
             "chat": f"/mensajes?c={f['canal_id']}" if f["canal_id"] else None,
         }
 
@@ -143,9 +133,4 @@ _SQL_FICHA = """SELECT
      WHERE tipo_usuario = 'cliente' AND usuario_id = $id ORDER BY actualizado_en DESC) x) AS frentes,
   (SELECT json_agg(x)::text FROM (SELECT left(texto, 300) AS texto, creado_en FROM classroom.consultas_guia
      WHERE tipo_usuario = 'cliente' AND usuario_id = $id ORDER BY id DESC LIMIT 6) x) AS consultas_guia,
-  (SELECT id FROM classroom.canales WHERE cliente_id = $id) AS canal_id,
-  (SELECT json_agg(x)::text FROM (
-     SELECT m.autor_tipo, m.texto, m.creado_en, coalesce(a.nombre, a.email) AS admin
-     FROM classroom.mensajes_canal m JOIN classroom.canales k ON k.id = m.canal
-     LEFT JOIN classroom.admins a ON m.autor_tipo = 'admin' AND a.id = m.autor_id
-     WHERE k.cliente_id = $id AND NOT m.borrado ORDER BY m.id DESC LIMIT 8) x) AS mensajes"""
+  (SELECT id FROM classroom.canales WHERE cliente_id = $id) AS canal_id"""

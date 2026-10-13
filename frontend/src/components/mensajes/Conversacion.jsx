@@ -531,7 +531,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                 ? `Canal privado de ${item?.cliente?.nombre || canal.nombre} con el equipo`
                 : 'Tu canal privado con el equipo de ATV'
               : esGrupo
-                ? canal.descripcion || `Lo ven: ${(item?.roles || []).map(nombreRol).join(', ') || 'el equipo'}`
+                ? canal.descripcion || (isEquipo ? `Lo ven: ${(item?.roles || []).map(nombreRol).join(', ') || 'el equipo'}` : 'Canal de la comunidad ATV')
                 : canal.descripcion || 'Solo publica el equipo de ATV'}
           </span>
         </div>
@@ -552,7 +552,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                   ? 'Lo ven el cliente y todo el equipo de ATV.'
                   : 'Lo ven vos y el equipo de ATV. Escribí acá tus dudas, avances y entregables.'
                 : esGrupo
-                  ? `Canal grupal. Lo ven: ${(item?.roles || []).map(nombreRol).join(', ') || 'el equipo'}.`
+                  ? isEquipo
+                    ? `Canal grupal. Lo ven: ${(item?.roles || []).map(nombreRol).join(', ') || 'el equipo'}.`
+                    : 'Un espacio para hablar con el equipo y con otros clientes de ATV.'
                   : 'Novedades del equipo de ATV para todos los clientes.'}
             </span>
           </div>

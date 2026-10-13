@@ -6,6 +6,8 @@ import { useMensajeria } from '../context/MensajeriaContext'
 import '../styles/mensajes.css'
 import { getUserInitials } from '../utils/user'
 
+const PLANES = { advantage: 'High Level', high: 'High Level', boost: 'Boost', mid: 'Mid level', entry: 'Entry level', mentoria: 'Mentoria' }
+
 export default function AppHeader() {
   const { user, logout, isAdmin, isEquipo } = useAuth()
   const { resumen, habilitada } = useMensajeria()
@@ -151,12 +153,33 @@ export default function AppHeader() {
 
         {menuOpen ? (
           <div className="app-header__menu" role="menu">
-            {user?.nombre ? (
-              <p className="app-header__menu-name">{user.nombre}</p>
+            <div className="app-header__menu-perfil">
+              <span className="app-header__menu-foto" aria-hidden="true">
+                {user?.foto_url ? <img src={user.foto_url} alt="" referrerPolicy="no-referrer" /> : initials}
+              </span>
+              <div className="app-header__menu-quien">
+                {user?.nombre ? <p className="app-header__menu-name">{user.nombre}</p> : null}
+                {user?.email ? (
+                  <p className="app-header__menu-email" title={user.email}>
+                    {user.email}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            {!isEquipo && (PLANES[user?.rol] || user?.dias_restantes != null) ? (
+              <div className="app-header__menu-plan">
+                {PLANES[user?.rol] ? <span className="app-header__menu-chip">{PLANES[user.rol]}</span> : null}
+                {user?.dias_restantes != null ? (
+                  <span className={user.dias_restantes <= 15 ? 'is-poco' : ''}>
+                    {user.dias_restantes < 0 ? 'Acceso vencido' : `${user.dias_restantes} ${user.dias_restantes === 1 ? 'día' : 'días'} de acceso`}
+                  </span>
+                ) : null}
+              </div>
             ) : null}
-            {user?.email ? (
-              <p className="app-header__menu-email">{user.email}</p>
-            ) : null}
+            <div className="app-header__menu-sep" />
+            <Link to="/cuenta" className="app-header__menu-link" role="menuitem" onClick={() => setMenuOpen(false)}>
+              Mi cuenta
+            </Link>
             {isAdmin && !secciones && !escritorio ? (
               <Link
                 to="/admin"

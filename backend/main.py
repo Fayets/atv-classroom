@@ -11,6 +11,7 @@ from src.controllers.admin_controller import router as admin_router
 from src.controllers.auth_controller import router as auth_router
 from src.controllers.cerebro_controller import router as cerebro_router
 from src.controllers.clientes_controller import router as clientes_router
+from src.controllers.cuenta_controller import router as cuenta_router
 from src.controllers.chat_controller import router as chat_router
 from src.controllers.clase_controller import router as clase_router
 from src.controllers.equipo_controller import router as equipo_router
@@ -87,6 +88,7 @@ app.include_router(admin_router)
 app.include_router(equipo_router)
 app.include_router(cerebro_router)
 app.include_router(clientes_router)
+app.include_router(cuenta_router)
 app.include_router(sugerencias_router)
 app.include_router(programa_router)
 app.include_router(clase_router)

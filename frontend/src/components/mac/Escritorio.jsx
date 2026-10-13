@@ -143,7 +143,10 @@ export default function Escritorio({ children }) {
   const [dockVisible, setDockVisible] = useState(false)
   const ocultar = useRef(null)
   const iconos = useRef([])
-  const fijo = visible !== 'abierta'
+  const [finder, setFinder] = useState(false)
+  // Fijo solo si no queda ninguna ventana a la vista (sin el Dock no habría cómo volver).
+  // Con la carpeta Clientes abierta hay una ventana: el Dock se esconde como siempre.
+  const fijo = visible !== 'abierta' && !finder
 
   // Solo el teclado (Tab) deja el Dock fijo: un clic no tiene que dejarlo trabado arriba.
   function mostrarDock() {
@@ -183,7 +186,6 @@ export default function Escritorio({ children }) {
   }
 
   // Carpeta Clientes (solo admin): ícono en el escritorio, pila en el Dock y su ventana de Finder.
-  const [finder, setFinder] = useState(false)
   const [finderFrente, setFinderFrente] = useState(false)
   const [iconoSel, setIconoSel] = useState(false)
   function abrirClientes() {

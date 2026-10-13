@@ -12,6 +12,7 @@ import { setUnauthorizedHandler } from './api/client'
 import Escritorio from './components/mac/Escritorio'
 import AdminRoute from './components/AdminRoute'
 import ProtectedRoute from './components/ProtectedRoute'
+import CuentaPage from './pages/CuentaPage'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { EscritorioProvider, useEscritorio } from './context/EscritorioContext'
 import { MensajeriaProvider } from './context/MensajeriaContext'
@@ -139,6 +140,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <FrentePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cuenta"
+          element={
+            <ProtectedRoute>
+              <CuentaPage />
             </ProtectedRoute>
           }
         />

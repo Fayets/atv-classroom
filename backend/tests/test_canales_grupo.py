@@ -152,3 +152,11 @@ def test_un_coach_no_borra_canales_de_clientes_ni_anuncios(equipo):
     with pytest.raises(HTTPException) as e:
         svc.borrar_canal(equipo["coach"], canal["id"])  # lo ve (rol equipo) pero no lo creó
     assert e.value.status_code == 403
+
+
+def test_el_cliente_no_recibe_los_roles_del_canal(equipo):
+    canal = svc.crear_canal_grupo(equipo["admin"], f"{_P}-sin-roles", None, ["equipo", "boost"])
+    visto = next(c for c in svc.listar_canales(BOOST) if c["id"] == canal["id"])
+    assert visto["roles"] is None and visto["creado_por"] is None
+    visto_equipo = next(c for c in svc.listar_canales(equipo["admin"]) if c["id"] == canal["id"])
+    assert visto_equipo["roles"] == ["equipo", "boost"]

@@ -234,19 +234,6 @@ function Ficha({ id, alAbrirChat }) {
         ) : null}
       </Seccion>
 
-      {ficha.mensajes.length ? (
-        <Seccion titulo="Últimos mensajes">
-          <ul className="fd-burbujas">
-            {ficha.mensajes.map((m, i) => (
-              <li key={i} className={m.equipo ? 'is-equipo' : ''}>
-                <small>{m.autor} · {fecha(m.creado_en)}</small>
-                <p>{m.texto}</p>
-              </li>
-            ))}
-          </ul>
-          {ficha.chat ? <button type="button" className="fd-boton" onClick={() => alAbrirChat(ficha.chat)}>Abrir el chat</button> : null}
-        </Seccion>
-      ) : null}
     </div>
   )
 }

@@ -365,3 +365,17 @@ class SugerenciaIA(db.Entity):
     ms = Optional(int, nullable=True)
     modelo = Optional(str, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class FotoPerfil(db.Entity):
+    """Foto de perfil subida desde "Mi cuenta". Vive en el classroom (no toca atv-clients) y, para el
+    equipo, manda por encima de la foto de Google."""
+
+    _table_ = (DB_SCHEMA, "fotos_perfil")
+
+    id = PrimaryKey(int, auto=True)
+    tipo = Required(str)  # cliente | admin
+    usuario_id = Required(int)
+    archivo = Required(str, unique=True)
+    actualizado_en = Required(datetime, default=datetime.utcnow)
+    composite_key(tipo, usuario_id)

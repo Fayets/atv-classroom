@@ -327,11 +327,19 @@ def _validar_token(token: str) -> dict:
     }
 
 
+def _foto_cliente(cliente_id: int) -> str | None:
+    from src.services.cuenta_service import foto_de
+
+    return foto_de("cliente", cliente_id)
+
+
 def obtener_perfil_sesion(sesion: dict) -> dict:
     if es_equipo(sesion):
         with db_session:
             admin = Admin.get(id=sesion["usuario_id"])
-            foto = admin.foto_url if admin else None
+            from src.services.cuenta_service import foto_de
+
+            foto = foto_de("admin", sesion["usuario_id"], admin.foto_url if admin else None)
         return {
             "usuario_id": sesion["usuario_id"],
             "nombre": sesion["nombre"],
@@ -355,4 +363,5 @@ def obtener_perfil_sesion(sesion: dict) -> dict:
             "rol": sesion["rol"],
             "dias_restantes": _calcular_dias_restantes(fecha_vencimiento),
             "fecha_vencimiento": fecha_vencimiento.isoformat() if fecha_vencimiento else None,
+            "foto_url": _foto_cliente(sesion["usuario_id"]),
         }

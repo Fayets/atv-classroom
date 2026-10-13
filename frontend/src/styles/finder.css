@@ -116,11 +116,5 @@
 .fd-lista p { margin: 2px 0 0; white-space: pre-wrap; }
 .fd-nota { margin: 0 0 8px; white-space: pre-wrap; }
 .fd-sub { margin: 14px 0 0; font-size: 12px; color: #8e8e93; font-weight: 600; }
-.fd-burbujas { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
-.fd-burbujas li { max-width: 80%; padding: 7px 11px; border-radius: 14px; background: #e9e9eb; justify-self: start; }
-.fd-burbujas li.is-equipo { justify-self: end; background: #c0392b; color: #fff; }
-.fd-burbujas li.is-equipo small { color: rgba(255, 255, 255, 0.75); }
-.fd-burbujas small { color: #8e8e93; font-size: 11px; }
-.fd-burbujas p { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .fd-boton { margin-top: 12px; padding: 6px 14px; border: 0; border-radius: 7px; background: #c0392b; color: #fff; font: inherit; font-weight: 600; cursor: default; }
 .fd-ficha a { color: #0a64d6; }

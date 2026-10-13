@@ -19,6 +19,7 @@ from src.db import DB_SCHEMA, db
 from src.models import Adjunto, Admin, Canal, ClienteExterno, LecturaCanal, Mencion, MensajeCanal
 from src.storage import adjuntos as almacen
 from src.services.auth_service import _emails_del_cliente, _tiene_acceso, es_equipo
+from src.services.cuenta_service import foto_de, fotos_de
 from src.services.roles_canal import validar_roles
 from src.services.tiempo_real import puede_ver
 
@@ -136,7 +137,7 @@ class _Autores:
                     "tipo": "equipo",
                     "id": autor_id,
                     "nombre": (a.nombre or a.email) if a else "Equipo ATV",
-                    "foto_url": a.foto_url if a else None,
+                    "foto_url": foto_de("admin", autor_id, a.foto_url if a else None),
                     "rol": (a.rol or "admin") if a else None,
                     "area": a.area if a else None,
                 }
@@ -146,7 +147,7 @@ class _Autores:
                     "tipo": "cliente",
                     "id": autor_id,
                     "nombre": (c.nombre or c.email) if c else "Cliente",
-                    "foto_url": None,
+                    "foto_url": foto_de("cliente", autor_id),
                     "rol": None,
                     "area": None,
                 }
@@ -287,9 +288,10 @@ def _normal(texto: str) -> str:
 def equipo_para_mencionar() -> list[dict]:
     """El equipo activo, para el autocompletado de @ (lo ven también los clientes)."""
     equipo = []
+    subidas = fotos_de("admin")
     for a in list(Admin.select()):
         if a.activo and a.nombre:
-            equipo.append({"id": a.id, "nombre": a.nombre, "area": a.area, "rol": a.rol or "admin", "foto_url": a.foto_url})
+            equipo.append({"id": a.id, "nombre": a.nombre, "area": a.area, "rol": a.rol or "admin", "foto_url": subidas.get(a.id) or a.foto_url})
     equipo.sort(key=lambda m: m["nombre"].lower())
     return equipo
 
@@ -387,8 +389,9 @@ class MensajeriaServices:
                         "no_leidos": datos.get("no_leidos", 0),
                         "menciones": datos.get("menciones", 0),
                         "esperando_desde": _iso(datos.get("esperando_desde")),
-                        "roles": _roles_de(canal) if canal.tipo == "grupo" else None,
-                        "creado_por": canal.creado_por,
+                        # Quién ve el canal es cosa del equipo: al cliente no se le manda.
+                        "roles": _roles_de(canal) if canal.tipo == "grupo" and equipo else None,
+                        "creado_por": canal.creado_por if equipo else None,
                         "puede_administrar": self._puede_administrar(sesion, canal),
                     }
                 )
