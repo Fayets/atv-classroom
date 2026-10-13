@@ -22,6 +22,11 @@ def test_el_equipo_ve_los_onboardings_con_su_avance():
         assert "respuestas" in OnboardingsServices().detalle({"usuario_id": 1, "rol": "coach"}, o["id"])
 
 
+def test_trae_todos_los_formularios_para_el_zip():
+    forms = OnboardingsServices().formularios({"usuario_id": 1, "rol": "admin"})
+    assert all({"client_name", "form_data", "submitted_at"} <= f.keys() for f in forms)
+
+
 def test_un_cliente_no_ve_los_onboardings():
     with pytest.raises(HTTPException):
         OnboardingsServices().listar({"usuario_id": 1, "rol": "boost"})

@@ -68,3 +68,19 @@ class OnboardingsServices:
                 respuestas = json.loads(respuestas)
             datos["respuestas"] = respuestas or {}
             return datos
+
+    def formularios(self, sesion: dict) -> list[dict]:
+        """Todos los formularios completos, para descargarlos juntos en un zip (como en atv-onboarding)."""
+        _equipo(sesion)
+        with db_session:
+            filas = db.select(
+                "SELECT DISTINCT ON (s.id) s.id::text, s.client_name, s.client_email, s.plan, f.submitted_at, f.form_data "
+                "FROM onboarding.sessions s JOIN onboarding.forms f ON f.session_id = s.id "
+                "ORDER BY s.id, f.submitted_at DESC NULLS LAST"
+            )
+        salida = []
+        for sid, nombre, email, plan, enviado, datos in filas:
+            if isinstance(datos, str):
+                datos = json.loads(datos)
+            salida.append({"id": sid, "client_name": nombre, "client_email": email, "plan": plan, "submitted_at": enviado.isoformat() if enviado else None, "form_data": datos or {}})
+        return salida
