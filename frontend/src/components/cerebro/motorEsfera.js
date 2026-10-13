@@ -17,6 +17,7 @@ export const TIPOS = {
 const CAPA = { modulo: 0, coach: 1, frente: 1, plan: 1, nicho: 1, clase: 2, concepto: 2, cliente: 3, solicitud: 3 }
 const RADIO_CAPA = [95, 185, 285, 370]
 const MORPH_MS = 1100
+const POR_NODO = 11 // conexiones por neurona que se ven en reposo
 const SPRITE = 64
 const FUENTE = '11.5px -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif'
 const FUENTE_CENTRO = '600 12.5px -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif'
@@ -120,6 +121,170 @@ function nube(nodos, enlaces, pasos = 300) {
   return p
 }
 
+// Las miles de conexiones (y el fondo) van en WebGL, en un canvas debajo: la placa de video las dibuja
+// todas en una sola llamada, y el canvas 2D de arriba queda solo para neuronas y etiquetas.
+const VS_LINEAS = `
+attribute vec3 a_p;
+attribute float a_v;
+uniform vec4 u_rot;
+uniform vec4 u_cam;
+varying float v_z;
+varying float v_v;
+void main() {
+  float x1 = a_p.x * u_rot.x + a_p.z * u_rot.y;
+  float z1 = -a_p.x * u_rot.y + a_p.z * u_rot.x;
+  float y2 = a_p.y * u_rot.z - z1 * u_rot.w;
+  float z2 = a_p.y * u_rot.w + z1 * u_rot.z;
+  float s = 1150.0 / (1150.0 - z2) * u_cam.x;
+  vec2 px = vec2(u_cam.y + x1 * s, u_cam.w * 0.5 + y2 * s);
+  gl_Position = vec4(px.x / u_cam.z * 2.0 - 1.0, 1.0 - px.y / u_cam.w * 2.0, 0.0, 1.0);
+  v_z = clamp((z2 / 380.0 + 1.0) / 2.0, 0.0, 1.0);
+  v_v = a_v;
+}`
+const FS_LINEAS = `
+precision mediump float;
+uniform float u_k;
+varying float v_z;
+varying float v_v;
+void main() {
+  if (v_v < 0.5) discard;
+  float a = (0.03 + 0.17 * v_z) * u_k;
+  gl_FragColor = vec4(a, 0.588 * a, 0.51 * a, a);
+}`
+const VS_FONDO = `
+attribute vec2 a_q;
+varying vec2 v_t;
+void main() { v_t = vec2(a_q.x * 0.5 + 0.5, 0.5 - a_q.y * 0.5); gl_Position = vec4(a_q, 0.0, 1.0); }`
+const FS_FONDO = `
+precision mediump float;
+uniform sampler2D u_t;
+varying vec2 v_t;
+void main() { gl_FragColor = texture2D(u_t, v_t); }`
+
+class CapaGL {
+  static crear(canvas2d) {
+    try {
+      const c = document.createElement('canvas')
+      c.className = canvas2d.className + ' cb-canvas-gl'
+      c.setAttribute('aria-hidden', 'true')
+      c.style.pointerEvents = 'none'
+      const gl = c.getContext('webgl', { alpha: false, antialias: true, premultipliedAlpha: true, powerPreference: 'high-performance' })
+      if (!gl) return null
+      canvas2d.parentNode.insertBefore(c, canvas2d)
+      return new CapaGL(c, gl)
+    } catch {
+      return null
+    }
+  }
+
+  constructor(c, gl) {
+    this.c = c
+    this.gl = gl
+    const prog = (vs, fs) => {
+      const p = gl.createProgram()
+      for (const [tipo, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+        const sh = gl.createShader(tipo)
+        gl.shaderSource(sh, src)
+        gl.compileShader(sh)
+        gl.attachShader(p, sh)
+      }
+      gl.linkProgram(p)
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p))
+      return p
+    }
+    this.pl = prog(VS_LINEAS, FS_LINEAS)
+    this.pf = prog(VS_FONDO, FS_FONDO)
+    this.u = {
+      rot: gl.getUniformLocation(this.pl, 'u_rot'),
+      cam: gl.getUniformLocation(this.pl, 'u_cam'),
+      k: gl.getUniformLocation(this.pl, 'u_k'),
+    }
+    this.aP = gl.getAttribLocation(this.pl, 'a_p')
+    this.aV = gl.getAttribLocation(this.pl, 'a_v')
+    this.aQ = gl.getAttribLocation(this.pf, 'a_q')
+    this.bP = gl.createBuffer()
+    this.bV = gl.createBuffer()
+    this.bQ = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.bQ)
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW)
+    this.tex = gl.createTexture()
+    this.n = 0
+    this.posData = new Float32Array(0)
+    this.visData = new Float32Array(0)
+  }
+
+  medir(w, h, fondo) {
+    const { gl } = this
+    this.c.width = w
+    this.c.height = h
+    gl.viewport(0, 0, w, h)
+    gl.bindTexture(gl.TEXTURE_2D, this.tex)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fondo)
+  }
+
+  /** Posiciones 3D de las puntas de cada conexión: solo cambian al cargar o al cambiar de forma. */
+  posiciones(enlaces, pos) {
+    const n = enlaces.length * 2
+    if (this.posData.length !== n * 3) this.posData = new Float32Array(n * 3)
+    const d = this.posData
+    let k = 0
+    for (const e of enlaces) {
+      d[k++] = pos[e.ia * 3]; d[k++] = pos[e.ia * 3 + 1]; d[k++] = pos[e.ia * 3 + 2]
+      d[k++] = pos[e.ib * 3]; d[k++] = pos[e.ib * 3 + 1]; d[k++] = pos[e.ib * 3 + 2]
+    }
+    const { gl } = this
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.bP)
+    gl.bufferData(gl.ARRAY_BUFFER, d, gl.DYNAMIC_DRAW)
+    this.n = n
+  }
+
+  /** Qué conexiones se ven (tipos ocultos, "ver cómo creció", las de la neurona elegida van aparte). */
+  visibles(enlaces, ve) {
+    const n = enlaces.length * 2
+    if (this.visData.length !== n) this.visData = new Float32Array(n)
+    const d = this.visData
+    for (let k = 0; k < enlaces.length; k++) d[k * 2] = d[k * 2 + 1] = ve(enlaces[k]) ? 1 : 0
+    const { gl } = this
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.bV)
+    gl.bufferData(gl.ARRAY_BUFFER, d, gl.DYNAMIC_DRAW)
+  }
+
+  dibujar(cam, esc, cx, W, H, k) {
+    const { gl } = this
+    gl.disable(gl.BLEND)
+    gl.useProgram(this.pf)
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.bQ)
+    gl.enableVertexAttribArray(this.aQ)
+    gl.vertexAttribPointer(this.aQ, 2, gl.FLOAT, false, 0, 0)
+    gl.bindTexture(gl.TEXTURE_2D, this.tex)
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    gl.disableVertexAttribArray(this.aQ)
+    if (!this.n) return
+    gl.useProgram(this.pl)
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.ONE, gl.ONE) // aditivo, como 'lighter'
+    gl.uniform4f(this.u.rot, Math.cos(cam.yaw), Math.sin(cam.yaw), Math.cos(cam.pitch), Math.sin(cam.pitch))
+    gl.uniform4f(this.u.cam, esc, cx, W, H)
+    gl.uniform1f(this.u.k, k)
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.bP)
+    gl.enableVertexAttribArray(this.aP)
+    gl.vertexAttribPointer(this.aP, 3, gl.FLOAT, false, 0, 0)
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.bV)
+    gl.enableVertexAttribArray(this.aV)
+    gl.vertexAttribPointer(this.aV, 1, gl.FLOAT, false, 0, 0)
+    gl.drawArrays(gl.LINES, 0, this.n)
+  }
+
+  destruir() {
+    this.gl.getExtension('WEBGL_lose_context')?.loseContext()
+    this.c.remove()
+  }
+}
+
 export class MotorGrafo {
   constructor(canvas, { alSeleccionar, alHover } = {}) {
     this.canvas = canvas
@@ -164,6 +329,14 @@ export class MotorGrafo {
       this.sprites[t] = c
     }
     this.fondo = document.createElement('canvas')
+    this._fondoVersion = 0
+    this.etiquetas = new Map()
+    this.canvas.style.background = '#120b0d'
+    this.capa = CapaGL.crear(canvas)
+    if (this.capa) this.canvas.style.background = 'transparent'
+    this._visClave = ''
+    this._posVersion = 0
+    this._posSubida = -1
 
     this._cuadro = this._cuadro.bind(this)
     this._eventos()
@@ -198,6 +371,20 @@ export class MotorGrafo {
     capa(W * 0.82, H * 1.08, Math.max(W, H) * 0.62, 'rgba(214, 70, 58, 0.42)')
     capa(W * 0.08, -H * 0.12, Math.max(W, H) * 0.5, 'rgba(120, 128, 168, 0.32)')
     capa(W * 0.5, H * 0.5, Math.min(W, H) * 0.62, 'rgba(110, 28, 28, 0.42)')
+    this.etiquetas = new Map() // el tamaño de pixel cambió: las etiquetas se vuelven a rasterizar
+    if (this.capa) {
+      this.capa.medir(this.canvas.width, this.canvas.height, this.fondo)
+      return
+    }
+    // Sin WebGL, el fondo va detrás del canvas como imagen: copiarlo en cada cuadro costaba tanto como el grafo.
+    const yo = ++this._fondoVersion
+    this.fondo.toBlob((b) => {
+      if (!b || yo !== this._fondoVersion || !this.vivo) return
+      if (this._fondoUrl) URL.revokeObjectURL(this._fondoUrl)
+    this.capa?.destruir()
+      this._fondoUrl = URL.createObjectURL(b)
+      this.canvas.style.background = `#120b0d url(${this._fondoUrl}) center / 100% 100% no-repeat`
+    })
   }
 
   /** Carga o actualiza el grafo. Lo que ya estaba conserva su lugar; lo nuevo nace brillando. */
@@ -223,6 +410,25 @@ export class MotorGrafo {
       a.n.vecinos.add(b.i); b.n.vecinos.add(a.i)
     }
     for (const n of lista) n.r = TIPOS[n.tipo]?.base * (1 + Math.sqrt(n.grado) * 0.16) || 3
+    // En reposo no se dibujan las miles de conexiones: cada neurona muestra sus POR_NODO vínculos con
+    // las neuronas más conectadas. La que tocás o elegís muestra todas las suyas.
+    const elegidos = new Set()
+    const porNodo = lista.map(() => [])
+    links.forEach((e, k) => {
+      porNodo[e.ia].push(k)
+      porNodo[e.ib].push(k)
+    })
+    porNodo.forEach((ks, i) => {
+      ks.sort((x, y) => {
+        const ox = links[x].ia === i ? links[x].ib : links[x].ia
+        const oy = links[y].ia === i ? links[y].ib : links[y].ia
+        return lista[oy].grado - lista[ox].grado
+      })
+      for (const k of ks.slice(0, POR_NODO)) elegidos.add(k)
+    })
+    this.enlacesReposo = [...elegidos].map((k) => links[k])
+    this.porNodo = porNodo
+    this.etiquetas = new Map()
     const cambioEstructura = lista.length !== this.nodos.length || links.length !== this.enlaces.length || lista.some((n) => n._previo < 0)
     const selId = this.sel >= 0 ? this.nodos[this.sel]?.id : null
     this.nodos = lista
@@ -244,6 +450,8 @@ export class MotorGrafo {
       if (n._previo >= 0 && posPrevia.length) pos.set(posPrevia.subarray(n._previo * 3, n._previo * 3 + 3), n.i * 3)
     }
     this.pos = pos
+    this._posVersion++
+    this._visClave = ''
     if (cambioEstructura || !this.formas[this.formaActual]) {
       this.formas = {}
       this.forma(this.formaActual, posPrevia.length > 0)
@@ -315,6 +523,8 @@ export class MotorGrafo {
     this.vivo = false
     cancelAnimationFrame(this.raf)
     this.ro.disconnect()
+    if (this._fondoUrl) URL.revokeObjectURL(this._fondoUrl)
+    this.capa?.destruir()
     this._quitarEventos?.()
   }
 
@@ -334,6 +544,7 @@ export class MotorGrafo {
       const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2
       const d = this.desde, h = this.hacia, p = this.pos
       for (let i = 0; i < N * 3; i++) p[i] = d[i] + (h[i] - d[i]) * e
+      this._posVersion++
       if (k >= 1) this.hacia = null
     }
 
@@ -421,7 +632,7 @@ export class MotorGrafo {
     ctx.setTransform(1, 0, 0, 1, 0, 0)
     ctx.globalCompositeOperation = 'source-over'
     ctx.globalAlpha = 1
-    ctx.drawImage(this.fondo, 0, 0)
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
 
     const centro = this.sel >= 0 ? this.sel : this.hover
@@ -430,53 +641,88 @@ export class MotorGrafo {
     const apagar = 1 - 0.82 * this.foco
     const vis = (i) => this._visible(i) && this._nacio(i)
 
-    // Conexiones en 3 bandas de profundidad: atrás casi invisibles, adelante nítidas.
     ctx.globalCompositeOperation = 'lighter'
-    ctx.lineWidth = 0.7
-    for (let banda = 0; banda < 3; banda++) {
-      ctx.beginPath()
-      for (const e of enlaces) {
-        if (!vis(e.ia) || !vis(e.ib)) continue
-        if (centro >= 0 && (e.ia === centro || e.ib === centro)) continue
-        const z = (proy[e.ia * 4 + 3] + proy[e.ib * 4 + 3]) / 2
-        if (Math.min(2, Math.floor(z * 3)) !== banda) continue
-        ctx.moveTo(proy[e.ia * 4], proy[e.ia * 4 + 1])
-        ctx.lineTo(proy[e.ib * 4], proy[e.ib * 4 + 1])
+    if (this.capa) {
+      // Todas las conexiones en la placa de video. Solo se vuelve a subir lo que cambió.
+      if (this._posSubida !== this._posVersion) {
+        this.capa.posiciones(enlaces, this.pos)
+        this._posSubida = this._posVersion
       }
-      ctx.strokeStyle = `rgba(255, 150, 130, ${(0.03 + banda * 0.045) * apagar})`
-      ctx.stroke()
-    }
+      const clave = `${centro}|${[...this.ocultos].join()}|${this.aparece == null ? '' : Math.floor(this.aparece)}`
+      if (clave !== this._visClave) {
+        this.capa.visibles(enlaces, (e) => vis(e.ia) && vis(e.ib) && !(centro >= 0 && (e.ia === centro || e.ib === centro)))
+        this._visClave = clave
+      }
+      const esc = (Math.min(W, H) / 900) * this.cam.zoom
+      this.capa.dibujar(this.cam, esc * this.dpr, (W / 2 + (this.cam.ox || 0)) * this.dpr, this.canvas.width, this.canvas.height, apagar * 1.4)
+    } else this._enlaces2D(centro, vis, apagar)
     if (centro >= 0) {
-      ctx.beginPath()
-      for (const e of enlaces) {
-        if (e.ia !== centro && e.ib !== centro) continue
+      const suyas = new Path2D()
+      for (const k of this.porNodo[centro]) {
+        const e = enlaces[k]
         if (!vis(e.ia) || !vis(e.ib)) continue
-        ctx.moveTo(proy[e.ia * 4], proy[e.ia * 4 + 1])
-        ctx.lineTo(proy[e.ib * 4], proy[e.ib * 4 + 1])
+        suyas.moveTo(proy[e.ia * 4], proy[e.ia * 4 + 1])
+        suyas.lineTo(proy[e.ib * 4], proy[e.ib * 4 + 1])
       }
       ctx.strokeStyle = `rgba(255, 130, 110, ${0.25 + 0.5 * this.foco})`
       ctx.lineWidth = 1.2
-      ctx.stroke()
+      ctx.stroke(suyas)
     }
+    this._neuronas(t, centro, resaltado, apagar, vis)
+    this._etiquetas(centro, cerca, apagar, vis)
+  }
 
-    // Neuronas de atrás hacia adelante, con brillo aditivo.
+  // Sin WebGL: una sola pasada que arma dos trazos (medio y adelante) con las conexiones principales.
+  _enlaces2D(centro, vis, apagar) {
+    const { ctx, proy } = this
+    ctx.lineWidth = 0.7
+    const medio = new Path2D(), frente = new Path2D()
+    for (const e of this.enlacesReposo || this.enlaces) {
+      const z = (proy[e.ia * 4 + 3] + proy[e.ib * 4 + 3]) / 2
+      if (z < 1 / 3) continue
+      if (centro >= 0 && (e.ia === centro || e.ib === centro)) continue
+      if (!vis(e.ia) || !vis(e.ib)) continue
+      const p = z < 2 / 3 ? medio : frente
+      p.moveTo(proy[e.ia * 4], proy[e.ia * 4 + 1])
+      p.lineTo(proy[e.ib * 4], proy[e.ib * 4 + 1])
+    }
+    ctx.strokeStyle = `rgba(255, 150, 130, ${0.13 * apagar})`
+    ctx.stroke(medio)
+    ctx.strokeStyle = `rgba(255, 150, 130, ${0.22 * apagar})`
+    ctx.stroke(frente)
+  }
+
+  _neuronas(t, centro, resaltado, apagar, vis) {
+    const { ctx, proy, nodos } = this
+
+    // Neuronas de atrás hacia adelante. Primero todos los brillos (aditivos), después los núcleos:
+    // así el modo de mezcla cambia dos veces por cuadro y no dos veces por neurona.
     const orden = this.ordenZ
     orden.sort((a, b) => proy[a * 4 + 3] - proy[b * 4 + 3])
+    if (!this._alfa || this._alfa.length !== nodos.length) this._alfa = new Float32Array(nodos.length)
+    const A = this._alfa
     for (const i of orden) {
-      if (!vis(i)) continue
-      const n = nodos[i]
-      const z = proy[i * 4 + 3], s = proy[i * 4 + 2]
-      let a = 0.22 + 0.78 * z
+      if (!vis(i)) { A[i] = 0; continue }
+      let a = 0.22 + 0.78 * proy[i * 4 + 3]
       if (!resaltado(i)) a *= apagar
       if (this.aparece != null) a *= Math.min(1, this.aparece - this.rangoNacimiento[i])
-      const rr = n.r * s
-      const tam = rr * 5.2
+      A[i] = a
+    }
+    ctx.globalCompositeOperation = 'lighter'
+    for (const i of orden) {
+      if (A[i] <= 0) continue
+      const n = nodos[i]
+      const tam = n.r * proy[i * 4 + 2] * 5.2
+      ctx.globalAlpha = A[i] * 0.75
+      ctx.drawImage(this.sprites[n.tipo] || this.sprites.clase, proy[i * 4] - tam / 2, proy[i * 4 + 1] - tam / 2, tam, tam)
+    }
+    ctx.globalCompositeOperation = 'source-over'
+    for (const i of orden) {
+      if (A[i] <= 0) continue
+      const n = nodos[i]
+      const rr = n.r * proy[i * 4 + 2]
       const x = proy[i * 4], y = proy[i * 4 + 1]
-      ctx.globalCompositeOperation = 'lighter'
-      ctx.globalAlpha = a * 0.75
-      ctx.drawImage(this.sprites[n.tipo] || this.sprites.clase, x - tam / 2, y - tam / 2, tam, tam)
-      ctx.globalCompositeOperation = 'source-over'
-      ctx.globalAlpha = a
+      ctx.globalAlpha = A[i]
       ctx.fillStyle = TIPOS[n.tipo]?.color || '#fff'
       ctx.beginPath()
       ctx.arc(x, y, Math.max(0.8, rr * 0.62), 0, Math.PI * 2)
@@ -491,7 +737,7 @@ export class MotorGrafo {
           ctx.beginPath()
           ctx.arc(x, y, rr + 4 + k * 22, 0, Math.PI * 2)
           ctx.stroke()
-        }
+        } else n.nace = 0
       }
     }
     ctx.globalAlpha = 1
@@ -503,7 +749,33 @@ export class MotorGrafo {
       ctx.lineWidth = 1.5
       ctx.stroke()
     }
-    this._etiquetas(centro, cerca, apagar, vis)
+  }
+
+  /** La etiqueta de una neurona rasterizada una sola vez (texto y sombra), lista para copiar. */
+  _etiqueta(n, fuerte) {
+    const clave = n.id + (fuerte ? '|1' : '|0')
+    let e = this.etiquetas.get(clave)
+    if (e) return e
+    const texto = n.nombre.length > 36 ? n.nombre.slice(0, 34) + '…' : n.nombre
+    const fuente = fuerte ? FUENTE_CENTRO : FUENTE
+    const c = document.createElement('canvas')
+    const g = c.getContext('2d')
+    g.font = fuente
+    const w = Math.ceil(g.measureText(texto).width) + 4
+    const h = 18
+    c.width = Math.ceil(w * this.dpr)
+    c.height = Math.ceil(h * this.dpr)
+    g.scale(this.dpr, this.dpr)
+    g.font = fuente
+    g.textAlign = 'center'
+    g.textBaseline = 'top'
+    g.fillStyle = 'rgba(0,0,0,0.55)'
+    g.fillText(texto, w / 2, 2)
+    g.fillStyle = 'rgb(246,236,230)'
+    g.fillText(texto, w / 2, 1)
+    e = { c, w, h }
+    this.etiquetas.set(clave, e)
+    return e
   }
 
   // Adelante y sin pisarse; con una neurona elegida, primero sus vecinas.
@@ -525,30 +797,19 @@ export class MotorGrafo {
     }
     cand.sort((x, y) => y.pr - x.pr)
     const ocupado = []
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'top'
-    let fuenteActual = ''
     for (const { i, a } of cand) {
       const n = nodos[i]
       const fuerte = i === centro
-      const fuente = fuerte ? FUENTE_CENTRO : FUENTE
-      if (fuente !== fuenteActual) {
-        ctx.font = fuente
-        fuenteActual = fuente
-      }
-      const texto = n.nombre.length > 36 ? n.nombre.slice(0, 34) + '…' : n.nombre
-      n._w ||= {}
-      const w = n._w[fuerte] ?? (n._w[fuerte] = ctx.measureText(texto).width)
+      const { c, w, h } = this._etiqueta(n, fuerte)
       const x = proy[i * 4], y = proy[i * 4 + 1] + n.r * proy[i * 4 + 2] * 0.62 + 6
-      const r = [x - w / 2 - 3, y - 1, x + w / 2 + 3, y + 15]
+      const r = [x - w / 2 - 1, y - 1, x + w / 2 + 1, y + 15]
       if (!fuerte && ocupado.some((o) => r[0] < o[2] && r[2] > o[0] && r[1] < o[3] && r[3] > o[1])) continue
       ocupado.push(r)
       if (ocupado.length > 70) break
-      ctx.fillStyle = `rgba(0,0,0,${a * 0.55})`
-      ctx.fillText(texto, x, y + 1)
-      ctx.fillStyle = `rgba(246,236,230,${a})`
-      ctx.fillText(texto, x, y)
+      ctx.globalAlpha = a
+      ctx.drawImage(c, x - w / 2, y - 1, w, h)
     }
+    ctx.globalAlpha = 1
   }
 
   _eventos() {
