@@ -17,7 +17,7 @@ function validarEmail(value) {
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { isAuthenticated, isAdmin, isEquipo, login, loginGoogle } = useAuth()
+  const { isAuthenticated, isEquipo, login, loginGoogle } = useAuth()
   const [googleClientId, setGoogleClientId] = useState(null)
 
   const [email, setEmail] = useState('')
@@ -28,8 +28,8 @@ export default function LoginPage() {
   const [cargando, setCargando] = useState(false)
 
   useEffect(() => {
-    if (isAuthenticated) navigate(isAdmin ? '/admin' : isEquipo ? '/mensajes' : '/', { replace: true })
-  }, [isAuthenticated, isAdmin, isEquipo, navigate])
+    if (isAuthenticated) navigate(isEquipo ? '/mensajes' : '/', { replace: true })
+  }, [isAuthenticated, isEquipo, navigate])
 
   useEffect(() => {
     let vivo = true
@@ -47,7 +47,7 @@ export default function LoginPage() {
       setCargando(true)
       try {
         const user = await loginGoogle(credencial)
-        navigate(user.rol === 'admin' ? '/admin' : '/mensajes', { replace: true })
+        navigate('/mensajes', { replace: true })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'No pudimos iniciar tu sesión con Google.')
       } finally {
@@ -71,7 +71,7 @@ export default function LoginPage() {
     setCargando(true)
     try {
       const user = await login(email.trim(), contrasena.trim())
-      navigate(user.rol === 'admin' ? '/admin' : '/', { replace: true })
+      navigate(['admin', 'coach'].includes(user.rol) ? '/mensajes' : '/', { replace: true })
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setError('El email o la contraseña no coinciden.')

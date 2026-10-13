@@ -3,10 +3,11 @@ import { useAuth } from '../context/AuthContext'
 import InicioPage from './InicioPage'
 
 export default function HomePage() {
-  const { isAdmin } = useAuth()
+  const { isEquipo } = useAuth()
 
-  if (isAdmin) {
-    return <Navigate to="/admin" replace />
+  // El equipo trabaja en Mensajes; el editor de módulos queda en el menú del avatar.
+  if (isEquipo) {
+    return <Navigate to="/mensajes" replace />
   }
 
   return <InicioPage />
