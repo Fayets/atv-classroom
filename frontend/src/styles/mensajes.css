@@ -417,3 +417,22 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 .msj-root.is-mac .msj-panel__datos dt, .msj-root.is-mac .msj-panel__datos dd { font-size: 12.5px; }
 .msj-root.is-mac .msj-alerta-item__pie { flex-wrap: wrap; row-gap: 2px; }
 .msj-root.is-mac .msj-demora, .msj-root.is-mac .msj-alerta-item__ok { white-space: nowrap; }
+
+/* Tab: la sugerencia de la IA aparece en gris detrás de lo que escribís, con la misma letra y los mismos cortes */
+.msj-campo { flex: 1; min-width: 0; display: grid; max-height: 180px; overflow-y: auto; }
+.msj-campo > textarea,
+.msj-campo > .msj-fantasma { grid-area: 1 / 1; margin: 0; padding: 6px 0; font: inherit; font-size: 14.5px; line-height: 1.45; letter-spacing: normal; white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; tab-size: 4; }
+.msj-redactar .msj-campo > textarea { z-index: 1; height: 100%; max-height: none; min-height: 24px; overflow: hidden; field-sizing: fixed; background: transparent; }
+.msj-fantasma { z-index: 0; color: transparent; pointer-events: none; user-select: none; }
+.msj-fantasma__ia { color: #a1a1a6; }
+.msj-fantasma__pensando { color: #b4b4b9; font-style: italic; animation: msj-pensando 1.4s ease-in-out infinite; }
+@keyframes msj-pensando { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .msj-fantasma__pensando { animation: none; } }
+.msj-root.is-mac .msj-campo > textarea,
+.msj-root.is-mac .msj-campo > .msj-fantasma { font-size: 13.5px; }
+.msj-ia-ayuda { display: flex; align-items: center; gap: 10px; padding: 0 4px 6px; font-size: 11.5px; color: var(--m-t3, #8e8e93); }
+.msj-ia-ayuda span { margin-right: auto; display: inline-flex; align-items: center; gap: 6px; }
+.msj-ia-ayuda span::before { content: '✦'; color: var(--m-acento, #c0392b); }
+.msj-ia-ayuda button { display: inline-flex; align-items: center; gap: 5px; padding: 2px 6px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer; }
+.msj-ia-ayuda button:hover { background: rgba(0, 0, 0, 0.05); color: var(--m-t1, #1d1d1f); }
+.msj-ia-ayuda kbd { padding: 0 5px; border-radius: 4px; border: 0.5px solid rgba(0, 0, 0, 0.18); background: #fff; font: inherit; font-size: 10.5px; box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.12); }

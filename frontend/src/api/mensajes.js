@@ -84,3 +84,34 @@ export function marcarLeido(canalId, ultimoId) {
     body: JSON.stringify({ ultimo_id: ultimoId }),
   })
 }
+
+/**
+ * Sugerencia de la IA para seguir el mensaje (o la respuesta entera si el borrador está vacío).
+ * Llega de a pedazos: alPedazo recibe el texto acumulado a medida que la IA lo escribe.
+ * Devuelve { id, texto } al terminar. Se corta con signal (cuando la persona sigue escribiendo).
+ */
+export async function pedirSugerencia(canalId, borrador, { signal, alPedazo } = {}) {
+  const token = getStoredToken()
+  const res = await fetch(`/api/mensajes/canales/${canalId}/sugerir`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ borrador }),
+    signal,
+  })
+  if (!res.ok || !res.body) throw new Error(`sugerencia ${res.status}`)
+  const id = Number(res.headers.get('X-Sugerencia-Id')) || null
+  const lector = res.body.getReader()
+  const deco = new TextDecoder()
+  let texto = ''
+  for (;;) {
+    const { done, value } = await lector.read()
+    if (done) break
+    texto += deco.decode(value, { stream: true })
+    alPedazo?.(texto)
+  }
+  return { id, texto }
+}
+
+export function marcarSugerenciaUsada(id) {
+  return request(`/api/mensajes/sugerencias/${id}/usada`, { method: 'POST' }).catch(() => {})
+}

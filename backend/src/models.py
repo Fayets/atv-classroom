@@ -343,3 +343,20 @@ class EstadoAprendizaje(db.Entity):
     canal_id = PrimaryKey(int)
     ultimo_mensaje_id = Required(int, default=0)
     actualizado_en = Required(datetime, default=datetime.utcnow)
+
+
+class SugerenciaIA(db.Entity):
+    """Cada sugerencia de la IA al escribir (Tab) y si la persona la usó. Es lo que permite medir
+    y mejorar: qué sugerencias sirven, de quién, en qué conversaciones."""
+
+    _table_ = (DB_SCHEMA, "cerebro_sugerencias")
+
+    id = PrimaryKey(int, auto=True)
+    admin_id = Required(int, index=True)
+    canal_id = Required(int)
+    borrador = Optional(str, nullable=True)
+    sugerencia = Required(str)
+    usada = Required(bool, default=False)
+    ms = Optional(int, nullable=True)
+    modelo = Optional(str, nullable=True)
+    creado_en = Required(datetime, default=datetime.utcnow)

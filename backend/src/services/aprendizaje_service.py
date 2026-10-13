@@ -364,8 +364,12 @@ def voz_de(admin_id: int) -> dict:
         v = VozEquipo.get(admin_id=admin_id)
         if v is None:
             return {"rasgos": {}, "ejemplos": []}
-        ids = json.loads(v.muestras_json or "[]")
-        ejemplos = [m.texto for m in (MensajeCanal.get(id=i) for i in ids) if m is not None and not m.borrado]
+        ids = [int(i) for i in json.loads(v.muestras_json or "[]")]
+        if not ids:
+            return {"rasgos": json.loads(v.rasgos_json or "{}"), "ejemplos": []}
+        lista = ",".join(str(i) for i in ids)
+        por_id = {m.id: m for m in MensajeCanal.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."mensajes_canal" WHERE id IN ({lista}) AND NOT borrado')}
+        ejemplos = [por_id[i].texto for i in ids if i in por_id]
         return {"rasgos": json.loads(v.rasgos_json or "{}"), "ejemplos": ejemplos}
 
 
@@ -403,7 +407,7 @@ def por_nicho(nicho: str | None = None) -> list[dict]:
     return salida
 
 
-def contexto_para_responder(canal_id: int, admin_id: int) -> dict:
+def contexto_para_responder(canal_id: int, admin_id: int, incluir_nicho: bool = True) -> dict:
     """Todo lo que la IA necesita para escribir como esta persona del equipo a este cliente:
     quién es el cliente, qué se habló, qué le funcionó a otros de su nicho y cómo escribe el coach.
     Es la entrada única para completar con Tab y para los seguimientos automáticos."""
@@ -422,7 +426,7 @@ def contexto_para_responder(canal_id: int, admin_id: int) -> dict:
         "cliente": ficha,
         "perfil": aprendido["perfil"],
         "hechos": aprendido["hechos"][:30],
-        "nicho": por_nicho(nicho)[0] if nicho else None,
+        "nicho": (por_nicho(nicho) or [None])[0] if nicho and incluir_nicho else None,
         "voz": voz_de(admin_id),
         "conversacion": conversacion,
     }

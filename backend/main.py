@@ -18,6 +18,7 @@ from src.controllers.frente_controller import router as frente_router
 from src.controllers.mensajeria_controller import router as mensajes_router
 from src.controllers.mensajeria_controller import ws_router as mensajes_ws_router
 from src.controllers.programa_controller import router as programa_router
+from src.controllers.sugerencias_controller import router as sugerencias_router
 from src.db import init_db
 from src.schemas import HealthResponse
 from src.storage.recursos import UPLOADS_DIR, ensure_upload_dirs
@@ -86,6 +87,7 @@ app.include_router(admin_router)
 app.include_router(equipo_router)
 app.include_router(cerebro_router)
 app.include_router(clientes_router)
+app.include_router(sugerencias_router)
 app.include_router(programa_router)
 app.include_router(clase_router)
 app.include_router(frente_router)

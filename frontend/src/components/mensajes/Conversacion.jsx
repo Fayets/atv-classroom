@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMensajes, marcarLeido, subirAdjunto } from '../../api/mensajes'
+import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMensajes, marcarLeido, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto } from '../../api/mensajes'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
 import { ACEPTA_ADJUNTOS, claveAutor, etiquetaDia, hora, mismoDia, normal, peso, primerNombre } from '../../utils/mensajes'
@@ -178,6 +178,77 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     return () => document.removeEventListener('visibilitychange', marcar)
   }, [marcar])
 
+  // ---------- Tab: la IA completa en tu voz (solo el equipo, en chats con clientes) ----------
+  const [fantasma, setFantasma] = useState(null) // { id, base, texto, cargando }
+  const pedidoIA = useRef(null)
+  const esperaIA = useRef(null)
+  const vacioPedido = useRef(null) // último mensaje del cliente para el que ya se pidió respuesta
+  const campo = useRef(null)
+  const iaActiva = Boolean(isEquipo && datos?.canal?.tipo === 'cliente')
+
+  const cancelarIA = useCallback(() => {
+    clearTimeout(esperaIA.current)
+    pedidoIA.current?.abort()
+    pedidoIA.current = null
+  }, [])
+
+  const pedirIA = useCallback(
+    (base) => {
+      cancelarIA()
+      const ctrl = new AbortController()
+      pedidoIA.current = ctrl
+      setFantasma({ id: null, base, texto: '', cargando: true })
+      const mismo = (f) => f && f.base === base && pedidoIA.current === ctrl
+      pedirSugerencia(canalId, base, {
+        signal: ctrl.signal,
+        alPedazo: (t) => setFantasma((f) => (mismo(f) ? { ...f, texto: t } : f)),
+      })
+        .then(({ id, texto: t }) => setFantasma((f) => (mismo(f) ? { id, base, texto: t, cargando: false } : f)))
+        .catch(() => setFantasma((f) => (mismo(f) ? null : f)))
+    },
+    [canalId, cancelarIA],
+  )
+
+  // Cambio de canal o se cierra: nada de sugerencias colgadas.
+  useEffect(() => {
+    setFantasma(null)
+    vacioPedido.current = null
+    return cancelarIA
+  }, [canalId, cancelarIA])
+
+  // Si el cliente escribió último y todavía no empezaste a responder, se prepara la respuesta entera.
+  const ultimoMensaje = mensajes[mensajes.length - 1]
+  useEffect(() => {
+    if (!iaActiva || oculta || texto || !ultimoMensaje || ultimoMensaje.autor?.tipo !== 'cliente') return
+    if (vacioPedido.current === ultimoMensaje.id) return
+    vacioPedido.current = ultimoMensaje.id
+    pedirIA('')
+  }, [iaActiva, oculta, texto, ultimoMensaje, pedirIA])
+
+  // Lo que falta de la sugerencia: si seguís escribiendo lo mismo que proponía, se va achicando.
+  const completoIA = fantasma ? fantasma.base + fantasma.texto : ''
+  const restoIA = fantasma && fantasma.texto && texto.startsWith(fantasma.base) && completoIA.startsWith(texto) ? completoIA.slice(texto.length) : ''
+
+  function programarIA(valor, caret) {
+    clearTimeout(esperaIA.current)
+    if (!iaActiva) return
+    if (caret !== valor.length || valor.trim().length < 3 || /(^|\s)@[^\s]*$/.test(valor)) return
+    esperaIA.current = setTimeout(() => pedirIA(valor), 650)
+  }
+
+  function aceptarIA() {
+    const nuevo = texto + restoIA
+    setTexto(nuevo)
+    if (fantasma?.id) marcarSugerenciaUsada(fantasma.id)
+    cancelarIA()
+    setFantasma(null)
+    requestAnimationFrame(() => {
+      caja.current?.focus()
+      caja.current?.setSelectionRange(nuevo.length, nuevo.length)
+      if (campo.current) campo.current.scrollTop = campo.current.scrollHeight
+    })
+  }
+
   // Las imágenes cambian de alto al cargar: si estabas abajo de todo, se sigue abajo.
   function bajarSiEstabaAbajo() {
     if (pegadoAbajo.current && lista.current) lista.current.scrollTop = lista.current.scrollHeight
@@ -261,6 +332,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     })
     mencionados.current = new Map()
     setSugerencias(null)
+    cancelarIA()
+    setFantasma(null)
     setPendientes((p) => [...p, provisorio])
     setTexto('')
     ultimoAvisoEscribiendo.current = 0
@@ -313,8 +386,20 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   }
 
   function alEscribir(e) {
-    setTexto(e.target.value)
-    buscarSugerencias(e.target.value, e.target.selectionStart)
+    const valor = e.target.value
+    setTexto(valor)
+    if (e.target.selectionStart === valor.length && campo.current) {
+      requestAnimationFrame(() => campo.current && (campo.current.scrollTop = campo.current.scrollHeight))
+    }
+    buscarSugerencias(valor, e.target.selectionStart)
+    if (iaActiva) {
+      const sigueLaSugerencia = fantasma && fantasma.texto && valor.startsWith(fantasma.base) && completoIA.startsWith(valor) && valor.length < completoIA.length
+      if (!sigueLaSugerencia) {
+        cancelarIA()
+        setFantasma(null)
+        programarIA(valor, e.target.selectionStart)
+      }
+    }
     if (!e.target.value.trim()) {
       if (ultimoAvisoEscribiendo.current) avisarEscribiendo(canalId, false)
       ultimoAvisoEscribiendo.current = 0
@@ -343,6 +428,16 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
         setSugerencias(null)
         return
       }
+    }
+    if (restoIA && e.key === 'Tab' && !e.shiftKey) {
+      e.preventDefault()
+      aceptarIA()
+      return
+    }
+    if (fantasma && e.key === 'Escape') {
+      cancelarIA()
+      setFantasma(null)
+      return
     }
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
@@ -628,6 +723,24 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
               ))}
             </ul>
           ) : null}
+          {restoIA ? (
+            <div className="msj-ia-ayuda" role="status">
+              <span>Sugerencia en tu voz</span>
+              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={aceptarIA}>
+                <kbd>Tab</kbd> usar
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  cancelarIA()
+                  setFantasma(null)
+                }}
+              >
+                <kbd>Esc</kbd> descartar
+              </button>
+            </div>
+          ) : null}
           <div className="msj-redactar__caja">
             <input
               ref={selector}
@@ -648,17 +761,26 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
             <label htmlFor="msj-texto" className="sr-only">
               Mensaje para #{canal.nombre}
             </label>
-            <textarea
-              id="msj-texto"
-              ref={caja}
-              rows={1}
-              value={texto}
-              onChange={alEscribir}
-              onKeyDown={teclas}
-              onPaste={alPegar}
-              placeholder={`Escribí en #${canal.nombre} · @ para etiquetar`}
-              maxLength={4000}
-            />
+            <div className="msj-campo" ref={campo}>
+              <div className="msj-fantasma" aria-hidden="true">
+                {texto}
+                {restoIA ? <span className="msj-fantasma__ia">{restoIA}</span> : null}
+                {!texto && fantasma?.cargando && !restoIA ? <span className="msj-fantasma__pensando">Pensando una respuesta en tu voz…</span> : null}
+                {'\u200b'}
+              </div>
+              <textarea
+                id="msj-texto"
+                ref={caja}
+                rows={1}
+                value={texto}
+                onChange={alEscribir}
+                onKeyDown={teclas}
+                onPaste={alPegar}
+                onClick={(e) => e.target.selectionStart !== texto.length && setFantasma(null)}
+                placeholder={fantasma ? '' : `Escribí en #${canal.nombre} · @ para etiquetar`}
+                maxLength={4000}
+              />
+            </div>
             <button type="submit" className="msj-enviar" disabled={subiendo || (!texto.trim() && !listos.length)} aria-label={subiendo ? 'Esperá a que terminen de subir los archivos' : 'Enviar'}>
               ➤
             </button>
