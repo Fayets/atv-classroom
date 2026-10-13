@@ -10,6 +10,34 @@ import { useMensajeria } from '../context/MensajeriaContext'
 import { cuandoCorto, haceCuanto } from '../utils/mensajes'
 import '../styles/mensajes.css'
 
+// Como las categorías de Discord: un grupo por plan, en este orden.
+const GRUPOS = [
+  { id: 'high', nombre: 'High Level', planes: ['high', 'advantage'] },
+  { id: 'boost', nombre: 'Boost', planes: ['boost'] },
+  { id: 'mid', nombre: 'Mid level', planes: ['mid'] },
+  { id: 'entry', nombre: 'Entry level', planes: ['entry'] },
+  { id: 'mentoria', nombre: 'Mentoria', planes: ['mentoria'] },
+]
+const CLAVE_PLEGADOS = 'atv_msj_plegados'
+
+function leerPlegados() {
+  try {
+    return JSON.parse(localStorage.getItem(CLAVE_PLEGADOS) || '[]')
+  } catch {
+    return []
+  }
+}
+
+function agrupar(lista) {
+  const grupos = GRUPOS.map((g) => ({ ...g, canales: [] }))
+  const sinPlan = { id: 'otros', nombre: 'Sin plan', canales: [] }
+  for (const c of lista) {
+    const plan = (c.cliente?.plan || '').toLowerCase()
+    ;(grupos.find((g) => g.planes.includes(plan)) || sinPlan).canales.push(c)
+  }
+  return [...grupos, sinPlan].filter((g) => g.canales.length)
+}
+
 function ItemCanal({ c, activo, onAbrir, isEquipo, escribe }) {
   const privado = c.tipo === 'cliente'
   const titulo = privado && isEquipo ? c.cliente?.nombre || c.nombre : privado ? 'Mi canal' : c.nombre
@@ -185,6 +213,18 @@ export default function MensajesPage() {
   const anuncios = filtrados.filter((c) => c.tipo === 'anuncios')
   const esperando = filtrados.filter((c) => c.tipo === 'cliente' && c.esperando_desde && isEquipo)
   const resto = filtrados.filter((c) => c.tipo === 'cliente' && !(c.esperando_desde && isEquipo))
+  const grupos = useMemo(() => (isEquipo ? agrupar(resto) : []), [isEquipo, resto])
+  const [plegados, setPlegados] = useState(leerPlegados)
+  const plegar = (id) =>
+    setPlegados((p) => {
+      const nuevo = p.includes(id) ? p.filter((x) => x !== id) : [...p, id]
+      try {
+        localStorage.setItem(CLAVE_PLEGADOS, JSON.stringify(nuevo))
+      } catch {
+        // sin almacenamiento, el plegado vale mientras la página esté abierta
+      }
+      return nuevo
+    })
   const item = canales?.find((c) => c.id === activo)
   const abrir = (id) => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas', c: String(id) } : { c: String(id) })
   const cambiarVista = (v) => setParams(v === 'alertas' ? { v: 'alertas' } : {})
@@ -231,10 +271,34 @@ export default function MensajesPage() {
             <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
           ))}
 
-          {resto.length ? <p className="msj-seccion">{isEquipo ? `Clientes — ${resto.length}` : 'Tu canal'}</p> : null}
-          {resto.map((c) => (
-            <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
-          ))}
+          {isEquipo
+            ? grupos.map((g) => {
+                // Buscando, todo se ve; si el chat abierto está en un grupo plegado, ese grupo se muestra.
+                const abierto = buscar.trim() || !plegados.includes(g.id) || g.canales.some((c) => c.id === activo)
+                return (
+                  <section key={g.id} className="msj-grupo" aria-label={g.nombre}>
+                    <button type="button" className={`msj-grupo__titulo${abierto ? ' is-abierto' : ''}`} onClick={() => plegar(g.id)} aria-expanded={Boolean(abierto)}>
+                      <svg viewBox="0 0 10 10" aria-hidden="true">
+                        <path d="M3 2l4 3-4 3z" fill="currentColor" />
+                      </svg>
+                      <span>{g.nombre}</span>
+                      <small>{g.canales.length}</small>
+                    </button>
+                    {abierto
+                      ? g.canales.map((c) => (
+                          <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
+                        ))
+                      : null}
+                  </section>
+                )
+              })
+            : null}
+          {!isEquipo && resto.length ? <p className="msj-seccion">Tu canal</p> : null}
+          {!isEquipo
+            ? resto.map((c) => (
+                <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
+              ))
+            : null}
 
           {anuncios.length ? <p className="msj-seccion">Comunidad ATV</p> : null}
           {anuncios.map((c) => (

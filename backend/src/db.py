@@ -57,28 +57,46 @@ def _crear_indices() -> None:
         conn.close()
 
 
+def _columna(cur, tabla: str, columna: str) -> str | None:
+    """'YES'/'NO' según admita NULL, o None si la columna (o la tabla) no existe."""
+    cur.execute(
+        "SELECT is_nullable FROM information_schema.columns WHERE table_schema = %s AND table_name = %s AND column_name = %s",
+        (DB_SCHEMA, tabla, columna),
+    )
+    fila = cur.fetchone()
+    return fila[0] if fila else None
+
+
+def _tabla_existe(cur, tabla: str) -> bool:
+    cur.execute("SELECT 1 FROM information_schema.tables WHERE table_schema = %s AND table_name = %s", (DB_SCHEMA, tabla))
+    return cur.fetchone() is not None
+
+
+def _agregar_columna(cur, tabla: str, columna: str, definicion: str) -> None:
+    if _tabla_existe(cur, tabla) and _columna(cur, tabla, columna) is None:
+        cur.execute(f'ALTER TABLE "{DB_SCHEMA}"."{tabla}" ADD COLUMN IF NOT EXISTS {columna} {definicion}')
+
+
 def _apply_migrations() -> None:
     conn = psycopg2.connect(**_psycopg2_connect_kwargs())
     try:
         with conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    f'ALTER TABLE "{DB_SCHEMA}"."clase" '
-                    f"ADD COLUMN IF NOT EXISTS descripcion TEXT"
-                )
+                # Solo se altera una tabla si de verdad falta la columna: "ADD COLUMN IF NOT EXISTS" igual
+                # pide un candado exclusivo, y con la app andando eso choca con las lecturas (deadlock).
+                _agregar_columna(cur, "clase", "descripcion", "TEXT")
                 # Equipo: coaches además del admin, login con Google (sin contraseña).
-                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."admins" ADD COLUMN IF NOT EXISTS rol VARCHAR NOT NULL DEFAULT \'admin\'')
-                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."admins" ADD COLUMN IF NOT EXISTS area VARCHAR')
-                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."admins" ADD COLUMN IF NOT EXISTS google_sub VARCHAR')
-                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."admins" ADD COLUMN IF NOT EXISTS foto_url VARCHAR')
-                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."admins" ALTER COLUMN password_hash DROP NOT NULL')
+                _agregar_columna(cur, "admins", "rol", "VARCHAR NOT NULL DEFAULT 'admin'")
+                _agregar_columna(cur, "admins", "area", "VARCHAR")
+                _agregar_columna(cur, "admins", "google_sub", "VARCHAR")
+                _agregar_columna(cur, "admins", "foto_url", "VARCHAR")
+                if _columna(cur, "admins", "password_hash") == "NO":
+                    cur.execute(f'ALTER TABLE "{DB_SCHEMA}"."admins" ALTER COLUMN password_hash DROP NOT NULL')
                 # Frente: un link por plantilla de SOP y la revisión con el coach (reemplaza "automatizar").
-                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."frente" ADD COLUMN IF NOT EXISTS sops_json TEXT')
-                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."mensajes_canal" ADD COLUMN IF NOT EXISTS autor_nombre VARCHAR')
-                cur.execute(
-                    f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."frente" '
-                    f"ADD COLUMN IF NOT EXISTS revisado BOOLEAN NOT NULL DEFAULT FALSE"
-                )
+                _agregar_columna(cur, "frente", "sops_json", "TEXT")
+                _agregar_columna(cur, "frente", "revisado", "BOOLEAN NOT NULL DEFAULT FALSE")
+                # Historial traído de Discord: el nombre del autor como aparecía allá.
+                _agregar_columna(cur, "mensajes_canal", "autor_nombre", "VARCHAR")
                 cur.execute(
                     f"""
                     CREATE TABLE IF NOT EXISTS "{DB_SCHEMA}"."mensaje" (
