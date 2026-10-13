@@ -5,6 +5,7 @@ import { useEscritorio } from '../../context/EscritorioContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
 import MensajesPage from '../../pages/MensajesPage'
 import Finder, { IconoCarpeta } from './Finder'
+import ContratosCarpeta from './ContratosCarpeta'
 import OnboardingsCarpeta from './OnboardingsCarpeta'
 import NuevoCliente from '../mensajes/NuevoCliente'
 import '../../styles/escritorio.css'
@@ -149,8 +150,9 @@ export default function Escritorio({ children }) {
   // Fijo solo si no queda ninguna ventana a la vista (sin el Dock no habría cómo volver).
   // Con la carpeta Clientes abierta hay una ventana: el Dock se esconde como siempre.
   const [onboardings, setOnboardings] = useState(false)
+  const [contratos, setContratos] = useState(false)
   const [dandoAlta, setDandoAlta] = useState(false)
-  const fijo = visible !== 'abierta' && !finder && !onboardings
+  const fijo = visible !== 'abierta' && !finder && !onboardings && !contratos
 
   // Solo el teclado (Tab) deja el Dock fijo: un clic no tiene que dejarlo trabado arriba.
   function mostrarDock() {
@@ -190,7 +192,7 @@ export default function Escritorio({ children }) {
   }
 
   // Carpeta Clientes (solo admin): ícono en el escritorio, pila en el Dock y su ventana de Finder.
-  const [finderFrente, setFinderFrente] = useState(false) // 'clientes' | 'onboardings' | false
+  const [finderFrente, setFinderFrente] = useState(false) // 'clientes' | 'onboardings' | 'contratos' | false
   const [iconoSel, setIconoSel] = useState(null)
   function abrirClientes() {
     setFinder(true)
@@ -200,6 +202,11 @@ export default function Escritorio({ children }) {
   function abrirOnboardings() {
     setOnboardings(true)
     setFinderFrente('onboardings')
+    setIconoSel(null)
+  }
+  function abrirContratos() {
+    setContratos(true)
+    setFinderFrente('contratos')
     setIconoSel(null)
   }
   function abrirChat(ruta) {
@@ -218,7 +225,7 @@ export default function Escritorio({ children }) {
     <div className="esc" onPointerDownCapture={enfocar}>
       <div className="esc-iconos">
         {[
-          ...(isAdmin ? [{ id: 'clientes', nombre: 'Clientes', abrir: abrirClientes }] : []),
+          ...(isAdmin ? [{ id: 'clientes', nombre: 'Clientes', abrir: abrirClientes }, { id: 'contratos', nombre: 'Contratos', abrir: abrirContratos }] : []),
           { id: 'onboardings', nombre: 'Onboardings', abrir: abrirOnboardings },
           { id: 'alta', nombre: 'Nuevo onboarding', abrir: () => { setDandoAlta(true); setIconoSel(null) }, mas: true },
         ].map((ic) => (
@@ -257,6 +264,9 @@ export default function Escritorio({ children }) {
 
       {isAdmin ? (
         <Finder abierta={finder} alFrente={finderFrente === 'clientes'} alEnfocar={() => setFinderFrente('clientes')} alCerrar={() => setFinder(false)} alAbrirChat={abrirChat} />
+      ) : null}
+      {isAdmin ? (
+        <ContratosCarpeta abierta={contratos} alFrente={finderFrente === 'contratos'} alEnfocar={() => setFinderFrente('contratos')} alCerrar={() => setContratos(false)} />
       ) : null}
       <OnboardingsCarpeta abierta={onboardings} alFrente={finderFrente === 'onboardings'} alEnfocar={() => setFinderFrente('onboardings')} alCerrar={() => setOnboardings(false)} alAbrirChat={abrirChat} />
       {dandoAlta ? (
