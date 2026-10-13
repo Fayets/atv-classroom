@@ -3,6 +3,9 @@ import { createPortal } from 'react-dom'
 import { anularAlta, buscarFicha, crearAlta, enviarOnboarding, fetchAltas } from '../../api/altas'
 
 const PLANES = ['Entry Level', 'Mid Level', 'High Level', 'Boost', 'Mentoría']
+// Va al contrato de ZapSign. High Level y Boost firman el contrato de High Level: siempre pago único.
+const PAGOS = ['Pago único', 'Dos cuotas', 'Tres cuotas']
+const PAGO_UNICO = ['High Level', 'Boost']
 const corta = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR') : '')
 const cuando = (iso) => new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
@@ -31,7 +34,7 @@ function Copiable({ valor }) {
 // No se muestran montos: la caja es de Franco.
 // El mail de onboarding no sale solo: se manda una vez con el botón.
 export default function NuevoCliente({ onCerrar, onAbrirChat }) {
-  const [form, setForm] = useState({ nombre: '', email: '', plan: 'Entry Level', ficha_id: null, sin_ficha: false })
+  const [form, setForm] = useState({ nombre: '', email: '', plan: 'Entry Level', pago: '', ficha_id: null, sin_ficha: false })
   const [candidatas, setCandidatas] = useState([])
   const [hecha, setHecha] = useState(null)
   const [recientes, setRecientes] = useState([])
@@ -59,6 +62,8 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
   }, [form.nombre, form.email, hecha])
   const ficha = candidatas.find((c) => c.id === form.ficha_id)
   const preguntar = candidatas.length && !form.ficha_id && !form.sin_ficha
+  const pagoUnico = PAGO_UNICO.includes(form.plan)
+  const faltaPago = !pagoUnico && !form.pago
 
   async function crear(e) {
     e.preventDefault()
@@ -97,8 +102,8 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
       setRecientes((r) => r.filter((x) => x.id !== hecha.id))
       setHecha(null)
       setAnulando(false)
-      setForm({ nombre: '', email: '', plan: 'Entry Level', ficha_id: null })
-      } catch (err) {
+      setForm({ nombre: '', email: '', plan: 'Entry Level', pago: '', ficha_id: null, sin_ficha: false })
+    } catch (err) {
       setError(err.message || 'No se pudo anular.')
     } finally {
       setOcupado('')
@@ -113,7 +118,7 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
         {!hecha ? (
           <form onSubmit={crear}>
             <h2 id="alta-titulo">Nuevo onboarding</h2>
-            <p className="msj-modal__ayuda">Crea el onboarding, el canal de Discord, su chat en el classroom y su ficha. El mail de onboarding lo mandás después con un botón.</p>
+            <p className="msj-modal__ayuda">Crea el onboarding con su contrato, el canal de Discord, su chat en el classroom y su ficha. El mail de onboarding lo mandás después con un botón.</p>
 
             <label className="msj-modal__campo">
               <span>Nombre y apellido</span>
@@ -151,10 +156,25 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
                 ))}
               </div>
             </fieldset>
+            <fieldset className="msj-modal__campo">
+              <legend>Modalidad de pago</legend>
+              {pagoUnico ? (
+                <p className="alta-pago-fijo">Pago único: el contrato de {form.plan} es siempre de un pago.</p>
+              ) : (
+                <div className="msj-roles">
+                  {PAGOS.map((p) => (
+                    <label key={p} className={`msj-rol${form.pago === p ? ' is-on' : ''}`}>
+                      <input type="radio" name="pago" checked={form.pago === p} onChange={() => setForm({ ...form, pago: p })} />
+                      {p}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </fieldset>
             {error ? <p className="msj-modal__error" role="alert">{error}</p> : null}
             <div className="msj-modal__botones">
               <button type="button" onClick={onCerrar}>Cancelar</button>
-              <button type="submit" className="is-primario" disabled={ocupado === 'crear' || Boolean(preguntar)}>{ocupado === 'crear' ? 'Creando…' : 'Crear onboarding'}</button>
+              <button type="submit" className="is-primario" disabled={ocupado === 'crear' || Boolean(preguntar) || faltaPago}>{ocupado === 'crear' ? 'Creando…' : 'Crear onboarding'}</button>
             </div>
           </form>
         ) : (

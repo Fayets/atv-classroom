@@ -41,6 +41,7 @@ def test_alta_completa_sin_mail_y_el_mail_sale_una_sola_vez(onboarding):
     assert a["canal"] == "prueba-alta-test" and a["clave_classroom"] == "prueba.alta.test"
     assert a["discord_invite_url"] == "https://discord.gg/prueba" and a["mail_enviado_en"] is None
     assert onboarding[0][2]["send_email"] is False  # el onboarding no manda el mail solo
+    assert onboarding[0][2]["payment_mode"] == "Pago único"  # Boost firma el contrato de High: siempre pago único
     from src.services.mensajeria_service import canales_de_coach
 
     with db_session:
@@ -62,12 +63,15 @@ def test_validaciones_y_quien_puede(onboarding):
         svc.crear(CLIENTE, "X", MAIL, "Boost")
     for nombre, mail, plan in (("", MAIL, "Boost"), ("Ok", "no-mail", "Boost"), ("Ok", MAIL, "Premium")):
         with pytest.raises(HTTPException):
-            svc.crear(COACH, nombre, mail, plan)
+            svc.crear(COACH, nombre, mail, plan, pago="Pago único")
+    with pytest.raises(HTTPException) as e:
+        svc.crear(COACH, "Prueba Alta Test", MAIL, "Mid Level")  # sin modalidad de pago para el contrato
+    assert e.value.status_code == 422
 
 
 def test_un_alta_sin_arrancar_se_anula_entera(onboarding):
     svc = al.AltaServices()
-    a = svc.crear(COACH, "Prueba Alta Test", MAIL, "Mentoría")
+    a = svc.crear(COACH, "Prueba Alta Test", MAIL, "Mentoría", pago="Dos cuotas")
     svc.anular(COACH, a["id"])
     assert ("DELETE", "/api/admin/sessions/sesion-prueba/cancel", None) in onboarding
     with db_session:
@@ -86,15 +90,15 @@ def test_completa_la_ficha_de_la_sena_y_anular_la_deja_como_estaba(onboarding):
         assert encontradas[0]["id"] == ficha and encontradas[0]["coincide"] == "nombre" and "pagado_usd" not in encontradas[0]
         assert svc.buscar_ficha(COACH, "Sena")[0]["coincide"] == "parecido"
         with pytest.raises(HTTPException) as e:
-            svc.crear(COACH, "Sena Test", MAIL, "Entry Level")  # no dijo si es la de la seña
+            svc.crear(COACH, "Sena Test", MAIL, "Entry Level", pago="Tres cuotas")  # no dijo si es la de la seña
         assert e.value.status_code == 409
-        a = svc.crear(COACH, "Prueba Alta Test", MAIL, "Entry Level", ficha_id=ficha)
+        a = svc.crear(COACH, "Prueba Alta Test", MAIL, "Entry Level", ficha_id=ficha, pago="Tres cuotas")
         assert a["cliente_id"] == ficha
         with db_session:
             email, canal, plan, pagado, dur = db.select("SELECT email, canal_discord, plan_actual, total_pagado_usd, duracion_dias FROM clients.clientes WHERE id = $i", {"i": ficha})[0]
         assert (email, canal, plan, float(pagado), dur) == (MAIL, "prueba-alta-test", "entry", 500.0, 120)
         with pytest.raises(HTTPException):
-            svc.crear(COACH, "Otro", "otro-test@atvos-prueba.com", "Entry Level", ficha_id=ficha)  # ya tiene canal
+            svc.crear(COACH, "Otro", "otro-test@atvos-prueba.com", "Entry Level", ficha_id=ficha, pago="Tres cuotas")  # ya tiene canal
         svc.anular(COACH, a["id"])
         with db_session:
             email, canal, obs = db.select("SELECT email, canal_discord, observaciones FROM clients.clientes WHERE id = $i", {"i": ficha})[0]

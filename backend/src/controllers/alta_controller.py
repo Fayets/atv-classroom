@@ -13,6 +13,7 @@ class Alta(BaseModel):
     nombre: str
     email: str
     plan: str
+    pago: str | None = None  # modalidad de pago del contrato; High Level y Boost son siempre pago único
     ficha_id: int | None = None  # la ficha que ya existe por una seña
     sin_ficha: bool = False  # confirmó que no es ninguna de las fichas de seña parecidas
 
@@ -24,7 +25,7 @@ async def listar(sesion: dict = Depends(obtener_sesion_desde_request)):
 
 @router.post("")
 async def crear(datos: Alta, sesion: dict = Depends(obtener_sesion_desde_request)):
-    return await run_in_threadpool(service.crear, sesion, datos.nombre, datos.email, datos.plan, datos.ficha_id, datos.sin_ficha)
+    return await run_in_threadpool(service.crear, sesion, datos.nombre, datos.email, datos.plan, datos.ficha_id, datos.sin_ficha, datos.pago)
 
 
 @router.get("/buscar-ficha")
