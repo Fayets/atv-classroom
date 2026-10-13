@@ -1,0 +1,126 @@
+/* Finder de macOS para la carpeta Clientes del escritorio del admin. */
+
+/* ícono en el escritorio */
+.esc-icono {
+  position: absolute; z-index: 5; top: 18px; right: 22px;
+  width: 92px; padding: 6px 4px 4px; border: 0; border-radius: 6px; background: none;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: default;
+  font: inherit; color: #fff; outline: none;
+}
+.esc-icono .fd-carpeta { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35)); }
+.esc-icono span { padding: 1px 6px; border-radius: 4px; font-size: 12px; font-weight: 500; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.esc-icono.is-sel { background: rgba(255, 255, 255, 0.16); }
+.esc-icono.is-sel span { background: #0a64d6; text-shadow: none; }
+
+/* separador y carpeta del Dock, como las pilas del lado derecho */
+.esc-dock__separador { align-self: stretch; width: 1px; margin: 6px 2px; background: rgba(255, 255, 255, 0.35); }
+.esc-dock__app.is-clientes .esc-dock__icono { background: none; box-shadow: none; }
+.esc-dock__app.is-clientes .esc-dock__icono svg { width: 100%; height: 80%; }
+
+/* la ventana */
+.fd-ventana {
+  position: absolute; z-index: 9; top: 7vh; left: calc(50% - min(470px, 45vw)); width: min(940px, 90vw); height: min(620px, 82vh);
+  display: grid; grid-template-columns: 200px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr);
+  border-radius: 12px; overflow: hidden; background: #fff; color: #1d1d1f;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.3), 0 28px 70px -18px rgba(0, 0, 0, 0.55);
+  font-size: 13px;
+  opacity: 0; scale: 0.96; visibility: hidden; pointer-events: none;
+  transition: opacity 170ms ease, scale 220ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 220ms;
+  will-change: transform; outline: none;
+}
+.fd-ventana.is-abierta { opacity: 1; scale: 1; visibility: visible; pointer-events: auto; transition: opacity 160ms ease, scale 240ms cubic-bezier(0.22, 1, 0.36, 1); }
+.fd-ventana.is-frente { z-index: 25; }
+.fd-ventana.is-grande { inset: 0 0 0 0; width: auto; height: auto; left: 0; top: 0; border-radius: 0; transform: none !important; }
+@media (prefers-reduced-motion: reduce) { .fd-ventana { transition: none; } }
+
+/* barra lateral translúcida */
+.fd-lateral { padding: 12px 8px; background: #ececee; border-right: 0.5px solid #d4d4d8; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+.fd-semaforo { display: flex; gap: 8px; padding: 2px 6px 16px; }
+.fd-lateral h5 { margin: 10px 8px 4px; font-size: 11px; font-weight: 600; color: #8e8e93; }
+.fd-lado { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 8px; border: 0; border-radius: 6px; background: none; color: #1d1d1f; font: inherit; text-align: left; cursor: default; }
+.fd-lado span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-lado small { color: #8e8e93; font-variant-numeric: tabular-nums; font-size: 11px; }
+.fd-lado:hover { background: rgba(0, 0, 0, 0.05); }
+.fd-lado.is-activo { background: rgba(0, 0, 0, 0.09); }
+.fd-punto { width: 10px; height: 10px; margin: 0 3px; border-radius: 50%; background: var(--tag); flex: none; }
+
+.fd-principal { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; }
+.fd-barra { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 12px; height: 52px; padding: 0 12px; border-bottom: 0.5px solid #e2e2e6; user-select: none; }
+.fd-barra h3 { margin: 0; font-size: 14px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-nav { display: flex; gap: 2px; }
+.fd-nav button, .fd-vistas button { display: grid; place-items: center; width: 30px; height: 26px; border: 0; border-radius: 6px; background: none; color: #3c3c43; cursor: default; }
+.fd-nav button svg { width: 9px; height: 14px; }
+.fd-nav button:hover:not(:disabled), .fd-vistas button:hover { background: rgba(0, 0, 0, 0.06); }
+.fd-nav button:disabled { color: #c7c7cc; }
+.fd-vistas { display: flex; padding: 2px; border-radius: 7px; background: rgba(0, 0, 0, 0.05); }
+.fd-vistas svg { width: 15px; height: 15px; fill: currentColor; }
+.fd-vistas button[aria-pressed="true"] { background: #fff; box-shadow: 0 0.5px 2px rgba(0, 0, 0, 0.2); }
+.fd-buscar { display: flex; align-items: center; gap: 6px; width: 170px; height: 28px; padding: 0 8px; border-radius: 7px; background: rgba(0, 0, 0, 0.05); color: #8e8e93; }
+.fd-buscar svg { width: 13px; height: 13px; flex: none; }
+.fd-buscar input { flex: 1; min-width: 0; border: 0; background: none; font: inherit; color: #1d1d1f; outline: none; }
+.fd-buscar:focus-within { box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.35); background: #fff; }
+
+.fd-contenido { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+.fd-vacio { margin: 40px; text-align: center; color: #8e8e93; }
+.fd-estado-barra { padding: 5px 14px; border-top: 0.5px solid #e2e2e6; color: #8e8e93; font-size: 11.5px; text-align: center; }
+
+/* vista de íconos */
+.fd-grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px 4px; padding: 14px; align-content: start; min-height: 100%; box-sizing: border-box; }
+.fd-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; border: 0; border-radius: 6px; background: none; font: inherit; color: #1d1d1f; cursor: default; }
+.fd-item span { max-width: 100%; padding: 1px 5px; border-radius: 4px; font-size: 12px; line-height: 1.3; text-align: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.fd-item.is-sel .fd-carpeta { background: rgba(0, 0, 0, 0.07); border-radius: 6px; }
+.fd-item.is-sel span { background: #0a64d6; color: #fff; }
+.fd-item:focus-visible { outline: 2px solid rgba(10, 132, 255, 0.6); }
+
+/* vista de lista */
+.fd-tabla { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.fd-tabla th { position: sticky; top: 0; background: #fff; text-align: left; font-weight: 500; color: #8e8e93; font-size: 11.5px; padding: 6px 10px; border-bottom: 0.5px solid #e2e2e6; }
+.fd-tabla td { padding: 5px 10px; border-bottom: 0.5px solid #f0f0f2; white-space: nowrap; }
+.fd-tabla--lista tbody tr:nth-child(even) { background: #f7f7f9; }
+.fd-tabla--lista tr.is-sel, .fd-tabla--lista tr.is-sel:nth-child(even) { background: #0a64d6; color: #fff; }
+.fd-tabla--lista tr.is-sel .fd-tag { color: #fff; }
+.fd-nombre { display: inline-flex; align-items: center; gap: 8px; }
+.fd-tag { display: inline-flex; align-items: center; gap: 6px; }
+.fd-tag::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--tag); }
+
+/* ficha del cliente: como "Obtener información" */
+.fd-ficha { max-width: 720px; margin: 0 auto; padding: 22px 26px 40px; }
+.fd-ficha__cabeza { display: flex; align-items: center; gap: 16px; }
+.fd-ficha__cabeza h2 { margin: 0 0 6px; font-size: 21px; font-weight: 650; letter-spacing: -0.01em; text-wrap: balance; }
+.fd-ficha__cabeza p { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.fd-pill { padding: 2px 9px; border-radius: 999px; background: #f2f2f7; font-size: 12px; font-weight: 600; }
+.fd-gris { color: #8e8e93; }
+.fd-archivos { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 6px; padding: 12px; border-radius: 10px; background: #f7f7f9; }
+.fd-archivo { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 92px; padding: 6px 4px; border: 0; border-radius: 6px; background: none; color: #1d1d1f; font: inherit; font-size: 11.5px; text-decoration: none; text-align: center; cursor: default; }
+.fd-archivo span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.fd-archivo:hover { background: rgba(0, 0, 0, 0.05); }
+.fd-info { border-top: 0.5px solid #e2e2e6; }
+.fd-info__titulo { display: flex; align-items: center; gap: 6px; width: 100%; padding: 10px 0; border: 0; background: none; font: inherit; font-weight: 650; color: #1d1d1f; text-align: left; cursor: default; }
+.fd-info__titulo svg { width: 10px; height: 10px; color: #8e8e93; transition: transform 160ms ease; }
+.fd-info.is-abierta .fd-info__titulo svg { transform: rotate(90deg); }
+.fd-info__cuerpo { padding: 0 0 14px 16px; }
+.fd-datos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 24px; margin: 0; }
+.fd-dato { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 8px; }
+.fd-dato dt { color: #8e8e93; text-align: right; }
+.fd-dato dd { margin: 0; overflow-wrap: anywhere; }
+.fd-cifras { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.fd-cifras div { display: grid; gap: 2px; min-width: 130px; padding: 10px 14px; border-radius: 10px; background: #f7f7f9; }
+.fd-cifras small { color: #8e8e93; font-size: 11.5px; }
+.fd-cifras b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.fd-cifras .is-debe b { color: #d70015; }
+.fd-estado { padding: 1px 8px; border-radius: 999px; font-size: 11.5px; background: #f2f2f7; }
+.fd-estado.is-pagado { background: #e3f7e8; color: #1a7f37; }
+.fd-estado.is-vencido, .fd-estado.is-atrasado { background: #fde8e8; color: #c41e1e; }
+.fd-estado.is-pendiente { background: #fff4de; color: #9a5b00; }
+.fd-lista { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.fd-lista p { margin: 2px 0 0; white-space: pre-wrap; }
+.fd-nota { margin: 0 0 8px; white-space: pre-wrap; }
+.fd-sub { margin: 14px 0 0; font-size: 12px; color: #8e8e93; font-weight: 600; }
+.fd-burbujas { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.fd-burbujas li { max-width: 80%; padding: 7px 11px; border-radius: 14px; background: #e9e9eb; justify-self: start; }
+.fd-burbujas li.is-equipo { justify-self: end; background: #c0392b; color: #fff; }
+.fd-burbujas li.is-equipo small { color: rgba(255, 255, 255, 0.75); }
+.fd-burbujas small { color: #8e8e93; font-size: 11px; }
+.fd-burbujas p { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fd-boton { margin-top: 12px; padding: 6px 14px; border: 0; border-radius: 7px; background: #c0392b; color: #fff; font: inherit; font-weight: 600; cursor: default; }
+.fd-ficha a { color: #0a64d6; }

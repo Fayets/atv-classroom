@@ -4,7 +4,9 @@ import { useAuth } from '../../context/AuthContext'
 import { useEscritorio } from '../../context/EscritorioContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
 import MensajesPage from '../../pages/MensajesPage'
+import Finder, { IconoCarpeta } from './Finder'
 import '../../styles/escritorio.css'
+import '../../styles/finder.css'
 
 const ICONOS = {
   mensajes: (
@@ -176,10 +178,45 @@ export default function Escritorio({ children }) {
   function abrirApp(app) {
     if (app.id !== actual) navigate(ultimaRuta.current[app.id] || app.ruta)
     abrir()
+    setFinderFrente(false)
+  }
+
+  // Carpeta Clientes (solo admin): ícono en el escritorio, pila en el Dock y su ventana de Finder.
+  const [finder, setFinder] = useState(false)
+  const [finderFrente, setFinderFrente] = useState(false)
+  const [iconoSel, setIconoSel] = useState(false)
+  function abrirClientes() {
+    setFinder(true)
+    setFinderFrente(true)
+    setIconoSel(false)
+  }
+  function abrirChat(ruta) {
+    navigate(ruta)
+    abrir()
+    setFinderFrente(false)
+  }
+  // Como en macOS: la ventana que tocás pasa adelante.
+  function enfocar(e) {
+    if (e.target.closest('.fd-ventana')) return
+    if (e.target.closest('.esc-ventana')) setFinderFrente(false)
+    if (!e.target.closest('.esc-icono')) setIconoSel(false)
   }
 
   return (
-    <div className="esc">
+    <div className="esc" onPointerDownCapture={enfocar}>
+      {isAdmin ? (
+        <button
+          type="button"
+          className={`esc-icono${iconoSel ? ' is-sel' : ''}`}
+          onClick={() => setIconoSel(true)}
+          onDoubleClick={abrirClientes}
+          onKeyDown={(e) => e.key === 'Enter' && abrirClientes()}
+          aria-label="Carpeta Clientes"
+        >
+          <IconoCarpeta tamano={64} />
+          <span>Clientes</span>
+        </button>
+      ) : null}
       {/* Mensajes no se desarma al cambiar de app: vuelve en el acto, con el mismo chat y scroll. */}
       <div
         ref={ventanaMensajes}
@@ -195,6 +232,10 @@ export default function Escritorio({ children }) {
       >
         {contenidoOtra}
       </div>
+
+      {isAdmin ? (
+        <Finder abierta={finder} alFrente={finderFrente} alEnfocar={() => setFinderFrente(true)} alCerrar={() => setFinder(false)} alAbrirChat={abrirChat} />
+      ) : null}
 
       {visible === 'cerrada' ? (
         <p className="esc-vacio">La ventana está cerrada. Abrila desde el Dock.</p>
@@ -230,6 +271,24 @@ export default function Escritorio({ children }) {
             </button>
           )
         })}
+        {isAdmin ? (
+          <>
+            <i className="esc-dock__separador" aria-hidden="true" />
+            <button
+              ref={(el) => {
+                iconos.current[apps.length] = el
+              }}
+              type="button"
+              className="esc-dock__app is-clientes"
+              onClick={abrirClientes}
+              aria-label="Clientes"
+            >
+              <span className="esc-dock__icono"><IconoCarpeta tamano={50} /></span>
+              <span className="esc-dock__nombre">Clientes</span>
+              {finder ? <i className="esc-dock__punto" aria-label="Abierta" /> : null}
+            </button>
+          </>
+        ) : null}
       </nav>
     </div>
   )
