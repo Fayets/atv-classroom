@@ -48,7 +48,8 @@ export default function AppHeader() {
   }
 
   // Para el equipo, la barra es la de una app de macOS: semáforos, secciones al centro y el avatar.
-  const secciones = isEquipo
+  // En el escritorio se navega con el Dock; sin escritorio (pantallas chicas) quedan las secciones.
+  const secciones = isEquipo && !escritorio
     ? [
         ['/mensajes', 'Mensajes', contador],
         ['/classroom', 'Classroom'],
@@ -115,6 +116,8 @@ export default function AppHeader() {
             </NavLink>
           ))}
         </nav>
+      ) : isEquipo ? (
+        <span aria-hidden="true" />
       ) : null}
 
       <div className="app-header__right">
@@ -153,7 +156,7 @@ export default function AppHeader() {
             {user?.email ? (
               <p className="app-header__menu-email">{user.email}</p>
             ) : null}
-            {isAdmin && !secciones ? (
+            {isAdmin && !secciones && !escritorio ? (
               <Link
                 to="/admin"
                 className="app-header__menu-link"
@@ -163,7 +166,7 @@ export default function AppHeader() {
                 Configuración de módulos
               </Link>
             ) : null}
-            {isAdmin && !secciones ? (
+            {isAdmin && !secciones && !escritorio ? (
               <Link
                 to="/admin/equipo"
                 className="app-header__menu-link"

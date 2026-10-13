@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useEscritorio } from '../../context/EscritorioContext'
@@ -43,21 +43,6 @@ function seccionDe(ruta) {
   return 'classroom'
 }
 
-function Reloj() {
-  const [ahora, setAhora] = useState(() => new Date())
-  useEffect(() => {
-    const t = setInterval(() => setAhora(new Date()), 15000)
-    return () => clearInterval(t)
-  }, [])
-  const dia = ahora.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '')
-  const hora = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
-  return (
-    <span className="esc-menu__reloj">
-      {dia} &nbsp;{hora}
-    </span>
-  )
-}
-
 // El panel del equipo como un escritorio de macOS: barra de menú, una ventana con la sección y el Dock.
 export default function Escritorio({ children }) {
   const { isAdmin } = useAuth()
@@ -77,7 +62,38 @@ export default function Escritorio({ children }) {
         ]
       : []),
   ]
-  const nombreActual = apps.find((a) => a.id === actual)?.nombre || 'Classroom'
+
+  // Como en macOS con "ocultar Dock": aparece al acercar el mouse al borde de abajo y se va al salir.
+  // Con la ventana minimizada o cerrada queda siempre a la vista (no hay otra forma de volver).
+  const [dockVisible, setDockVisible] = useState(false)
+  const ocultar = useRef(null)
+  const iconos = useRef([])
+  const fijo = visible !== 'abierta'
+
+  function mostrarDock() {
+    clearTimeout(ocultar.current)
+    setDockVisible(true)
+  }
+  function esconderDock() {
+    clearTimeout(ocultar.current)
+    ocultar.current = setTimeout(() => setDockVisible(false), 350)
+    lupa(null)
+  }
+  useEffect(() => () => clearTimeout(ocultar.current), [])
+
+  // Lupa del Dock: cada ícono crece según qué tan cerca está el mouse.
+  function lupa(x) {
+    iconos.current.forEach((el) => {
+      if (!el) return
+      if (x == null) {
+        el.style.setProperty('--zoom', 1)
+        return
+      }
+      const r = el.getBoundingClientRect()
+      const distancia = Math.abs(x - (r.left + r.width / 2))
+      el.style.setProperty('--zoom', 1 + 0.55 * Math.max(0, 1 - distancia / 150))
+    })
+  }
 
   function abrirApp(app) {
     if (app.id !== actual) navigate(app.ruta)
@@ -86,12 +102,6 @@ export default function Escritorio({ children }) {
 
   return (
     <div className="esc">
-      <div className="esc-menu" role="menubar">
-        <span className="esc-menu__app">ATV</span>
-        <span className="esc-menu__item">{nombreActual}</span>
-        <Reloj />
-      </div>
-
       <div className={`esc-ventana is-${tamano} is-${visible}`} aria-hidden={visible !== 'abierta'}>
         {children}
       </div>
@@ -100,11 +110,29 @@ export default function Escritorio({ children }) {
         <p className="esc-vacio">La ventana está cerrada. Abrila desde el Dock.</p>
       ) : null}
 
-      <nav className="esc-dock" aria-label="Dock">
-        {apps.map((app) => {
+      <div className="esc-borde" onMouseEnter={mostrarDock} aria-hidden="true" />
+      <nav
+        className={`esc-dock${dockVisible || fijo ? ' is-visible' : ''}`}
+        aria-label="Dock"
+        onMouseEnter={mostrarDock}
+        onMouseLeave={esconderDock}
+        onMouseMove={(e) => lupa(e.clientX)}
+        onFocus={mostrarDock}
+        onBlur={esconderDock}
+      >
+        {apps.map((app, i) => {
           const abierta = app.id === actual && visible !== 'cerrada'
           return (
-            <button key={app.id} type="button" className={`esc-dock__app is-${app.id}`} onClick={() => abrirApp(app)} title={app.nombre}>
+            <button
+              key={app.id}
+              ref={(el) => {
+                iconos.current[i] = el
+              }}
+              type="button"
+              className={`esc-dock__app is-${app.id}`}
+              onClick={() => abrirApp(app)}
+              aria-label={app.nombre}
+            >
               <span className="esc-dock__icono">{ICONOS[app.id]}</span>
               {app.cuenta ? <span className="esc-dock__cuenta">{app.cuenta > 99 ? '99+' : app.cuenta}</span> : null}
               <span className="esc-dock__nombre">{app.nombre}</span>
