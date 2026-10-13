@@ -54,9 +54,11 @@
   border-radius: 20px; background: rgba(255, 255, 255, 0.26); backdrop-filter: saturate(180%) blur(30px);
   box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.4), 0 10px 30px -10px rgba(0, 0, 0, 0.5);
   transform: translate(-50%, calc(100% + 16px));
-  transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1);
+  /* bajar: rápido y sin rebote */
+  transition: transform 160ms cubic-bezier(0.4, 0, 1, 1);
 }
-.esc-dock.is-visible { transform: translate(-50%, 0); }
+/* subir: un poco más suave, como en macOS */
+.esc-dock.is-visible { transform: translate(-50%, 0); transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .esc-dock__app { position: relative; display: flex; flex-direction: column; align-items: center; padding: 0; border: 0; background: none; cursor: pointer; --zoom: 1; outline: none; -webkit-tap-highlight-color: transparent; }
 .esc-dock__icono {
   width: 50px; height: 50px;

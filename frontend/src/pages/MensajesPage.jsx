@@ -18,16 +18,6 @@ const GRUPOS = [
   { id: 'entry', nombre: 'Entry level', planes: ['entry'] },
   { id: 'mentoria', nombre: 'Mentoria', planes: ['mentoria'] },
 ]
-const CLAVE_PLEGADOS = 'atv_msj_plegados'
-
-function leerPlegados() {
-  try {
-    return JSON.parse(localStorage.getItem(CLAVE_PLEGADOS) || '[]')
-  } catch {
-    return []
-  }
-}
-
 function agrupar(lista) {
   const grupos = GRUPOS.map((g) => ({ ...g, canales: [] }))
   const sinPlan = { id: 'otros', nombre: 'Sin plan', canales: [] }
@@ -36,6 +26,27 @@ function agrupar(lista) {
     ;(grupos.find((g) => g.planes.includes(plan)) || sinPlan).canales.push(c)
   }
   return [...grupos, sinPlan].filter((g) => g.canales.length)
+}
+
+// Fila como un canal de Discord: el nombre; en negrita con un punto si hay mensajes sin leer,
+// y un círculo rojo con la cantidad si te etiquetaron.
+function FilaCanal({ c, activo, onAbrir, escribe }) {
+  const nuevo = c.no_leidos > 0 && !activo
+  const ultimo = c.ultimo ? `${c.ultimo.autor_nombre}: ${c.ultimo.texto}` : 'Sin mensajes todavía'
+  // Lo que antes era la sección "Esperan respuesta" ahora va en el tooltip, sin sacar el chat de su grupo.
+  const titulo = c.esperando_desde ? `Espera respuesta · ${haceCuanto(c.esperando_desde)}\n${ultimo}` : ultimo
+  return (
+    <button type="button" className={`msj-fila${activo ? ' is-activo' : ''}${nuevo ? ' is-nuevo' : ''}`} onClick={() => onAbrir(c.id)} title={titulo}>
+      {nuevo ? <i className="msj-fila__punto" aria-label="Mensajes sin leer" /> : null}
+      <span className="msj-fila__nombre">{c.nombre}</span>
+      {escribe ? <span className="msj-fila__escribe" aria-label={`${escribe} está escribiendo`}><i /><i /><i /></span> : null}
+      {c.menciones > 0 ? (
+        <b className="msj-fila__menciones" aria-label={`Te etiquetaron ${c.menciones} ${c.menciones === 1 ? 'vez' : 'veces'}`}>
+          {c.menciones > 99 ? '99+' : c.menciones}
+        </b>
+      ) : null}
+    </button>
+  )
 }
 
 function ItemCanal({ c, activo, onAbrir, isEquipo, escribe }) {
@@ -143,7 +154,7 @@ export default function MensajesPage() {
   useEffect(
     () =>
       suscribir((ev) => {
-        if (!['mensaje', 'leido', 'borrado', 'reconectado'].includes(ev.tipo)) return
+        if (!['mensaje', 'leido', 'borrado', 'reconectado', 'mencion'].includes(ev.tipo)) return
         clearTimeout(recarga.current)
         recarga.current = setTimeout(cargar, 600)
       }),
@@ -211,20 +222,12 @@ export default function MensajesPage() {
   }, [canales, buscar])
 
   const anuncios = filtrados.filter((c) => c.tipo === 'anuncios')
-  const esperando = filtrados.filter((c) => c.tipo === 'cliente' && c.esperando_desde && isEquipo)
-  const resto = filtrados.filter((c) => c.tipo === 'cliente' && !(c.esperando_desde && isEquipo))
+  // Como en Discord: todo cliente vive en su grupo; lo urgente se ve por el punto y el contador.
+  const resto = filtrados.filter((c) => c.tipo === 'cliente')
   const grupos = useMemo(() => (isEquipo ? agrupar(resto) : []), [isEquipo, resto])
-  const [plegados, setPlegados] = useState(leerPlegados)
-  const plegar = (id) =>
-    setPlegados((p) => {
-      const nuevo = p.includes(id) ? p.filter((x) => x !== id) : [...p, id]
-      try {
-        localStorage.setItem(CLAVE_PLEGADOS, JSON.stringify(nuevo))
-      } catch {
-        // sin almacenamiento, el plegado vale mientras la página esté abierta
-      }
-      return nuevo
-    })
+  // Como en Discord: los grupos arrancan cerrados; cerrados igual muestran lo que tiene novedades.
+  const [abiertos, setAbiertos] = useState([])
+  const alternarGrupo = (id) => setAbiertos((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]))
   const item = canales?.find((c) => c.id === activo)
   const abrir = (id) => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas', c: String(id) } : { c: String(id) })
   const cambiarVista = (v) => setParams(v === 'alertas' ? { v: 'alertas' } : {})
@@ -266,29 +269,23 @@ export default function MensajesPage() {
           {error ? <p className="msj-error">{error}</p> : null}
           {!canales ? <p className="msj-vacio">Cargando…</p> : null}
 
-          {isEquipo && esperando.length ? <p className="msj-seccion">Esperan respuesta — {esperando.length}</p> : null}
-          {esperando.map((c) => (
-            <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
-          ))}
-
           {isEquipo
             ? grupos.map((g) => {
-                // Buscando, todo se ve; si el chat abierto está en un grupo plegado, ese grupo se muestra.
-                const abierto = buscar.trim() || !plegados.includes(g.id) || g.canales.some((c) => c.id === activo)
+                const abierto = Boolean(buscar.trim()) || abiertos.includes(g.id)
+                const visibles = abierto ? g.canales : g.canales.filter((c) => c.id === activo || c.no_leidos > 0 || c.menciones > 0 || escriben[c.id])
+                const novedades = g.canales.filter((c) => c.no_leidos > 0).length
                 return (
                   <section key={g.id} className="msj-grupo" aria-label={g.nombre}>
-                    <button type="button" className={`msj-grupo__titulo${abierto ? ' is-abierto' : ''}`} onClick={() => plegar(g.id)} aria-expanded={Boolean(abierto)}>
+                    <button type="button" className={`msj-grupo__titulo${abierto ? ' is-abierto' : ''}${!abierto && novedades ? ' con-novedades' : ''}`} onClick={() => alternarGrupo(g.id)} aria-expanded={abierto}>
                       <svg viewBox="0 0 10 10" aria-hidden="true">
                         <path d="M3 2l4 3-4 3z" fill="currentColor" />
                       </svg>
                       <span>{g.nombre}</span>
                       <small>{g.canales.length}</small>
                     </button>
-                    {abierto
-                      ? g.canales.map((c) => (
-                          <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
-                        ))
-                      : null}
+                    {visibles.map((c) => (
+                      <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} />
+                    ))}
                   </section>
                 )
               })

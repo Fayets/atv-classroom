@@ -145,13 +145,14 @@ export default function Escritorio({ children }) {
   const iconos = useRef([])
   const fijo = visible !== 'abierta'
 
+  // Solo el teclado (Tab) deja el Dock fijo: un clic no tiene que dejarlo trabado arriba.
   function mostrarDock() {
     clearTimeout(ocultar.current)
     setDockVisible(true)
   }
   function esconderDock() {
     clearTimeout(ocultar.current)
-    ocultar.current = setTimeout(() => setDockVisible(false), 350)
+    ocultar.current = setTimeout(() => setDockVisible(false), 120)
     lupa(null)
   }
   useEffect(() => () => clearTimeout(ocultar.current), [])
@@ -241,15 +242,16 @@ export default function Escritorio({ children }) {
         <p className="esc-vacio">La ventana está cerrada. Abrila desde el Dock.</p>
       ) : null}
 
-      <div className="esc-borde" onMouseEnter={mostrarDock} aria-hidden="true" />
+      {/* La franja del borde lo sube y también lo baja: si el cursor se aleja sin pasar por el Dock, no queda trabado. */}
+      <div className="esc-borde" onMouseEnter={mostrarDock} onMouseLeave={esconderDock} aria-hidden="true" />
       <nav
         className={`esc-dock${dockVisible || fijo ? ' is-visible' : ''}`}
         aria-label="Dock"
         onMouseEnter={mostrarDock}
         onMouseLeave={esconderDock}
         onMouseMove={(e) => lupa(e.clientX)}
-        onFocus={mostrarDock}
-        onBlur={esconderDock}
+        onFocus={(e) => e.target.matches(':focus-visible') && mostrarDock()}
+        onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && esconderDock()}
       >
         {apps.map((app, i) => {
           const abierta = app.id === actual && visible !== 'cerrada'
@@ -261,7 +263,10 @@ export default function Escritorio({ children }) {
               }}
               type="button"
               className={`esc-dock__app is-${app.id}`}
-              onClick={() => abrirApp(app)}
+              onClick={(e) => {
+                abrirApp(app)
+                if (!e.currentTarget.matches(':focus-visible')) e.currentTarget.blur()
+              }}
               aria-label={app.nombre}
             >
               <span className="esc-dock__icono">{ICONOS[app.id]}</span>
@@ -280,7 +285,10 @@ export default function Escritorio({ children }) {
               }}
               type="button"
               className="esc-dock__app is-clientes"
-              onClick={abrirClientes}
+              onClick={(e) => {
+                abrirClientes()
+                if (!e.currentTarget.matches(':focus-visible')) e.currentTarget.blur()
+              }}
               aria-label="Clientes"
             >
               <span className="esc-dock__icono"><IconoCarpeta tamano={50} /></span>

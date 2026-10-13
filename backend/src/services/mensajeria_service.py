@@ -217,6 +217,10 @@ def _resumen_canales(lector: tuple[str, int]) -> dict[int, dict]:
              WHERE m.canal = c.id AND NOT m.borrado
                AND m.id > COALESCE(l.ultimo_leido_id, 0)
                AND NOT (m.autor_tipo = $lector_tipo AND m.autor_id = $lector_id)),
+          (SELECT count(*) FROM "{s}"."menciones" mn
+             JOIN "{s}"."mensajes_canal" mm ON mm.id = mn.mensaje_id AND NOT mm.borrado
+             WHERE mn.canal_id = c.id AND $lector_tipo = 'admin' AND mn.admin_id = $lector_id
+               AND mn.mensaje_id > COALESCE(l.ultimo_leido_id, 0)),
           (SELECT min(m.creado_en) FROM "{s}"."mensajes_canal" m
              WHERE m.canal = c.id AND NOT m.borrado AND m.autor_tipo = 'cliente' AND m.id > 0
                AND m.id > COALESCE((SELECT max(t.id) FROM "{s}"."mensajes_canal" t
@@ -230,12 +234,13 @@ def _resumen_canales(lector: tuple[str, int]) -> dict[int, dict]:
         ) u ON TRUE"""
     )
     resumen = {}
-    for canal_id, u_id, u_texto, u_tipo, u_autor, u_fecha, u_nombre, no_leidos, espera in filas:
+    for canal_id, u_id, u_texto, u_tipo, u_autor, u_fecha, u_nombre, no_leidos, menciones, espera in filas:
         resumen[canal_id] = {
             "ultimo": {"id": u_id, "texto": u_texto, "autor_tipo": u_tipo, "autor_id": u_autor, "creado_en": u_fecha, "autor_nombre": u_nombre}
             if u_id
             else None,
             "no_leidos": int(no_leidos or 0),
+            "menciones": int(menciones or 0),  # etiquetas a quien mira la bandeja, sin leer (como en Discord)
             "esperando_desde": espera,
         }
     return resumen
@@ -347,6 +352,7 @@ class MensajeriaServices:
                         if ultimo
                         else None,
                         "no_leidos": datos.get("no_leidos", 0),
+                        "menciones": datos.get("menciones", 0),
                         "esperando_desde": _iso(datos.get("esperando_desde")),
                     }
                 )

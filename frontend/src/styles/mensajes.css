@@ -447,3 +447,20 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 .msj-grupo__titulo span { flex: 1; }
 .msj-grupo__titulo small { font-weight: 600; font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { .msj-grupo__titulo svg { transition: none; } }
+
+/* filas tipo canal de Discord */
+.msj-fila { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 30px; margin: 1px 0; padding: 4px 10px 4px 14px; border: 0; border-radius: 6px; background: none; color: #8e8e93; font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+.msj-fila:hover { background: rgba(0, 0, 0, 0.05); color: #3a3a3c; }
+.msj-fila.is-nuevo { color: #1d1d1f; font-weight: 650; }
+.msj-fila.is-activo { background: var(--m-acento, #c0392b); color: #fff; font-weight: 600; }
+.msj-fila__punto { position: absolute; left: 3px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: #1d1d1f; }
+.msj-fila__nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msj-fila__menciones { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #ff3b30; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.msj-fila.is-activo .msj-fila__menciones { background: #fff; color: var(--m-acento, #c0392b); }
+.msj-fila__escribe { display: inline-flex; gap: 2px; }
+.msj-fila__escribe i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.5; animation: msj-escribe 1s ease-in-out infinite; }
+.msj-fila__escribe i:nth-child(2) { animation-delay: 0.15s; }
+.msj-fila__escribe i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes msj-escribe { 50% { opacity: 1; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .msj-fila__escribe i { animation: none; } }
+.msj-grupo__titulo.con-novedades { color: #1d1d1f; }
