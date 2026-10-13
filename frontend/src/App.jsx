@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { EscritorioProvider, useEscritorio } from './context/EscritorioContext'
 import { MensajeriaProvider } from './context/MensajeriaContext'
 import AdminPage from './pages/AdminPage'
+import CerebroPage from './pages/CerebroPage'
 import EquipoPage from './pages/EquipoPage'
 import FrentePage from './pages/FrentePage'
 import HomePage from './pages/HomePage'
@@ -99,6 +100,14 @@ function AppRoutes() {
             <ProtectedRoute>
               <RutaMensajes />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/cerebro"
+          element={
+            <AdminRoute>
+              <CerebroPage />
+            </AdminRoute>
           }
         />
         <Route

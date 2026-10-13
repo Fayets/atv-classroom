@@ -55,6 +55,7 @@ export default function AppHeader() {
         ['/classroom', 'Classroom'],
         ...(isAdmin
           ? [
+              ['/admin/cerebro', 'Cerebro'],
               ['/admin/equipo', 'Equipo'],
               ['/admin', 'Módulos', null, true],
             ]

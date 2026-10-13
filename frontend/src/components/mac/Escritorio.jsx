@@ -27,6 +27,16 @@ const ICONOS = {
       <path d="M15.5 14.2A4.5 4.5 0 0 1 20.5 19" />
     </svg>
   ),
+  cerebro: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+      <circle cx="6" cy="7" r="2" fill="#fff" />
+      <circle cx="17" cy="5.5" r="1.6" fill="#fff" />
+      <circle cx="12" cy="12" r="2.4" fill="#fff" />
+      <circle cx="5.5" cy="17.5" r="1.6" fill="#fff" />
+      <circle cx="18" cy="17" r="2" fill="#fff" />
+      <path d="M7.7 8.2l2.6 2.4M15.6 6.6l-2.4 3.6M7 16.4l3.2-3M16.3 15.8l-2.6-2.4" />
+    </svg>
+  ),
   modulos: (
     <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="4" y="4" width="7" height="7" rx="1.5" />
@@ -39,6 +49,7 @@ const ICONOS = {
 
 function seccionDe(ruta) {
   if (ruta.startsWith('/mensajes')) return 'mensajes'
+  if (ruta.startsWith('/admin/cerebro')) return 'cerebro'
   if (ruta.startsWith('/admin/equipo')) return 'equipo'
   if (ruta.startsWith('/admin')) return 'modulos'
   return 'classroom'
@@ -76,6 +87,7 @@ export default function Escritorio({ children }) {
     { id: 'classroom', nombre: 'Classroom', ruta: '/classroom' },
     ...(isAdmin
       ? [
+          { id: 'cerebro', nombre: 'Cerebro', ruta: '/admin/cerebro' },
           { id: 'equipo', nombre: 'Equipo', ruta: '/admin/equipo' },
           { id: 'modulos', nombre: 'Módulos', ruta: '/admin' },
         ]

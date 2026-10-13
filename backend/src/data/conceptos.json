@@ -1,0 +1,2117 @@
+{
+ "modelo": "claude-sonnet-5-5",
+ "conceptos": [
+  {
+   "id": "avatar",
+   "nombre": "Avatar",
+   "definicion": "Cliente ideal definido por su nivel de consciencia, dolores y situación A y B, no por datos demográficos, y llenado a mano.",
+   "palabras": [
+    "cliente ideal",
+    "a quien le vendo",
+    "mi publico",
+    "tipo de cliente",
+    "quien me compra",
+    "perfil de comprador",
+    "que le duele",
+    "para quien trabajo"
+   ]
+  },
+  {
+   "id": "oferta",
+   "nombre": "Oferta",
+   "definicion": "Promesa concreta de 'ayudo a X a lograr Y en Z sin dolor', tratada como una hipótesis que se valida y se revisa.",
+   "palabras": [
+    "que vendo",
+    "mi propuesta",
+    "promesa",
+    "lo que ofrezco",
+    "propuesta de valor",
+    "que le prometo",
+    "mi servicio",
+    "armar la oferta"
+   ]
+  },
+  {
+   "id": "metodo-unico",
+   "nombre": "Método único",
+   "definicion": "Mecanismo con nombre simple y claro que explica cómo se pasa del punto A al punto B y diferencia tu oferta.",
+   "palabras": [
+    "mi metodo",
+    "diferenciarme",
+    "que me hace distinto",
+    "sistema propio",
+    "mi formula",
+    "paso a paso propio",
+    "competencia igual",
+    "nombre del metodo"
+   ]
+  },
+  {
+   "id": "producto-mvp",
+   "nombre": "Producto MVP",
+   "definicion": "Primera versión del producto, armada en una semana con fases, entregables y los primeros clientes como laboratorio.",
+   "palabras": [
+    "primera version",
+    "armar el programa",
+    "producto minimo",
+    "sacar el curso",
+    "probar el producto",
+    "version beta",
+    "primeros alumnos",
+    "crear mi programa"
+   ]
+  },
+  {
+   "id": "estructura-producto",
+   "nombre": "Estructura de producto",
+   "definicion": "Formato de entrega del programa (camadas, aulas, niveles) elegido según la capacidad operativa.",
+   "palabras": [
+    "formato del curso",
+    "como entrego",
+    "grupal o individual",
+    "clases en vivo",
+    "camadas",
+    "cohortes",
+    "modalidad",
+    "armar el programa"
+   ]
+  },
+  {
+   "id": "mejora-producto",
+   "nombre": "Mejora de producto",
+   "definicion": "Pensar el producto en versiones con roadmap y ciclos de actualización en lugar de parches.",
+   "palabras": [
+    "actualizar el curso",
+    "mejorar el programa",
+    "nueva version",
+    "parches",
+    "hoja de ruta",
+    "renovar el producto",
+    "agregar modulos",
+    "mejorar lo que vendo"
+   ]
+  },
+  {
+   "id": "pricing",
+   "nombre": "Pricing",
+   "definicion": "Fijar el precio como porcentaje del ROI del avatar y como filtro de calidad de clientes, subiéndolo en lugar de bajarlo.",
+   "palabras": [
+    "cobrar",
+    "precio",
+    "caro",
+    "cuanto cobro",
+    "subir precios",
+    "barato",
+    "poner precio",
+    "tarifa"
+   ]
+  },
+  {
+   "id": "cash-collected",
+   "nombre": "Cash collected",
+   "definicion": "Dinero efectivamente cobrado, base de comisiones, pagos al equipo y métricas en lugar de la facturación.",
+   "palabras": [
+    "plata cobrada",
+    "lo que cobre",
+    "facturado",
+    "plata en cuenta",
+    "ingreso real",
+    "cobrado",
+    "cuanto entro",
+    "plata que entra"
+   ]
+  },
+  {
+   "id": "cuotas-downsell",
+   "nombre": "Cuotas y downsell",
+   "definicion": "Manejo de la falta de liquidez ofreciendo siempre el precio completo primero y sacando el mayor adelanto con pocas cuotas.",
+   "palabras": [
+    "pagar en cuotas",
+    "no tiene plata",
+    "financiar",
+    "pago dividido",
+    "en cuotas",
+    "me pide descuento",
+    "no le alcanza",
+    "seña"
+   ]
+  },
+  {
+   "id": "ticket",
+   "nombre": "Ticket (high, mid, low)",
+   "definicion": "Nivel de precio de la oferta que define cuántas ventas hacen falta para validarla y cuánta operación exige.",
+   "palabras": [
+    "precio alto",
+    "producto caro",
+    "ticket alto",
+    "vender barato",
+    "cuantas ventas necesito",
+    "precio medio",
+    "producto accesible",
+    "cuanto cuesta"
+   ]
+  },
+  {
+   "id": "validacion",
+   "nombre": "Validación",
+   "definicion": "Comprobar la oferta con ventas reales 1 a 1 y llamadas de diagnóstico antes de escalar, nunca con un lanzamiento.",
+   "palabras": [
+    "probar si se vende",
+    "primeras ventas",
+    "testear oferta",
+    "vender uno a uno",
+    "sirve lo que vendo",
+    "ver si funciona",
+    "antes de escalar",
+    "ventas de prueba"
+   ]
+  },
+  {
+   "id": "investigacion-audiencia",
+   "nombre": "Investigación de audiencia",
+   "definicion": "Research interno y externo con formularios, clientes PIF, competidores y llamadas para ajustar avatar y oferta.",
+   "palabras": [
+    "encuesta",
+    "preguntarle a clientes",
+    "formulario",
+    "conocer al publico",
+    "que quiere mi publico",
+    "investigar mercado",
+    "entrevistas",
+    "estudiar audiencia"
+   ]
+  },
+  {
+   "id": "research-competencia",
+   "nombre": "Research de competencia",
+   "definicion": "Análisis de competidores directos y referentes de USA para detectar patrones y convertirlos en contenido.",
+   "palabras": [
+    "la competencia",
+    "que hacen otros",
+    "copiar a otros",
+    "referentes",
+    "espiar competidores",
+    "mirar a otros",
+    "inspiracion",
+    "quien vende lo mismo"
+   ]
+  },
+  {
+   "id": "lead-magnet",
+   "nombre": "Lead magnet",
+   "definicion": "Recurso con efecto wow, alineado a la oferta y rápido de hacer, que se entrega a cambio de una palabra clave.",
+   "palabras": [
+    "regalo gratis",
+    "guia gratis",
+    "pdf gratis",
+    "recurso gratuito",
+    "material gratis",
+    "ebook",
+    "captar contactos",
+    "palabra clave"
+   ]
+  },
+  {
+   "id": "reels",
+   "nombre": "Reels",
+   "definicion": "Formato de alcance con estructura Hook, Contexto, Valor, CTA que abre al mainstream y cierra al 1%.",
+   "palabras": [
+    "reels",
+    "videos cortos",
+    "videos virales",
+    "alcance",
+    "hacer videos",
+    "instagram videos",
+    "viralizar",
+    "gancho"
+   ]
+  },
+  {
+   "id": "historias",
+   "nombre": "Historias",
+   "definicion": "Secuencias de Instagram con copy Hook, Problema, Solución y CTA que calientan al lead y lo llevan al chat.",
+   "palabras": [
+    "historias",
+    "stories",
+    "historias de instagram",
+    "calentar seguidores",
+    "subir historias",
+    "mensajes por privado",
+    "secuencia de historias",
+    "que me escriban"
+   ]
+  },
+  {
+   "id": "youtube",
+   "nombre": "YouTube",
+   "definicion": "Formato largo con packaging, apertura y proof stack que nutre y resuelve dudas antes de la llamada.",
+   "palabras": [
+    "youtube",
+    "videos largos",
+    "canal de youtube",
+    "miniatura",
+    "titulo del video",
+    "videos de youtube",
+    "subir videos",
+    "contenido largo"
+   ]
+  },
+  {
+   "id": "calendario-contenido",
+   "nombre": "Calendario de contenido",
+   "definicion": "Planificación semanal por dolor con rutina de producción para medir qué contenido vende.",
+   "palabras": [
+    "que publico",
+    "planificar contenido",
+    "calendario",
+    "cuantos posteos",
+    "organizar publicaciones",
+    "falta de ideas",
+    "publicar seguido",
+    "rutina de contenido"
+   ]
+  },
+  {
+   "id": "laboratorio-contenido",
+   "nombre": "Laboratorio de contenido",
+   "definicion": "Cruce de contenido con cash collected para descubrir dolor, ángulo, formato y CTA ganadores, repetido cada 30 días.",
+   "palabras": [
+    "que contenido vende",
+    "que funciona",
+    "probar contenido",
+    "contenido que convierte",
+    "medir contenido",
+    "que publicacion vendio",
+    "probar formatos",
+    "contenido ganador"
+   ]
+  },
+  {
+   "id": "perfil-instagram",
+   "nombre": "Perfil de Instagram",
+   "definicion": "Bio, destacadas, fijados y foto optimizados para que el perfil venda la oferta sin generar objeciones.",
+   "palabras": [
+    "bio",
+    "biografia",
+    "perfil",
+    "destacadas",
+    "foto de perfil",
+    "arreglar instagram",
+    "mi cuenta",
+    "link en bio"
+   ]
+  },
+  {
+   "id": "comunicacion-marca",
+   "nombre": "Comunicación y marca",
+   "definicion": "Estrategia de diferenciales, tono, colores y palabras coherente con el avatar y la personalidad.",
+   "palabras": [
+    "mi marca",
+    "colores",
+    "tono",
+    "como hablo",
+    "identidad",
+    "logo",
+    "imagen de marca",
+    "estilo"
+   ]
+  },
+  {
+   "id": "marca-personal",
+   "nombre": "Marca personal",
+   "definicion": "Arranque o depuración de una cuenta personal para que genere ventas, desde cero o desde una cuenta viral.",
+   "palabras": [
+    "cuenta personal",
+    "marca personal",
+    "empezar de cero",
+    "cuenta viral",
+    "mi cuenta",
+    "personal branding",
+    "ser conocido",
+    "vender con mi cara"
+   ]
+  },
+  {
+   "id": "edicion-video",
+   "nombre": "Edición de video",
+   "definicion": "Sistema de trabajo con editores con briefs, rondas de revisión y deadlines claros.",
+   "palabras": [
+    "editor",
+    "editar videos",
+    "edicion",
+    "mi editor",
+    "entrega de videos",
+    "correcciones",
+    "editar reels",
+    "editor tarda"
+   ]
+  },
+  {
+   "id": "ia-poppy",
+   "nombre": "IA y Poppy",
+   "definicion": "Uso de Poppy AI, GPT y templates para crear guiones, analizar reels y ganar consistencia.",
+   "palabras": [
+    "inteligencia artificial",
+    "chatgpt",
+    "guiones",
+    "ia",
+    "gpt",
+    "hacer guiones",
+    "poppy",
+    "escribir con ia"
+   ]
+  },
+  {
+   "id": "capas-de-negocio",
+   "nombre": "Capas de negocio",
+   "definicion": "Orden de dependencias avatar, oferta, producto, mensaje, estrategia, contenido y ventas donde cada capa depende de la anterior.",
+   "palabras": [
+    "por donde empiezo",
+    "orden de prioridades",
+    "que arreglo primero",
+    "base del negocio",
+    "estructura",
+    "armar desde la base",
+    "paso a paso",
+    "fundamentos"
+   ]
+  },
+  {
+   "id": "ciclos-mercado",
+   "nombre": "Ciclos de mercado",
+   "definicion": "Etapas raro, tendencia, saturación, ruido y reinvención que determinan cuándo lanzar o correr evergreen.",
+   "palabras": [
+    "moda",
+    "tendencia",
+    "mercado saturado",
+    "nicho quemado",
+    "cuando lanzar",
+    "todos venden lo mismo",
+    "mercado cambia",
+    "ya paso la moda"
+   ]
+  },
+  {
+   "id": "flywheel",
+   "nombre": "Flywheel",
+   "definicion": "Ciclo virtuoso de buenos clientes, entrega fácil y resultados que se repite con la data de cada vuelta.",
+   "palabras": [
+    "ciclo virtuoso",
+    "clientes que recomiendan",
+    "rueda",
+    "bola de nieve",
+    "resultados de alumnos",
+    "que se retroalimente",
+    "efecto rebote",
+    "mejorar cada vuelta"
+   ]
+  },
+  {
+   "id": "evergreen",
+   "nombre": "Evergreen",
+   "definicion": "Sistema de venta continua que no depende de eventos y se corre 30 días seguidos antes de decidir.",
+   "palabras": [
+    "venta automatica",
+    "vender todo el tiempo",
+    "siempre abierto",
+    "venta constante",
+    "sin lanzar",
+    "ventas todo el año",
+    "vender solo",
+    "venta permanente"
+   ]
+  },
+  {
+   "id": "lanzamiento",
+   "nombre": "Lanzamiento",
+   "definicion": "Evento de venta con pico de ventas, útil para abrir ciclo y solo por motivos válidos.",
+   "palabras": [
+    "lanzar",
+    "lanzamiento",
+    "abrir inscripciones",
+    "carrito abierto",
+    "pico de ventas",
+    "fecha de lanzamiento",
+    "cierre de inscripcion",
+    "campaña de venta"
+   ]
+  },
+  {
+   "id": "webinar-masterclass",
+   "nombre": "Webinar y masterclass",
+   "definicion": "Clase en vivo o grabada usada como calentamiento y captación de leads.",
+   "palabras": [
+    "webinar",
+    "clase gratis",
+    "masterclass",
+    "clase en vivo",
+    "charla gratuita",
+    "clase grabada",
+    "taller gratis",
+    "seminario"
+   ]
+  },
+  {
+   "id": "funnel-embudo",
+   "nombre": "Embudo",
+   "definicion": "Recorrido del lead desde contenido hasta venta, que se optimiza de arriba hacia abajo antes de sumar tráfico.",
+   "palabras": [
+    "embudo",
+    "funnel",
+    "recorrido del cliente",
+    "paso a paso de venta",
+    "donde se caen",
+    "sistema de ventas",
+    "captacion",
+    "embudo de ventas"
+   ]
+  },
+  {
+   "id": "generacion-leads",
+   "nombre": "Generación de leads",
+   "definicion": "Sistema (problema + solución) x comunicación x tráfico donde el orgánico es laboratorio y lo pago amplificador.",
+   "palabras": [
+    "conseguir clientes",
+    "captar interesados",
+    "conseguir contactos",
+    "prospectos",
+    "atraer gente",
+    "interesados",
+    "llegar a mas gente",
+    "no me escriben"
+   ]
+  },
+  {
+   "id": "metricas",
+   "nombre": "Métricas",
+   "definicion": "Indicadores reales del embudo como respuesta, agenda, show-up y cierre, que se miden y se usan para decidir.",
+   "palabras": [
+    "numeros",
+    "estadisticas",
+    "porcentaje de cierre",
+    "cuantos cierran",
+    "medir",
+    "cuantos agendan",
+    "resultados del embudo",
+    "indicadores"
+   ]
+  },
+  {
+   "id": "decision-metricas",
+   "nombre": "Decisión por métricas",
+   "definicion": "Diagnóstico con umbrales por métrica para saber qué clase aplicar cuando algo está bajo.",
+   "palabras": [
+    "que mejoro",
+    "por que no vendo",
+    "donde falla",
+    "numeros bajos",
+    "diagnostico",
+    "que arreglo",
+    "algo esta fallando",
+    "cuello de botella"
+   ]
+  },
+  {
+   "id": "proyecciones",
+   "nombre": "Proyecciones",
+   "definicion": "Ingeniería inversa desde la meta de facturación identificando la limitación que frena el crecimiento.",
+   "palabras": [
+    "meta de facturacion",
+    "cuanto quiero facturar",
+    "objetivo mensual",
+    "cuantas ventas necesito",
+    "proyeccion",
+    "llegar a la meta",
+    "plan de ventas",
+    "me estanque"
+   ]
+  },
+  {
+   "id": "tracking-sistema",
+   "nombre": "Tracking y sistema",
+   "definicion": "Excel, CRM o sistema ATVOS en Airtable para llevar la data en base al tamaño del negocio.",
+   "palabras": [
+    "excel",
+    "planilla",
+    "crm",
+    "airtable",
+    "registrar ventas",
+    "llevar el control",
+    "base de datos",
+    "anotar leads"
+   ]
+  },
+  {
+   "id": "automatizacion",
+   "nombre": "Automatización",
+   "definicion": "Flujos en ManyChat, Make, Zapier y Calendly que cargan leads y eventos sin trabajo manual.",
+   "palabras": [
+    "automatizar",
+    "zapier",
+    "make",
+    "calendly",
+    "hacer solo",
+    "sin hacerlo a mano",
+    "tareas repetitivas",
+    "automatico"
+   ]
+  },
+  {
+   "id": "manychat",
+   "nombre": "ManyChat",
+   "definicion": "Herramienta de chat automatizado con palabras clave, flujos, audios y etiquetas para el setting.",
+   "palabras": [
+    "manychat",
+    "bot",
+    "chatbot",
+    "respuesta automatica",
+    "palabra clave",
+    "mensajes automaticos",
+    "bot de instagram",
+    "automatizar dm"
+   ]
+  },
+  {
+   "id": "lagunas-ciclo-compra",
+   "nombre": "Ciclo de compra",
+   "definicion": "Las cinco lagunas de información que estiran el tiempo de compra y que el contenido debe resolver.",
+   "palabras": [
+    "tarda en comprar",
+    "lo piensa mucho",
+    "dudas antes de comprar",
+    "ciclo largo",
+    "no se decide",
+    "tiempo de decision",
+    "lo va a pensar",
+    "desconfianza"
+   ]
+  },
+  {
+   "id": "nutricion",
+   "nombre": "Nutrición",
+   "definicion": "Entrega de recursos según nivel de consciencia y dolor verbalizado para que el lead llegue preparado a la llamada.",
+   "palabras": [
+    "mandarle contenido",
+    "calentar al lead",
+    "preparar al prospecto",
+    "enviar material",
+    "educar al interesado",
+    "enviar recursos",
+    "llegar caliente",
+    "contenido por privado"
+   ]
+  },
+  {
+   "id": "setting-setter",
+   "nombre": "Setter",
+   "definicion": "Persona que conversa con los leads en chat, los califica y los agenda, pagada por comisión.",
+   "palabras": [
+    "setter",
+    "setting",
+    "agendar llamadas",
+    "responder mensajes",
+    "quien contesta dm",
+    "chatear con interesados",
+    "vendedor de chat",
+    "agendador"
+   ]
+  },
+  {
+   "id": "agendamiento",
+   "nombre": "Agendamiento",
+   "definicion": "Proceso B2B o B2C para llevar al lead a una llamada en 24 a 72 horas bien preparado.",
+   "palabras": [
+    "agendar",
+    "llamada agendada",
+    "agendar llamada",
+    "reservar turno",
+    "calendario de llamadas",
+    "coordinar llamada",
+    "pasar a llamada",
+    "reunion"
+   ]
+  },
+  {
+   "id": "triaje",
+   "nombre": "Triaje",
+   "definicion": "Filtro previo que protege la llamada y pasa la autoridad del creador al closer.",
+   "palabras": [
+    "filtrar",
+    "filtro previo",
+    "curiosos",
+    "calificar",
+    "gente que no compra",
+    "perder tiempo en llamadas",
+    "precalificar",
+    "formulario previo"
+   ]
+  },
+  {
+   "id": "closer",
+   "nombre": "Closer",
+   "definicion": "Vendedor que lleva la llamada, conoce producto y avatar, y reporta objeciones a marketing.",
+   "palabras": [
+    "closer",
+    "vendedor",
+    "cerrador",
+    "quien cierra",
+    "vender por llamada",
+    "contratar vendedor",
+    "cierra ventas",
+    "equipo comercial"
+   ]
+  },
+  {
+   "id": "llamada-ventas",
+   "nombre": "Llamada de ventas",
+   "definicion": "Estructura de descubrimiento, problema, solución, presentación y cierre que confirma una decisión ya iniciada.",
+   "palabras": [
+    "llamada de ventas",
+    "llamada de venta",
+    "reunion de venta",
+    "guion de venta",
+    "como vender por llamada",
+    "presentar oferta",
+    "cerrar venta",
+    "videollamada"
+   ]
+  },
+  {
+   "id": "descubrimiento",
+   "nombre": "Descubrimiento",
+   "definicion": "Etapa de preguntas sobre situación actual, problema y situación deseada que lleva a la consecuencia.",
+   "palabras": [
+    "preguntas al cliente",
+    "diagnostico",
+    "que le pasa",
+    "indagar",
+    "detectar problema",
+    "preguntar",
+    "situacion actual",
+    "entender al cliente"
+   ]
+  },
+  {
+   "id": "objeciones",
+   "nombre": "Objeciones",
+   "definicion": "Dudas del lead que se previenen en etapas anteriores y se resuelven separando hecho de interpretación.",
+   "palabras": [
+    "objeciones",
+    "me dice que no",
+    "lo voy a pensar",
+    "es caro",
+    "excusas",
+    "no tengo tiempo",
+    "dudas",
+    "lo consulto con mi socio"
+   ]
+  },
+  {
+   "id": "creencias-limitantes",
+   "nombre": "Creencias limitantes",
+   "definicion": "Creencias detrás de las respuestas del lead o del propio dueño que frenan la decisión o el resultado.",
+   "palabras": [
+    "miedo",
+    "no puedo",
+    "no me alcanza",
+    "bloqueo",
+    "me da vergüenza",
+    "no soy capaz",
+    "no me animo",
+    "creencias"
+   ]
+  },
+  {
+   "id": "tonalidad-autoridad",
+   "nombre": "Tonalidad y autoridad",
+   "definicion": "Manejo de tono, ritmo y certeza para ser percibido como autoridad en la llamada.",
+   "palabras": [
+    "tono de voz",
+    "sonar seguro",
+    "autoridad",
+    "transmitir confianza",
+    "hablar con seguridad",
+    "sonar profesional",
+    "ritmo",
+    "nervios al vender"
+   ]
+  },
+  {
+   "id": "urgencia",
+   "nombre": "Urgencia",
+   "definicion": "Generar decisión de forma natural con preguntas de consecuencia y costo de oportunidad sin presionar.",
+   "palabras": [
+    "urgencia",
+    "apurar",
+    "que decidan ya",
+    "presionar",
+    "dejan para despues",
+    "escasez",
+    "fecha limite",
+    "se demoran"
+   ]
+  },
+  {
+   "id": "follow-up",
+   "nombre": "Follow-up",
+   "definicion": "Seguimientos escalonados a leads y creadores que rompen el patrón y no se rinden antes de 10 intentos.",
+   "palabras": [
+    "seguimiento",
+    "perseguir",
+    "hacerle seguimiento",
+    "insistir",
+    "no responde",
+    "me dejo en visto",
+    "recontactar",
+    "visto"
+   ]
+  },
+  {
+   "id": "no-show",
+   "nombre": "No-show",
+   "definicion": "Lead que agenda y no se presenta, prevenido con nutrición y micro-compromisos y recuperado con reactivación.",
+   "palabras": [
+    "no se presentan",
+    "no vienen",
+    "faltan",
+    "plantan",
+    "no aparecen",
+    "faltazo",
+    "no se conectan",
+    "cancelan"
+   ]
+  },
+  {
+   "id": "reactivacion",
+   "nombre": "Reactivación de leads",
+   "definicion": "Mensajes específicos según dónde se perdió el lead para retomar conversaciones y cierres.",
+   "palabras": [
+    "retomar",
+    "recuperar leads",
+    "revivir contactos",
+    "contactos viejos",
+    "dejaron de responder",
+    "clientes perdidos",
+    "volver a escribirles",
+    "leads frios"
+   ]
+  },
+  {
+   "id": "prospeccion-creadores",
+   "nombre": "Prospección de creadores",
+   "definicion": "Rutina de contacto con creadores por chat, Loom y email para cerrarlos como socios.",
+   "palabras": [
+    "conseguir socios",
+    "contactar infoproductores",
+    "escribirle a creadores",
+    "buscar expertos",
+    "prospectar",
+    "mensajes en frio",
+    "captar expertos",
+    "dm a creadores"
+   ]
+  },
+  {
+   "id": "loom",
+   "nombre": "Loom",
+   "definicion": "Video personalizado que se envía solo cuando lo piden, adaptado al nivel del creador.",
+   "palabras": [
+    "video personalizado",
+    "grabar pantalla",
+    "video de presentacion",
+    "loom",
+    "video para el prospecto",
+    "mandar un video",
+    "video explicativo",
+    "auditoria en video"
+   ]
+  },
+  {
+   "id": "nicho",
+   "nombre": "Nicho",
+   "definicion": "Mercado elegido por pasión, dinero y habilidad, validado en que el público paga.",
+   "palabras": [
+    "que vender",
+    "mercado",
+    "elegir nicho",
+    "en que me meto",
+    "rubro",
+    "especializarme",
+    "tema",
+    "a que me dedico"
+   ]
+  },
+  {
+   "id": "estructura-chat",
+   "nombre": "Estructura de chat",
+   "definicion": "Secuencia de apertura, conexión, redireccion, Loom y llamada propia, testeada con método científico.",
+   "palabras": [
+    "que le escribo",
+    "primer mensaje",
+    "abrir conversacion",
+    "guion de chat",
+    "mensaje en frio",
+    "como empiezo",
+    "dm",
+    "conversar por privado"
+   ]
+  },
+  {
+   "id": "creador-socio",
+   "nombre": "Creador socio",
+   "definicion": "Infoproductor con quien se trabaja a porcentaje, evaluado por visión compartida, química y compromiso.",
+   "palabras": [
+    "socio",
+    "trabajar a porcentaje",
+    "infoproductor",
+    "experto",
+    "trabajar a comision",
+    "aliado",
+    "socio comercial",
+    "elegir con quien trabajar"
+   ]
+  },
+  {
+   "id": "upfront",
+   "nombre": "Upfront",
+   "definicion": "Adelanto cobrado al creador como filtro de compromiso y financiamiento de costos, combinado con porcentaje.",
+   "palabras": [
+    "adelanto",
+    "pago inicial",
+    "anticipo",
+    "cobrar por adelantado",
+    "pago adelantado",
+    "compromiso del socio",
+    "entrada",
+    "fee inicial"
+   ]
+  },
+  {
+   "id": "contrato",
+   "nombre": "Contrato",
+   "definicion": "Acuerdo con el creador con obligaciones, confidencialidad, incumplimiento y firma digital.",
+   "palabras": [
+    "contrato",
+    "firmar",
+    "acuerdo",
+    "firma digital",
+    "clausulas",
+    "papeles",
+    "confidencialidad",
+    "incumplimiento"
+   ]
+  },
+  {
+   "id": "onboarding",
+   "nombre": "Onboarding",
+   "definicion": "Proceso inicial con video, expectativas, accesos y primeros pasos para clientes, creadores y equipo.",
+   "palabras": [
+    "bienvenida",
+    "recibir al cliente",
+    "arranque",
+    "primeros pasos",
+    "dar accesos",
+    "inicio",
+    "incorporar",
+    "video de bienvenida"
+   ]
+  },
+  {
+   "id": "equipo",
+   "nombre": "Equipo",
+   "definicion": "Roles, gestión, reuniones y feedback para que el equipo opere con un sistema y un líder.",
+   "palabras": [
+    "mi equipo",
+    "reuniones",
+    "gente a cargo",
+    "feedback",
+    "liderar",
+    "organizar al equipo",
+    "roles",
+    "delegar a gente"
+   ]
+  },
+  {
+   "id": "contratacion",
+   "nombre": "Contratación",
+   "definicion": "Búsqueda y filtro de perfiles con habilidad, visión y lealtad, contratando lento y despidiendo rápido.",
+   "palabras": [
+    "contratar",
+    "buscar gente",
+    "tomar empleados",
+    "entrevistas",
+    "reclutar",
+    "busco personal",
+    "sumar gente",
+    "elegir candidatos"
+   ]
+  },
+  {
+   "id": "despidos",
+   "nombre": "Despidos",
+   "definicion": "Decisión de desvincular tras revisar el sistema, con señales, regla de tres semanas y conversación de 15 minutos.",
+   "palabras": [
+    "despedir",
+    "echar",
+    "sacar a alguien",
+    "rinde mal",
+    "desvincular",
+    "no funciona la persona",
+    "cortar con alguien",
+    "bajo rendimiento"
+   ]
+  },
+  {
+   "id": "sops-delegacion",
+   "nombre": "SOPs y delegación",
+   "definicion": "Documentación de procesos con objetivo, checklist, pasos y resultado para delegar tareas.",
+   "palabras": [
+    "delegar",
+    "procesos",
+    "manual",
+    "checklist",
+    "instructivos",
+    "documentar",
+    "tareas a otros",
+    "hacerlo todo yo"
+   ]
+  },
+  {
+   "id": "comisiones",
+   "nombre": "Comisiones",
+   "definicion": "Pago al equipo por porcentaje del cash collected o neto, con escalas para setter y closer.",
+   "palabras": [
+    "comision",
+    "pagar a vendedores",
+    "porcentaje de ventas",
+    "cuanto le pago",
+    "variable",
+    "pagarle al closer",
+    "pagar por venta",
+    "escala de pago"
+   ]
+  },
+  {
+   "id": "capacidad-operativa",
+   "nombre": "Capacidad operativa",
+   "definicion": "Límite de clientes que el equipo puede atender, que se amplía bajando horas variables por cliente.",
+   "palabras": [
+    "no llego",
+    "cuantos alumnos puedo atender",
+    "saturado",
+    "tope de clientes",
+    "no doy abasto",
+    "sobrecargado",
+    "atender mas gente",
+    "limite de atencion"
+   ]
+  },
+  {
+   "id": "seguimiento-clientes",
+   "nombre": "Seguimiento de clientes",
+   "definicion": "Tracking, checkpoints y llamadas 1 a 1 para sostener resultados de los alumnos.",
+   "palabras": [
+    "seguir a alumnos",
+    "acompañar",
+    "resultados de alumnos",
+    "llamadas con alumnos",
+    "checkpoints",
+    "alumnos sin resultados",
+    "controlar avances",
+    "soporte"
+   ]
+  },
+  {
+   "id": "inactividad",
+   "nombre": "Inactividad",
+   "definicion": "Clientes que dejan de participar, tratados con cláusula, roadmap, chequeos y reconocimiento.",
+   "palabras": [
+    "alumnos inactivos",
+    "no participan",
+    "desaparecen",
+    "abandonan",
+    "no hacen nada",
+    "dejan de entrar",
+    "no completan",
+    "se enfrian"
+   ]
+  },
+  {
+   "id": "upsell",
+   "nombre": "Upsell",
+   "definicion": "Venta de continuidad, siguiente nivel o cross-sell a clientes actuales con meta de recompra del 30%.",
+   "palabras": [
+    "venderle mas",
+    "segundo producto",
+    "que vuelvan a comprar",
+    "ampliar compra",
+    "siguiente nivel",
+    "renovacion",
+    "vender de nuevo",
+    "continuidad"
+   ]
+  },
+  {
+   "id": "ltv-recompra",
+   "nombre": "LTV y recompra",
+   "definicion": "Valor del cliente en el tiempo, trabajado con casos de éxito, actualizaciones y siguiente producto.",
+   "palabras": [
+    "recompra",
+    "que me vuelvan a comprar",
+    "valor del cliente",
+    "clientes recurrentes",
+    "fidelizar",
+    "cliente de por vida",
+    "retener",
+    "vender mas al mismo"
+   ]
+  },
+  {
+   "id": "casos-de-exito",
+   "nombre": "Casos de éxito",
+   "definicion": "Resultados de clientes usados como prueba social en contenido, ventas y lanzamientos.",
+   "palabras": [
+    "testimonios",
+    "resultados de clientes",
+    "casos de exito",
+    "prueba social",
+    "reseñas",
+    "antes y despues",
+    "pruebas",
+    "opiniones"
+   ]
+  },
+  {
+   "id": "ads-meta",
+   "nombre": "Anuncios Meta",
+   "definicion": "Tráfico pago con Follow Me Ads, retargeting y audiencias personalizadas, que amplifica contenido ya validado en orgánico.",
+   "palabras": [
+    "publicidad",
+    "anuncios",
+    "pauta",
+    "facebook ads",
+    "meta ads",
+    "invertir en publicidad",
+    "retargeting",
+    "campañas pagas"
+   ]
+  },
+  {
+   "id": "estructura-campanas",
+   "nombre": "Estructura de campañas",
+   "definicion": "Armado de campañas ABO, un anuncio por conjunto y escalado horizontal con control de frecuencia.",
+   "palabras": [
+    "armar campañas",
+    "presupuesto de anuncios",
+    "escalar anuncios",
+    "conjuntos de anuncios",
+    "subir presupuesto",
+    "frecuencia",
+    "campaña de ads",
+    "abo"
+   ]
+  },
+  {
+   "id": "mentalidad",
+   "nombre": "Mentalidad",
+   "definicion": "Responsabilidad, abundancia y volumen consciente para actuar sin miedo al rechazo ni excusas.",
+   "palabras": [
+    "miedo al rechazo",
+    "excusas",
+    "miedo a vender",
+    "mentalidad",
+    "me frustro",
+    "me da miedo",
+    "rechazo",
+    "actitud"
+   ]
+  },
+  {
+   "id": "finanzas",
+   "nombre": "Finanzas",
+   "definicion": "Orden de caja personal y del negocio, pasarelas, LLC, Stripe y declaración en Argentina.",
+   "palabras": [
+    "impuestos",
+    "monotributo",
+    "llc",
+    "stripe",
+    "cobrar del exterior",
+    "dolares",
+    "afip",
+    "pasarela de pago"
+   ]
+  },
+  {
+   "id": "productividad",
+   "nombre": "Productividad",
+   "definicion": "Organización del día en bloques de foco profundo para sostener un negocio de alto facturado.",
+   "palabras": [
+    "no me rinde el dia",
+    "organizar el dia",
+    "foco",
+    "falta de tiempo",
+    "distraigo",
+    "agenda",
+    "bloques de trabajo",
+    "procrastino"
+   ]
+  },
+  {
+   "id": "limitaciones-escalado",
+   "nombre": "Escalado",
+   "definicion": "Crecer entre 5x y 10x por año identificando el cuello de botella y alternando crecimiento y estabilización.",
+   "palabras": [
+    "crecer",
+    "escalar",
+    "me estanque",
+    "duplicar facturacion",
+    "no puedo crecer",
+    "tope",
+    "crecer rapido",
+    "techo"
+   ]
+  }
+ ],
+ "clases": {
+  "1": [
+   "validacion",
+   "lanzamiento",
+   "evergreen",
+   "metricas",
+   "limitaciones-escalado",
+   "prospeccion-creadores"
+  ],
+  "2": [
+   "mentalidad",
+   "creencias-limitantes",
+   "productividad"
+  ],
+  "3": [
+   "mentalidad",
+   "creencias-limitantes",
+   "productividad"
+  ],
+  "4": [
+   "finanzas",
+   "comisiones",
+   "cash-collected",
+   "equipo"
+  ],
+  "5": [
+   "metricas",
+   "decision-metricas",
+   "generacion-leads",
+   "limitaciones-escalado"
+  ],
+  "6": [
+   "flywheel",
+   "avatar",
+   "pricing",
+   "ltv-recompra"
+  ],
+  "7": [
+   "capas-de-negocio",
+   "avatar",
+   "oferta",
+   "producto-mvp",
+   "comunicacion-marca"
+  ],
+  "8": [
+   "ciclos-mercado",
+   "lanzamiento",
+   "evergreen",
+   "research-competencia"
+  ],
+  "9": [
+   "estructura-producto",
+   "producto-mvp",
+   "capacidad-operativa",
+   "oferta",
+   "ticket"
+  ],
+  "10": [
+   "investigacion-audiencia",
+   "lead-magnet",
+   "historias",
+   "manychat",
+   "avatar"
+  ],
+  "11": [
+   "investigacion-audiencia",
+   "avatar",
+   "oferta",
+   "metodo-unico",
+   "casos-de-exito"
+  ],
+  "12": [
+   "investigacion-audiencia",
+   "onboarding",
+   "seguimiento-clientes",
+   "research-competencia"
+  ],
+  "13": [
+   "avatar",
+   "investigacion-audiencia",
+   "comunicacion-marca"
+  ],
+  "14": [
+   "metodo-unico",
+   "avatar",
+   "oferta",
+   "comunicacion-marca"
+  ],
+  "15": [
+   "oferta",
+   "avatar",
+   "metodo-unico",
+   "validacion",
+   "perfil-instagram"
+  ],
+  "16": [
+   "producto-mvp",
+   "estructura-producto",
+   "capacidad-operativa",
+   "casos-de-exito"
+  ],
+  "17": [
+   "pricing",
+   "cash-collected",
+   "cuotas-downsell",
+   "ticket"
+  ],
+  "18": [
+   "validacion",
+   "ticket",
+   "investigacion-audiencia",
+   "metricas",
+   "generacion-leads"
+  ],
+  "19": [
+   "comisiones",
+   "equipo",
+   "cash-collected",
+   "contratacion",
+   "ltv-recompra"
+  ],
+  "20": [
+   "despidos",
+   "equipo",
+   "sops-delegacion"
+  ],
+  "21": [
+   "metricas",
+   "funnel-embudo",
+   "manychat",
+   "proyecciones",
+   "tracking-sistema"
+  ],
+  "22": [
+   "decision-metricas",
+   "metricas",
+   "funnel-embudo",
+   "generacion-leads"
+  ],
+  "23": [
+   "tracking-sistema",
+   "metricas",
+   "automatizacion"
+  ],
+  "24": [
+   "lagunas-ciclo-compra",
+   "nutricion",
+   "casos-de-exito",
+   "objeciones"
+  ],
+  "25": [
+   "laboratorio-contenido",
+   "lagunas-ciclo-compra",
+   "nutricion",
+   "cash-collected",
+   "investigacion-audiencia"
+  ],
+  "26": [
+   "laboratorio-contenido",
+   "reels",
+   "historias",
+   "youtube",
+   "cash-collected"
+  ],
+  "27": [
+   "evergreen",
+   "flywheel",
+   "funnel-embudo",
+   "avatar",
+   "equipo"
+  ],
+  "28": [
+   "evergreen",
+   "proyecciones",
+   "decision-metricas",
+   "limitaciones-escalado"
+  ],
+  "29": [
+   "generacion-leads",
+   "ads-meta",
+   "reels",
+   "evergreen",
+   "funnel-embudo"
+  ],
+  "30": [
+   "research-competencia",
+   "investigacion-audiencia",
+   "onboarding",
+   "ia-poppy",
+   "reels"
+  ],
+  "31": [
+   "comunicacion-marca",
+   "marca-personal",
+   "avatar",
+   "oferta"
+  ],
+  "32": [
+   "reels",
+   "historias",
+   "youtube",
+   "laboratorio-contenido",
+   "funnel-embudo"
+  ],
+  "33": [
+   "perfil-instagram",
+   "oferta",
+   "casos-de-exito",
+   "comunicacion-marca"
+  ],
+  "34": [
+   "reels",
+   "edicion-video",
+   "comunicacion-marca"
+  ],
+  "35": [
+   "historias",
+   "comunicacion-marca",
+   "edicion-video"
+  ],
+  "36": [
+   "youtube",
+   "objeciones",
+   "urgencia",
+   "edicion-video"
+  ],
+  "37": [
+   "calendario-contenido",
+   "historias",
+   "metricas",
+   "funnel-embudo",
+   "nutricion"
+  ],
+  "39": [
+   "agendamiento",
+   "nutricion",
+   "descubrimiento",
+   "youtube",
+   "setting-setter"
+  ],
+  "40": [
+   "agendamiento",
+   "nutricion",
+   "descubrimiento",
+   "setting-setter",
+   "casos-de-exito"
+  ],
+  "41": [
+   "nutricion",
+   "lagunas-ciclo-compra",
+   "setting-setter",
+   "casos-de-exito",
+   "youtube"
+  ],
+  "42": [
+   "triaje",
+   "agendamiento",
+   "setting-setter",
+   "closer",
+   "tonalidad-autoridad"
+  ],
+  "43": [
+   "closer",
+   "objeciones",
+   "llamada-ventas",
+   "tonalidad-autoridad"
+  ],
+  "44": [
+   "llamada-ventas",
+   "descubrimiento",
+   "closer",
+   "urgencia"
+  ],
+  "45": [
+   "objeciones",
+   "creencias-limitantes",
+   "llamada-ventas",
+   "closer"
+  ],
+  "46": [
+   "lanzamiento",
+   "validacion",
+   "evergreen",
+   "follow-up"
+  ],
+  "47": [
+   "mejora-producto",
+   "estructura-producto",
+   "ltv-recompra",
+   "casos-de-exito",
+   "upsell"
+  ],
+  "48": [
+   "proyecciones",
+   "limitaciones-escalado",
+   "metricas"
+  ],
+  "49": [
+   "contratacion",
+   "equipo",
+   "setting-setter",
+   "closer"
+  ],
+  "50": [
+   "onboarding",
+   "equipo",
+   "sops-delegacion"
+  ],
+  "51": [
+   "equipo",
+   "sops-delegacion",
+   "comisiones",
+   "capacidad-operativa"
+  ],
+  "52": [
+   "equipo",
+   "productividad",
+   "metricas",
+   "capacidad-operativa"
+  ],
+  "53": [
+   "sops-delegacion",
+   "equipo",
+   "productividad",
+   "capacidad-operativa"
+  ],
+  "54": [
+   "productividad",
+   "mentalidad",
+   "finanzas"
+  ],
+  "60": [
+   "marca-personal",
+   "avatar",
+   "oferta",
+   "research-competencia",
+   "reels",
+   "youtube"
+  ],
+  "61": [
+   "metricas",
+   "decision-metricas",
+   "investigacion-audiencia",
+   "avatar",
+   "perfil-instagram",
+   "youtube"
+  ],
+  "62": [
+   "edicion-video",
+   "equipo",
+   "sops-delegacion",
+   "reels",
+   "youtube"
+  ],
+  "63": [
+   "ia-poppy",
+   "productividad",
+   "reels"
+  ],
+  "64": [
+   "ia-poppy",
+   "youtube",
+   "calendario-contenido"
+  ],
+  "65": [
+   "ia-poppy",
+   "historias",
+   "lead-magnet"
+  ],
+  "66": [
+   "ia-poppy",
+   "reels",
+   "lead-magnet",
+   "funnel-embudo",
+   "comunicacion-marca"
+  ],
+  "67": [
+   "descubrimiento",
+   "llamada-ventas"
+  ],
+  "68": [
+   "follow-up",
+   "reactivacion",
+   "nutricion"
+  ],
+  "69": [
+   "triaje",
+   "setting-setter",
+   "avatar",
+   "estructura-chat"
+  ],
+  "70": [
+   "metricas",
+   "automatizacion",
+   "decision-metricas",
+   "setting-setter"
+  ],
+  "71": [
+   "no-show",
+   "nutricion",
+   "agendamiento",
+   "follow-up"
+  ],
+  "72": [
+   "reactivacion",
+   "no-show",
+   "follow-up",
+   "nutricion"
+  ],
+  "73": [
+   "prospeccion-creadores",
+   "nicho",
+   "estructura-chat",
+   "loom"
+  ],
+  "74": [
+   "equipo",
+   "setting-setter",
+   "closer",
+   "sops-delegacion",
+   "metricas"
+  ],
+  "75": [
+   "onboarding",
+   "equipo",
+   "setting-setter",
+   "closer",
+   "metricas"
+  ],
+  "76": [
+   "setting-setter",
+   "triaje",
+   "closer",
+   "equipo"
+  ],
+  "77": [
+   "objeciones",
+   "creencias-limitantes",
+   "investigacion-audiencia",
+   "casos-de-exito"
+  ],
+  "78": [
+   "mentalidad",
+   "llamada-ventas",
+   "tonalidad-autoridad",
+   "closer"
+  ],
+  "79": [
+   "llamada-ventas",
+   "descubrimiento",
+   "closer",
+   "mentalidad"
+  ],
+  "80": [
+   "descubrimiento",
+   "llamada-ventas",
+   "closer"
+  ],
+  "81": [
+   "tonalidad-autoridad",
+   "llamada-ventas",
+   "closer"
+  ],
+  "82": [
+   "follow-up",
+   "llamada-ventas",
+   "closer"
+  ],
+  "83": [
+   "tonalidad-autoridad",
+   "llamada-ventas",
+   "closer"
+  ],
+  "84": [
+   "urgencia",
+   "objeciones",
+   "llamada-ventas",
+   "tonalidad-autoridad"
+  ],
+  "85": [
+   "cuotas-downsell",
+   "cash-collected",
+   "descubrimiento",
+   "closer",
+   "tonalidad-autoridad"
+  ],
+  "86": [
+   "objeciones",
+   "tonalidad-autoridad",
+   "llamada-ventas",
+   "closer"
+  ],
+  "87": [
+   "creencias-limitantes",
+   "descubrimiento",
+   "llamada-ventas",
+   "objeciones"
+  ],
+  "88": [
+   "creencias-limitantes",
+   "llamada-ventas",
+   "closer",
+   "objeciones"
+  ],
+  "89": [
+   "llamada-ventas",
+   "casos-de-exito",
+   "metodo-unico",
+   "oferta",
+   "closer"
+  ],
+  "90": [
+   "manychat",
+   "automatizacion",
+   "setting-setter",
+   "estructura-chat"
+  ],
+  "91": [
+   "manychat",
+   "automatizacion",
+   "estructura-chat",
+   "setting-setter",
+   "generacion-leads"
+  ],
+  "92": [
+   "manychat",
+   "follow-up",
+   "automatizacion",
+   "nutricion",
+   "setting-setter"
+  ],
+  "93": [
+   "estructura-producto",
+   "lanzamiento",
+   "evergreen"
+  ],
+  "94": [
+   "capacidad-operativa",
+   "equipo",
+   "sops-delegacion",
+   "limitaciones-escalado"
+  ],
+  "95": [
+   "seguimiento-clientes",
+   "equipo",
+   "metricas"
+  ],
+  "96": [
+   "inactividad",
+   "contrato",
+   "seguimiento-clientes",
+   "onboarding"
+  ],
+  "97": [
+   "mejora-producto",
+   "estructura-producto",
+   "metricas",
+   "comunicacion-marca"
+  ],
+  "98": [
+   "upsell",
+   "ltv-recompra",
+   "cuotas-downsell",
+   "llamada-ventas"
+  ],
+  "99": [
+   "upsell",
+   "mejora-producto",
+   "lanzamiento",
+   "ltv-recompra"
+  ],
+  "100": [
+   "onboarding",
+   "seguimiento-clientes",
+   "equipo",
+   "automatizacion"
+  ],
+  "103": [
+   "laboratorio-contenido",
+   "metodo-unico",
+   "ads-meta",
+   "estructura-campanas",
+   "casos-de-exito",
+   "investigacion-audiencia"
+  ],
+  "104": [
+   "ads-meta",
+   "estructura-campanas",
+   "lanzamiento",
+   "casos-de-exito",
+   "funnel-embudo"
+  ],
+  "105": [
+   "ads-meta",
+   "estructura-campanas",
+   "validacion"
+  ],
+  "106": [
+   "ads-meta",
+   "estructura-campanas",
+   "limitaciones-escalado"
+  ],
+  "107": [
+   "ads-meta",
+   "manychat",
+   "perfil-instagram",
+   "tracking-sistema"
+  ],
+  "108": [
+   "ads-meta",
+   "estructura-campanas",
+   "reels",
+   "historias"
+  ],
+  "109": [
+   "ads-meta",
+   "estructura-campanas",
+   "generacion-leads"
+  ],
+  "118": [
+   "marca-personal",
+   "oferta",
+   "comisiones",
+   "upfront",
+   "prospeccion-creadores"
+  ],
+  "119": [
+   "flywheel",
+   "producto-mvp",
+   "lanzamiento",
+   "evergreen",
+   "capas-de-negocio"
+  ],
+  "120": [
+   "nicho",
+   "validacion",
+   "investigacion-audiencia",
+   "oferta"
+  ],
+  "121": [
+   "nicho",
+   "prospeccion-creadores",
+   "research-competencia",
+   "ia-poppy"
+  ],
+  "122": [
+   "prospeccion-creadores",
+   "creador-socio",
+   "avatar",
+   "nicho"
+  ],
+  "123": [
+   "perfil-instagram",
+   "prospeccion-creadores",
+   "comunicacion-marca",
+   "marca-personal"
+  ],
+  "124": [
+   "prospeccion-creadores",
+   "productividad",
+   "metricas",
+   "estructura-chat"
+  ],
+  "125": [
+   "estructura-chat",
+   "prospeccion-creadores",
+   "comunicacion-marca",
+   "tonalidad-autoridad"
+  ],
+  "126": [
+   "estructura-chat",
+   "loom",
+   "prospeccion-creadores",
+   "agendamiento"
+  ],
+  "127": [
+   "loom",
+   "prospeccion-creadores",
+   "youtube",
+   "comunicacion-marca"
+  ],
+  "128": [
+   "loom",
+   "edicion-video",
+   "prospeccion-creadores"
+  ],
+  "129": [
+   "estructura-chat",
+   "prospeccion-creadores",
+   "validacion"
+  ],
+  "130": [
+   "mentalidad",
+   "prospeccion-creadores",
+   "creencias-limitantes",
+   "objeciones"
+  ],
+  "131": [
+   "tracking-sistema",
+   "prospeccion-creadores",
+   "follow-up",
+   "metricas"
+  ],
+  "132": [
+   "loom",
+   "prospeccion-creadores",
+   "evergreen",
+   "funnel-embudo",
+   "creador-socio"
+  ],
+  "133": [
+   "prospeccion-creadores",
+   "estructura-chat",
+   "loom",
+   "metricas"
+  ],
+  "134": [
+   "mentalidad",
+   "llamada-ventas",
+   "closer"
+  ],
+  "135": [
+   "llamada-ventas",
+   "creador-socio",
+   "descubrimiento",
+   "urgencia"
+  ],
+  "136": [
+   "upfront",
+   "pricing",
+   "comisiones",
+   "creador-socio"
+  ],
+  "137": [
+   "follow-up",
+   "prospeccion-creadores",
+   "reactivacion"
+  ],
+  "138": [
+   "onboarding",
+   "creador-socio",
+   "manychat",
+   "sops-delegacion"
+  ],
+  "139": [
+   "contrato",
+   "creador-socio",
+   "onboarding"
+  ],
+  "140": [
+   "llamada-ventas",
+   "closer",
+   "objeciones",
+   "descubrimiento",
+   "creador-socio"
+  ],
+  "141": [
+   "llamada-ventas",
+   "closer",
+   "descubrimiento",
+   "objeciones",
+   "pricing",
+   "creencias-limitantes"
+  ],
+  "142": [
+   "automatizacion",
+   "tracking-sistema",
+   "setting-setter",
+   "capacidad-operativa"
+  ],
+  "143": [
+   "automatizacion",
+   "tracking-sistema",
+   "finanzas",
+   "ia-poppy"
+  ],
+  "144": [
+   "tracking-sistema",
+   "automatizacion",
+   "sops-delegacion"
+  ],
+  "145": [
+   "manychat",
+   "automatizacion",
+   "generacion-leads",
+   "tracking-sistema"
+  ],
+  "146": [
+   "tracking-sistema",
+   "generacion-leads",
+   "metricas",
+   "automatizacion"
+  ],
+  "147": [
+   "automatizacion",
+   "agendamiento",
+   "tracking-sistema"
+  ],
+  "148": [
+   "closer",
+   "triaje",
+   "metricas",
+   "objeciones",
+   "llamada-ventas"
+  ],
+  "149": [
+   "comisiones",
+   "finanzas",
+   "tracking-sistema",
+   "cash-collected"
+  ],
+  "150": [
+   "comisiones",
+   "setting-setter",
+   "closer",
+   "finanzas"
+  ],
+  "151": [
+   "finanzas",
+   "equipo",
+   "metricas",
+   "tracking-sistema"
+  ],
+  "152": [
+   "tracking-sistema",
+   "metricas",
+   "equipo",
+   "sops-delegacion"
+  ],
+  "153": [
+   "metricas",
+   "decision-metricas",
+   "funnel-embudo",
+   "setting-setter",
+   "closer"
+  ],
+  "154": [
+   "finanzas",
+   "tracking-sistema"
+  ],
+  "155": [
+   "metricas",
+   "laboratorio-contenido",
+   "tracking-sistema",
+   "decision-metricas"
+  ],
+  "156": [
+   "setting-setter",
+   "triaje",
+   "tracking-sistema",
+   "sops-delegacion"
+  ],
+  "157": [
+   "closer",
+   "triaje",
+   "comisiones",
+   "llamada-ventas",
+   "tracking-sistema"
+  ],
+  "158": [
+   "calendario-contenido",
+   "edicion-video",
+   "laboratorio-contenido",
+   "reels",
+   "tracking-sistema"
+  ],
+  "160": [
+   "casos-de-exito",
+   "pricing",
+   "lanzamiento",
+   "manychat",
+   "reels",
+   "investigacion-audiencia"
+  ],
+  "161": [
+   "lanzamiento",
+   "webinar-masterclass",
+   "prospeccion-creadores",
+   "funnel-embudo",
+   "loom"
+  ],
+  "162": [
+   "ticket",
+   "funnel-embudo",
+   "manychat",
+   "agendamiento",
+   "nicho"
+  ],
+  "163": [
+   "onboarding",
+   "descubrimiento",
+   "cuotas-downsell",
+   "lead-magnet",
+   "creador-socio"
+  ],
+  "164": [
+   "llamada-ventas",
+   "avatar",
+   "validacion",
+   "lead-magnet",
+   "youtube",
+   "creador-socio"
+  ],
+  "165": [
+   "upfront",
+   "lanzamiento",
+   "follow-up",
+   "creador-socio",
+   "comisiones"
+  ],
+  "166": [
+   "evergreen",
+   "reels",
+   "ticket",
+   "avatar",
+   "prospeccion-creadores",
+   "equipo"
+  ],
+  "167": [
+   "webinar-masterclass",
+   "capacidad-operativa",
+   "proyecciones",
+   "reactivacion",
+   "prospeccion-creadores"
+  ],
+  "168": [
+   "casos-de-exito",
+   "nicho",
+   "creador-socio",
+   "upfront",
+   "ticket",
+   "prospeccion-creadores"
+  ],
+  "169": [
+   "casos-de-exito",
+   "evergreen",
+   "lanzamiento",
+   "limitaciones-escalado",
+   "mentalidad",
+   "creador-socio"
+  ]
+ }
+}

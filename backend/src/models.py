@@ -263,3 +263,18 @@ class Adjunto(db.Entity):
     tipo_mime = Required(str)
     tamano = Required(int)
     creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class ConsultaGuia(db.Entity):
+    """Lo que alguien le preguntó a la guía y qué le recomendó. Es lo que el cerebro aprende de
+    cada cliente: qué le preocupa, con sus palabras."""
+
+    _table_ = (DB_SCHEMA, "consultas_guia")
+
+    id = PrimaryKey(int, auto=True)
+    usuario_id = Required(int)
+    tipo_usuario = Required(str)
+    texto = Required(str)
+    clases_json = Required(str, default="[]")
+    frente = Optional(str, nullable=True)
+    creado_en = Required(datetime, default=datetime.utcnow)

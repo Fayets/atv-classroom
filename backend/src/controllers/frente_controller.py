@@ -1,7 +1,11 @@
 import logging
 import time
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
+from pony.orm import db_session
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
 from src.services.auth_service import obtener_sesion_desde_request, tipo_de_sesion
@@ -81,12 +85,31 @@ def _contar_consulta(sesion: dict) -> None:
 async def guia(body: GuiaRequest, sesion: dict = Depends(obtener_sesion_desde_request)):
     _contar_consulta(sesion)
     try:
-        return await recomendar(body.texto)
+        respuesta = await recomendar(body.texto)
     except HTTPException:
         raise
     except Exception:
         logger.exception("Guía ATV: error procesando la consulta")
         raise HTTPException(status_code=500, detail="La guía no pudo procesar tu mensaje. Probá de nuevo.")
+    await run_in_threadpool(_guardar_consulta, sesion, body.texto, respuesta)
+    return respuesta
+
+
+def _guardar_consulta(sesion: dict, texto: str, respuesta: dict) -> None:
+    """Queda registrada para el cerebro; si falla, la respuesta al cliente sale igual."""
+    from src.models import ConsultaGuia
+
+    try:
+        with db_session:
+            ConsultaGuia(
+                usuario_id=sesion["usuario_id"],
+                tipo_usuario=_tipo(sesion),
+                texto=texto.strip()[:1500],
+                clases_json=json.dumps([r["clase_id"] for r in respuesta.get("recomendaciones", [])]),
+                frente=(respuesta.get("frente") or {}).get("slug"),
+            )
+    except Exception:
+        logger.exception("Guía ATV: no se pudo guardar la consulta para el cerebro")
 
 
 @router.post("/consultas")

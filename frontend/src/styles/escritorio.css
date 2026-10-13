@@ -72,6 +72,7 @@
 .esc-dock__app:focus-visible .esc-dock__icono { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85); }
 .esc-dock__app.is-mensajes .esc-dock__icono { background: linear-gradient(#ff6a5b, #c0392b); }
 .esc-dock__app.is-classroom .esc-dock__icono { background: linear-gradient(#4a4a4f, #1d1d1f); }
+.esc-dock__app.is-cerebro .esc-dock__icono { background: radial-gradient(circle at 50% 40%, #6d5bd0, #1f1636); }
 .esc-dock__app.is-equipo .esc-dock__icono { background: linear-gradient(#5ac8fa, #0a84ff); }
 .esc-dock__app.is-modulos .esc-dock__icono { background: linear-gradient(#b4b4bb, #7c7c84); }
 .esc-dock__cuenta { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #ff3b30; color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
