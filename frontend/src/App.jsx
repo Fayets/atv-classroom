@@ -1,16 +1,19 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   BrowserRouter,
   Navigate,
+  useLocation,
   Route,
   Routes,
   useNavigate,
   useParams,
 } from 'react-router-dom'
 import { setUnauthorizedHandler } from './api/client'
+import Escritorio from './components/mac/Escritorio'
 import AdminRoute from './components/AdminRoute'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { EscritorioProvider } from './context/EscritorioContext'
 import { MensajeriaProvider } from './context/MensajeriaContext'
 import AdminPage from './pages/AdminPage'
 import EquipoPage from './pages/EquipoPage'
@@ -43,10 +46,30 @@ function LegacyProgramaRedirect() {
   return <Navigate to={`/classroom/${programaId}`} replace />
 }
 
+// El equipo trabaja dentro de un escritorio de macOS (en pantallas chicas, sin escritorio).
+function MarcoEquipo({ children }) {
+  const { isEquipo, isAuthenticated } = useAuth()
+  const { pathname } = useLocation()
+  const [ancho, setAncho] = useState(() => window.matchMedia('(min-width: 900px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 900px)')
+    const cambiar = () => setAncho(mq.matches)
+    mq.addEventListener('change', cambiar)
+    return () => mq.removeEventListener('change', cambiar)
+  }, [])
+  if (!isAuthenticated || !isEquipo || !ancho || pathname.startsWith('/login')) return children
+  return (
+    <EscritorioProvider>
+      <Escritorio>{children}</Escritorio>
+    </EscritorioProvider>
+  )
+}
+
 function AppRoutes() {
   return (
     <>
       <UnauthorizedSync />
+      <MarcoEquipo>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
@@ -133,6 +156,7 @@ function AppRoutes() {
         <Route path="/programas/:programaId" element={<LegacyProgramaRedirect />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      </MarcoEquipo>
     </>
   )
 }

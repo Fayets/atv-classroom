@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useEscritorio } from '../context/EscritorioContext'
 import { useMensajeria } from '../context/MensajeriaContext'
 import '../styles/mensajes.css'
 import { getUserInitials } from '../utils/user'
@@ -8,6 +9,7 @@ import { getUserInitials } from '../utils/user'
 export default function AppHeader() {
   const { user, logout, isAdmin, isEquipo } = useAuth()
   const { resumen, habilitada } = useMensajeria()
+  const escritorio = useEscritorio()
   // Como en Discord, el número baja al leer: mensajes sin leer. El coach ve sus alertas sin responder.
   const contador = isEquipo && !isAdmin ? resumen.esperando : resumen.no_leidos
   const navigate = useNavigate()
@@ -60,18 +62,48 @@ export default function AppHeader() {
     : null
 
   return (
-    <header className={`app-header${isEquipo ? ' app-header--mac' : ''}`}>
+    <header
+      className={`app-header${isEquipo ? ' app-header--mac' : ''}`}
+      onDoubleClick={(e) => {
+        // Como en macOS: doble clic en la barra de título agranda o achica la ventana.
+        if (escritorio && e.target === e.currentTarget) escritorio.alternarTamano()
+      }}
+    >
       <div className="app-header__left">
-        {isEquipo ? (
+        {isEquipo && escritorio ? (
+          <span className="mac-semaforo">
+            <button type="button" onClick={escritorio.cerrar} aria-label="Cerrar ventana" title="Cerrar">
+              <svg viewBox="0 0 8 8" aria-hidden="true">
+                <path d="M1.5 1.5l5 5M6.5 1.5l-5 5" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+            </button>
+            <button type="button" onClick={escritorio.minimizar} aria-label="Minimizar ventana" title="Minimizar">
+              <svg viewBox="0 0 8 8" aria-hidden="true">
+                <path d="M1.2 4h5.6" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={escritorio.alternarTamano}
+              aria-label={escritorio.tamano === 'max' ? 'Achicar ventana' : 'Agrandar ventana'}
+              title={escritorio.tamano === 'max' ? 'Achicar' : 'Agrandar'}
+            >
+              <svg viewBox="0 0 8 8" aria-hidden="true">
+                <path d="M2 1.5h4.5V6zM6 6.5H1.5V2z" fill="currentColor" />
+              </svg>
+            </button>
+          </span>
+        ) : isEquipo ? (
           <span className="mac-semaforo" aria-hidden="true">
             <i />
             <i />
             <i />
           </span>
-        ) : null}
-        <Link to="/" className="app-header__logo" aria-label="Inicio ATV">
-          <img src="/atv-logo.png" alt="" className="app-header__logo-img" />
-        </Link>
+        ) : (
+          <Link to="/" className="app-header__logo" aria-label="Inicio ATV">
+            <img src="/atv-logo.png" alt="" className="app-header__logo-img" />
+          </Link>
+        )}
       </div>
 
       {secciones ? (
