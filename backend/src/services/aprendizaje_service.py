@@ -43,6 +43,7 @@ MODELO = config("APRENDIZAJE_MODEL", default="claude-haiku-5-5")
 LOTE = 60  # mensajes nuevos por llamada
 CONTEXTO = 8  # mensajes ya aprendidos que se mandan para que entienda la charla
 MAX_CANALES_POR_CICLO = 30
+DESDE_EL_PRINCIPIO = -(2**31)  # el historial de Discord tiene ids negativos: también se aprende
 
 TIPOS = {
     "tema": "un tema concreto del negocio que trajo el cliente",
@@ -220,7 +221,7 @@ def _mensajes_de(canal_id: int, desde_id: int) -> tuple[list[dict], int]:
     previos = [m for m in todos if m.id <= desde_id][-CONTEXTO:]
     nuevos = [m for m in todos if m.id > desde_id][:LOTE]
     lista = [
-        {"id": m.id, "autor_tipo": m.autor_tipo, "autor_id": m.autor_id, "autor": nombres.get(m.autor_id, "Equipo"), "texto": m.texto, "creado_en": m.creado_en}
+        {"id": m.id, "autor_tipo": m.autor_tipo, "autor_id": m.autor_id, "autor": nombres.get(m.autor_id) or m.autor_nombre or "Equipo", "texto": m.texto, "creado_en": m.creado_en}
         for m in previos + nuevos
     ]
     return lista, (nuevos[0].id if nuevos else desde_id + 1)
@@ -235,7 +236,7 @@ def aprender_canal(canal_id: int, llamar=_llamar) -> dict:
         canal = Canal.get(id=canal_id)
         if canal is None or canal.tipo != "cliente" or not canal.cliente_id:
             return {"canal": canal_id, "omitido": "no es un canal de cliente"}
-        estado = EstadoAprendizaje.get(canal_id=canal_id) or EstadoAprendizaje(canal_id=canal_id, ultimo_mensaje_id=0)
+        estado = EstadoAprendizaje.get(canal_id=canal_id) or EstadoAprendizaje(canal_id=canal_id, ultimo_mensaje_id=DESDE_EL_PRINCIPIO)
         mensajes, nuevos_desde = _mensajes_de(canal_id, estado.ultimo_mensaje_id)
         nuevos = [m for m in mensajes if m["id"] >= nuevos_desde]
         if not nuevos:
@@ -271,53 +272,139 @@ def aprender_canal(canal_id: int, llamar=_llamar) -> dict:
 
 
 # ---------- voz del equipo (todo en código, sin IA) ----------
-_EMOJI = re.compile("[\U0001F300-\U0001FAFF☀-➿]")
-_VOSEO = re.compile(r"\b(vos|tenes|podes|queres|sabes|sos|fijate|mira|deci|contame|avisame|mandame|pasame)\b")
+_EMOJI = re.compile("[\U0001F300-\U0001FAFF\u2600-\u27BF]")
+_VOSEO = re.compile(r"\b(vos|tenes|podes|queres|sabes|sos|fijate|mira|deci|contame|avisame|mandame|pasame|hace|decime)\b")
+_PALABRA = re.compile(r"[a-záéíóúüñ]+", re.I)
+_ALARGADA = re.compile(r"([a-záéíóúñ])\1{2,}", re.I)
+_RISA = re.compile(r"\b(?:j[aeijs]){2,}j?\b|\bxd+\b", re.I)
+MULETILLAS = [
+    "dale", "che", "genial", "buenisimo", "buenisima", "joya", "barbaro", "crack", "capo", "rey", "reyy", "hermano", "bro",
+    "tranqui", "obvio", "literal", "onda", "re", "posta", "mal", "tal cual", "de una", "perfecto", "excelente", "vamos",
+    "a full", "un golazo", "espectacular", "increible", "fijate", "mira", "ojo", "igual", "basicamente", "sinceramente",
+]
+ABREVIATURAS = {"q": "q", "xq": "xq", "pq": "pq", "porq": "porq", "tmb": "tmb", "tb": "tb", "x": "x", "d": "d", "k": "k",
+                "bn": "bn", "pls": "pls", "porfa": "porfa", "msj": "msj", "info": "info", "tqm": "tqm", "finde": "finde"}
+_NO_SON_PROPIAS = set("""a al algo algun alguna ante antes aca ahi asi aun bien cada como con cual cuando de del desde
+donde dos el ella ellos en entre era es esa ese eso esta este esto estoy fue hay hace la las le les lo los mas me mi mis
+mucho muy nada ni no nos o otra otro para pero poco por porque que se si sin sobre solo son su sus tambien te tenes
+tengo ti tiene todo tu tus un una uno unos ya yo vos voy va van ser estar hacer tener puede puedo podes eso sea
+the hola gracias buen dia buenas tardes noches""".split())
 
 
-def rasgos_de(textos: list[str]) -> dict:
+def _palabras(t: str) -> list[str]:
+    return [_norm(w) for w in _PALABRA.findall(t)]
+
+
+def rasgos_de(textos: list[str], base: Counter | None = None, fechas: list | None = None) -> dict:
+    """Cómo escribe alguien, medido en código sobre sus mensajes reales.
+    base: frecuencia de palabras de todo el equipo, para encontrar las que son propias de esta persona.
+    fechas: cuándo mandó cada mensaje, para ver si suele mandar varios cortos seguidos."""
+    # Lo que no es estilo se saca antes de medir: links, menciones al principio y plantillas repetidas.
+    limpios, vistos_txt, fechas_ok = [], set(), []
+    for i, t in enumerate(textos):
+        t2 = re.sub(r"https?://\S+", " ", t)
+        t2 = re.sub(r"^(\s*@\S+(\s+\S+)?\s*[,:]?\s*)+", "", t2) if t2.lstrip().startswith("@") else t2
+        t2 = t2.strip()
+        clave = _norm(t2)
+        if not t2 or clave in vistos_txt:
+            continue
+        vistos_txt.add(clave)
+        limpios.append(t2)
+        if fechas and len(fechas) == len(textos):
+            fechas_ok.append(fechas[i])
+    textos, fechas = limpios, (fechas_ok or None)
     if not textos:
         return {}
+    n = len(textos)
     palabras = [len(t.split()) for t in textos]
     normal = [_norm(t) for t in textos]
-    aperturas = Counter(" ".join(n.split()[:2]) for n in normal if n)
-    cierres = Counter(" ".join(n.split()[-2:]) for n in normal if len(n.split()) > 3)
+    con_letras = [t for t in textos if re.search(r"[A-Za-zÁÉÍÓÚÑáéíóúñ]", t)]
+    aperturas = Counter(" ".join(x.split()[:2]) for x in normal if x)
+    cierres = Counter(" ".join(x.split()[-2:]) for x in normal if len(x.split()) > 3)
     emojis = Counter(e for t in textos for e in _EMOJI.findall(t))
-    n = len(textos)
-    return {
+    pct = lambda k: round(100 * k / n)
+
+    # Vocabulario: muletillas, abreviaturas y palabras que usa más que el resto del equipo.
+    tokens = Counter(w for t in textos for w in _palabras(t))
+    unidos = " " + " ".join(normal) + " "
+    muletillas = {m: unidos.count(f" {m} ") for m in MULETILLAS}
+    # Abreviaturas: solo como palabra suelta (en "50k" o "3x" la letra es parte de un número).
+    sueltas = Counter(w for x in normal for w in x.split())
+    abreviaturas = {a: sueltas[a] for a in ABREVIATURAS if sueltas[a] >= 2}
+    # Nombres propios: palabras que casi siempre aparecen con mayúscula (no son estilo, son personas).
+    mayus = Counter(_norm(w) for t in textos for w in re.findall(r"\b[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+", t))
+    propias = []
+    if base:
+        total_base = sum(base.values()) or 1
+        total = sum(tokens.values()) or 1
+        candidatas = []
+        for w, c in tokens.items():
+            if c < 3 or len(w) < 3 or len(w) > 14 or w in _NO_SON_PROPIAS or not re.search(r"[aeiou]", w):
+                continue
+            if mayus[w] >= 0.5 * c:
+                continue
+            ratio = (c / total) / ((base.get(w, 0) + 1) / total_base)
+            candidatas.append((ratio * min(c, 20), w))
+        propias = [w for _, w in sorted(candidatas, reverse=True)[:12]]
+    risas = Counter(_norm(r) for t in textos for r in _RISA.findall(t))
+
+    rasgos = {
         "mensajes": n,
         "palabras_promedio": round(sum(palabras) / n, 1),
-        "mensajes_cortos_pct": round(100 * sum(1 for p in palabras if p <= 8) / n),
-        "preguntas_pct": round(100 * sum(1 for t in textos if "?" in t) / n),
-        "exclamaciones_pct": round(100 * sum(1 for t in textos if "!" in t) / n),
+        "mensajes_cortos_pct": pct(sum(1 for p in palabras if p <= 8)),
+        # Mayúsculas
+        "mayuscula_inicial_pct": pct(sum(1 for t in textos if t[:1].isupper())),
+        "todo_minuscula_pct": round(100 * sum(1 for t in con_letras if t == t.lower()) / max(1, len(con_letras))),
+        "grita_pct": pct(sum(1 for t in textos if re.search(r"\b[A-ZÁÉÍÓÚÑ]{4,}\b", t))),
+        # Puntuación
+        "punto_final_pct": pct(sum(1 for t in textos if t.rstrip().endswith("."))),
+        "preguntas_pct": pct(sum(1 for t in textos if "?" in t)),
         "abre_pregunta_pct": round(100 * sum(1 for t in textos if "¿" in t) / max(1, sum(1 for t in textos if "?" in t))),
-        "voseo_pct": round(100 * sum(1 for t in normal if _VOSEO.search(t)) / n),
-        "emojis_pct": round(100 * sum(1 for t in textos if _EMOJI.search(t)) / n),
-        "emojis_top": [e for e, _ in emojis.most_common(5)],
-        "risas_pct": round(100 * sum(1 for t in normal if re.search(r"\b(ja){2,}|jej|jsj", t)) / n),
+        "exclamaciones_pct": pct(sum(1 for t in textos if "!" in t)),
+        "abre_exclamacion_pct": round(100 * sum(1 for t in textos if "¡" in t) / max(1, sum(1 for t in textos if "!" in t))),
+        "exclamacion_doble_pct": pct(sum(1 for t in textos if "!!" in t)),
+        "suspensivos_pct": pct(sum(1 for t in textos if "..." in t or "…" in t)),
+        # Tono
+        "voseo_pct": pct(sum(1 for x in normal if _VOSEO.search(x))),
+        "emojis_pct": pct(sum(1 for t in textos if _EMOJI.search(t))),
+        "emojis_top": [e for e, _ in emojis.most_common(6)],
+        "risas_pct": pct(sum(1 for t in textos if _RISA.search(t))),
+        "risa_tipica": risas.most_common(1)[0][0] if risas else None,
+        "alarga_palabras_pct": pct(sum(1 for t in textos if _ALARGADA.search(t))),
+        "muletillas": [m for m, c in sorted(muletillas.items(), key=lambda kv: -kv[1]) if c >= max(2, n * 0.03)][:8],
+        "abreviaturas": sorted(abreviaturas, key=lambda a: -abreviaturas[a])[:6],
+        "palabras_propias": propias,
         "aperturas_top": [a for a, c in aperturas.most_common(5) if c > 1],
         "cierres_top": [c for c, k in cierres.most_common(5) if k > 1],
-        "mayuscula_inicial_pct": round(100 * sum(1 for t in textos if t[:1].isupper()) / n),
     }
+    if fechas and len(fechas) == n:
+        seguidos = sum(1 for a, b in zip(fechas, fechas[1:]) if (b - a).total_seconds() <= 60)
+        rasgos["varios_seguidos_pct"] = round(100 * seguidos / max(1, n - 1))
+    return rasgos
 
 
 def actualizar_voces() -> int:
-    """Rasgos y mensajes de ejemplo de cada persona del equipo que escribió a clientes."""
+    """Rasgos y mensajes de ejemplo de cada persona del equipo que escribió a clientes
+    (incluye el historial traído de Discord de quienes tienen cuenta)."""
     with db_session:
         canales_cliente = {c.id for c in list(Canal.select()) if c.tipo == "cliente"}
         por_admin: dict[int, list] = {}
-        for m in MensajeCanal.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."mensajes_canal" WHERE autor_tipo = \'admin\' AND NOT borrado ORDER BY id'):
+        for m in MensajeCanal.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."mensajes_canal" WHERE autor_tipo = \'admin\' AND autor_id > 0 AND NOT borrado ORDER BY id'):
             if m.canal.id in canales_cliente and (m.texto or "").strip():
                 por_admin.setdefault(m.autor_id, []).append(m)
+        base = Counter(w for ms in por_admin.values() for m in ms[-1500:] for w in _palabras(m.texto))
         for admin_id, ms in por_admin.items():
-            ms.sort(key=lambda m: m.id)
-            recientes = ms[-300:]
+            ms.sort(key=lambda m: (m.creado_en, m.id))
+            recientes = ms[-1500:]
             textos = [m.texto for m in recientes]
-            # Ejemplos: los más recientes con algo de contenido (ni "ok" ni solo un link).
-            muestras = [m.id for m in reversed(recientes) if len(m.texto.split()) >= 6 and not re.fullmatch(r"\s*https?://\S+\s*", m.texto)][:15]
+            # Ejemplos: los más recientes con contenido real, variados en largo (cortos, medios y largos).
+            utiles = [m for m in reversed(recientes) if len(m.texto.split()) >= 4 and not re.fullmatch(r"\s*https?://\S+\s*", m.texto) and "Discord (no quedó" not in m.texto]
+            cortos = [m.id for m in utiles if len(m.texto.split()) <= 12][:8]
+            medios = [m.id for m in utiles if 12 < len(m.texto.split()) <= 40][:10]
+            largos = [m.id for m in utiles if len(m.texto.split()) > 40][:6]
             v = VozEquipo.get(admin_id=admin_id) or VozEquipo(admin_id=admin_id)
-            v.rasgos_json = json.dumps(rasgos_de(textos), ensure_ascii=False)
-            v.muestras_json = json.dumps(muestras)
+            v.rasgos_json = json.dumps(rasgos_de(textos, base, [m.creado_en for m in recientes]), ensure_ascii=False)
+            v.muestras_json = json.dumps(cortos + medios + largos)
             v.mensajes_analizados = len(ms)
             v.actualizado_en = datetime.utcnow()
         return len(por_admin)
@@ -330,7 +417,7 @@ def ciclo(llamar=_llamar) -> dict:
             f'SELECT c.id FROM "{DB_SCHEMA}"."canales" c '
             f'JOIN "{DB_SCHEMA}"."mensajes_canal" m ON m.canal = c.id '
             f'LEFT JOIN "{DB_SCHEMA}"."cerebro_estado" e ON e.canal_id = c.id '
-            "WHERE c.tipo = 'cliente' AND NOT m.borrado AND m.id > COALESCE(e.ultimo_mensaje_id, 0) "
+            f"WHERE c.tipo = 'cliente' AND NOT m.borrado AND m.id > COALESCE(e.ultimo_mensaje_id, {DESDE_EL_PRINCIPIO}) "
             "GROUP BY c.id ORDER BY max(m.id) DESC"
         )
     resultados = []

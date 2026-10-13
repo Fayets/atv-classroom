@@ -149,6 +149,15 @@ def _adjuntos_de(mensaje_ids: list[int]) -> dict[int, list[dict]]:
     return por_mensaje
 
 
+def _autor(m, autores: _Autores) -> dict:
+    """Quién escribió. En el historial de Discord manda el nombre que tenía allá (puede no tener cuenta)."""
+    base = autores.de(m.autor_tipo, m.autor_id)
+    nombre = getattr(m, "autor_nombre", None)
+    if nombre and (m.autor_tipo == "cliente" or not m.autor_id):
+        return {**base, "nombre": nombre, "foto_url": None}
+    return base
+
+
 def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[dict]] | None = None) -> dict:
     respuesta = None
     if m.respuesta_a:
@@ -156,19 +165,20 @@ def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[d
         if original is not None:
             respuesta = {
                 "id": original.id,
-                "autor_nombre": autores.de(original.autor_tipo, original.autor_id)["nombre"],
+                "autor_nombre": _autor(original, autores)["nombre"],
                 "texto": None if original.borrado else (_recorte(original.texto) if original.texto else "📎 Archivo adjunto"),
             }
     return {
         "id": m.id,
         "canal_id": m.canal.id,
-        "autor": autores.de(m.autor_tipo, m.autor_id),
+        "autor": _autor(m, autores),
         "texto": None if m.borrado else m.texto,
         "adjuntos": [] if m.borrado else (adjuntos if adjuntos is not None else _adjuntos_de([m.id])).get(m.id, []),
         "borrado": m.borrado,
         "editado": m.editado_en is not None,
         "respuesta_a": respuesta,
         "creado_en": _iso(m.creado_en),
+        "origen": "discord" if m.id < 0 else None,
     }
 
 
@@ -202,27 +212,27 @@ def _resumen_canales(lector: tuple[str, int]) -> dict[int, dict]:
     s = DB_SCHEMA
     lector_tipo, lector_id = lector
     filas = db.select(
-        f"""SELECT c.id, u.id, u.texto, u.autor_tipo, u.autor_id, u.creado_en,
+        f"""SELECT c.id, u.id, u.texto, u.autor_tipo, u.autor_id, u.creado_en, u.autor_nombre,
           (SELECT count(*) FROM "{s}"."mensajes_canal" m
              WHERE m.canal = c.id AND NOT m.borrado
                AND m.id > COALESCE(l.ultimo_leido_id, 0)
                AND NOT (m.autor_tipo = $lector_tipo AND m.autor_id = $lector_id)),
           (SELECT min(m.creado_en) FROM "{s}"."mensajes_canal" m
-             WHERE m.canal = c.id AND NOT m.borrado AND m.autor_tipo = 'cliente'
+             WHERE m.canal = c.id AND NOT m.borrado AND m.autor_tipo = 'cliente' AND m.id > 0
                AND m.id > COALESCE((SELECT max(t.id) FROM "{s}"."mensajes_canal" t
                                     WHERE t.canal = c.id AND NOT t.borrado AND t.autor_tipo = 'admin'), 0))
         FROM "{s}"."canales" c
         LEFT JOIN "{s}"."lecturas_canal" l
           ON l.canal_id = c.id AND l.lector_tipo = $lector_tipo AND l.lector_id = $lector_id
         LEFT JOIN LATERAL (
-          SELECT m.id, m.texto, m.autor_tipo, m.autor_id, m.creado_en FROM "{s}"."mensajes_canal" m
+          SELECT m.id, m.texto, m.autor_tipo, m.autor_id, m.creado_en, m.autor_nombre FROM "{s}"."mensajes_canal" m
           WHERE m.canal = c.id AND NOT m.borrado ORDER BY m.id DESC LIMIT 1
         ) u ON TRUE"""
     )
     resumen = {}
-    for canal_id, u_id, u_texto, u_tipo, u_autor, u_fecha, no_leidos, espera in filas:
+    for canal_id, u_id, u_texto, u_tipo, u_autor, u_fecha, u_nombre, no_leidos, espera in filas:
         resumen[canal_id] = {
-            "ultimo": {"id": u_id, "texto": u_texto, "autor_tipo": u_tipo, "autor_id": u_autor, "creado_en": u_fecha}
+            "ultimo": {"id": u_id, "texto": u_texto, "autor_tipo": u_tipo, "autor_id": u_autor, "creado_en": u_fecha, "autor_nombre": u_nombre}
             if u_id
             else None,
             "no_leidos": int(no_leidos or 0),
@@ -330,7 +340,7 @@ class MensajeriaServices:
                         else None,
                         "ultimo": {
                             "texto": _recorte(ultimo["texto"], 90) if ultimo["texto"] else "📎 Archivo adjunto",
-                            "autor_nombre": autores.de(ultimo["autor_tipo"], ultimo["autor_id"])["nombre"],
+                            "autor_nombre": (ultimo.get("autor_nombre") if ultimo.get("autor_nombre") and (ultimo["autor_tipo"] == "cliente" or not ultimo["autor_id"]) else autores.de(ultimo["autor_tipo"], ultimo["autor_id"])["nombre"]),
                             "de": "cliente" if ultimo["autor_tipo"] == "cliente" else "equipo",
                             "creado_en": _iso(ultimo["creado_en"]),
                         }

@@ -39,19 +39,49 @@ def _frenar(admin_id: int) -> None:
 
 
 def _describir_voz(r: dict) -> str:
+    """Los rasgos medidos, como instrucciones concretas de escritura."""
     if not r:
         return "Todavía no hay mensajes suyos para medir el estilo: escribí cálido, claro y breve, con voseo rioplatense."
-    partes = [f"mensajes de unas {r.get('palabras_promedio', 20):.0f} palabras"]
-    if r.get("voseo_pct", 0) >= 30:
-        partes.append("usa voseo (vos, tenés, fijate)")
-    if r.get("preguntas_pct", 0) >= 30:
-        partes.append("suele cerrar con una pregunta")
-    if r.get("exclamaciones_pct", 0) >= 30:
-        partes.append("usa exclamaciones")
-    partes.append(f"emojis: {' '.join(r['emojis_top'])}" if r.get("emojis_pct", 0) >= 15 and r.get("emojis_top") else "casi sin emojis")
+    g = lambda k: r.get(k) or 0
+    reglas = [f"mensajes de unas {g('palabras_promedio'):.0f} palabras"]
+    if g("todo_minuscula_pct") >= 60:
+        reglas.append("escribe todo en minúscula, sin mayúscula al empezar")
+    elif g("mayuscula_inicial_pct") >= 80:
+        reglas.append("empieza siempre con mayúscula")
+    elif g("mayuscula_inicial_pct") <= 40:
+        reglas.append("muchas veces empieza en minúscula")
+    if g("grita_pct") >= 10:
+        reglas.append("a veces pone palabras enteras en MAYÚSCULA para remarcar")
+    if g("punto_final_pct") <= 20:
+        reglas.append("casi nunca pone punto final")
+    elif g("punto_final_pct") >= 60:
+        reglas.append("cierra con punto final")
+    if g("preguntas_pct") >= 30:
+        reglas.append("suele cerrar con una pregunta")
+    if r.get("abre_pregunta_pct") is not None and g("preguntas_pct") >= 10:
+        reglas.append("usa ¿ al abrir preguntas" if g("abre_pregunta_pct") >= 50 else "no usa ¿ (solo ? al final)")
+    if g("exclamaciones_pct") >= 25:
+        reglas.append("usa exclamaciones" + (" dobles (!!)" if g("exclamacion_doble_pct") >= 10 else "") + ("" if g("abre_exclamacion_pct") >= 50 else ", sin ¡ al abrir"))
+    if g("suspensivos_pct") >= 10:
+        reglas.append("usa puntos suspensivos")
+    if g("voseo_pct") >= 30:
+        reglas.append("usa voseo (vos, tenés, fijate)")
+    if g("alarga_palabras_pct") >= 8:
+        reglas.append('alarga palabras para dar énfasis (ej. "buenísimooo")')
+    if g("risas_pct") >= 8 and r.get("risa_tipica"):
+        reglas.append(f'se ríe con "{r["risa_tipica"]}"')
+    reglas.append(f"emojis frecuentes: {' '.join(r['emojis_top'][:4])}" if g("emojis_pct") >= 15 and r.get("emojis_top") else "casi sin emojis")
+    if r.get("muletillas"):
+        reglas.append("muletillas que usa: " + ", ".join(f'"{m}"' for m in r["muletillas"][:6]))
+    if r.get("abreviaturas"):
+        reglas.append("abrevia: " + ", ".join(r["abreviaturas"]))
+    if r.get("palabras_propias"):
+        reglas.append("palabras muy suyas: " + ", ".join(r["palabras_propias"][:8]))
     if r.get("aperturas_top"):
-        partes.append("suele arrancar con: " + ", ".join(f'"{a}"' for a in r["aperturas_top"][:3]))
-    return "; ".join(partes) + "."
+        reglas.append("suele arrancar con: " + ", ".join(f'"{a}"' for a in r["aperturas_top"][:3]))
+    if g("varios_seguidos_pct") >= 40:
+        reglas.append("suele mandar mensajes cortos, de a uno")
+    return "; ".join(reglas) + "."
 
 
 def _nicho(slug: str | None) -> dict | None:
@@ -95,7 +125,7 @@ def _titulos_de_clases() -> dict[int, str]:
 
 def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> tuple[str, str]:
     voz = ctx.get("voz") or {}
-    ejemplos = "\n".join(f"- {e}" for e in (voz.get("ejemplos") or [])[:8]) or "(sin ejemplos todavía)"
+    ejemplos = "\n".join(f"- {e[:400]}" for e in (voz.get("ejemplos") or [])[:16]) or "(sin ejemplos todavía)"
     perfil = ctx.get("perfil") or {}
     perfil_txt = "; ".join(f"{k}: {v}" for k, v in perfil.items() if v) or "sin datos todavía"
     hechos = ctx.get("hechos") or []
@@ -112,8 +142,9 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
     )
     sistema = (
         f"Sos {nombre}, del equipo de ATV (mentoría para creadores y expertos que venden infoproductos). "
-        "Escribís en el chat privado con un cliente. Imitá su forma de escribir: largo, tono, voseo, "
-        "signos y emojis, como en sus mensajes de ejemplo. Devolvés SOLO el mensaje, sin comillas "
+        "Escribís en el chat privado con un cliente. Imitá su forma de escribir al detalle: mayúsculas y "
+        "minúsculas, puntuación, palabras y muletillas, abreviaturas, largo, signos y emojis, como en sus "
+        "mensajes reales de ejemplo. Si los ejemplos y las reglas no coinciden, mandan los ejemplos. Devolvés SOLO el mensaje, sin comillas "
         "ni explicaciones. No inventes datos, precios, links, fechas ni promesas: si te falta algo, preguntá."
     )
     largo = round((voz.get("rasgos") or {}).get("palabras_promedio") or 25)

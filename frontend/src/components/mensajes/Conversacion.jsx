@@ -584,6 +584,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                         <b className={m.autor.tipo === 'equipo' ? 'is-equipo' : ''}>{m.autor.nombre}</b>
                         {m.autor.tipo === 'equipo' ? <span className="msj-rol">ATV</span> : null}
                         <time dateTime={m.creado_en}>{hora(m.creado_en)}</time>
+                        {m.origen === 'discord' ? <span className="msj-m__origen" title="Mensaje traído del historial de Discord">Discord</span> : null}
                       </div>
                     )}
                     {m.borrado ? (

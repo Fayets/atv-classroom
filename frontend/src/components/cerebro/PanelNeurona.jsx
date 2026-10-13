@@ -29,9 +29,12 @@ const TIPO_HECHO = {
 
 const RASGOS = [
   ['palabras_promedio', (v) => `${v} palabras por mensaje`],
-  ['preguntas_pct', (v) => `${v}% de sus mensajes preguntan algo`],
-  ['voseo_pct', (v) => `voseo en el ${v}%`],
-  ['exclamaciones_pct', (v) => `exclamaciones en el ${v}%`],
+  ['todo_minuscula_pct', (v) => (v >= 60 ? 'escribe todo en minúscula' : null)],
+  ['mayuscula_inicial_pct', (v) => (v >= 80 ? 'arranca con mayúscula' : null)],
+  ['punto_final_pct', (v) => (v <= 20 ? 'casi nunca pone punto final' : v >= 60 ? 'cierra con punto' : null)],
+  ['preguntas_pct', (v) => (v >= 20 ? `${v}% de sus mensajes preguntan algo` : null)],
+  ['voseo_pct', (v) => (v >= 30 ? `voseo en el ${v}%` : null)],
+  ['alarga_palabras_pct', (v) => (v >= 8 ? 'alarga palabras ("buenísimooo")' : null)],
   ['emojis_pct', (v) => `emojis en el ${v}%`],
 ]
 
@@ -181,9 +184,14 @@ export default function PanelNeurona({ id, base, onIr, onCerrar }) {
         <div className="cb-bloque">
           <h4>Cómo escribe ({d.voz.mensajes} mensajes)</h4>
           <ul className="cb-puntos">
-            {RASGOS.filter(([k]) => d.voz[k] != null).map(([k, f]) => (
-              <li key={k}>{f(d.voz[k])}</li>
-            ))}
+            {RASGOS.map(([k, f]) => [k, d.voz[k] != null ? f(d.voz[k]) : null])
+              .filter(([, txt]) => txt)
+              .map(([k, txt]) => (
+                <li key={k}>{txt}</li>
+              ))}
+            {d.voz.muletillas?.length ? <li>muletillas: “{d.voz.muletillas.slice(0, 5).join('”, “')}”</li> : null}
+            {d.voz.abreviaturas?.length ? <li>abrevia: {d.voz.abreviaturas.join(', ')}</li> : null}
+            {d.voz.palabras_propias?.length ? <li>palabras suyas: {d.voz.palabras_propias.slice(0, 6).join(', ')}</li> : null}
             {d.voz.aperturas_top?.length ? <li>suele arrancar con “{d.voz.aperturas_top.slice(0, 3).join('”, “')}”</li> : null}
             {d.voz.emojis_top?.length ? <li>emojis: {d.voz.emojis_top.join(' ')}</li> : null}
           </ul>

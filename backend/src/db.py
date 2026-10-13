@@ -74,6 +74,7 @@ def _apply_migrations() -> None:
                 cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."admins" ALTER COLUMN password_hash DROP NOT NULL')
                 # Frente: un link por plantilla de SOP y la revisión con el coach (reemplaza "automatizar").
                 cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."frente" ADD COLUMN IF NOT EXISTS sops_json TEXT')
+                cur.execute(f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."mensajes_canal" ADD COLUMN IF NOT EXISTS autor_nombre VARCHAR')
                 cur.execute(
                     f'ALTER TABLE IF EXISTS "{DB_SCHEMA}"."frente" '
                     f"ADD COLUMN IF NOT EXISTS revisado BOOLEAN NOT NULL DEFAULT FALSE"

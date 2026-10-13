@@ -213,6 +213,8 @@ class MensajeCanal(db.Entity):
     autor_tipo = Required(str)
     autor_id = Required(int)
     texto = Optional(str)  # puede ir vacío si el mensaje solo lleva adjuntos
+    # Solo en el historial traído de Discord (id negativo): el nombre como aparecía allá.
+    autor_nombre = Optional(str, nullable=True)
     respuesta_a = Optional(int, nullable=True)
     editado_en = Optional(datetime, nullable=True)
     borrado = Required(bool, default=False)
