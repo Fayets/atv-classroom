@@ -8,6 +8,7 @@ import Adjuntos from './Adjuntos'
 import Alerta from './Alerta'
 import Avatar from './Avatar'
 import Enlaces from './Enlaces'
+import GrabarAudio, { puedeGrabar } from './GrabarAudio'
 import TextoMensaje from './TextoMensaje'
 
 const AGRUPAR_MS = 5 * 60 * 1000
@@ -386,6 +387,32 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
       setPendientes((p) => p.map((x) => (x.id === id ? { ...x, enviando: false, fallo: err.message || 'No se envió' } : x)))
     }
   }
+
+  // Nota de voz (solo clientes): se sube y se manda sola, con el mensaje provisorio mientras tanto.
+  const [grabando, setGrabando] = useState(false)
+  const cerrarGrabacion = useCallback(() => setGrabando(false), [])
+  const mandarAudio = useCallback(
+    async (archivo) => {
+      setGrabando(false)
+      const id = `tmp-${++temporal}`
+      const respuestaA = respondiendo ? { id: respondiendo.id, autor_nombre: respondiendo.autor.nombre, texto: respondiendo.texto } : null
+      setPendientes((p) => [
+        ...p,
+        { id, texto: '🎙️ Nota de voz…', autor: { tipo: 'cliente', id: user.usuario_id, nombre: user.nombre, foto_url: user.foto_url }, respuesta_a: respuestaA, adjuntos: [], creado_en: new Date().toISOString(), enviando: true },
+      ])
+      setRespondiendo(null)
+      pegadoAbajo.current = true
+      try {
+        const adjunto = await subirAdjunto(canalId, archivo, () => null)
+        const real = await enviarMensaje(canalId, '', respuestaA?.id ?? null, [], [adjunto.id])
+        setMensajes((m) => agregarSinDuplicar(m, [real]))
+        setPendientes((p) => p.filter((x) => x.id !== id))
+      } catch (err) {
+        setPendientes((p) => p.map((x) => (x.id === id ? { ...x, enviando: false, fallo: err.message || 'No se envió la nota de voz' } : x)))
+      }
+    },
+    [canalId, respondiendo, user],
+  )
 
   function reintentar(p) {
     setPendientes((lista) => lista.filter((x) => x.id !== p.id))
@@ -795,12 +822,17 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
               </button>
             </div>
           ) : null}
+          {grabando ? (
+            <div className="msj-redactar__caja is-grabando">
+              <GrabarAudio onMandar={mandarAudio} onCerrar={cerrarGrabacion} />
+            </div>
+          ) : (
           <div className="msj-redactar__caja">
             <input
               ref={selector}
               type="file"
               multiple
-              accept={ACEPTA_ADJUNTOS}
+              accept={isEquipo ? ACEPTA_ADJUNTOS.replace(/,\.(mp3|m4a|ogg|wav|webm)/g, '') : ACEPTA_ADJUNTOS}
               hidden
               onChange={(e) => {
                 agregarArchivos(e.target.files)
@@ -835,10 +867,20 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                 maxLength={4000}
               />
             </div>
-            <button type="submit" className="msj-enviar" disabled={subiendo || (!texto.trim() && !listos.length)} aria-label={subiendo ? 'Esperá a que terminen de subir los archivos' : 'Enviar'}>
+            {!isEquipo && puedeGrabar() && !texto.trim() && !listos.length && !subiendo ? (
+              <button type="button" className="msj-enviar is-mic" onClick={() => setGrabando(true)} aria-label="Grabar nota de voz" title="Grabar nota de voz">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="9" y="3" width="6" height="11" rx="3" />
+                  <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+                </svg>
+              </button>
+            ) : (
+              <button type="submit" className="msj-enviar" disabled={subiendo || (!texto.trim() && !listos.length)} aria-label={subiendo ? 'Esperá a que terminen de subir los archivos' : 'Enviar'}>
               ➤
             </button>
+            )}
           </div>
+          )}
         </form>
       ) : (
         <p className="msj-solo-lectura">En este canal publica solo el equipo de ATV.</p>

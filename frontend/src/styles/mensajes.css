@@ -557,3 +557,21 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 
 /* Alguien del equipo del cliente (setter, closer…) */
 .msj-insignia { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; background: rgba(10, 132, 255, 0.1); color: #0a63c7; font-size: 11px; font-weight: 600; }
+
+/* Nota de voz (clientes) */
+.msj-enviar.is-mic { display: grid; place-items: center; background: var(--m-acento); color: #fff; }
+.msj-redactar__caja.is-grabando { padding: 6px; }
+.msj-grabar { flex: 1; display: flex; align-items: center; gap: 10px; min-height: 40px; }
+.msj-grabar__estado { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--m-t1); font-variant-numeric: tabular-nums; }
+.msj-grabar__estado i { width: 10px; height: 10px; border-radius: 50%; background: #ff3b30; }
+.msj-grabar__estado b { font-weight: 600; }
+.msj-grabar__estado small { color: var(--m-t4); font-size: 12px; }
+.msj-grabar__error { flex: 1; font-size: 13px; color: var(--m-acento); }
+.msj-grabar__cancelar { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--m-t3); cursor: pointer; }
+.msj-grabar__cancelar:hover { background: var(--m-campo); color: #ff3b30; }
+.msj-grabar__mandar { flex: none; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--m-acento); color: #fff; font-size: 14px; cursor: pointer; }
+.msj-grabar__mandar:disabled { opacity: 0.4; cursor: default; }
+@media (prefers-reduced-motion: no-preference) {
+  .msj-grabar__estado i { animation: msj-latido 1.1s ease-in-out infinite; }
+  @keyframes msj-latido { 50% { opacity: 0.25; } }
+}

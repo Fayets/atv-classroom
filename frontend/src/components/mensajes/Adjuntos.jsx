@@ -25,7 +25,7 @@ export default function Adjuntos({ adjuntos, alCargar }) {
         a.tipo_mime.startsWith('audio/') ? (
           <div key={a.id} className="msj-adj__media">
             <audio controls preload="metadata" src={a.url} />
-            <span>{a.nombre}</span>
+            <span>{/^nota-de-voz/.test(a.nombre) ? '🎙️ Nota de voz' : a.nombre}</span>
           </div>
         ) : a.tipo_mime.startsWith('video/') ? (
           <div key={a.id} className="msj-adj__media">

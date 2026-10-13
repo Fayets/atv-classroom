@@ -733,6 +733,9 @@ class MensajeriaServices:
                 status_code=415,
                 detail="Ese tipo de archivo no se puede adjuntar. Probá con imagen, PDF, Office, audio, video o ZIP.",
             )
+        if tipo.startswith("audio/") and es_equipo(sesion):
+            # Los clientes mandan notas de voz; el equipo responde por escrito.
+            raise HTTPException(status_code=403, detail="El equipo no manda audios: respondé por escrito.")
         yo = _yo(sesion)
         _frenar_rafaga(("adjunto",) + yo)
         with db_session:
