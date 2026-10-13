@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { crearCanal } from '../../api/mensajes'
 import { ROLES_CANAL, slugCanal } from '../../utils/mensajes'
 
@@ -42,7 +43,8 @@ export default function NuevoCanal({ onCerrar, onCreado }) {
     }
   }
 
-  return (
+  // Va a la raíz de la página: adentro de la ventana del escritorio quedaba recortada.
+  return createPortal(
     <div className="msj-modal__fondo" onMouseDown={(e) => e.target === e.currentTarget && onCerrar()}>
       <form className="msj-modal" onSubmit={crear} role="dialog" aria-modal="true" aria-labelledby="msj-nuevo-canal">
         <h2 id="msj-nuevo-canal">Crear canal</h2>
@@ -86,6 +88,7 @@ export default function NuevoCanal({ onCerrar, onCreado }) {
           </button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   )
 }

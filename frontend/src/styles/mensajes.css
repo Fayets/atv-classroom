@@ -476,7 +476,7 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 .msj-everyone { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(192, 57, 43, 0.12); color: var(--m-acento, #c0392b); font-weight: 700; }
 
 /* crear canal (ventana como una hoja de macOS) */
-.msj-modal__fondo { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(0, 0, 0, 0.28); backdrop-filter: blur(2px); }
+.msj-modal__fondo { position: fixed; inset: 0; z-index: 200; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; -webkit-font-smoothing: antialiased; display: grid; place-items: center; background: rgba(0, 0, 0, 0.28); backdrop-filter: blur(2px); }
 .msj-modal { width: min(440px, calc(100vw - 32px)); margin: 0; padding: 20px 22px 18px; border-radius: 14px; background: #fff; color: #1d1d1f; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.2), 0 24px 60px -20px rgba(0, 0, 0, 0.5); font-size: 13.5px; }
 .msj-modal h2 { margin: 0 0 4px; font-size: 17px; font-weight: 650; }
 .msj-modal__ayuda { margin: 0 0 16px; color: #6e6e73; font-size: 12.5px; }
