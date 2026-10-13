@@ -13,6 +13,60 @@ const NOMBRE_TIPO = {
   plan: 'Plan',
   cliente: 'Cliente',
   solicitud: 'Pedido de SOP',
+  nicho: 'Nicho',
+}
+
+const TIPO_HECHO = {
+  tema: 'Tema',
+  dolor: 'Le duele',
+  objecion: 'Objeción',
+  pedido: 'Pidió',
+  recomendacion: 'Le recomendaron',
+  le_funciono: 'Le funcionó',
+  no_le_funciono: 'No le funcionó',
+  logro: 'Logro',
+}
+
+const RASGOS = [
+  ['palabras_promedio', (v) => `${v} palabras por mensaje`],
+  ['preguntas_pct', (v) => `${v}% de sus mensajes preguntan algo`],
+  ['voseo_pct', (v) => `voseo en el ${v}%`],
+  ['exclamaciones_pct', (v) => `exclamaciones en el ${v}%`],
+  ['emojis_pct', (v) => `emojis en el ${v}%`],
+]
+
+function Hechos({ titulo, hechos }) {
+  if (!hechos?.length) return null
+  return (
+    <div className="cb-bloque">
+      <h4>{titulo}</h4>
+      <ul className="cb-hechos">
+        {hechos.map((h, i) => (
+          <li key={i} className={`is-${h.tipo}`}>
+            <span className="cb-hecho__tipo">{TIPO_HECHO[h.tipo] || h.tipo}</span>
+            <p>{h.texto}</p>
+            {h.cita ? <q>{h.cita}</q> : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function Conteo({ titulo, items }) {
+  if (!items?.length) return null
+  return (
+    <div className="cb-bloque">
+      <h4>{titulo}</h4>
+      <ul className="cb-puntos">
+        {items.map((x, i) => (
+          <li key={i}>
+            {x.que} {x.veces > 1 ? <small>×{x.veces}</small> : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 function Lista({ titulo, items }) {
@@ -86,6 +140,54 @@ export default function PanelNeurona({ id, base, onIr, onCerrar }) {
           <div><dt>Acceso hasta</dt><dd>{d.vence ? new Date(`${d.vence}T00:00:00`).toLocaleDateString('es-AR') : '—'}{d.dias_restantes != null ? ` · ${d.dias_restantes} días` : ''}</dd></div>
           <div><dt>Mail</dt><dd>{d.email}</dd></div>
         </dl>
+      ) : null}
+
+      {d.perfil ? (
+        <div className="cb-bloque">
+          <h4>Lo que el cerebro sabe de su negocio</h4>
+          <dl className="cb-datos">
+            {d.perfil.nicho_nombre ? <div><dt>Nicho</dt><dd>{d.perfil.nicho_nombre}</dd></div> : null}
+            {d.perfil.que_vende ? <div><dt>Vende</dt><dd>{d.perfil.que_vende}</dd></div> : null}
+            {d.perfil.etapa ? <div><dt>Etapa</dt><dd>{d.perfil.etapa}</dd></div> : null}
+            {d.perfil.facturacion ? <div><dt>Factura</dt><dd>{d.perfil.facturacion}</dd></div> : null}
+            {d.perfil.objetivo ? <div><dt>Quiere</dt><dd>{d.perfil.objetivo}</dd></div> : null}
+            {d.perfil.tono_cliente ? <div><dt>Cómo escribe</dt><dd>{d.perfil.tono_cliente}</dd></div> : null}
+          </dl>
+        </div>
+      ) : null}
+      <Hechos titulo="Lo que aprendió de sus conversaciones" hechos={d.aprendido} />
+
+      {datos.tipo === 'nicho' ? (
+        <>
+          {d.clientes?.length ? (
+            <div className="cb-bloque">
+              <h4>Clientes del nicho</h4>
+              <ul className="cb-puntos">
+                {d.clientes.map((c) => (
+                  <li key={c.id}>{c.nombre}{c.que_vende ? ` · ${c.que_vende}` : ''}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <Conteo titulo="Lo que más les duele" items={d.dolores} />
+          <Conteo titulo="Lo que objetan" items={d.objeciones} />
+          <Conteo titulo="Lo que más se les recomienda" items={d.recomendaciones} />
+          <Hechos titulo="Les funcionó" hechos={d.le_funciono?.map((h) => ({ ...h, tipo: 'le_funciono', texto: `${h.cliente}: ${h.texto}` }))} />
+          <Hechos titulo="No les funcionó" hechos={d.no_le_funciono?.map((h) => ({ ...h, tipo: 'no_le_funciono', texto: `${h.cliente}: ${h.texto}` }))} />
+        </>
+      ) : null}
+
+      {d.voz?.mensajes ? (
+        <div className="cb-bloque">
+          <h4>Cómo escribe ({d.voz.mensajes} mensajes)</h4>
+          <ul className="cb-puntos">
+            {RASGOS.filter(([k]) => d.voz[k] != null).map(([k, f]) => (
+              <li key={k}>{f(d.voz[k])}</li>
+            ))}
+            {d.voz.aperturas_top?.length ? <li>suele arrancar con “{d.voz.aperturas_top.slice(0, 3).join('”, “')}”</li> : null}
+            {d.voz.emojis_top?.length ? <li>emojis: {d.voz.emojis_top.join(' ')}</li> : null}
+          </ul>
+        </div>
       ) : null}
 
       <Lista titulo="Claves de la clase" items={d.claves} />

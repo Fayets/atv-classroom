@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from decouple import config
@@ -27,11 +29,37 @@ CORS_ORIGINS = config(
 )
 
 
+# El cerebro aprende solo: cada APRENDIZAJE_CADA_MIN minutos procesa los mensajes nuevos.
+# En local va APRENDIZAJE=0 en el .env para no gastar ni pisarse con producción.
+_APRENDIZAJE = config("APRENDIZAJE", default=True, cast=bool)
+_CADA_MIN = config("APRENDIZAJE_CADA_MIN", default=10, cast=int)
+
+
+async def _aprender_siempre():
+    from starlette.concurrency import run_in_threadpool
+
+    from src.services.aprendizaje_service import ciclo
+
+    await asyncio.sleep(60)
+    while True:
+        try:
+            r = await run_in_threadpool(ciclo)
+            hechos = sum(c.get("hechos", 0) for c in r["canales"])
+            if r["canales"]:
+                logging.getLogger("aprendizaje").info("Cerebro: %s canales, %s hechos nuevos", len(r["canales"]), hechos)
+        except Exception:
+            logging.getLogger("aprendizaje").exception("Cerebro: falló el ciclo de aprendizaje")
+        await asyncio.sleep(_CADA_MIN * 60)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     ensure_upload_dirs()
     init_db()
+    tarea = asyncio.create_task(_aprender_siempre()) if _APRENDIZAJE and config("ANTHROPIC_API_KEY", default="") else None
     yield
+    if tarea:
+        tarea.cancel()
 
 
 # La documentación automática lista todos los endpoints: solo se prende en local con DOCS=1.

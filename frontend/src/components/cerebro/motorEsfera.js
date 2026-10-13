@@ -11,9 +11,10 @@ export const TIPOS = {
   clase: { nombre: 'Clases', color: '#eadbd2', base: 2.8 },
   cliente: { nombre: 'Clientes', color: '#c3cbef', base: 3.4 },
   solicitud: { nombre: 'Pedidos de SOP', color: '#ffd166', base: 3.6 },
+  nicho: { nombre: 'Nichos', color: '#7ee0c3', base: 6 },
 }
 
-const CAPA = { modulo: 0, coach: 1, frente: 1, plan: 1, clase: 2, concepto: 2, cliente: 3, solicitud: 3 }
+const CAPA = { modulo: 0, coach: 1, frente: 1, plan: 1, nicho: 1, clase: 2, concepto: 2, cliente: 3, solicitud: 3 }
 const RADIO_CAPA = [95, 185, 285, 370]
 const MORPH_MS = 1100
 const SPRITE = 64

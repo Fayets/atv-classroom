@@ -278,3 +278,68 @@ class ConsultaGuia(db.Entity):
     clases_json = Required(str, default="[]")
     frente = Optional(str, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
+
+
+# ---------- Lo que el cerebro aprende de las conversaciones ----------
+# Base para lo que viene: completar con Tab en la voz de cada coach, seguimientos automáticos
+# y una base de conocimiento por nicho. Todo hecho aprendido guarda su cita textual y el
+# mensaje de donde salió: la IA propone, la evidencia queda.
+
+
+class PerfilCliente(db.Entity):
+    """Quién es el cliente según lo que dijo en sus conversaciones (no lo que cargó atv-clients)."""
+
+    _table_ = (DB_SCHEMA, "cerebro_perfil_cliente")
+
+    cliente_id = PrimaryKey(int)
+    nicho = Optional(str, nullable=True)  # slug normalizado: "fitness", "idiomas", "marketing-digital"
+    nicho_texto = Optional(str, nullable=True)  # como lo dijo el cliente
+    que_vende = Optional(str, nullable=True)
+    etapa = Optional(str, nullable=True)  # arrancando | validando | vendiendo | escalando
+    facturacion = Optional(str, nullable=True)  # textual, solo si lo dijo
+    objetivo = Optional(str, nullable=True)
+    tono_cliente = Optional(str, nullable=True)  # cómo escribe el cliente: formal, relajado, ansioso…
+    actualizado_en = Required(datetime, default=datetime.utcnow)
+
+
+class HechoCerebro(db.Entity):
+    """Algo concreto que pasó en una conversación, con la cita exacta que lo prueba."""
+
+    _table_ = (DB_SCHEMA, "cerebro_hechos")
+
+    id = PrimaryKey(int, auto=True)
+    cliente_id = Required(int, index=True)
+    canal_id = Required(int)
+    tipo = Required(str)  # tema | dolor | objecion | recomendacion | le_funciono | no_le_funciono | logro | pedido
+    texto = Required(str)  # resumen corto en tercera persona
+    cita = Required(str)  # fragmento textual del mensaje
+    concepto = Optional(str, nullable=True)  # id de conceptos.json, lo asigna el código
+    mensaje_id = Required(int, index=True)
+    autor_tipo = Required(str)  # cliente | admin
+    autor_id = Required(int)
+    dicho_en = Required(datetime)
+    aprendido_en = Required(datetime, default=datetime.utcnow)
+    modelo = Optional(str, nullable=True)
+
+
+class VozEquipo(db.Entity):
+    """Cómo escribe cada persona del equipo: rasgos medidos en código y mensajes de ejemplo.
+    Es lo que se le da a la IA para que complete o haga seguimientos con su tono."""
+
+    _table_ = (DB_SCHEMA, "cerebro_voz")
+
+    admin_id = PrimaryKey(int)
+    rasgos_json = Required(str, default="{}")
+    muestras_json = Required(str, default="[]")  # ids de mensajes representativos
+    mensajes_analizados = Required(int, default=0)
+    actualizado_en = Required(datetime, default=datetime.utcnow)
+
+
+class EstadoAprendizaje(db.Entity):
+    """Hasta qué mensaje ya aprendió el cerebro, por canal."""
+
+    _table_ = (DB_SCHEMA, "cerebro_estado")
+
+    canal_id = PrimaryKey(int)
+    ultimo_mensaje_id = Required(int, default=0)
+    actualizado_en = Required(datetime, default=datetime.utcnow)

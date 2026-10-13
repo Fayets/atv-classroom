@@ -32,11 +32,14 @@ from src.models import (
     ConsultaCoach,
     ConsultaGuia,
     Frente,
+    HechoCerebro,
     Mencion,
     MensajeCanal,
+    PerfilCliente,
     Programa,
     Progreso,
     SolicitudSop,
+    VozEquipo,
 )
 from src.services.auth_service import _tiene_acceso
 from src.services.bloqueos import programa_bloqueado
@@ -140,6 +143,30 @@ class _Grafo:
                 previo["creado_en"] = creado
 
 
+# Cómo se lee cada hecho aprendido en el grafo (cliente → concepto) y a nivel nicho.
+VINCULO_HECHO = {
+    "tema": "habló de", "dolor": "le duele", "objecion": "objetó", "pedido": "pidió",
+    "recomendacion": "le recomendaron", "le_funciono": "le funcionó", "no_le_funciono": "no le funcionó", "logro": "logró",
+}
+VINCULO_NICHO = {"dolor": "les duele", "objecion": "objetan", "le_funciono": "les funcionó", "no_le_funciono": "no les funcionó"}
+
+
+NICHOS_NOMBRE = {
+    "fitness": "Fitness", "nutricion": "Nutrición", "salud": "Salud", "salud-mental": "Salud mental",
+    "desarrollo-personal": "Desarrollo personal", "espiritualidad": "Espiritualidad", "idiomas": "Idiomas",
+    "educacion": "Educación", "marketing-digital": "Marketing digital", "ventas": "Ventas",
+    "negocios-online": "Negocios online", "ecommerce": "E-commerce", "finanzas-trading": "Finanzas y trading",
+    "inmobiliaria": "Inmobiliaria", "arquitectura-diseno": "Arquitectura y diseño", "belleza-estetica": "Belleza y estética",
+    "moda": "Moda", "tecnologia-programacion": "Tecnología y programación", "contenido-creadores": "Creadores de contenido",
+    "musica-arte": "Música y arte", "gastronomia": "Gastronomía", "deportes": "Deportes", "relaciones": "Relaciones",
+    "oficios": "Oficios", "otro": "Otro nicho",
+}
+
+
+def nombre_nicho(slug: str) -> str:
+    return NICHOS_NOMBRE.get(slug, slug.replace("-", " ").capitalize())
+
+
 def _construir() -> dict:
     g = _Grafo()
     with db_session:
@@ -189,6 +216,24 @@ def _construir() -> dict:
                 g.nodo(f"plan:{plan}", "plan", plan.capitalize())
                 g.nodo(f"cliente:{c.id}", "cliente", c.nombre or c.email)
                 g.enlace(f"cliente:{c.id}", f"plan:{plan}", "tiene el plan")
+
+        # ---------- lo que aprendió de las conversaciones ----------
+        nicho_de: dict[int, str] = {}
+        for p in list(PerfilCliente.select()):
+            if p.cliente_id in clientes and p.nicho:
+                nicho_de[p.cliente_id] = p.nicho
+                g.nodo(f"nicho:{p.nicho}", "nicho", nombre_nicho(p.nicho))
+                g.enlace(f"cliente:{p.cliente_id}", f"nicho:{p.nicho}", "es del nicho", _iso(p.actualizado_en))
+        for h in list(HechoCerebro.select()):
+            if h.cliente_id not in clientes or not h.concepto:
+                continue
+            cuando = _iso(h.dicho_en)
+            g.enlace(f"cliente:{h.cliente_id}", f"concepto:{h.concepto}", VINCULO_HECHO.get(h.tipo, "habló de"), cuando)
+            nicho = nicho_de.get(h.cliente_id)
+            if nicho and h.tipo in VINCULO_NICHO:
+                g.enlace(f"nicho:{nicho}", f"concepto:{h.concepto}", VINCULO_NICHO[h.tipo], cuando)
+            if h.tipo == "recomendacion" and h.autor_id in coach_de_admin:
+                g.enlace(coach_de_admin[h.autor_id], f"concepto:{h.concepto}", "recomienda", cuando)
 
         def cliente_id(usuario_id: int, tipo: str) -> str | None:
             return f"cliente:{usuario_id}" if tipo == "cliente" and usuario_id in clientes else None
@@ -270,6 +315,21 @@ def _construir() -> dict:
         },
         "generado_en": _iso(datetime.utcnow()),
     }
+
+
+def _perfil_aprendido(cliente_id: int) -> dict | None:
+    p = PerfilCliente.get(cliente_id=cliente_id)
+    if p is None:
+        return None
+    datos = {k: getattr(p, k) for k in ("nicho", "nicho_texto", "que_vende", "etapa", "facturacion", "objetivo", "tono_cliente")}
+    if datos["nicho"]:
+        datos["nicho_nombre"] = nombre_nicho(datos["nicho"])
+    return datos
+
+
+def _hechos_aprendidos(cliente_id: int) -> list[dict]:
+    hechos = sorted([h for h in list(HechoCerebro.select()) if h.cliente_id == cliente_id], key=lambda h: h.mensaje_id, reverse=True)
+    return [{"tipo": h.tipo, "texto": h.texto, "cita": h.cita, "dicho_en": _iso(h.dicho_en)} for h in hechos[:15]]
 
 
 class CerebroServices:
@@ -354,7 +414,20 @@ class CerebroServices:
     @staticmethod
     def _detalle_coach(clave: str) -> dict:
         c = COACHES["coaches"].get(clave)
-        return {"area": c["area"]} if c else {}
+        if not c:
+            return {}
+        with db_session:
+            admin = next((a for a in list(Admin.select()) if a.activo and _clave_coach_de_admin(a) == clave), None)
+            voz = VozEquipo.get(admin_id=admin.id) if admin else None
+            rasgos = json.loads(voz.rasgos_json) if voz else {}
+        return {"area": c["area"], "voz": rasgos or None}
+
+    @staticmethod
+    def _detalle_nicho(clave: str) -> dict:
+        from src.services.aprendizaje_service import por_nicho
+
+        datos = por_nicho(clave)
+        return datos[0] if datos else {}
 
     @staticmethod
     def _detalle_equipo(clave: str) -> dict:
@@ -407,5 +480,7 @@ class CerebroServices:
                 "responsable": c.responsable,
                 "mensajes": mensajes,
                 "consultas": consultas,
+                "perfil": _perfil_aprendido(cliente_id),
+                "aprendido": _hechos_aprendidos(cliente_id),
                 "enlace": f"/mensajes?c={canal.id}" if canal else None,
             }
