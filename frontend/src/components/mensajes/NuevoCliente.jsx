@@ -36,6 +36,7 @@ function Copiable({ valor }) {
 export default function NuevoCliente({ onCerrar, onAbrirChat }) {
   const [form, setForm] = useState({ nombre: '', email: '', plan: 'Entry Level', pago: '', ficha_id: null, sin_ficha: false })
   const [candidatas, setCandidatas] = useState([])
+  const [elegida, setElegida] = useState(null)
   const [hecha, setHecha] = useState(null)
   const [recientes, setRecientes] = useState([])
   const [error, setError] = useState('')
@@ -51,17 +52,18 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
     return () => window.removeEventListener('keydown', esc)
   }, [onCerrar])
 
-  // Búsqueda de la ficha de la seña mientras se escribe (si el nombre o el mail cambian, se vuelve a preguntar).
+  // Señas abiertas (fichas que Franco crea en atv-clients al cobrar la seña). Se muestran todas, con las
+  // que se parecen al nombre o al mail arriba: Franco y Nick no siempre las nombran igual.
   useEffect(() => {
     if (hecha) return undefined
     const t = setTimeout(() => {
-      if (form.nombre.trim().length < 3 && !form.email.includes('@')) return setCandidatas([])
       buscarFicha(form.nombre.trim(), form.email.trim()).then(setCandidatas).catch(() => setCandidatas([]))
     }, 350)
     return () => clearTimeout(t)
   }, [form.nombre, form.email, hecha])
-  const ficha = candidatas.find((c) => c.id === form.ficha_id)
+  const ficha = elegida && elegida.id === form.ficha_id ? elegida : null
   const preguntar = candidatas.length && !form.ficha_id && !form.sin_ficha
+  const COINCIDE = { mail: 'Mismo mail', nombre: 'Mismo nombre', parecido: 'Nombre parecido' }
   const pagoUnico = PAGO_UNICO.includes(form.plan)
   const faltaPago = !pagoUnico && !form.pago
 
@@ -103,6 +105,7 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
       setHecha(null)
       setAnulando(false)
       setForm({ nombre: '', email: '', plan: 'Entry Level', pago: '', ficha_id: null, sin_ficha: false })
+      setElegida(null)
     } catch (err) {
       setError(err.message || 'No se pudo anular.')
     } finally {
@@ -122,27 +125,38 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
 
             <label className="msj-modal__campo">
               <span>Nombre y apellido</span>
-              <input ref={campo} type="text" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value, ficha_id: null, sin_ficha: false })} placeholder="Juan Pérez" maxLength={80} />
+              <input ref={campo} type="text" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Juan Pérez" maxLength={80} />
             </label>
             <label className="msj-modal__campo">
               <span>Mail</span>
-              <input type="text" inputMode="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value, ficha_id: form.ficha_id, sin_ficha: false })} placeholder="juan@gmail.com" autoComplete="off" />
+              <input type="text" inputMode="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="juan@gmail.com" autoComplete="off" />
             </label>
             {preguntar ? (
-              <div className="alta-sena" role="status">
-                <b>Encontramos una ficha de una seña que puede ser de este cliente</b>
-                {candidatas.slice(0, 3).map((c) => (
-                  <div key={c.id} className="alta-sena__fila">
-                    <span>{c.nombre} · {c.plan}{c.fecha ? ` · ${corta(c.fecha)}` : ''}</span>
-                    <button type="button" className="is-si" onClick={() => setForm((f) => ({ ...f, ficha_id: c.id, sin_ficha: false, plan: c.plan && PLANES.includes(c.plan) ? c.plan : f.plan }))}>Es este</button>
-                  </div>
-                ))}
-                <button type="button" className="alta-sena__no" onClick={() => setForm((f) => ({ ...f, sin_ficha: true }))}>No, es otro cliente</button>
+              <div className="alta-sena" role="group" aria-label="¿Dejó seña?">
+                <b>¿Dejó seña?</b>
+                <small>Señas cobradas que todavía no tienen onboarding. Elegí la de este cliente aunque el nombre no sea igual.</small>
+                <div className="alta-sena__lista">
+                  {candidatas.map((c) => (
+                    <div key={c.id} className={`alta-sena__fila${c.coincide ? ' is-sugerida' : ''}`}>
+                      <span>
+                        {c.nombre} · {c.plan}{c.fecha ? ` · ${corta(c.fecha)}` : ''}
+                        {c.coincide ? <em>{COINCIDE[c.coincide]}</em> : null}
+                      </span>
+                      <button type="button" className="is-si" onClick={() => { setElegida(c); setForm((f) => ({ ...f, ficha_id: c.id, sin_ficha: false, plan: c.plan && PLANES.includes(c.plan) ? c.plan : f.plan })) }}>Es esta</button>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" className="alta-sena__no" onClick={() => setForm((f) => ({ ...f, ficha_id: null, sin_ficha: true }))}>No dejó seña</button>
               </div>
             ) : ficha ? (
               <p className="alta-sena__ok">
                 Se completa la ficha de la seña de {ficha.nombre}: conserva lo pagado y el acceso corre desde hoy.{' '}
                 <button type="button" onClick={() => setForm((f) => ({ ...f, ficha_id: null, sin_ficha: false }))}>Cambiar</button>
+              </p>
+            ) : form.sin_ficha && candidatas.length ? (
+              <p className="alta-sena__ok is-gris">
+                No dejó seña: se crea una ficha nueva.{' '}
+                <button type="button" onClick={() => setForm((f) => ({ ...f, sin_ficha: false }))}>Cambiar</button>
               </p>
             ) : null}
             <fieldset className="msj-modal__campo">

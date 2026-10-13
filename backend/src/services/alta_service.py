@@ -11,6 +11,7 @@ import json
 import re
 import unicodedata
 from datetime import date, datetime, timedelta
+from difflib import SequenceMatcher
 
 import httpx
 from decouple import config
@@ -69,13 +70,17 @@ def _norm(t: str | None) -> str:
     return " ".join(re.sub(r"[^a-z0-9@.\s]", " ", t).split())
 
 
-def _candidatas(nombre: str, email: str = "") -> list[dict]:
-    """Coincide si es el mismo mail, el mismo nombre, o si todas las palabras de uno están en el otro
-    ("Karla" con "Karla Rodriguez"). Primero las más seguras."""
+def _parecidas(a: set[str], b: set[str]) -> bool:
+    """Alguna palabra casi igual a otra ("Carla" y "Karla", "Rodriguez" y "Rodrigues")."""
+    return any(len(x) >= 3 and len(y) >= 3 and SequenceMatcher(None, x, y).ratio() >= 0.8 for x in a for y in b)
+
+
+def _candidatas(nombre: str = "", email: str = "") -> list[dict]:
+    """Todas las señas abiertas (fichas creadas a mano en atv-clients, sin canal), con las que pueden ser
+    de este cliente primero: mismo mail, mismo nombre, o nombre parecido (palabras contenidas o casi
+    iguales). Franco y Nick no siempre las nombran igual: por eso se muestran todas y Nick elige."""
     n, e = _norm(nombre), (email or "").strip().lower()
-    if len(n) < 3 and not e:
-        return []
-    palabras = set(n.split())
+    palabras = set(n.split()) if len(n) >= 3 else set()
     with db_session:
         filas = db.select(
             "SELECT id, nombre, email, plan_actual, fecha_inicio FROM clients.clientes "
@@ -89,13 +94,15 @@ def _candidatas(nombre: str, email: str = "") -> list[dict]:
             coincide = "mail"
         elif otras and otras == palabras:
             coincide = "nombre"
-        elif otras and palabras and (otras <= palabras or palabras <= otras) and min(len(otras), len(palabras)) >= 1 and len(n) >= 3:
+        elif otras and palabras and (otras <= palabras or palabras <= otras or _parecidas(otras, palabras)):
             coincide = "parecido"
         else:
-            continue
+            coincide = None
         salida.append({"id": i, "nombre": nom, "plan": inversa.get(plan, plan), "fecha": fecha.isoformat() if fecha else None, "coincide": coincide})
-    orden = {"mail": 0, "nombre": 1, "parecido": 2}
-    return sorted(salida, key=lambda f: orden[f["coincide"]])[:5]
+    orden = {"mail": 0, "nombre": 1, "parecido": 2, None: 3}
+    # Las que coinciden primero; el resto, de la seña más nueva a la más vieja.
+    salida.sort(key=lambda f: f["fecha"] or "", reverse=True)
+    return sorted(salida, key=lambda f: orden[f["coincide"]])
 
 
 def _equipo(sesion: dict) -> int:
@@ -128,8 +135,8 @@ def _dict(a: AltaCliente) -> dict:
 
 class AltaServices:
     def buscar_ficha(self, sesion: dict, nombre: str, email: str = "") -> list[dict]:
-        """Fichas de seña (creadas a mano en atv-clients, sin canal) que pueden ser de este cliente.
-        Quien hace el onboarding no ve la caja: no se devuelven montos, solo lo justo para reconocerlo."""
+        """Señas abiertas, las que pueden ser de este cliente primero. Quien hace el onboarding no ve la
+        caja: no se devuelven montos, solo lo justo para reconocerla (nombre, programa y fecha)."""
         _equipo(sesion)
         return [{k: f[k] for k in ("id", "nombre", "plan", "fecha", "coincide")} for f in _candidatas(nombre, email)]
 
@@ -150,12 +157,10 @@ class AltaServices:
         elif pago not in PAGOS:
             raise HTTPException(status_code=422, detail="Elegí la modalidad de pago.")
         canal = slug_de(nombre)
-        # Quien hace el onboarding no sabe si hubo seña: si hay una ficha que coincide y no dijo
-        # "es otro", no se crea una segunda ficha.
-        if ficha_id is None and not sin_ficha:
-            seguras = [f for f in _candidatas(nombre, email) if f["coincide"] in ("mail", "nombre")]
-            if seguras:
-                raise HTTPException(status_code=409, detail=f"Hay una ficha de una seña que puede ser de este cliente ({seguras[0]['nombre']}). Confirmá si es él o si es otro.")
+        # Con señas abiertas, quien hace el onboarding tiene que decir si es una de ellas o si no dejó
+        # seña: así no queda la ficha de la seña por un lado y la del onboarding por otro.
+        if ficha_id is None and not sin_ficha and _candidatas():
+            raise HTTPException(status_code=409, detail="Indicá si el cliente dejó seña: elegí su ficha o “No dejó seña”.")
         with db_session:
             if _buscar_admin_por_email(email):
                 raise HTTPException(status_code=409, detail="Ese mail es de alguien del equipo de ATV.")

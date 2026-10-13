@@ -37,7 +37,7 @@ def onboarding(monkeypatch):
 
 def test_alta_completa_sin_mail_y_el_mail_sale_una_sola_vez(onboarding):
     svc = al.AltaServices()
-    a = svc.crear(COACH, "Prueba Alta Test", MAIL, "Boost")
+    a = svc.crear(COACH, "Prueba Alta Test", MAIL, "Boost", sin_ficha=True)
     assert a["canal"] == "prueba-alta-test" and a["clave_classroom"] == "prueba.alta.test"
     assert a["discord_invite_url"] == "https://discord.gg/prueba" and a["mail_enviado_en"] is None
     assert onboarding[0][2]["send_email"] is False  # el onboarding no manda el mail solo
@@ -60,18 +60,18 @@ def test_alta_completa_sin_mail_y_el_mail_sale_una_sola_vez(onboarding):
 def test_validaciones_y_quien_puede(onboarding):
     svc = al.AltaServices()
     with pytest.raises(HTTPException):
-        svc.crear(CLIENTE, "X", MAIL, "Boost")
+        svc.crear(CLIENTE, "X", MAIL, "Boost", sin_ficha=True)
     for nombre, mail, plan in (("", MAIL, "Boost"), ("Ok", "no-mail", "Boost"), ("Ok", MAIL, "Premium")):
         with pytest.raises(HTTPException):
-            svc.crear(COACH, nombre, mail, plan, pago="Pago único")
+            svc.crear(COACH, nombre, mail, plan, pago="Pago único", sin_ficha=True)
     with pytest.raises(HTTPException) as e:
-        svc.crear(COACH, "Prueba Alta Test", MAIL, "Mid Level")  # sin modalidad de pago para el contrato
+        svc.crear(COACH, "Prueba Alta Test", MAIL, "Mid Level", sin_ficha=True)  # sin modalidad de pago para el contrato
     assert e.value.status_code == 422
 
 
 def test_un_alta_sin_arrancar_se_anula_entera(onboarding):
     svc = al.AltaServices()
-    a = svc.crear(COACH, "Prueba Alta Test", MAIL, "Mentoría", pago="Dos cuotas")
+    a = svc.crear(COACH, "Prueba Alta Test", MAIL, "Mentoría", pago="Dos cuotas", sin_ficha=True)
     svc.anular(COACH, a["id"])
     assert ("DELETE", "/api/admin/sessions/sesion-prueba/cancel", None) in onboarding
     with db_session:
@@ -89,8 +89,11 @@ def test_completa_la_ficha_de_la_sena_y_anular_la_deja_como_estaba(onboarding):
         encontradas = svc.buscar_ficha(COACH, "sena test")
         assert encontradas[0]["id"] == ficha and encontradas[0]["coincide"] == "nombre" and "pagado_usd" not in encontradas[0]
         assert svc.buscar_ficha(COACH, "Sena")[0]["coincide"] == "parecido"
+        assert svc.buscar_ficha(COACH, "Senna Test")[0]["id"] == ficha  # Franco y Nick no la escriben igual
+        lejos = [f for f in svc.buscar_ficha(COACH, "Nombre Que No Coincide") if f["id"] == ficha]
+        assert lejos and lejos[0]["coincide"] is None  # igual aparece en la lista para elegirla
         with pytest.raises(HTTPException) as e:
-            svc.crear(COACH, "Sena Test", MAIL, "Entry Level", pago="Tres cuotas")  # no dijo si es la de la seña
+            svc.crear(COACH, "Cualquier Nombre", MAIL, "Entry Level", pago="Tres cuotas")  # no dijo si dejó seña
         assert e.value.status_code == 409
         a = svc.crear(COACH, "Prueba Alta Test", MAIL, "Entry Level", ficha_id=ficha, pago="Tres cuotas")
         assert a["cliente_id"] == ficha

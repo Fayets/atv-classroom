@@ -628,3 +628,12 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .alta-sena__ok { margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; background: rgba(31, 157, 85, 0.1); color: #1f7a45; font-size: 12.5px; font-weight: 600; }
 .alta-pago-fijo { margin: 0; font-size: 12.5px; color: var(--text-muted); }
 .alta-sena__ok button { border: 0; background: none; padding: 0; font: inherit; color: #1f7a45; text-decoration: underline; cursor: pointer; }
+.alta-sena > small { font-size: 12px; color: #8a6d2b; }
+.alta-sena__lista { display: grid; gap: 4px; max-height: 180px; overflow-y: auto; margin: 2px -4px 0; padding: 0 4px; }
+.alta-sena__fila { padding: 5px 0; border-top: 1px solid rgba(138, 90, 0, 0.12); }
+.alta-sena__fila:first-child { border-top: 0; }
+.alta-sena__fila > span { min-width: 0; }
+.alta-sena__fila em { margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: rgba(192, 57, 43, 0.12); color: #c0392b; font-size: 11px; font-style: normal; font-weight: 600; white-space: nowrap; }
+.alta-sena__fila.is-sugerida > span { font-weight: 600; }
+.alta-sena__ok.is-gris { background: rgba(0, 0, 0, 0.05); color: #6e6e73; }
+.alta-sena__ok.is-gris button { color: #6e6e73; }
