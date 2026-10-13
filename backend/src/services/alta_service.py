@@ -60,6 +60,40 @@ def slug_de(nombre: str) -> str:
     return re.sub(r"-+", "-", t).strip("-") or "cliente"
 
 
+def _norm(t: str | None) -> str:
+    t = unicodedata.normalize("NFKD", t or "").encode("ascii", "ignore").decode("ascii").lower()
+    return " ".join(re.sub(r"[^a-z0-9@.\s]", " ", t).split())
+
+
+def _candidatas(nombre: str, email: str = "") -> list[dict]:
+    """Coincide si es el mismo mail, el mismo nombre, o si todas las palabras de uno están en el otro
+    ("Karla" con "Karla Rodriguez"). Primero las más seguras."""
+    n, e = _norm(nombre), (email or "").strip().lower()
+    if len(n) < 3 and not e:
+        return []
+    palabras = set(n.split())
+    with db_session:
+        filas = db.select(
+            "SELECT id, nombre, email, plan_actual, fecha_inicio FROM clients.clientes "
+            "WHERE coalesce(canal_discord, '') = '' AND estado_cliente <> 'inactivo'"
+        )
+    inversa = {v: k for k, v in PLANES.items()}
+    salida = []
+    for i, nom, mail, plan, fecha in filas:
+        otras = set(_norm(nom).split())
+        if e and (mail or "").lower() == e:
+            coincide = "mail"
+        elif otras and otras == palabras:
+            coincide = "nombre"
+        elif otras and palabras and (otras <= palabras or palabras <= otras) and min(len(otras), len(palabras)) >= 1 and len(n) >= 3:
+            coincide = "parecido"
+        else:
+            continue
+        salida.append({"id": i, "nombre": nom, "plan": inversa.get(plan, plan), "fecha": fecha.isoformat() if fecha else None, "coincide": coincide})
+    orden = {"mail": 0, "nombre": 1, "parecido": 2}
+    return sorted(salida, key=lambda f: orden[f["coincide"]])[:5]
+
+
 def _equipo(sesion: dict) -> int:
     if not es_equipo(sesion):
         raise HTTPException(status_code=403, detail="Las altas las hace el equipo de ATV.")
@@ -89,21 +123,13 @@ def _dict(a: AltaCliente) -> dict:
 
 
 class AltaServices:
-    def fichas_sin_canal(self, sesion: dict) -> list[dict]:
-        """Fichas creadas a mano en atv-clients por una seña, todavía sin onboarding (sin canal)."""
+    def buscar_ficha(self, sesion: dict, nombre: str, email: str = "") -> list[dict]:
+        """Fichas de seña (creadas a mano en atv-clients, sin canal) que pueden ser de este cliente.
+        Quien hace el onboarding no ve la caja: no se devuelven montos, solo lo justo para reconocerlo."""
         _equipo(sesion)
-        with db_session:
-            filas = db.select(
-                "SELECT id, nombre, email, plan_actual, fecha_inicio, coalesce(total_pagado_usd, 0)::float FROM clients.clientes "
-                "WHERE coalesce(canal_discord, '') = '' AND estado_cliente <> 'inactivo' ORDER BY id DESC LIMIT 100"
-            )
-        inversa = {v: k for k, v in PLANES.items()}
-        return [
-            {"id": i, "nombre": n, "email": e, "plan": inversa.get(p), "plan_bd": p, "fecha": f.isoformat() if f else None, "pagado_usd": t}
-            for i, n, e, p, f, t in filas
-        ]
+        return [{k: f[k] for k in ("id", "nombre", "plan", "fecha", "coincide")} for f in _candidatas(nombre, email)]
 
-    def crear(self, sesion: dict, nombre: str, email: str, plan: str, ficha_id: int | None = None) -> dict:
+    def crear(self, sesion: dict, nombre: str, email: str, plan: str, ficha_id: int | None = None, sin_ficha: bool = False) -> dict:
         yo = _equipo(sesion)
         nombre = " ".join((nombre or "").split())
         email = (email or "").strip().lower()
@@ -114,6 +140,12 @@ class AltaServices:
         if plan not in PLANES:
             raise HTTPException(status_code=422, detail="Elegí el plan.")
         canal = slug_de(nombre)
+        # Quien hace el onboarding no sabe si hubo seña: si hay una ficha que coincide y no dijo
+        # "es otro", no se crea una segunda ficha.
+        if ficha_id is None and not sin_ficha:
+            seguras = [f for f in _candidatas(nombre, email) if f["coincide"] in ("mail", "nombre")]
+            if seguras:
+                raise HTTPException(status_code=409, detail=f"Hay una ficha de una seña que puede ser de este cliente ({seguras[0]['nombre']}). Confirmá si es él o si es otro.")
         with db_session:
             if _buscar_admin_por_email(email):
                 raise HTTPException(status_code=409, detail="Ese mail es de alguien del equipo de ATV.")

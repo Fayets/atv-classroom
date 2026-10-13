@@ -619,16 +619,11 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .alta-pendientes li b { font-size: 13.5px; }
 .alta-pendientes li small { font-size: 12px; color: #8e8e93; }
 .alta-pendientes li button { flex: none; border: 0; border-radius: 7px; padding: 6px 10px; background: #f2f2f7; font: inherit; font-size: 12.5px; font-weight: 600; color: #c0392b; cursor: pointer; }
-.alta-modo { display: flex; gap: 4px; padding: 3px; margin-bottom: 12px; border-radius: 9px; background: #f2f2f7; }
-.alta-modo button { flex: 1; border: 0; border-radius: 7px; padding: 6px 8px; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: #6e6e73; cursor: pointer; }
-.alta-modo button.is-on { background: #fff; color: #1d1d1f; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }
-.alta-fichas { display: grid; gap: 6px; margin-bottom: 12px; }
-.alta-fichas input { height: 32px; padding: 0 10px; border: 1px solid #d2d2d7; border-radius: 8px; font: inherit; font-size: 13px; }
-.alta-fichas ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 200px; overflow-y: auto; }
-.alta-fichas li button { width: 100%; display: grid; gap: 1px; padding: 7px 10px; border: 0; border-radius: 8px; background: #f7f7f9; font: inherit; text-align: left; cursor: pointer; }
-.alta-fichas li button:hover { background: #efeff3; }
-.alta-fichas li button.is-on { background: rgba(192, 57, 43, 0.1); box-shadow: inset 0 0 0 1px #c0392b; }
-.alta-fichas li b { font-size: 13px; }
-.alta-fichas li small { font-size: 12px; color: #8e8e93; }
-.alta-fichas__vacio { padding: 8px 2px; font-size: 12.5px; color: #8e8e93; }
-.alta-fichas__nota { margin: 2px 2px 0; font-size: 12px; color: #1f9d55; font-weight: 600; }
+
+.alta-sena { display: grid; gap: 6px; margin-bottom: 12px; padding: 10px 12px; border-radius: 10px; background: #fff8e6; box-shadow: inset 0 0 0 1px #f2d48a; }
+.alta-sena > b { font-size: 12.5px; color: #8a5a00; }
+.alta-sena__fila { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+.alta-sena__fila button.is-si { flex: none; border: 0; border-radius: 7px; padding: 5px 10px; background: #c0392b; color: #fff; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.alta-sena__no { justify-self: start; border: 0; padding: 2px 0; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: #6e6e73; cursor: pointer; text-decoration: underline; }
+.alta-sena__ok { margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; background: rgba(31, 157, 85, 0.1); color: #1f7a45; font-size: 12.5px; font-weight: 600; }
+.alta-sena__ok button { border: 0; background: none; padding: 0; font: inherit; color: #1f7a45; text-decoration: underline; cursor: pointer; }

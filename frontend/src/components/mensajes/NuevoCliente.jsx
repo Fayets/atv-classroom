@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { anularAlta, crearAlta, enviarOnboarding, fetchAltas, fetchFichasSinCanal } from '../../api/altas'
+import { anularAlta, buscarFicha, crearAlta, enviarOnboarding, fetchAltas } from '../../api/altas'
 
 const PLANES = ['Entry Level', 'Mid Level', 'High Level', 'Boost', 'Mentoría']
-const usd = (n) => `US$ ${Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
+const corta = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR') : '')
 const cuando = (iso) => new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
 function Copiable({ valor }) {
@@ -26,13 +26,13 @@ function Copiable({ valor }) {
 }
 
 // Nuevo onboarding: lo que hacía /add-client en Discord, desde el escritorio del classroom.
-// Si el cliente ya tiene ficha por una seña, se completa esa ficha (con sus pagos) en vez de crear otra.
+// Si hubo una seña, la ficha ya existe en atv-clients: mientras se escribe el nombre se busca sola y,
+// si quien hace el onboarding confirma que es ese cliente, se completa esa ficha en vez de crear otra.
+// No se muestran montos: la caja es de Franco.
 // El mail de onboarding no sale solo: se manda una vez con el botón.
 export default function NuevoCliente({ onCerrar, onAbrirChat }) {
-  const [form, setForm] = useState({ nombre: '', email: '', plan: 'Entry Level', ficha_id: null })
-  const [modo, setModo] = useState('nuevo') // nuevo | ficha
-  const [fichas, setFichas] = useState([])
-  const [buscarFicha, setBuscarFicha] = useState('')
+  const [form, setForm] = useState({ nombre: '', email: '', plan: 'Entry Level', ficha_id: null, sin_ficha: false })
+  const [candidatas, setCandidatas] = useState([])
   const [hecha, setHecha] = useState(null)
   const [recientes, setRecientes] = useState([])
   const [error, setError] = useState('')
@@ -43,11 +43,22 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
   useEffect(() => {
     campo.current?.focus()
     fetchAltas().then(setRecientes).catch(() => null)
-    fetchFichasSinCanal().then(setFichas).catch(() => null)
     const esc = (e) => e.key === 'Escape' && onCerrar()
     window.addEventListener('keydown', esc)
     return () => window.removeEventListener('keydown', esc)
   }, [onCerrar])
+
+  // Búsqueda de la ficha de la seña mientras se escribe (si el nombre o el mail cambian, se vuelve a preguntar).
+  useEffect(() => {
+    if (hecha) return undefined
+    const t = setTimeout(() => {
+      if (form.nombre.trim().length < 3 && !form.email.includes('@')) return setCandidatas([])
+      buscarFicha(form.nombre.trim(), form.email.trim()).then(setCandidatas).catch(() => setCandidatas([]))
+    }, 350)
+    return () => clearTimeout(t)
+  }, [form.nombre, form.email, hecha])
+  const ficha = candidatas.find((c) => c.id === form.ficha_id)
+  const preguntar = candidatas.length && !form.ficha_id && !form.sin_ficha
 
   async function crear(e) {
     e.preventDefault()
@@ -87,8 +98,7 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
       setHecha(null)
       setAnulando(false)
       setForm({ nombre: '', email: '', plan: 'Entry Level', ficha_id: null })
-      fetchFichasSinCanal().then(setFichas).catch(() => null)
-    } catch (err) {
+      } catch (err) {
       setError(err.message || 'No se pudo anular.')
     } finally {
       setOcupado('')
@@ -104,42 +114,32 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
           <form onSubmit={crear}>
             <h2 id="alta-titulo">Nuevo onboarding</h2>
             <p className="msj-modal__ayuda">Crea el onboarding, el canal de Discord, su chat en el classroom y su ficha. El mail de onboarding lo mandás después con un botón.</p>
-            <div className="alta-modo" role="tablist" aria-label="Tipo de alta">
-              <button type="button" role="tab" aria-selected={modo === 'nuevo'} className={modo === 'nuevo' ? 'is-on' : ''} onClick={() => { setModo('nuevo'); setForm((f) => ({ ...f, ficha_id: null })) }}>Cliente nuevo</button>
-              <button type="button" role="tab" aria-selected={modo === 'ficha'} className={modo === 'ficha' ? 'is-on' : ''} onClick={() => setModo('ficha')}>Ya tiene ficha por una seña{fichas.length ? ` (${fichas.length})` : ''}</button>
-            </div>
-            {modo === 'ficha' ? (
-              <div className="alta-fichas">
-                <input type="search" placeholder="Buscar la ficha de la seña" value={buscarFicha} onChange={(e) => setBuscarFicha(e.target.value)} aria-label="Buscar ficha" />
-                <ul>
-                  {fichas
-                    .filter((f) => !buscarFicha.trim() || f.nombre.toLowerCase().includes(buscarFicha.trim().toLowerCase()))
-                    .slice(0, 8)
-                    .map((f) => (
-                      <li key={f.id}>
-                        <button
-                          type="button"
-                          className={form.ficha_id === f.id ? 'is-on' : ''}
-                          onClick={() => setForm((x) => ({ ...x, ficha_id: f.id, nombre: f.nombre, plan: f.plan || x.plan }))}
-                        >
-                          <b>{f.nombre}</b>
-                          <small>{f.plan || f.plan_bd} · pagó {usd(f.pagado_usd)}{f.fecha ? ` · ${new Date(`${f.fecha}T00:00:00`).toLocaleDateString('es-AR')}` : ''}</small>
-                        </button>
-                      </li>
-                    ))}
-                  {!fichas.length ? <li className="alta-fichas__vacio">No hay fichas de seña sin onboarding.</li> : null}
-                </ul>
-                {form.ficha_id ? <p className="alta-fichas__nota">Se completa esa ficha: conserva lo que pagó y el acceso corre desde hoy.</p> : null}
-              </div>
-            ) : null}
+
             <label className="msj-modal__campo">
               <span>Nombre y apellido</span>
-              <input ref={campo} type="text" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Juan Pérez" maxLength={80} />
+              <input ref={campo} type="text" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value, ficha_id: null, sin_ficha: false })} placeholder="Juan Pérez" maxLength={80} />
             </label>
             <label className="msj-modal__campo">
-              <span>{modo === 'ficha' ? 'Mail real del cliente' : 'Mail'}</span>
-              <input type="text" inputMode="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="juan@gmail.com" autoComplete="off" />
+              <span>Mail</span>
+              <input type="text" inputMode="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value, ficha_id: form.ficha_id, sin_ficha: false })} placeholder="juan@gmail.com" autoComplete="off" />
             </label>
+            {preguntar ? (
+              <div className="alta-sena" role="status">
+                <b>Encontramos una ficha de una seña que puede ser de este cliente</b>
+                {candidatas.slice(0, 3).map((c) => (
+                  <div key={c.id} className="alta-sena__fila">
+                    <span>{c.nombre} · {c.plan}{c.fecha ? ` · ${corta(c.fecha)}` : ''}</span>
+                    <button type="button" className="is-si" onClick={() => setForm((f) => ({ ...f, ficha_id: c.id, sin_ficha: false, plan: c.plan && PLANES.includes(c.plan) ? c.plan : f.plan }))}>Es este</button>
+                  </div>
+                ))}
+                <button type="button" className="alta-sena__no" onClick={() => setForm((f) => ({ ...f, sin_ficha: true }))}>No, es otro cliente</button>
+              </div>
+            ) : ficha ? (
+              <p className="alta-sena__ok">
+                Se completa la ficha de la seña de {ficha.nombre}: conserva lo pagado y el acceso corre desde hoy.{' '}
+                <button type="button" onClick={() => setForm((f) => ({ ...f, ficha_id: null, sin_ficha: false }))}>Cambiar</button>
+              </p>
+            ) : null}
             <fieldset className="msj-modal__campo">
               <legend>Plan</legend>
               <div className="msj-roles">
@@ -154,7 +154,7 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
             {error ? <p className="msj-modal__error" role="alert">{error}</p> : null}
             <div className="msj-modal__botones">
               <button type="button" onClick={onCerrar}>Cancelar</button>
-              <button type="submit" className="is-primario" disabled={ocupado === 'crear' || (modo === 'ficha' && !form.ficha_id)}>{ocupado === 'crear' ? 'Creando…' : 'Crear onboarding'}</button>
+              <button type="submit" className="is-primario" disabled={ocupado === 'crear' || Boolean(preguntar)}>{ocupado === 'crear' ? 'Creando…' : 'Crear onboarding'}</button>
             </div>
           </form>
         ) : (

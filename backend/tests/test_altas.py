@@ -82,7 +82,12 @@ def test_completa_la_ficha_de_la_sena_y_anular_la_deja_como_estaba(onboarding):
         ).fetchone()[0]
     try:
         svc = al.AltaServices()
-        assert any(f["id"] == ficha and f["plan"] == "Entry Level" for f in svc.fichas_sin_canal(COACH))
+        encontradas = svc.buscar_ficha(COACH, "sena test")
+        assert encontradas[0]["id"] == ficha and encontradas[0]["coincide"] == "nombre" and "pagado_usd" not in encontradas[0]
+        assert svc.buscar_ficha(COACH, "Sena")[0]["coincide"] == "parecido"
+        with pytest.raises(HTTPException) as e:
+            svc.crear(COACH, "Sena Test", MAIL, "Entry Level")  # no dijo si es la de la seña
+        assert e.value.status_code == 409
         a = svc.crear(COACH, "Prueba Alta Test", MAIL, "Entry Level", ficha_id=ficha)
         assert a["cliente_id"] == ficha
         with db_session:
