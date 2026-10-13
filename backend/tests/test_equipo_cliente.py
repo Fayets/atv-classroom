@@ -1,5 +1,5 @@
-"""Equipo del cliente: entra con su mail y la clave del cliente, ve solo el chat de ese cliente y las
-clases de su rol, el cupo depende del plan y si el cliente lo saca se le corta la sesión."""
+"""Equipo del cliente: entra con su mail y la clave del cliente, ve solo el chat de ese cliente y todo
+el classroom, el cupo depende del plan y si el cliente lo saca se le corta la sesión."""
 
 from datetime import date, timedelta
 from types import SimpleNamespace
@@ -80,15 +80,13 @@ def test_solo_el_titular_maneja_el_equipo_y_respeta_el_cupo_del_plan():
         svc.guardar_limites({"boost": -1})
 
 
-def test_el_equipo_ve_solo_el_chat_de_su_cliente_y_las_clases_de_su_rol():
+def test_el_equipo_ve_solo_el_chat_de_su_cliente():
     miembro = {**TITULAR, "miembro_id": 1}
     assert puede_ver(miembro, {"id": 1, "tipo": "cliente", "cliente_id": CLIENTE_ID})
     assert not puede_ver(miembro, {"id": 2, "tipo": "cliente", "cliente_id": 123})
     assert not puede_ver(miembro, {"id": 3, "tipo": "grupo", "roles": ["boost"]})
     assert not puede_ver(miembro, {"id": 4, "tipo": "anuncios"})
     assert puede_ver(TITULAR, {"id": 4, "tipo": "anuncios"})
-    assert eq.programa_visible("closer", "Sales") and not eq.programa_visible("closer", "Ads")
-    assert eq.programa_visible("socio", "Ads")
 
 
 def test_cada_uno_edita_solo_sus_mensajes():

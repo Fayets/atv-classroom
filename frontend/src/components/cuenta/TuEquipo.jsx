@@ -51,7 +51,7 @@ export default function TuEquipo() {
   return (
     <div className="cuenta-equipo">
       <p className="cuenta-equipo__ayuda">
-        Sumá a tu socio, setters o closers al chat con ATV. Cada uno entra con <b>su mail</b> y <b>tu misma clave</b>. Ven tu chat y las clases de su rol.
+        Sumá a tu socio, setters o closers al chat con ATV. Cada uno entra con <b>su mail</b> y <b>tu misma clave</b>. Ven tu chat y todo el classroom.
       </p>
 
       {datos.miembros.length ? (

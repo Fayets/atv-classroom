@@ -5,7 +5,6 @@ from pony.orm import db_session
 
 from src.db import db
 from src.models import Clase, Nota, Progreso
-from src.services.equipo_cliente_service import programa_visible
 from src.services.bloqueos import exigir_desbloqueado
 from src.services.frente_service import BRIEFS, coach_de_clase
 from src.utils.clase_content import serializar_recursos
@@ -39,10 +38,10 @@ def _buscar_nota(clase_id: int, usuario_id: int, tipo: str) -> Nota | None:
 
 
 class ClaseServices:
-    def obtener_detalle_clase(self, clase_id: int, usuario_id: int, tipo: str, rol_miembro: str | None = None) -> dict:
+    def obtener_detalle_clase(self, clase_id: int, usuario_id: int, tipo: str) -> dict:
         with db_session:
             clase = Clase.get(id=clase_id)
-            if clase is None or (tipo == "miembro" and not programa_visible(rol_miembro, clase.seccion.programa.titulo)):
+            if clase is None:
                 raise HTTPException(status_code=404, detail="Clase no encontrada.")
             exigir_desbloqueado(clase.seccion.programa)
 

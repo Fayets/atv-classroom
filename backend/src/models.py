@@ -419,7 +419,7 @@ class GastoIA(db.Entity):
 
 class MiembroCliente(db.Entity):
     """Alguien del equipo de un cliente (socio, setter, closer…). Entra con su mail y la misma clave
-    del cliente; ve el chat del cliente y las clases de su rol, y su acceso dura lo que dura el del cliente."""
+    del cliente; ve el chat del cliente y todo el classroom, y su acceso dura lo que dura el del cliente."""
 
     _table_ = (DB_SCHEMA, "miembros_cliente")
 

@@ -14,7 +14,7 @@ service = ProgramaServices()
 def listar_programas(sesion: dict = Depends(obtener_sesion_desde_request)):
     try:
         tipo, pid = persona(sesion)
-        return service.listar_programas(pid, tipo, sesion.get("miembro_rol"))
+        return service.listar_programas(pid, tipo)
     except HTTPException as exc:
         raise exc
     except Exception:
@@ -28,7 +28,7 @@ def obtener_programa(
 ):
     try:
         tipo, pid = persona(sesion)
-        return service.obtener_detalle_programa(programa_id, pid, tipo, sesion.get("miembro_rol"))
+        return service.obtener_detalle_programa(programa_id, pid, tipo)
     except HTTPException as exc:
         raise exc
     except Exception:

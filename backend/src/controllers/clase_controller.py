@@ -17,7 +17,7 @@ def obtener_clase(
 ):
     try:
         tipo, pid = persona(sesion)
-        return service.obtener_detalle_clase(clase_id, pid, tipo, sesion.get("miembro_rol"))
+        return service.obtener_detalle_clase(clase_id, pid, tipo)
     except HTTPException as exc:
         raise exc
     except Exception:

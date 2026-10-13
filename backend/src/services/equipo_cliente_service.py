@@ -3,7 +3,7 @@
 - El cliente los carga desde "Mi cuenta" con mail, nombre y rol. Entran con su mail y la MISMA clave
   del cliente (no hay invitación ni clave propia).
 - Cuántos puede sumar depende del plan (tabla limites_equipo; si el plan no está, LIMITE_POR_DEFECTO).
-- Ven solo el chat privado del cliente (no la comunidad ni los anuncios) y las clases de su rol.
+- Ven solo el chat privado del cliente (no la comunidad ni los anuncios) y todo el classroom, como el cliente.
 - Su acceso cuelga del cliente: si el cliente vence, ellos también; si el cliente los saca, se les
   cierran las sesiones en el momento.
 """
@@ -27,26 +27,11 @@ ROLES = {
     "otro": "Equipo",
 }
 
-# Programas del classroom que ve cada rol (None = todos, como el cliente). Los títulos son los de
-# classroom.programa: si se renombra uno, actualizar acá.
-PROGRAMAS_POR_ROL: dict[str, set[str] | None] = {
-    "socio": None,
-    "setter": {"Start Here", "Sales", "Creator Acquisition"},
-    "closer": {"Start Here", "Sales"},
-    "editor": {"Start Here", "Marketing", "Product"},
-    "otro": {"Start Here"},
-}
-
 _MAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def nombre_rol(rol: str | None) -> str:
     return ROLES.get(rol or "", "Equipo")
-
-
-def programa_visible(rol: str | None, titulo: str) -> bool:
-    permitidos = PROGRAMAS_POR_ROL.get(rol or "otro", PROGRAMAS_POR_ROL["otro"])
-    return permitidos is None or titulo in permitidos
 
 
 def limite_de(plan: str | None) -> int:
