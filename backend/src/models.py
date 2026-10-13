@@ -439,3 +439,26 @@ class LimiteEquipo(db.Entity):
 
     plan = PrimaryKey(str)
     maximo = Required(int)
+
+
+class RoadmapDoc(db.Entity):
+    """Un documento del roadmap del cliente (el Google Doc de próximos pasos que deja cada coach).
+    Mismo coach + mismo título = versiones del mismo roadmap: la más nueva es la vigente y las
+    anteriores quedan como reemplazadas. El "que tenés que seguir ahora" lo marca el coach."""
+
+    _table_ = (DB_SCHEMA, "roadmap_docs")
+
+    id = PrimaryKey(int, auto=True)
+    cliente_id = Required(int, index=True)
+    coach_id = Optional(int, nullable=True)  # admins.id
+    area = Optional(str, nullable=True)  # lo que trabaja ese coach: "Setting y closing"
+    titulo = Required(str)  # "Ventas", "Roadmap inicial"
+    tipo = Required(str, default="revision")  # inicial | revision | complementario
+    url = Required(str)
+    fecha = Required(date)
+    pasos_total = Optional(int, nullable=True)
+    paso_actual = Optional(int, nullable=True)
+    principal = Required(bool, default=False)
+    mensaje_id = Optional(int, nullable=True)  # si salió de un mensaje del chat
+    creado_por = Optional(int, nullable=True)
+    creado_en = Required(datetime, default=datetime.utcnow)

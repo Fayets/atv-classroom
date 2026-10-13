@@ -724,6 +724,20 @@ class MensajeriaServices:
                 men.respondida_en = datetime.utcnow()
             return {"id": men.id, "respondida_en": _iso(men.respondida_en)}
 
+    def participantes(self, sesion: dict, canal_id: int) -> list[dict]:
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            if canal.tipo != "cliente" or not canal.cliente_id:
+                return []
+            from src.models import MiembroCliente
+            from src.services.equipo_cliente_service import nombre_rol
+
+            c = ClienteExterno.get(id=canal.cliente_id)
+            lista = [{"clave": f"c{canal.cliente_id}", "nombre": (c.nombre or c.email) if c else canal.nombre, "detalle": "Cliente", "foto_url": foto_de("cliente", canal.cliente_id)}]
+            for m in list(MiembroCliente.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."miembros_cliente" WHERE cliente_id = $cid ORDER BY id', {"cid": canal.cliente_id})):
+                lista.append({"clave": f"m{m.id}", "nombre": m.nombre, "detalle": nombre_rol(m.rol), "foto_url": foto_de("miembro", m.id)})
+            return lista
+
     def subir_adjunto(self, sesion: dict, canal_id: int, nombre: str, partes) -> dict:
         """partes: iterable de bloques de bytes del archivo (se corta si pasa el tope)."""
         nombre = almacen.nombre_seguro(nombre)

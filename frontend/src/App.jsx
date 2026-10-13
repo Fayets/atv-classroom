@@ -26,6 +26,7 @@ import MensajesPage from './pages/MensajesPage'
 import PlaceholderPage from './pages/PlaceholderPage'
 import ProgramaDetailPage from './pages/ProgramaDetailPage'
 import ProgramasGridPage from './pages/ProgramasGridPage'
+import RoadmapPage from './pages/RoadmapPage'
 
 function UnauthorizedSync() {
   const { logout } = useAuth()
@@ -140,6 +141,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <FrentePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/roadmap"
+          element={
+            <ProtectedRoute>
+              <RoadmapPage />
             </ProtectedRoute>
           }
         />

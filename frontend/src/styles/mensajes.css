@@ -575,3 +575,19 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
   .msj-grabar__estado i { animation: msj-latido 1.1s ease-in-out infinite; }
   @keyframes msj-latido { 50% { opacity: 0.25; } }
 }
+
+/* Roadmap del cliente en el panel del coach */
+.rmc-form { display: grid; gap: 8px; margin-bottom: 10px; padding: 12px; border-radius: 12px; background: var(--m-tarjeta); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.1); }
+.rmc-form label { display: grid; gap: 3px; font-size: 11.5px; font-weight: 600; color: var(--m-t3); }
+.rmc-form input, .rmc-form select { min-width: 0; height: 32px; padding: 0 8px; border: 1px solid var(--m-linea2); border-radius: 7px; background: #fff; font: inherit; font-size: 13px; color: var(--m-t1); }
+.rmc-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rmc-form .rmc-check { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--m-t1); }
+.rmc-check input { height: auto; }
+.rmc-botones { display: flex; gap: 6px; justify-content: flex-end; }
+.rmc-botones button { border: 0; border-radius: 7px; padding: 6px 10px; background: var(--m-campo); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--m-t1); }
+.rmc-botones .is-primario { background: var(--m-acento); color: #fff; }
+.rmc-botones .is-peligro { margin-right: auto; background: none; color: var(--m-acento); }
+.rmc-vacio { margin: 0 4px 8px; font-size: 12.5px; color: var(--m-t3); }
+.rmc-sub { margin: 12px 4px 6px; font-size: 11.5px; font-weight: 600; color: var(--m-t3); }
+.rmc-ver { display: block; margin: 10px 4px 0; font-size: 12.5px; font-weight: 600; color: var(--m-acento); text-decoration: none; }
+.rmc-ver:hover { text-decoration: underline; }

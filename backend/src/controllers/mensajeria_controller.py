@@ -121,6 +121,12 @@ async def borrar_canal(canal_id: int, sesion: dict = Depends(sesion_mensajes)):
     return {"ok": True, "mensajes": r["mensajes"]}
 
 
+@router.get("/canales/{canal_id}/participantes")
+def participantes(canal_id: int, sesion: dict = Depends(sesion_mensajes)):
+    """Quiénes del lado del cliente están en este chat (el titular y su equipo), para poder @etiquetarlos."""
+    return service.participantes(sesion, canal_id)
+
+
 @router.get("/equipo")
 def equipo(_sesion: dict = Depends(sesion_mensajes)):
     """Para el autocompletado de @."""

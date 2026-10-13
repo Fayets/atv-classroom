@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMensajes, marcarLeido, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto } from '../../api/mensajes'
+import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto } from '../../api/mensajes'
 import { fetchVoz } from '../../api/cuenta'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
@@ -90,6 +90,19 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
       .then(setEquipo)
       .catch(() => null)
   }, [])
+
+  // Los del lado del cliente en este chat (el titular y su equipo): también se pueden @etiquetar.
+  const [participantes, setParticipantes] = useState([])
+  useEffect(() => {
+    let vivo = true
+    setParticipantes([])
+    fetchParticipantes(canalId)
+      .then((p) => vivo && setParticipantes(p))
+      .catch(() => null)
+    return () => {
+      vivo = false
+    }
+  }, [canalId])
 
   // Eventos en vivo.
   useEffect(
@@ -423,14 +436,19 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   function buscarSugerencias(valor, caret) {
     const antes = valor.slice(0, caret)
     const hallado = antes.match(/(^|\s)@([A-Za-zÁÉÍÓÚÜÑáéíóúüñ]*)$/)
-    if (!hallado || !equipo.length) {
+    if (!hallado || (!equipo.length && !participantes.length)) {
       setSugerencias(null)
       return
     }
     const q = normal(hallado[2])
     const todos = isEquipo && (!q || 'everyone'.startsWith(q) || 'todos'.startsWith(q)) ? [EVERYONE] : []
+    const delCliente = participantes
+      .filter((p) => normal(p.nombre) !== normal(user?.nombre || ''))
+      .filter((p) => !q || normal(p.nombre).split(/\s+/).some((x) => x.startsWith(q)))
+      .map((p) => ({ ...p, id: p.clave, esCliente: true }))
     const lista = [
       ...todos,
+      ...delCliente,
       ...equipo
         .filter((m) => m.id !== (isEquipo ? user?.usuario_id : null))
         .filter((m) => !q || normal(m.nombre).split(/\s+/).some((p) => p.startsWith(q))),
@@ -444,7 +462,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     const desde = sugerencias?.desde ?? caret
     const marca = `@${primerNombre(miembro.nombre)}`
     const nuevo = `${texto.slice(0, desde)}${marca} ${texto.slice(caret)}`
-    mencionados.current.set(marca, miembro.id)
+    mencionados.current.set(marca, miembro.esCliente ? null : miembro.id) // al servidor solo van ids del equipo
     setTexto(nuevo)
     setSugerencias(null)
     requestAnimationFrame(() => {
@@ -555,8 +573,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   const leidoPorElOtro = isEquipo ? datos.lecturas.cliente : datos.lecturas.equipo
   const miUltimo = [...mensajes].reverse().find((m) => claveAutor(m.autor) === yo)
   const nombresEscribiendo = Object.keys(escriben).filter((n) => n !== user?.nombre)
-  const nombresEquipo = new Set(equipo.map((m) => normal(primerNombre(m.nombre))))
-  const miPrimerNombre = isEquipo ? primerNombre(user?.nombre) : null
+  const nombresEquipo = new Set([...equipo, ...participantes].map((m) => normal(primerNombre(m.nombre))))
+  const miPrimerNombre = primerNombre(user?.nombre) // al cliente también se le resalta cuando lo etiquetan
 
   return (
     <section
@@ -763,7 +781,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
             </div>
           ) : null}
           {sugerencias ? (
-            <ul className="msj-sugerencias" role="listbox" aria-label="Etiquetar a alguien del equipo">
+            <ul className="msj-sugerencias" role="listbox" aria-label="Etiquetar a alguien">
               {sugerencias.lista.map((m, i) => (
                 <li key={m.id} role="option" aria-selected={i === sugerencias.indice}>
                   <button
@@ -774,9 +792,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                       elegir(m)
                     }}
                   >
-                    {m.id === 0 ? <span className="msj-everyone" aria-hidden="true">@</span> : <Avatar persona={{ ...m, tipo: 'equipo' }} size={24} />}
+                    {m.id === 0 ? <span className="msj-everyone" aria-hidden="true">@</span> : <Avatar persona={{ ...m, tipo: m.esCliente ? 'cliente' : 'equipo' }} size={24} />}
                     <b>{m.nombre}</b>
-                    <span>{m.area || (m.rol === 'admin' ? 'Admin' : 'Coach')}</span>
+                    <span>{m.esCliente ? m.detalle : m.area || (m.rol === 'admin' ? 'Admin' : 'Coach')}</span>
                   </button>
                 </li>
               ))}

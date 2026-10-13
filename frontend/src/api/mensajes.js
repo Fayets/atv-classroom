@@ -127,3 +127,7 @@ export async function pedirSugerencia(canalId, borrador, { signal, alPedazo } = 
 export function marcarSugerenciaUsada(id) {
   return request(`/api/mensajes/sugerencias/${id}/usada`, { method: 'POST' }).catch(() => {})
 }
+
+export function fetchParticipantes(canalId) {
+  return request(`/api/mensajes/canales/${canalId}/participantes`)
+}

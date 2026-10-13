@@ -337,3 +337,12 @@ def test_el_cliente_manda_notas_de_voz_y_el_equipo_no(coach):
         svc.subir_adjunto(coach, canal, "respuesta.m4a", iter([audio]))
     assert e.value.status_code == 403
     svc.borrar(a, m["id"])
+
+
+def test_en_el_chat_del_cliente_se_puede_etiquetar_al_cliente(coach):
+    a = _cliente(CLI_A)
+    canal = _canal_de(a)
+    lista = svc.participantes(coach, canal)
+    assert lista and lista[0]["clave"] == f"c{CLI_A}" and lista[0]["detalle"] == "Cliente"
+    with pytest.raises(HTTPException):
+        svc.participantes(_cliente(CLI_B), canal)  # otro cliente no ve ese chat

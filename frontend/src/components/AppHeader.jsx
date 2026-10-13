@@ -124,6 +124,11 @@ export default function AppHeader() {
       ) : null}
 
       <div className="app-header__right">
+      {!isEquipo ? (
+        <NavLink to="/roadmap" className={({ isActive }) => `app-header__mensajes${isActive ? ' is-on' : ''}`}>
+          Roadmap
+        </NavLink>
+      ) : null}
       {habilitada && !isEquipo ? (
         <NavLink to="/mensajes" className={({ isActive }) => `app-header__mensajes${isActive ? ' is-on' : ''}`}>
           Mensajes

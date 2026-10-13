@@ -1,0 +1,141 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { borrarDoc, crearDoc, editarDoc, fetchRoadmap, fetchSugeridos } from '../../api/roadmap'
+
+const TIPOS = [
+  ['revision', 'Revisión mensual'],
+  ['inicial', 'Roadmap inicial'],
+  ['complementario', 'Complementario'],
+]
+const hoy = () => new Date().toISOString().slice(0, 10)
+const VACIO = { titulo: '', url: '', tipo: 'revision', area: '', pasos_total: '', paso_actual: '', principal: true }
+const corta = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+
+// Panel del coach: el roadmap del cliente (los Google Docs de próximos pasos) y lo que ya mandó por el chat.
+export default function RoadmapCliente({ clienteId }) {
+  const [datos, setDatos] = useState(null)
+  const [sugeridos, setSugeridos] = useState([])
+  const [form, setForm] = useState(null)
+  const [error, setError] = useState('')
+  const [guardando, setGuardando] = useState(false)
+
+  useEffect(() => {
+    let vivo = true
+    setForm(null)
+    setError('')
+    fetchRoadmap(clienteId).then((d) => vivo && setDatos(d)).catch(() => vivo && setDatos(null))
+    fetchSugeridos(clienteId).then((s) => vivo && setSugeridos(s)).catch(() => vivo && setSugeridos([]))
+    return () => {
+      vivo = false
+    }
+  }, [clienteId])
+
+  async function guardar(e) {
+    e.preventDefault()
+    setGuardando(true)
+    setError('')
+    const num = (v) => (v === '' || v == null ? null : Number(v))
+    const cuerpo = { ...form, pasos_total: num(form.pasos_total), paso_actual: num(form.paso_actual), area: form.area || null }
+    delete cuerpo.id
+    try {
+      const d = form.id ? await editarDoc(form.id, cuerpo) : await crearDoc(clienteId, cuerpo)
+      setDatos(d)
+      if (form.mensaje_id) setSugeridos((s) => s.filter((x) => x.mensaje_id !== form.mensaje_id || x.url !== form.url))
+      setForm(null)
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar.')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  async function borrar() {
+    setGuardando(true)
+    try {
+      setDatos(await borrarDoc(form.id))
+      setForm(null)
+    } catch (err) {
+      setError(err.message || 'No se pudo borrar.')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const docs = datos ? datos.grupos.flatMap((g) => g.docs.map((d) => ({ ...d, coach: g.coach }))) : []
+  const principalId = datos?.principal?.id
+
+  return (
+    <section className="msj-acciones rmc" aria-label="Roadmap del cliente">
+      <div className="msj-acciones__cabeza">
+        <p className="msj-seccion">Roadmap</p>
+        <button type="button" onClick={() => setForm({ ...VACIO, fecha: hoy() })} aria-label="Sumar documento al roadmap" title="Sumar documento">+</button>
+      </div>
+
+      {form ? (
+        <form className="rmc-form" onSubmit={guardar}>
+          <label><span>Título</span><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Ventas" maxLength={80} autoFocus /></label>
+          <label><span>Link del documento</span><input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://docs.google.com/…" /></label>
+          <div className="rmc-fila">
+            <label><span>Tipo</span><select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}>{TIPOS.map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select></label>
+            <label><span>Fecha</span><input type="date" value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} /></label>
+          </div>
+          <label><span>Qué trabajás con el cliente</span><input value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} placeholder="Setting y closing" maxLength={60} /></label>
+          <div className="rmc-fila">
+            <label><span>Paso actual</span><input type="number" min={0} max={50} value={form.paso_actual} onChange={(e) => setForm({ ...form, paso_actual: e.target.value })} /></label>
+            <label><span>De</span><input type="number" min={0} max={50} value={form.pasos_total} onChange={(e) => setForm({ ...form, pasos_total: e.target.value })} /></label>
+          </div>
+          <label className="rmc-check"><input type="checkbox" checked={Boolean(form.principal)} onChange={(e) => setForm({ ...form, principal: e.target.checked })} /> Es el que tiene que seguir ahora</label>
+          {error ? <p className="msj-acciones__error" role="alert">{error}</p> : null}
+          <div className="rmc-botones">
+            {form.id ? <button type="button" className="is-peligro" onClick={borrar} disabled={guardando}>Borrar</button> : null}
+            <button type="button" onClick={() => setForm(null)}>Cancelar</button>
+            <button type="submit" className="is-primario" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</button>
+          </div>
+        </form>
+      ) : null}
+
+      {docs.length ? (
+        <ul className="msj-acciones__lista">
+          {docs.slice().reverse().map((d) => (
+            <li key={d.id} className="msj-accion">
+              <button
+                type="button"
+                className="msj-accion__boton"
+                onClick={() => setForm({ id: d.id, titulo: d.titulo, url: d.url, tipo: d.tipo, fecha: d.fecha, area: d.area || '', pasos_total: d.pasos_total ?? '', paso_actual: d.paso_actual ?? '', principal: d.id === principalId })}
+                title="Editar"
+              >
+                <span>{d.versiones > 1 ? `${d.titulo} · v${d.version}` : d.titulo}</span>
+                <em className={d.id === principalId ? 'is-ok' : ''}>{d.id === principalId ? 'Seguir ahora' : d.estado === 'reemplazado' ? 'Reemplazado' : corta(d.fecha)}</em>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : !form ? (
+        <p className="rmc-vacio">Todavía no hay documentos. Sumá el de la última llamada.</p>
+      ) : null}
+
+      {sugeridos.length && !form ? (
+        <>
+          <p className="rmc-sub">Mandados por el chat</p>
+          <ul className="msj-acciones__lista">
+            {sugeridos.slice(0, 4).map((s) => (
+              <li key={s.url} className="msj-accion is-sugerida">
+                <button
+                  type="button"
+                  className="msj-accion__boton"
+                  title={s.extracto || s.url}
+                  onClick={() => setForm({ ...VACIO, titulo: 'Próximos pasos', url: s.url, fecha: s.fecha, coach_id: s.coach_id, mensaje_id: s.mensaje_id })}
+                >
+                  <span>{s.coach_nombre.split(' ')[0]} · {corta(s.fecha)}</span>
+                  <em>Sumar</em>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+
+      <Link className="rmc-ver" to={`/roadmap?cliente=${clienteId}`}>Ver el tablero como lo ve el cliente</Link>
+    </section>
+  )
+}
