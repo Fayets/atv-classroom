@@ -49,7 +49,8 @@ def clientes_habilitados() -> bool:
     return config("MENSAJES_CLIENTES", default=False, cast=bool)
 _PAGINA = 50
 _RECUPERO_MAX = 200
-_TOPE_POR_MINUTO = 20
+_TOPE_POR_MINUTO = 20  # clientes: frena el spam
+_TOPE_EQUIPO_POR_MINUTO = 120  # el equipo contesta a muchos clientes seguidos
 _envios_recientes: dict[tuple, deque] = defaultdict(deque)
 
 
@@ -90,7 +91,8 @@ def _frenar_rafaga(clave: tuple) -> None:
     envios = _envios_recientes[clave]
     while envios and ahora - envios[0] > 60:
         envios.popleft()
-    if len(envios) >= _TOPE_POR_MINUTO:
+    tope = _TOPE_EQUIPO_POR_MINUTO if "admin" in clave else _TOPE_POR_MINUTO
+    if len(envios) >= tope:
         raise HTTPException(status_code=429, detail="Estás mandando muchos mensajes seguidos. Esperá un momento.")
     envios.append(ahora)
 

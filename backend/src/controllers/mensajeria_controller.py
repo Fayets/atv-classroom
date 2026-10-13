@@ -212,7 +212,7 @@ async def tiempo_real(websocket: WebSocket):
                 if await run_in_threadpool(sesion_desde_token, token) is None:
                     await websocket.close(code=4401)
                     break
-                await websocket.send_json({"tipo": "pong"})
+                hub.enviar(websocket, {"tipo": "pong"})
             elif tipo == "escribiendo":
                 try:
                     canal_id = int(evento.get("canal_id"))
