@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { anularAlta, crearAlta, enviarOnboarding, fetchAltas } from '../../api/altas'
+import { anularAlta, crearAlta, enviarOnboarding, fetchAltas, fetchFichasSinCanal } from '../../api/altas'
 
-const PLANES = ['Boost', 'Mentoría', 'Advantage']
+const PLANES = ['Entry Level', 'Mid Level', 'High Level', 'Boost', 'Mentoría']
+const usd = (n) => `US$ ${Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
 const cuando = (iso) => new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
 function Copiable({ valor }) {
@@ -24,10 +25,14 @@ function Copiable({ valor }) {
   )
 }
 
-// Alta de un cliente: lo que hoy hace /add-client en Discord, desde el classroom.
+// Nuevo onboarding: lo que hacía /add-client en Discord, desde el escritorio del classroom.
+// Si el cliente ya tiene ficha por una seña, se completa esa ficha (con sus pagos) en vez de crear otra.
 // El mail de onboarding no sale solo: se manda una vez con el botón.
 export default function NuevoCliente({ onCerrar, onAbrirChat }) {
-  const [form, setForm] = useState({ nombre: '', email: '', plan: 'Boost' })
+  const [form, setForm] = useState({ nombre: '', email: '', plan: 'Entry Level', ficha_id: null })
+  const [modo, setModo] = useState('nuevo') // nuevo | ficha
+  const [fichas, setFichas] = useState([])
+  const [buscarFicha, setBuscarFicha] = useState('')
   const [hecha, setHecha] = useState(null)
   const [recientes, setRecientes] = useState([])
   const [error, setError] = useState('')
@@ -38,6 +43,7 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
   useEffect(() => {
     campo.current?.focus()
     fetchAltas().then(setRecientes).catch(() => null)
+    fetchFichasSinCanal().then(setFichas).catch(() => null)
     const esc = (e) => e.key === 'Escape' && onCerrar()
     window.addEventListener('keydown', esc)
     return () => window.removeEventListener('keydown', esc)
@@ -80,7 +86,8 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
       setRecientes((r) => r.filter((x) => x.id !== hecha.id))
       setHecha(null)
       setAnulando(false)
-      setForm({ nombre: '', email: '', plan: 'Boost' })
+      setForm({ nombre: '', email: '', plan: 'Entry Level', ficha_id: null })
+      fetchFichasSinCanal().then(setFichas).catch(() => null)
     } catch (err) {
       setError(err.message || 'No se pudo anular.')
     } finally {
@@ -95,14 +102,42 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
       <div className="msj-modal alta" role="dialog" aria-modal="true" aria-labelledby="alta-titulo">
         {!hecha ? (
           <form onSubmit={crear}>
-            <h2 id="alta-titulo">Nuevo cliente</h2>
-            <p className="msj-modal__ayuda">Crea la ficha, su chat en el classroom, el canal de Discord y el onboarding. El mail de onboarding lo mandás después con un botón.</p>
+            <h2 id="alta-titulo">Nuevo onboarding</h2>
+            <p className="msj-modal__ayuda">Crea el onboarding, el canal de Discord, su chat en el classroom y su ficha. El mail de onboarding lo mandás después con un botón.</p>
+            <div className="alta-modo" role="tablist" aria-label="Tipo de alta">
+              <button type="button" role="tab" aria-selected={modo === 'nuevo'} className={modo === 'nuevo' ? 'is-on' : ''} onClick={() => { setModo('nuevo'); setForm((f) => ({ ...f, ficha_id: null })) }}>Cliente nuevo</button>
+              <button type="button" role="tab" aria-selected={modo === 'ficha'} className={modo === 'ficha' ? 'is-on' : ''} onClick={() => setModo('ficha')}>Ya tiene ficha por una seña{fichas.length ? ` (${fichas.length})` : ''}</button>
+            </div>
+            {modo === 'ficha' ? (
+              <div className="alta-fichas">
+                <input type="search" placeholder="Buscar la ficha de la seña" value={buscarFicha} onChange={(e) => setBuscarFicha(e.target.value)} aria-label="Buscar ficha" />
+                <ul>
+                  {fichas
+                    .filter((f) => !buscarFicha.trim() || f.nombre.toLowerCase().includes(buscarFicha.trim().toLowerCase()))
+                    .slice(0, 8)
+                    .map((f) => (
+                      <li key={f.id}>
+                        <button
+                          type="button"
+                          className={form.ficha_id === f.id ? 'is-on' : ''}
+                          onClick={() => setForm((x) => ({ ...x, ficha_id: f.id, nombre: f.nombre, plan: f.plan || x.plan }))}
+                        >
+                          <b>{f.nombre}</b>
+                          <small>{f.plan || f.plan_bd} · pagó {usd(f.pagado_usd)}{f.fecha ? ` · ${new Date(`${f.fecha}T00:00:00`).toLocaleDateString('es-AR')}` : ''}</small>
+                        </button>
+                      </li>
+                    ))}
+                  {!fichas.length ? <li className="alta-fichas__vacio">No hay fichas de seña sin onboarding.</li> : null}
+                </ul>
+                {form.ficha_id ? <p className="alta-fichas__nota">Se completa esa ficha: conserva lo que pagó y el acceso corre desde hoy.</p> : null}
+              </div>
+            ) : null}
             <label className="msj-modal__campo">
               <span>Nombre y apellido</span>
               <input ref={campo} type="text" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Juan Pérez" maxLength={80} />
             </label>
             <label className="msj-modal__campo">
-              <span>Mail</span>
+              <span>{modo === 'ficha' ? 'Mail real del cliente' : 'Mail'}</span>
               <input type="text" inputMode="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="juan@gmail.com" autoComplete="off" />
             </label>
             <fieldset className="msj-modal__campo">
@@ -119,14 +154,14 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
             {error ? <p className="msj-modal__error" role="alert">{error}</p> : null}
             <div className="msj-modal__botones">
               <button type="button" onClick={onCerrar}>Cancelar</button>
-              <button type="submit" className="is-primario" disabled={ocupado === 'crear'}>{ocupado === 'crear' ? 'Dando de alta…' : 'Dar de alta'}</button>
+              <button type="submit" className="is-primario" disabled={ocupado === 'crear' || (modo === 'ficha' && !form.ficha_id)}>{ocupado === 'crear' ? 'Creando…' : 'Crear onboarding'}</button>
             </div>
           </form>
         ) : (
           <div>
-            <h2 id="alta-titulo">{hecha.nombre} ya está dado de alta</h2>
+            <h2 id="alta-titulo">Onboarding de {hecha.nombre} creado</h2>
             <ul className="alta-hecho">
-              <li className="is-ok">Ficha creada · plan {hecha.plan}</li>
+              <li className="is-ok">Ficha lista · plan {hecha.plan}</li>
               <li className="is-ok">Su chat en el classroom</li>
               {hecha.discord_invite_url ? (
                 <li className="is-ok">Canal de Discord #{hecha.canal}</li>

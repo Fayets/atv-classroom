@@ -479,6 +479,8 @@ class AltaCliente(db.Entity):
     canal = Required(str)
     discord_invite_url = Optional(str, nullable=True)
     discord_error = Optional(str, nullable=True)
+    # Si el alta completó una ficha que ya existía (la de la seña): cómo estaba antes, para poder anular.
+    ficha_previa = Optional(str, nullable=True)
     creado_por = Required(int)
     creado_en = Required(datetime, default=datetime.utcnow)
     mail_enviado_en = Optional(datetime, nullable=True)

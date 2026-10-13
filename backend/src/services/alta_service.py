@@ -2,7 +2,7 @@
 
 1. Crea la sesión de onboarding en atv-onboarding, SIN mandar el mail.
 2. Le pide al bot de onboarding el canal privado de Discord (es el plan de contingencia).
-3. Crea la ficha en clients.clientes con el mail real: así el cliente ya puede entrar al classroom
+3. Crea la ficha en clients.clientes con el mail real (o completa la que ya existía por una seña): así el cliente ya puede entrar al classroom
    (usuario = su mail, clave = el canal con puntos).
 4. El mail de onboarding se manda después, UNA sola vez, con el botón "Enviar link de onboarding".
 """
@@ -21,8 +21,11 @@ from src.db import DB_SCHEMA, db
 from src.models import Admin, AltaCliente
 from src.services.auth_service import _buscar_admin_por_email, _buscar_clientes_por_email, clave_desde_canal, es_equipo
 
-PLANES = {"Boost": "boost", "Mentoría": "mentoria", "Advantage": "advantage"}  # onboarding → clients
-DURACION = {"boost": 240, "mentoria": 120, "advantage": 120}  # días, igual que atv-clients
+# Las ofertas como las vende ATV hoy (Mentoría y Entry Level son lo mismo con otro nombre; Boost y High
+# Level también): nombre del onboarding → plan en atv-clients.
+PLANES = {"Entry Level": "entry", "Mid Level": "mid", "High Level": "high", "Boost": "boost", "Mentoría": "mentoria"}
+DURACION = {"entry": 120, "mid": 120, "high": 180, "boost": 240, "mentoria": 120}  # días, igual que atv-clients
+_CAMPOS_FICHA = ("email", "emails_json", "canal_discord", "plan_actual", "fecha_inicio", "duracion_dias", "fecha_vencimiento", "estado_cliente", "observaciones")
 _MAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -86,7 +89,21 @@ def _dict(a: AltaCliente) -> dict:
 
 
 class AltaServices:
-    def crear(self, sesion: dict, nombre: str, email: str, plan: str) -> dict:
+    def fichas_sin_canal(self, sesion: dict) -> list[dict]:
+        """Fichas creadas a mano en atv-clients por una seña, todavía sin onboarding (sin canal)."""
+        _equipo(sesion)
+        with db_session:
+            filas = db.select(
+                "SELECT id, nombre, email, plan_actual, fecha_inicio, coalesce(total_pagado_usd, 0)::float FROM clients.clientes "
+                "WHERE coalesce(canal_discord, '') = '' AND estado_cliente <> 'inactivo' ORDER BY id DESC LIMIT 100"
+            )
+        inversa = {v: k for k, v in PLANES.items()}
+        return [
+            {"id": i, "nombre": n, "email": e, "plan": inversa.get(p), "plan_bd": p, "fecha": f.isoformat() if f else None, "pagado_usd": t}
+            for i, n, e, p, f, t in filas
+        ]
+
+    def crear(self, sesion: dict, nombre: str, email: str, plan: str, ficha_id: int | None = None) -> dict:
         yo = _equipo(sesion)
         nombre = " ".join((nombre or "").split())
         email = (email or "").strip().lower()
@@ -100,8 +117,14 @@ class AltaServices:
         with db_session:
             if _buscar_admin_por_email(email):
                 raise HTTPException(status_code=409, detail="Ese mail es de alguien del equipo de ATV.")
-            if _buscar_clientes_por_email(email):
+            if any(c.id != ficha_id for c in _buscar_clientes_por_email(email)):
                 raise HTTPException(status_code=409, detail="Ya hay un cliente con ese mail.")
+            if ficha_id is not None:
+                previa = db.select(f"SELECT {', '.join(_CAMPOS_FICHA)} FROM clients.clientes WHERE id = $i", {"i": ficha_id})
+                if not previa:
+                    raise HTTPException(status_code=404, detail="No existe esa ficha.")
+                if previa[0][2]:
+                    raise HTTPException(status_code=409, detail="Esa ficha ya tiene canal: ya se le hizo el onboarding.")
             if db.select("SELECT 1 FROM clients.clientes WHERE lower(canal_discord) = $c LIMIT 1", {"c": canal}):
                 raise HTTPException(status_code=409, detail=f"Ya hay un cliente con el canal #{canal}. Agregá el apellido o una inicial al nombre.")
 
@@ -118,28 +141,48 @@ class AltaServices:
         except HTTPException as e:
             error_discord = e.detail
 
-        # 3. Ficha del cliente en atv-clients.
+        # 3. Ficha del cliente en atv-clients: se completa la de la seña o se crea una nueva.
         plan_bd = PLANES[plan]
         hoy = date.today()
         with db_session:
             autor = Admin.get(id=yo)
-            fila = db.execute(
-                "INSERT INTO clients.clientes (nombre, email, emails_json, canal_discord, plan_actual, fecha_inicio, duracion_dias, "
-                "fecha_vencimiento, estado_cliente, total_pagado_usd, total_adeudado_usd, observaciones) "
-                "VALUES ($nombre, $email, $emails, $canal, $plan, $inicio, $dur, $vence, 'vigente', 0, 0, $obs) RETURNING id",
-                {
-                    "nombre": nombre, "email": email, "emails": json.dumps([email]), "canal": canal, "plan": plan_bd,
-                    "inicio": hoy, "dur": DURACION[plan_bd], "vence": hoy + timedelta(days=DURACION[plan_bd]),
-                    "obs": f"Alta desde el classroom por {(autor.nombre or autor.email) if autor else 'el equipo'}",
-                },
-            ).fetchone()
+            quien = (autor.nombre or autor.email) if autor else "el equipo"
+            if ficha_id is not None:
+                previa = db.select(f"SELECT {', '.join(_CAMPOS_FICHA)} FROM clients.clientes WHERE id = $i", {"i": ficha_id})[0]
+                guardada = json.dumps({k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in zip(_CAMPOS_FICHA, previa)}, default=str)
+                emails = json.loads(previa[1] or "[]") if previa[1] else []
+                emails = [email] + [e for e in emails if e and e.lower() != email]
+                # El acceso corre desde el alta (cuando arranca el programa), no desde la seña.
+                db.execute(
+                    "UPDATE clients.clientes SET email = $email, emails_json = $emails, canal_discord = $canal, plan_actual = $plan, "
+                    "fecha_inicio = $inicio, duracion_dias = $dur, fecha_vencimiento = $vence, estado_cliente = 'vigente', "
+                    "observaciones = concat_ws(E'\n', nullif(observaciones, ''), $obs) WHERE id = $id",
+                    {
+                        "email": email, "emails": json.dumps(emails), "canal": canal, "plan": plan_bd, "inicio": hoy,
+                        "dur": DURACION[plan_bd], "vence": hoy + timedelta(days=DURACION[plan_bd]),
+                        "obs": f"Alta desde el classroom por {quien} (completó la ficha de la seña)", "id": ficha_id,
+                    },
+                )
+                fila = (ficha_id,)
+            else:
+                guardada = None
+                fila = db.execute(
+                    "INSERT INTO clients.clientes (nombre, email, emails_json, canal_discord, plan_actual, fecha_inicio, duracion_dias, "
+                    "fecha_vencimiento, estado_cliente, total_pagado_usd, total_adeudado_usd, observaciones) "
+                    "VALUES ($nombre, $email, $emails, $canal, $plan, $inicio, $dur, $vence, 'vigente', 0, 0, $obs) RETURNING id",
+                    {
+                        "nombre": nombre, "email": email, "emails": json.dumps([email]), "canal": canal, "plan": plan_bd,
+                        "inicio": hoy, "dur": DURACION[plan_bd], "vence": hoy + timedelta(days=DURACION[plan_bd]),
+                        "obs": f"Alta desde el classroom por {quien}",
+                    },
+                ).fetchone()
             # Su chat en el classroom, ya listo para que quien hizo el alta lo abra.
             from src.services.mensajeria_service import _canal_del_cliente
 
             _canal_del_cliente(fila[0])
             a = AltaCliente(
                 cliente_id=fila[0], session_id=session_id, nombre=nombre, email=email, plan=plan, canal=canal,
-                discord_invite_url=invite, discord_error=error_discord, creado_por=yo,
+                discord_invite_url=invite, discord_error=error_discord, creado_por=yo, ficha_previa=guardada,
             )
             a.flush()
             return _dict(a)
@@ -193,6 +236,15 @@ class AltaServices:
                 db.execute(f'DELETE FROM "{DB_SCHEMA}"."{t}" WHERE {col} = ANY($ids)', {"ids": list(canales)})
             db.execute(f'DELETE FROM "{DB_SCHEMA}"."canales" WHERE cliente_id = $c', {"c": cliente_id})
             db.execute(f'DELETE FROM "{DB_SCHEMA}"."sesiones" WHERE tipo = \'cliente\' AND usuario_id = $c', {"c": cliente_id})
-            db.execute("DELETE FROM clients.clientes WHERE id = $c AND observaciones LIKE 'Alta desde el classroom%'", {"c": cliente_id})
-            AltaCliente.get(id=alta_id).delete()
+            alta = AltaCliente.get(id=alta_id)
+            if alta.ficha_previa:
+                # La ficha era de una seña: vuelve a como estaba (con sus pagos), no se borra.
+                previa = json.loads(alta.ficha_previa)
+                db.execute(
+                    "UPDATE clients.clientes SET " + ", ".join(f"{k} = ${k}" for k in _CAMPOS_FICHA) + " WHERE id = $id",
+                    {**previa, "id": cliente_id},
+                )
+            else:
+                db.execute("DELETE FROM clients.clientes WHERE id = $c AND observaciones LIKE 'Alta desde el classroom%'", {"c": cliente_id})
+            alta.delete()
         return {"ok": True}

@@ -72,3 +72,30 @@ def test_un_alta_sin_arrancar_se_anula_entera(onboarding):
     assert ("DELETE", "/api/admin/sessions/sesion-prueba/cancel", None) in onboarding
     with db_session:
         assert not db.select("SELECT 1 FROM clients.clientes WHERE email = $m", {"m": MAIL})
+
+
+def test_completa_la_ficha_de_la_sena_y_anular_la_deja_como_estaba(onboarding):
+    with db_session:
+        ficha = db.execute(
+            "INSERT INTO clients.clientes (nombre, email, plan_actual, estado_cliente, total_pagado_usd, observaciones) "
+            "VALUES ('Sena Test', 'sena-test@sena.com', 'entry', 'vigente', 500, 'Seña de Nick') RETURNING id"
+        ).fetchone()[0]
+    try:
+        svc = al.AltaServices()
+        assert any(f["id"] == ficha and f["plan"] == "Entry Level" for f in svc.fichas_sin_canal(COACH))
+        a = svc.crear(COACH, "Prueba Alta Test", MAIL, "Entry Level", ficha_id=ficha)
+        assert a["cliente_id"] == ficha
+        with db_session:
+            email, canal, plan, pagado, dur = db.select("SELECT email, canal_discord, plan_actual, total_pagado_usd, duracion_dias FROM clients.clientes WHERE id = $i", {"i": ficha})[0]
+        assert (email, canal, plan, float(pagado), dur) == (MAIL, "prueba-alta-test", "entry", 500.0, 120)
+        with pytest.raises(HTTPException):
+            svc.crear(COACH, "Otro", "otro-test@atvos-prueba.com", "Entry Level", ficha_id=ficha)  # ya tiene canal
+        svc.anular(COACH, a["id"])
+        with db_session:
+            email, canal, obs = db.select("SELECT email, canal_discord, observaciones FROM clients.clientes WHERE id = $i", {"i": ficha})[0]
+        assert (email, canal, obs) == ("sena-test@sena.com", None, "Seña de Nick")  # volvió a la seña, no se borró
+    finally:
+        with db_session:
+            db.execute(f'DELETE FROM "{DB_SCHEMA}"."canales" WHERE cliente_id = $i', {"i": ficha})
+            db.execute(f'DELETE FROM "{DB_SCHEMA}"."altas_clientes" WHERE cliente_id = $i', {"i": ficha})
+            db.execute("DELETE FROM clients.clientes WHERE id = $i", {"i": ficha})

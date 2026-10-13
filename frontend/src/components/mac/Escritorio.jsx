@@ -220,7 +220,7 @@ export default function Escritorio({ children }) {
         {[
           ...(isAdmin ? [{ id: 'clientes', nombre: 'Clientes', abrir: abrirClientes }] : []),
           { id: 'onboardings', nombre: 'Onboardings', abrir: abrirOnboardings },
-          { id: 'alta', nombre: 'Nuevo cliente', abrir: () => { setDandoAlta(true); setIconoSel(null) }, mas: true },
+          { id: 'alta', nombre: 'Nuevo onboarding', abrir: () => { setDandoAlta(true); setIconoSel(null) }, mas: true },
         ].map((ic) => (
           <button
             key={ic.id}
