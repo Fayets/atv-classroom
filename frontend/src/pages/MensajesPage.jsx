@@ -4,6 +4,7 @@ import { fetchCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
+import AccionesRapidas from '../components/mensajes/AccionesRapidas'
 import Avatar from '../components/mensajes/Avatar'
 import Conversacion from '../components/mensajes/Conversacion'
 import { useAuth } from '../context/AuthContext'
@@ -142,6 +143,7 @@ function PanelCliente({ item }) {
           </div>
         ) : null}
       </dl>
+      <AccionesRapidas canalId={item.id} cliente={cliente.nombre} />
     </aside>
   )
 }

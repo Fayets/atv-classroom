@@ -379,3 +379,17 @@ class FotoPerfil(db.Entity):
     archivo = Required(str, unique=True)
     actualizado_en = Required(datetime, default=datetime.utcnow)
     composite_key(tipo, usuario_id)
+
+
+class AccionRapida(db.Entity):
+    """Botón del panel derecho del chat: un mensaje armado que el coach manda con un clic
+    (su link de agenda, un pedido de avance…). Cada persona del equipo tiene las suyas."""
+
+    _table_ = (DB_SCHEMA, "acciones_rapidas")
+
+    id = PrimaryKey(int, auto=True)
+    admin_id = Required(int, index=True)
+    nombre = Required(str)
+    texto = Required(str)
+    orden = Required(int, default=0)
+    creado_en = Required(datetime, default=datetime.utcnow)

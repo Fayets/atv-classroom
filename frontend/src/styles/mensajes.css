@@ -527,3 +527,30 @@ html .app-header__menu-sep { height: 1px; margin: 2px 6px 6px; background: rgba(
 html .app-header__menu-link, html .app-header__menu-logout { margin: 0; padding: 8px 10px; border-radius: 8px; font-size: 14px; color: #1d1d1f; }
 html .app-header__menu-logout { color: #d70015; }
 html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color: #d70015; }
+
+/* Acciones rápidas del coach (panel derecho) */
+.msj-acciones { margin-top: 22px; }
+.msj-acciones__cabeza { display: flex; align-items: center; justify-content: space-between; margin: 0 4px 8px; }
+.msj-acciones__cabeza .msj-seccion { margin: 0; }
+.msj-acciones__cabeza button { width: 22px; height: 22px; border: 0; border-radius: 6px; background: transparent; color: var(--m-t3); font-size: 17px; line-height: 1; cursor: pointer; }
+.msj-acciones__cabeza button:hover { background: var(--m-campo); color: var(--m-t1); }
+.msj-acciones__lista { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.msj-accion { position: relative; display: flex; }
+.msj-accion__boton { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 34px 10px 14px; border: 0; border-radius: 10px; background: var(--m-tarjeta); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.04); color: var(--m-t1); font: inherit; font-size: 13px; font-weight: 500; text-align: left; cursor: pointer; transition: box-shadow 0.15s, background 0.15s; }
+.msj-accion__boton span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msj-accion__boton:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--m-acento), 0 1px 3px rgba(0, 0, 0, 0.06); }
+.msj-accion__boton:disabled { opacity: 0.55; cursor: default; }
+.msj-accion__boton em { flex: none; font-style: normal; font-size: 11px; font-weight: 600; color: var(--m-t4); }
+.msj-accion__boton em.is-ok { color: var(--m-ok); }
+.msj-accion.is-sugerida .msj-accion__boton { background: transparent; box-shadow: inset 0 0 0 1px var(--m-linea2); }
+.msj-accion__lapiz { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--m-t4); cursor: pointer; opacity: 0; transition: opacity 0.12s; }
+.msj-accion:hover .msj-accion__lapiz, .msj-accion__lapiz:focus-visible { opacity: 1; }
+.msj-accion__lapiz:hover { background: var(--m-campo); color: var(--m-t1); }
+.msj-acciones__pendiente { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; padding: 9px 12px; border-radius: 10px; background: var(--m-acento-suave); color: var(--m-t1); font-size: 12.5px; }
+.msj-acciones__pendiente b { font-weight: 600; }
+.msj-acciones__pendiente button { border: 0; background: transparent; color: var(--m-acento); font: inherit; font-weight: 600; cursor: pointer; padding: 2px 4px; }
+.msj-acciones__error { margin: 0 4px 8px; font-size: 12px; color: var(--m-acento); }
+.msj-acciones__vacio { width: 100%; padding: 12px 14px; border: 1px dashed var(--m-linea2); border-radius: 10px; background: transparent; color: var(--m-t3); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+.msj-acciones__vacio:hover { color: var(--m-t1); border-color: var(--m-t4); }
+.msj-modal__campo textarea { width: 100%; box-sizing: border-box; min-height: 96px; padding: 8px 10px; border: 1px solid #d2d2d7; border-radius: 8px; background: #fff; font: inherit; color: inherit; line-height: 1.45; resize: vertical; }
+.msj-modal__campo textarea:focus { outline: none; border-color: var(--m-acento, #c0392b); box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18); }
