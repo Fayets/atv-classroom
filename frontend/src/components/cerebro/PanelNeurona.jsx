@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchNeurona } from '../../api/cerebro'
 import { cuandoCorto } from '../../utils/mensajes'
-import { TIPOS } from './motorGrafo'
+import { TIPOS } from './motorEsfera'
 
 const NOMBRE_TIPO = {
   modulo: 'Módulo',
