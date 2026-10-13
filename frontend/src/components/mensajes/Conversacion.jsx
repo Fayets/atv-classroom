@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMensajes, marcarLeido, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto } from '../../api/mensajes'
+import { fetchVoz } from '../../api/cuenta'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
 import { ACEPTA_ADJUNTOS, ES_EVERYONE, claveAutor, etiquetaDia, hora, mismoDia, nombreRol, normal, peso, primerNombre } from '../../utils/mensajes'
@@ -192,6 +193,22 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   const descartadoIA = useRef(null) // id del último mensaje cuando apretaste Esc
   const campo = useRef(null)
   const iaActiva = Boolean(isEquipo && datos?.canal?.tipo === 'cliente')
+
+  // Con la voz de quién sugiere (se elige en Mi cuenta): si es de otro, la etiqueta lo dice.
+  const [vozAjena, setVozAjena] = useState(null)
+  useEffect(() => {
+    if (!iaActiva) return undefined
+    let vivo = true
+    fetchVoz()
+      .then((d) => {
+        const o = d.opciones.find((x) => x.id === d.elegida)
+        if (vivo) setVozAjena(d.elegida !== d.propia && o ? o.nombre.split(' ')[0] : null)
+      })
+      .catch(() => null)
+    return () => {
+      vivo = false
+    }
+  }, [iaActiva])
 
   const cancelarIA = useCallback(() => {
     clearTimeout(esperaIA.current)
@@ -761,7 +778,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
           ) : null}
           {restoIA ? (
             <div className="msj-ia-ayuda" role="status">
-              <span>Sugerencia en tu voz</span>
+              <span>{vozAjena ? `Sugerencia en la voz de ${vozAjena}` : 'Sugerencia en tu voz'}</span>
               <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={aceptarIA}>
                 <kbd>Tab</kbd> usar
               </button>

@@ -21,6 +21,7 @@ class Admin(db.Entity):
     area = Optional(str, nullable=True)
     google_sub = Optional(str, nullable=True)
     foto_url = Optional(str, nullable=True)
+    voz_tab = Optional(int, nullable=True)  # con la voz de quién le sugiere el Tab (vacío = la propia)
 
 
 class SesionGuardada(db.Entity):

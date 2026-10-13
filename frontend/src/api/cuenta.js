@@ -35,3 +35,7 @@ export function prepararFoto(archivo, lado = 512) {
     img.src = url
   })
 }
+
+// Con la voz de quién sugiere el Tab (equipo)
+export const fetchVoz = () => request('/api/cuenta/voz')
+export const elegirVoz = (adminId) => request('/api/cuenta/voz', { method: 'PUT', body: JSON.stringify({ admin_id: adminId }) })

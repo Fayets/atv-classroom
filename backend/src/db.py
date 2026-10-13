@@ -90,6 +90,7 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "admins", "area", "VARCHAR")
                 _agregar_columna(cur, "admins", "google_sub", "VARCHAR")
                 _agregar_columna(cur, "admins", "foto_url", "VARCHAR")
+                _agregar_columna(cur, "admins", "voz_tab", "INTEGER")
                 if _columna(cur, "admins", "password_hash") == "NO":
                     cur.execute(f'ALTER TABLE "{DB_SCHEMA}"."admins" ALTER COLUMN password_hash DROP NOT NULL')
                 # Frente: un link por plantilla de SOP y la revisión con el coach (reemplaza "automatizar").

@@ -7,7 +7,7 @@ from decouple import config
 from fastapi import HTTPException
 from pony.orm import db_session
 
-from src.db import db
+from src.db import DB_SCHEMA, db
 from src.models import Admin, ClienteExterno, FotoPerfil
 from src.services.auth_service import es_equipo, persona, tipo_de_sesion
 from src.services.roles_canal import nombre_rol, rol_de_plan
@@ -128,6 +128,38 @@ class CuentaServices:
                 a = Admin.get(id=sesion["usuario_id"])
                 google = a.foto_url if a else None
         return {"foto_url": google}
+
+    # ---------- Tab: con la voz de quién sugiere ----------
+    def voces(self, sesion: dict) -> dict:
+        """Las voces que aprendió el cerebro (gente del equipo que le escribió a clientes) y la elegida."""
+        if not es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Solo para el equipo.")
+        yo = sesion["usuario_id"]
+        with db_session:
+            filas = db.select(
+                f'SELECT a.id, coalesce(a.nombre, a.email), a.foto_url, v.mensajes_analizados FROM "{DB_SCHEMA}"."cerebro_voz" v '
+                f'JOIN "{DB_SCHEMA}"."admins" a ON a.id = v.admin_id WHERE a.activo AND v.mensajes_analizados > 0 '
+                "ORDER BY v.mensajes_analizados DESC"
+            )
+            fotos = fotos_de("admin", [f[0] for f in filas])
+            opciones = [{"id": i, "nombre": n, "foto_url": fotos.get(i) or foto, "mensajes": m, "propia": i == yo} for i, n, foto, m in filas]
+            a = Admin.get(id=yo)
+            elegida = a.voz_tab if a and a.voz_tab and any(o["id"] == a.voz_tab for o in opciones) else yo
+        return {"elegida": elegida, "propia": yo, "opciones": opciones}
+
+    def elegir_voz(self, sesion: dict, admin_id: int | None) -> dict:
+        if not es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Solo para el equipo.")
+        yo = sesion["usuario_id"]
+        disponibles = {o["id"] for o in self.voces(sesion)["opciones"]}
+        if admin_id is not None and admin_id != yo and admin_id not in disponibles:
+            raise HTTPException(status_code=422, detail="Esa persona todavía no tiene una voz aprendida.")
+        with db_session:
+            a = Admin.get(id=yo)
+            if a is None:
+                raise HTTPException(status_code=404, detail="No encontrado.")
+            a.voz_tab = None if admin_id in (None, yo) else admin_id
+        return self.voces(sesion)
 
     @staticmethod
     def ruta_foto(archivo: str):

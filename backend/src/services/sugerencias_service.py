@@ -286,11 +286,16 @@ class SugerenciasServices:
             raise HTTPException(status_code=503, detail="La IA no está configurada.")
         admin_id = sesion["usuario_id"]
         _frenar(admin_id)
-        ctx = ap.contexto_para_responder(canal["id"], admin_id, incluir_nicho=False)
-        nicho = _nicho((ctx.get("perfil") or {}).get("nicho"))
         with db_session:
             yo = Admin.get(id=admin_id)
-            nombre = (yo.nombre or "el coach") if yo else "el coach"
+            # Cada uno elige en Mi cuenta con la voz de quién le sugiere el Tab (por defecto, la propia).
+            voz = Admin.get(id=yo.voz_tab) if yo and yo.voz_tab else None
+            voz = voz if voz and voz.activo else yo
+            voz_id = voz.id if voz else admin_id
+            nombre = (voz.nombre or "el coach") if voz else "el coach"
+        ctx = ap.contexto_para_responder(canal["id"], voz_id, incluir_nicho=False)
+        nicho = _nicho((ctx.get("perfil") or {}).get("nicho"))
+        with db_session:
             s = SugerenciaIA(admin_id=admin_id, canal_id=canal["id"], borrador=borrador[-2000:] or None, sugerencia="…", modelo=MODELO)
             s.flush()
             sid = s.id

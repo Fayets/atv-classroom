@@ -3,6 +3,7 @@ import { fetchCuenta, prepararFoto, quitarFoto, subirFoto } from '../api/cuenta'
 import AppHeader from '../components/AppHeader'
 import CuposEquipo from '../components/cuenta/CuposEquipo'
 import TuEquipo from '../components/cuenta/TuEquipo'
+import VozTab from '../components/cuenta/VozTab'
 import { useAuth } from '../context/AuthContext'
 import '../styles/cuenta.css'
 import { getUserInitials } from '../utils/user'
@@ -146,6 +147,11 @@ export default function CuentaPage() {
             {c.tipo === 'cliente' && !c.miembro ? (
               <Seccion titulo="Tu equipo">
                 <TuEquipo />
+              </Seccion>
+            ) : null}
+            {c.tipo === 'equipo' ? (
+              <Seccion titulo="Voz del Tab">
+                <VozTab />
               </Seccion>
             ) : null}
             {c.tipo === 'equipo' && c.rol === 'admin' ? (

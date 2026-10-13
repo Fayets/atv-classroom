@@ -72,3 +72,18 @@
   .cuenta-equipo__lista li { flex-wrap: wrap; }
   .cuenta-equipo__acciones { margin-left: 46px; }
 }
+
+/* Voz del Tab: selector tipo cuenta (foto, nombre, flechita) */
+.voz-tab__caja { position: relative; display: inline-block; }
+.voz-tab__boton { display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; border: 0; border-radius: 999px; background: #f2f2f7; color: #1d1d1f; font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; }
+.voz-tab__boton:hover { background: #e9e9ee; }
+.voz-tab__boton svg { color: #6e6e73; }
+.voz-cara { flex: none; border-radius: 50%; object-fit: cover; }
+.voz-cara--ini { display: inline-grid; place-items: center; width: 26px; height: 26px; background: linear-gradient(#e8e8ec, #d6d6dc); font-size: 10px; font-weight: 600; color: #3a3a3c; }
+.voz-tab__menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; min-width: 280px; max-height: 340px; overflow-y: auto; margin: 0; padding: 6px; list-style: none; border-radius: 12px; background: #fff; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 12px 32px -8px rgba(0, 0, 0, 0.25); }
+.voz-tab__menu button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px; border: 0; border-radius: 8px; background: none; font: inherit; text-align: left; cursor: pointer; color: #1d1d1f; }
+.voz-tab__menu button:hover, .voz-tab__menu button.is-on { background: #f5f5f7; }
+.voz-tab__menu i { margin-left: auto; font-style: normal; color: #c0392b; font-weight: 700; }
+.voz-tab__quien { display: grid; min-width: 0; }
+.voz-tab__quien b { font-size: 14px; font-weight: 600; }
+.voz-tab__quien small { font-size: 12px; color: #8e8e93; }
