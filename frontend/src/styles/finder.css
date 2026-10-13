@@ -118,3 +118,26 @@
 .fd-sub { margin: 14px 0 0; font-size: 12px; color: #8e8e93; font-weight: 600; }
 .fd-boton { margin-top: 12px; padding: 6px 14px; border: 0; border-radius: 7px; background: #c0392b; color: #fff; font: inherit; font-weight: 600; cursor: default; }
 .fd-ficha a { color: #0a64d6; }
+
+/* Íconos del escritorio en columna (Clientes, Onboardings, Nuevo cliente) */
+.esc-iconos { position: absolute; z-index: 5; top: 18px; right: 22px; display: grid; gap: 6px; justify-items: center; }
+.esc-iconos .esc-icono { position: static; }
+.esc-icono__dibujo { position: relative; display: block; padding: 0; background: none !important; }
+.esc-icono__dibujo b { position: absolute; right: -4px; bottom: 2px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #c0392b; color: #fff; font-size: 16px; font-weight: 700; line-height: 1; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
+
+/* Ventana Onboardings */
+.ob-avance { display: inline-flex; gap: 4px; }
+.ob-avance i { width: 18px; height: 6px; border-radius: 3px; background: #e5e5ea; }
+.ob-avance i.is-ok { background: #28c840; }
+.ob-falta { margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: rgba(192, 57, 43, 0.1); color: #c0392b; font-size: 11px; font-weight: 600; }
+.ob-pasos { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+.ob-pasos span { padding: 4px 10px; border-radius: 999px; background: #f2f2f7; color: #8e8e93; font-size: 12.5px; font-weight: 500; }
+.ob-pasos span.is-ok { background: rgba(40, 200, 64, 0.12); color: #1c8a32; }
+.ob-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.fd-boton.is-suave { background: #f2f2f7; color: #1d1d1f; }
+.ob-bloque { margin-top: 16px; }
+.ob-bloque h4 { margin: 0 0 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; color: #8e8e93; }
+.ob-bloque dl { margin: 0; display: grid; gap: 10px; }
+.ob-bloque dt { font-size: 12.5px; font-weight: 600; color: #3a3a3c; }
+.ob-bloque dd { margin: 2px 0 0; font-size: 13px; color: #1d1d1f; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ob-acciones .fd-boton { margin-top: 0; cursor: pointer; }

@@ -5,6 +5,8 @@ import { useEscritorio } from '../../context/EscritorioContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
 import MensajesPage from '../../pages/MensajesPage'
 import Finder, { IconoCarpeta } from './Finder'
+import OnboardingsCarpeta from './OnboardingsCarpeta'
+import NuevoCliente from '../mensajes/NuevoCliente'
 import '../../styles/escritorio.css'
 import '../../styles/finder.css'
 
@@ -146,7 +148,9 @@ export default function Escritorio({ children }) {
   const [finder, setFinder] = useState(false)
   // Fijo solo si no queda ninguna ventana a la vista (sin el Dock no habría cómo volver).
   // Con la carpeta Clientes abierta hay una ventana: el Dock se esconde como siempre.
-  const fijo = visible !== 'abierta' && !finder
+  const [onboardings, setOnboardings] = useState(false)
+  const [dandoAlta, setDandoAlta] = useState(false)
+  const fijo = visible !== 'abierta' && !finder && !onboardings
 
   // Solo el teclado (Tab) deja el Dock fijo: un clic no tiene que dejarlo trabado arriba.
   function mostrarDock() {
@@ -186,12 +190,17 @@ export default function Escritorio({ children }) {
   }
 
   // Carpeta Clientes (solo admin): ícono en el escritorio, pila en el Dock y su ventana de Finder.
-  const [finderFrente, setFinderFrente] = useState(false)
-  const [iconoSel, setIconoSel] = useState(false)
+  const [finderFrente, setFinderFrente] = useState(false) // 'clientes' | 'onboardings' | false
+  const [iconoSel, setIconoSel] = useState(null)
   function abrirClientes() {
     setFinder(true)
-    setFinderFrente(true)
-    setIconoSel(false)
+    setFinderFrente('clientes')
+    setIconoSel(null)
+  }
+  function abrirOnboardings() {
+    setOnboardings(true)
+    setFinderFrente('onboardings')
+    setIconoSel(null)
   }
   function abrirChat(ruta) {
     navigate(ruta)
@@ -202,24 +211,34 @@ export default function Escritorio({ children }) {
   function enfocar(e) {
     if (e.target.closest('.fd-ventana')) return
     if (e.target.closest('.esc-ventana')) setFinderFrente(false)
-    if (!e.target.closest('.esc-icono')) setIconoSel(false)
+    if (!e.target.closest('.esc-icono')) setIconoSel(null)
   }
 
   return (
     <div className="esc" onPointerDownCapture={enfocar}>
-      {isAdmin ? (
-        <button
-          type="button"
-          className={`esc-icono${iconoSel ? ' is-sel' : ''}`}
-          onClick={() => setIconoSel(true)}
-          onDoubleClick={abrirClientes}
-          onKeyDown={(e) => e.key === 'Enter' && abrirClientes()}
-          aria-label="Carpeta Clientes"
-        >
-          <IconoCarpeta tamano={64} />
-          <span>Clientes</span>
-        </button>
-      ) : null}
+      <div className="esc-iconos">
+        {[
+          ...(isAdmin ? [{ id: 'clientes', nombre: 'Clientes', abrir: abrirClientes }] : []),
+          { id: 'onboardings', nombre: 'Onboardings', abrir: abrirOnboardings },
+          { id: 'alta', nombre: 'Nuevo cliente', abrir: () => { setDandoAlta(true); setIconoSel(null) }, mas: true },
+        ].map((ic) => (
+          <button
+            key={ic.id}
+            type="button"
+            className={`esc-icono${iconoSel === ic.id ? ' is-sel' : ''}`}
+            onClick={() => setIconoSel(ic.id)}
+            onDoubleClick={ic.abrir}
+            onKeyDown={(e) => e.key === 'Enter' && ic.abrir()}
+            aria-label={`Carpeta ${ic.nombre}`}
+          >
+            <span className="esc-icono__dibujo">
+              <IconoCarpeta tamano={64} />
+              {ic.mas ? <b aria-hidden="true">+</b> : null}
+            </span>
+            <span>{ic.nombre}</span>
+          </button>
+        ))}
+      </div>
       {/* Mensajes no se desarma al cambiar de app: vuelve en el acto, con el mismo chat y scroll. */}
       <div
         ref={ventanaMensajes}
@@ -237,7 +256,17 @@ export default function Escritorio({ children }) {
       </div>
 
       {isAdmin ? (
-        <Finder abierta={finder} alFrente={finderFrente} alEnfocar={() => setFinderFrente(true)} alCerrar={() => setFinder(false)} alAbrirChat={abrirChat} />
+        <Finder abierta={finder} alFrente={finderFrente === 'clientes'} alEnfocar={() => setFinderFrente('clientes')} alCerrar={() => setFinder(false)} alAbrirChat={abrirChat} />
+      ) : null}
+      <OnboardingsCarpeta abierta={onboardings} alFrente={finderFrente === 'onboardings'} alEnfocar={() => setFinderFrente('onboardings')} alCerrar={() => setOnboardings(false)} alAbrirChat={abrirChat} />
+      {dandoAlta ? (
+        <NuevoCliente
+          onCerrar={() => setDandoAlta(false)}
+          onAbrirChat={(canalId) => {
+            setDandoAlta(false)
+            if (canalId) abrirChat(`/mensajes?c=${canalId}`)
+          }}
+        />
       ) : null}
 
       {visible === 'cerrada' ? (
