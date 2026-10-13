@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchCanales } from '../api/mensajes'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
@@ -89,10 +89,17 @@ export default function MensajesPage() {
   const recarga = useRef(null)
   const { user } = useAuth()
   const [escriben, setEscriben] = useState({})
-  const activo = Number(params.get('c')) || null
+  // En el escritorio esta página queda armada aunque estés en otra app: ahí no lee ni toca la URL.
+  const { pathname } = useLocation()
+  const enMensajes = pathname.startsWith('/mensajes')
+  const activoUrl = Number(params.get('c')) || null
+  const vistaUrl = params.get('v')
+  const guardado = useRef({ activo: activoUrl, vista: vistaUrl })
+  if (enMensajes) guardado.current = { activo: activoUrl, vista: vistaUrl }
+  const activo = enMensajes ? activoUrl : guardado.current.activo
   // El coach solo trabaja con alertas (donde lo etiquetaron); el admin elige entre la bandeja y sus alertas.
   const esCoach = isEquipo && !isAdmin
-  const vista = esCoach ? 'alertas' : params.get('v') === 'alertas' ? 'alertas' : 'bandeja'
+  const vista = esCoach ? 'alertas' : (enMensajes ? vistaUrl : guardado.current.vista) === 'alertas' ? 'alertas' : 'bandeja'
 
   const cargar = useCallback(() => {
     fetchCanales()
@@ -158,7 +165,7 @@ export default function MensajesPage() {
 
   // El cliente entra directo a su canal; en escritorio el equipo abre el primero de la bandeja.
   useEffect(() => {
-    if (activo || !canales?.length) return
+    if (!enMensajes || activo || !canales?.length) return
     if (!isEquipo) {
       const propio = canales.find((c) => c.tipo === 'cliente')
       if (propio) setParams({ c: String(propio.id) }, { replace: true })
@@ -166,7 +173,7 @@ export default function MensajesPage() {
       const primero = canales.find((c) => c.tipo === 'cliente') || canales[0]
       setParams({ c: String(primero.id) }, { replace: true })
     }
-  }, [activo, canales, isEquipo, vista, setParams])
+  }, [enMensajes, activo, canales, isEquipo, vista, setParams])
 
   const filtrados = useMemo(() => {
     if (!canales) return []
@@ -239,7 +246,7 @@ export default function MensajesPage() {
 
         <main className="msj-centro">
           {activo ? (
-            <Conversacion key={activo} canalId={activo} item={item} onVolver={() => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas' } : {})} />
+            <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} onVolver={() => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas' } : {})} />
           ) : (
             <div className="msj-vacio">
               {vista === 'alertas' ? 'Elegí una alerta para ir a la conversación.' : 'Elegí un canal para ver la conversación.'}

@@ -13,7 +13,7 @@ import Escritorio from './components/mac/Escritorio'
 import AdminRoute from './components/AdminRoute'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { EscritorioProvider } from './context/EscritorioContext'
+import { EscritorioProvider, useEscritorio } from './context/EscritorioContext'
 import { MensajeriaProvider } from './context/MensajeriaContext'
 import AdminPage from './pages/AdminPage'
 import EquipoPage from './pages/EquipoPage'
@@ -44,6 +44,11 @@ function UnauthorizedSync() {
 function LegacyProgramaRedirect() {
   const { programaId } = useParams()
   return <Navigate to={`/classroom/${programaId}`} replace />
+}
+
+// En el escritorio, Mensajes vive en su propia ventana permanente (ver Escritorio).
+function RutaMensajes() {
+  return useEscritorio() ? null : <MensajesPage />
 }
 
 // El equipo trabaja dentro de un escritorio de macOS (en pantallas chicas, sin escritorio).
@@ -92,7 +97,7 @@ function AppRoutes() {
           path="/mensajes"
           element={
             <ProtectedRoute>
-              <MensajesPage />
+              <RutaMensajes />
             </ProtectedRoute>
           }
         />

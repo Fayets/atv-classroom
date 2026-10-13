@@ -28,6 +28,9 @@
   /* solo transform y opacity: las resuelve la placa de video, sin recalcular la página */
   transition: transform 380ms cubic-bezier(0.32, 0.72, 0, 1), opacity 260ms ease;
 }
+/* Cambio de app: la de atrás queda armada pero invisible; la de adelante aparece con un fundido corto. */
+.esc-ventana.is-fondo { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 140ms ease, visibility 0s linear 140ms; }
+.esc-ventana.is-frente { z-index: 11; }
 .esc-ventana.is-max { inset: var(--esc-menu) 0 var(--esc-dock) 0; border-radius: 0; box-shadow: none; }
 .esc-ventana.is-ventana { inset: 4vh 7vw 6vh 7vw; border-radius: 12px; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.35), 0 28px 80px -20px rgba(0, 0, 0, 0.6); }
 /* minimizar: se va hacia el Dock, achicándose */

@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { cloneElement, isValidElement, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useEscritorio } from '../../context/EscritorioContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
+import MensajesPage from '../../pages/MensajesPage'
 import '../../styles/escritorio.css'
 
 const ICONOS = {
@@ -48,9 +49,27 @@ export default function Escritorio({ children }) {
   const { isAdmin } = useAuth()
   const { resumen } = useMensajeria()
   const { tamano, visible, abrir } = useEscritorio()
-  const { pathname } = useLocation()
+  const location = useLocation()
+  const { pathname, search } = location
   const navigate = useNavigate()
   const actual = seccionDe(pathname)
+  const enMensajes = actual === 'mensajes'
+
+  // La otra ventana también queda armada: mientras estás en Mensajes sigue mostrando la última app
+  // que abriste (sus rutas con la ubicación congelada), así al volver no se rearma nada.
+  const ultimaOtra = useRef(enMensajes ? null : location)
+  if (!enMensajes) ultimaOtra.current = location
+  // Siempre con location explícita: si se pone y se saca, React Router cambia la forma del árbol y
+  // desarma la página (Classroom volvía a cargar en cada cambio de app).
+  const contenidoOtra = isValidElement(children)
+    ? cloneElement(children, { location: enMensajes ? ultimaOtra.current || location : location })
+    : children
+
+  // Cada app recuerda dónde quedó (canal abierto, vista), como una ventana de Mac.
+  const ultimaRuta = useRef({})
+  useEffect(() => {
+    ultimaRuta.current[actual] = pathname + search
+  }, [actual, pathname, search])
 
   const apps = [
     { id: 'mensajes', nombre: 'Mensajes', ruta: '/mensajes', cuenta: resumen.esperando && !isAdmin ? resumen.esperando : resumen.no_leidos },
@@ -65,11 +84,12 @@ export default function Escritorio({ children }) {
 
   // Agrandar / achicar con FLIP: se mide dónde termina la ventana y se anima solo con transform
   // desde donde estaba (nada de animar bordes, que obliga a recalcular toda la página en cada cuadro).
-  const ventana = useRef(null)
+  const ventanaMensajes = useRef(null)
+  const ventanaOtra = useRef(null)
   const ultimoRect = useRef(null)
   const tamanoPrevio = useRef(tamano)
   useLayoutEffect(() => {
-    const el = ventana.current
+    const el = (enMensajes ? ventanaMensajes : ventanaOtra).current
     if (!el) return
     const antes = ultimoRect.current
     const despues = el.getBoundingClientRect()
@@ -102,7 +122,7 @@ export default function Escritorio({ children }) {
     }
     el.addEventListener('transitionend', fin)
     setTimeout(fin, 500) // por si el navegador no avisa el final
-  }, [tamano, visible])
+  }, [tamano, visible, enMensajes])
 
   // Como en macOS con "ocultar Dock": aparece al acercar el mouse al borde de abajo y se va al salir.
   // Con la ventana minimizada o cerrada queda siempre a la vista (no hay otra forma de volver).
@@ -142,14 +162,26 @@ export default function Escritorio({ children }) {
   }
 
   function abrirApp(app) {
-    if (app.id !== actual) navigate(app.ruta)
+    if (app.id !== actual) navigate(ultimaRuta.current[app.id] || app.ruta)
     abrir()
   }
 
   return (
     <div className="esc">
-      <div ref={ventana} className={`esc-ventana is-${tamano} is-${visible}`} aria-hidden={visible !== 'abierta'}>
-        {children}
+      {/* Mensajes no se desarma al cambiar de app: vuelve en el acto, con el mismo chat y scroll. */}
+      <div
+        ref={ventanaMensajes}
+        className={`esc-ventana is-${tamano} is-${visible} ${enMensajes ? 'is-frente' : 'is-fondo'}`}
+        aria-hidden={visible !== 'abierta' || !enMensajes}
+      >
+        <MensajesPage />
+      </div>
+      <div
+        ref={ventanaOtra}
+        className={`esc-ventana is-${tamano} is-${visible} ${enMensajes ? 'is-fondo' : 'is-frente'}`}
+        aria-hidden={visible !== 'abierta' || enMensajes}
+      >
+        {contenidoOtra}
       </div>
 
       {visible === 'cerrada' ? (

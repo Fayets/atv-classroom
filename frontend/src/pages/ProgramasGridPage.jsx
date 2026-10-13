@@ -51,7 +51,7 @@ export default function ProgramasGridPage() {
               const contenido = (
                 <>
                   <span className="mt-card__cover">
-                    <img src={getModuloCoverUrl(m)} alt="" loading="lazy" />
+                    <img src={getModuloCoverUrl(m)} alt="" loading="lazy" decoding="async" />
                   </span>
                   <span className="mt-card__info">
                     <span className="mt-card__row">

@@ -24,7 +24,7 @@ function agregarSinDuplicar(lista, nuevos) {
   return sumar.length ? [...lista, ...sumar].sort((a, b) => (a.id > b.id ? 1 : -1)) : lista
 }
 
-export default function Conversacion({ canalId, item, onVolver }) {
+export default function Conversacion({ canalId, item, onVolver, oculta = false }) {
   const { user, isEquipo, isAdmin } = useAuth()
   const { suscribir, avisarEscribiendo, conectado } = useMensajeria()
   const [datos, setDatos] = useState(null)
@@ -165,12 +165,12 @@ export default function Conversacion({ canalId, item, onVolver }) {
   // Marca como leído lo último que ves, si la pestaña está a la vista.
   const marcar = useCallback(() => {
     const ultimo = mensajes[mensajes.length - 1]
-    if (!ultimo || document.hidden || ultimo.id <= leidoEnviado.current) return
+    if (!ultimo || oculta || document.hidden || ultimo.id <= leidoEnviado.current) return
     leidoEnviado.current = ultimo.id
     marcarLeido(canalId, ultimo.id).catch(() => {
       leidoEnviado.current = 0
     })
-  }, [mensajes, canalId])
+  }, [mensajes, canalId, oculta])
 
   useEffect(() => {
     marcar()
