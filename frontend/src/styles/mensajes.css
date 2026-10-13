@@ -318,3 +318,5 @@
 
 .msj-conv { position: relative; }
 .msj-soltar { position: absolute; inset: 8px; z-index: 6; display: grid; place-items: center; border-radius: 16px; border: 2px dashed rgba(192, 57, 43, 0.55); background: rgba(255, 255, 255, 0.86); backdrop-filter: blur(6px); color: var(--m-acento); font-size: 15px; font-weight: 600; pointer-events: none; }
+
+.msj-m__cita span.is-eliminado { font-style: italic; color: var(--m-t4); }

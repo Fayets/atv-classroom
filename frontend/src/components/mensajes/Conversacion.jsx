@@ -11,6 +11,12 @@ import TextoMensaje from './TextoMensaje'
 const AGRUPAR_MS = 5 * 60 * 1000
 let temporal = 0
 
+function quitarMensaje(lista, id) {
+  return lista
+    .filter((x) => x.id !== id)
+    .map((x) => (x.respuesta_a?.id === id ? { ...x, respuesta_a: { ...x.respuesta_a, texto: null } } : x))
+}
+
 function agregarSinDuplicar(lista, nuevos) {
   const ids = new Set(lista.map((m) => m.id))
   const sumar = nuevos.filter((m) => !ids.has(m.id))
@@ -87,8 +93,11 @@ export default function Conversacion({ canalId, item, onVolver }) {
             delete copia[ev.mensaje.autor.nombre]
             return copia
           })
-        } else if ((ev.tipo === 'editado' || ev.tipo === 'borrado') && ev.mensaje.canal_id === canalId) {
+        } else if (ev.tipo === 'editado' && ev.mensaje.canal_id === canalId) {
           setMensajes((m) => m.map((x) => (x.id === ev.mensaje.id ? ev.mensaje : x)))
+        } else if (ev.tipo === 'borrado' && ev.mensaje.canal_id === canalId) {
+          // Como en Discord: desaparece para todos y las respuestas que lo citaban lo indican.
+          setMensajes((m) => quitarMensaje(m, ev.mensaje.id))
         } else if (ev.tipo === 'leido' && ev.canal_id === canalId) {
           setDatos((d) =>
             d ? { ...d, lecturas: { ...d.lecturas, [ev.lector]: Math.max(d.lecturas[ev.lector] || 0, ev.ultimo_id) } } : d,
@@ -357,8 +366,8 @@ export default function Conversacion({ canalId, item, onVolver }) {
   async function borrar(m) {
     setABorrar(null)
     try {
-      const r = await borrarMensaje(m.id)
-      setMensajes((lista) => lista.map((x) => (x.id === r.id ? r : x)))
+      await borrarMensaje(m.id)
+      setMensajes((lista) => quitarMensaje(lista, m.id))
     } catch (err) {
       setError(err.message)
     }
@@ -468,7 +477,7 @@ export default function Conversacion({ canalId, item, onVolver }) {
                   <div className="msj-m__cita">
                     <span className="msj-m__codo" aria-hidden="true" />
                     <b>@{m.respuesta_a.autor_nombre}</b>
-                    <span>{m.respuesta_a.texto ?? 'mensaje borrado'}</span>
+                    <span className={m.respuesta_a.texto == null ? 'is-eliminado' : ''}>{m.respuesta_a.texto ?? 'Mensaje original eliminado'}</span>
                   </div>
                 ) : null}
                 <div className="msj-m__fila">
@@ -519,7 +528,7 @@ export default function Conversacion({ canalId, item, onVolver }) {
                       ) : null}
                       {mio || isAdmin ? (
                         <button type="button" onClick={() => setABorrar(m)}>
-                          Borrar
+                          Eliminar
                         </button>
                       ) : null}
                     </div>
@@ -555,9 +564,9 @@ export default function Conversacion({ canalId, item, onVolver }) {
 
       {aBorrar ? (
         <Alerta
-          titulo="¿Borrar este mensaje?"
-          texto="Se va a borrar para todos los que están en el canal. En su lugar va a quedar la leyenda “Mensaje borrado”."
-          confirmar="Borrar"
+          titulo="¿Eliminar este mensaje?"
+          texto="Se va a eliminar para todos los que están en el canal. No se puede deshacer."
+          confirmar="Eliminar"
           peligro
           onConfirmar={() => borrar(aBorrar)}
           onCancelar={() => setABorrar(null)}
@@ -652,7 +661,6 @@ export default function Conversacion({ canalId, item, onVolver }) {
               ➤
             </button>
           </div>
-          <p className="msj-redactar__ayuda">Enter envía · Shift + Enter hace un salto de línea · arrastrá o pegá archivos (hasta 25 MB)</p>
         </form>
       ) : (
         <p className="msj-solo-lectura">En este canal publica solo el equipo de ATV.</p>

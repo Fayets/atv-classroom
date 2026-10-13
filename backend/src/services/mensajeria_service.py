@@ -360,13 +360,13 @@ class MensajeriaServices:
                 desde = int(despues_de)
                 tope = _RECUPERO_MAX
                 lista = list(MensajeCanal.select_by_sql(
-                    f"SELECT * FROM {tabla} WHERE canal = $cid AND id > $desde ORDER BY id LIMIT $tope"
+                    f"SELECT * FROM {tabla} WHERE canal = $cid AND NOT borrado AND id > $desde ORDER BY id LIMIT $tope"
                 ))
             else:
                 hasta = int(antes_de) if antes_de is not None else 2**31 - 1
                 tope = _PAGINA + 1
                 lista = list(MensajeCanal.select_by_sql(
-                    f"SELECT * FROM {tabla} WHERE canal = $cid AND id < $hasta ORDER BY id DESC LIMIT $tope"
+                    f"SELECT * FROM {tabla} WHERE canal = $cid AND NOT borrado AND id < $hasta ORDER BY id DESC LIMIT $tope"
                 ))
                 hay_mas = len(lista) > _PAGINA
                 lista = list(reversed(lista[:_PAGINA]))

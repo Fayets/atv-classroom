@@ -135,7 +135,9 @@ def test_respuesta_edicion_borrado_y_no_leidos(coach):
     borrado, _ = svc.borrar(a, pregunta["id"])
     assert borrado["borrado"] and borrado["texto"] is None
     ultimos = svc.mensajes(coach, canal)["mensajes"]
-    assert ultimos[-1]["respuesta_a"]["texto"] is None  # la cita de un borrado no muestra el texto
+    # Como en Discord: el borrado desaparece y la respuesta que lo citaba queda sin texto.
+    assert pregunta["id"] not in [m["id"] for m in ultimos]
+    assert ultimos[-1]["respuesta_a"]["texto"] is None
 
 
 def test_bandeja_del_equipo_marca_quien_espera(coach):
