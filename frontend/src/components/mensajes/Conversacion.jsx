@@ -6,6 +6,7 @@ import { ACEPTA_ADJUNTOS, claveAutor, etiquetaDia, hora, mismoDia, normal, peso,
 import Adjuntos from './Adjuntos'
 import Alerta from './Alerta'
 import Avatar from './Avatar'
+import Enlaces from './Enlaces'
 import TextoMensaje from './TextoMensaje'
 
 const AGRUPAR_MS = 5 * 60 * 1000
@@ -497,6 +498,7 @@ export default function Conversacion({ canalId, item, onVolver }) {
                     ) : (
                       <>
                         {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} yo={miPrimerNombre} /> : null}
+                        <Enlaces texto={m.texto} />
                         <Adjuntos adjuntos={m.adjuntos} alCargar={bajarSiEstabaAbajo} />
                       </>
                     )}
