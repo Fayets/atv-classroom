@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useEscritorio } from '../../context/EscritorioContext'
@@ -63,6 +63,47 @@ export default function Escritorio({ children }) {
       : []),
   ]
 
+  // Agrandar / achicar con FLIP: se mide dónde termina la ventana y se anima solo con transform
+  // desde donde estaba (nada de animar bordes, que obliga a recalcular toda la página en cada cuadro).
+  const ventana = useRef(null)
+  const ultimoRect = useRef(null)
+  const tamanoPrevio = useRef(tamano)
+  useLayoutEffect(() => {
+    const el = ventana.current
+    if (!el) return
+    const antes = ultimoRect.current
+    const despues = el.getBoundingClientRect()
+    ultimoRect.current = despues
+    if (tamanoPrevio.current === tamano || !antes || visible !== 'abierta') {
+      tamanoPrevio.current = tamano
+      return
+    }
+    tamanoPrevio.current = tamano
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const dx = antes.left - despues.left
+    const dy = antes.top - despues.top
+    const sx = antes.width / despues.width
+    const sy = antes.height / despues.height
+    el.style.transition = 'none'
+    el.style.transformOrigin = '0 0'
+    el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`
+    // Forzar el cálculo acá hace que la animación arranque en el acto, sin esperar un cuadro
+    // (en una pestaña en segundo plano los cuadros se pausan y la ventana quedaría a mitad de camino).
+    void el.offsetWidth
+    el.style.transition = 'transform 340ms cubic-bezier(0.22, 1, 0.36, 1)'
+    el.style.transform = ''
+    let terminado = false
+    const fin = () => {
+      if (terminado) return
+      terminado = true
+      el.style.transition = ''
+      el.style.transformOrigin = ''
+      el.removeEventListener('transitionend', fin)
+    }
+    el.addEventListener('transitionend', fin)
+    setTimeout(fin, 500) // por si el navegador no avisa el final
+  }, [tamano, visible])
+
   // Como en macOS con "ocultar Dock": aparece al acercar el mouse al borde de abajo y se va al salir.
   // Con la ventana minimizada o cerrada queda siempre a la vista (no hay otra forma de volver).
   const [dockVisible, setDockVisible] = useState(false)
@@ -81,8 +122,13 @@ export default function Escritorio({ children }) {
   }
   useEffect(() => () => clearTimeout(ocultar.current), [])
 
-  // Lupa del Dock: cada ícono crece según qué tan cerca está el mouse.
+  // Lupa del Dock: cada ícono crece según qué tan cerca está el mouse (una vez por cuadro).
+  const cuadro = useRef(null)
   function lupa(x) {
+    cancelAnimationFrame(cuadro.current)
+    cuadro.current = requestAnimationFrame(() => aplicarLupa(x))
+  }
+  function aplicarLupa(x) {
     iconos.current.forEach((el) => {
       if (!el) return
       if (x == null) {
@@ -91,7 +137,7 @@ export default function Escritorio({ children }) {
       }
       const r = el.getBoundingClientRect()
       const distancia = Math.abs(x - (r.left + r.width / 2))
-      el.style.setProperty('--zoom', 1 + 0.55 * Math.max(0, 1 - distancia / 150))
+      el.style.setProperty('--zoom', (1 + 0.5 * Math.max(0, 1 - distancia / 140)).toFixed(3))
     })
   }
 
@@ -102,7 +148,7 @@ export default function Escritorio({ children }) {
 
   return (
     <div className="esc">
-      <div className={`esc-ventana is-${tamano} is-${visible}`} aria-hidden={visible !== 'abierta'}>
+      <div ref={ventana} className={`esc-ventana is-${tamano} is-${visible}`} aria-hidden={visible !== 'abierta'}>
         {children}
       </div>
 
