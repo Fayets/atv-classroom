@@ -4,6 +4,7 @@ de anuncios que leen todos y donde escribe solo el equipo.
 Autores y lectores se identifican por (tipo, id): "cliente" es clients.clientes y "admin" es
 cualquier miembro del equipo (tabla admins, con rol admin o coach)."""
 
+import json
 import re
 import time
 import unicodedata
@@ -18,6 +19,7 @@ from src.db import DB_SCHEMA, db
 from src.models import Adjunto, Admin, Canal, ClienteExterno, LecturaCanal, Mencion, MensajeCanal
 from src.storage import adjuntos as almacen
 from src.services.auth_service import _emails_del_cliente, _tiene_acceso, es_equipo
+from src.services.roles_canal import validar_roles
 from src.services.tiempo_real import puede_ver
 
 MAX_TEXTO = 4000
@@ -62,8 +64,30 @@ def _yo(sesion: dict) -> tuple[str, int]:
     return ("admin" if es_equipo(sesion) else "cliente", sesion["usuario_id"])
 
 
+def _roles_de(canal: Canal) -> list[str]:
+    try:
+        return list(json.loads(canal.roles_json or "[]"))
+    except ValueError:
+        return []
+
+
 def _info(canal: Canal) -> dict:
-    return {"id": canal.id, "tipo": canal.tipo, "cliente_id": canal.cliente_id}
+    return {"id": canal.id, "tipo": canal.tipo, "cliente_id": canal.cliente_id, "roles": _roles_de(canal), "creado_por": canal.creado_por}
+
+
+_EVERYONE = re.compile(r"@(everyone|todos)\b", re.I)
+
+
+def _equipo_que_ve(canal: Canal, autor_id: int) -> set[int]:
+    """Quiénes del equipo reciben un @everyone en este canal: los admins y los coaches que ya lo ven."""
+    ids = set()
+    info = _info(canal)
+    for a in list(Admin.select()):
+        if not a.activo or a.id == autor_id:
+            continue
+        if a.rol == "admin" or _ve({"rol": "coach", "usuario_id": a.id}, info):
+            ids.add(a.id)
+    return ids
 
 
 def canales_de_coach(admin_id: int) -> set[int]:
@@ -180,6 +204,15 @@ def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[d
         "creado_en": _iso(m.creado_en),
         "origen": "discord" if m.id < 0 else None,
     }
+
+
+def _nombre_de_canal(nombre: str) -> str:
+    """Como Discord: minúsculas, guiones en vez de espacios, sin símbolos raros."""
+    n = _normal((nombre or "").strip()).replace(" ", "-")
+    n = re.sub(r"[^a-z0-9_-]+", "", n).strip("-")[:60]
+    if not n:
+        raise HTTPException(status_code=422, detail="Poné un nombre para el canal.")
+    return n
 
 
 def _nombre_canal(cliente: ClienteExterno) -> str:
@@ -354,13 +387,16 @@ class MensajeriaServices:
                         "no_leidos": datos.get("no_leidos", 0),
                         "menciones": datos.get("menciones", 0),
                         "esperando_desde": _iso(datos.get("esperando_desde")),
+                        "roles": _roles_de(canal) if canal.tipo == "grupo" else None,
+                        "creado_por": canal.creado_por,
                     }
                 )
         # Anuncios arriba; después quien espera respuesta (el que más espera primero); después lo más reciente.
-        anuncios = [c for c in items if c["tipo"] == "anuncios"]
-        esperando = [c for c in items if c["tipo"] != "anuncios" and c["esperando_desde"]]
+        anuncios = [c for c in items if c["tipo"] in ("anuncios", "grupo")]
+        anuncios.sort(key=lambda c: (c["tipo"] != "anuncios", c["nombre"]))
+        esperando = [c for c in items if c["tipo"] == "cliente" and c["esperando_desde"]]
         esperando.sort(key=lambda c: c["esperando_desde"])
-        resto = [c for c in items if c["tipo"] != "anuncios" and not c["esperando_desde"]]
+        resto = [c for c in items if c["tipo"] == "cliente" and not c["esperando_desde"]]
         # Sin novedades: lo más reciente arriba y, entre los que no tienen mensajes, por nombre.
         resto.sort(key=lambda c: c["nombre"].lower())
         resto.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
@@ -417,6 +453,8 @@ class MensajeriaServices:
     def _puede_escribir(sesion: dict, canal: Canal) -> bool:
         if es_equipo(sesion):
             return True
+        if canal.tipo == "grupo":
+            return True  # si llegó acá es porque lo ve (ver _canal_visible)
         return canal.tipo == "cliente" and canal.cliente_id == sesion["usuario_id"]
 
     def enviar(
@@ -471,7 +509,10 @@ class MensajeriaServices:
                 )):
                     abierta.respondida_en = m.creado_en
             nuevas = []
-            for admin_id in _detectar_menciones(texto, menciones):
+            etiquetados = _detectar_menciones(texto, menciones)
+            if es_equipo(sesion) and _EVERYONE.search(texto):
+                etiquetados |= _equipo_que_ve(canal, sesion["usuario_id"])
+            for admin_id in etiquetados:
                 if yo == ("admin", admin_id):
                     continue
                 nuevas.append(Mencion(mensaje_id=m.id, canal_id=canal.id, admin_id=admin_id, creado_en=m.creado_en))
@@ -534,6 +575,21 @@ class MensajeriaServices:
             if c["esperando_desde"]:
                 esperando += 1
         return {"no_leidos": total, "esperando": esperando if es_equipo(sesion) else 0}
+
+    def crear_canal_grupo(self, sesion: dict, nombre: str, descripcion: str | None, roles: list[str] | None) -> dict:
+        """Cualquiera del equipo crea un canal grupal, como en Discord: nombre y roles que lo ven."""
+        if not es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Solo el equipo crea canales.")
+        nombre = _nombre_de_canal(nombre)
+        roles_ok = validar_roles(roles)
+        if not roles_ok:
+            raise HTTPException(status_code=422, detail="Elegí al menos un rol que vea el canal.")
+        with db_session:
+            if any(c.nombre == nombre and c.tipo in ("grupo", "anuncios") for c in list(Canal.select())):
+                raise HTTPException(status_code=409, detail="Ya hay un canal con ese nombre.")
+            canal = Canal(tipo="grupo", nombre=nombre, descripcion=(descripcion or "").strip()[:300] or None, roles_json=json.dumps(roles_ok), creado_por=sesion["usuario_id"])
+            db.flush()
+            return {"id": canal.id, "tipo": canal.tipo, "nombre": canal.nombre, "descripcion": canal.descripcion, "roles": roles_ok, "creado_por": canal.creado_por, "info": _info(canal)}
 
     def crear_canal_anuncios(self, nombre: str, descripcion: str | None) -> dict:
         nombre = (nombre or "").strip().lower().replace(" ", "-")

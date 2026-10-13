@@ -54,6 +54,10 @@ export function subirAdjunto(canalId, archivo, alAvanzar) {
 }
 
 let equipoCache = null
+export function crearCanal(nombre, descripcion, roles) {
+  return request('/api/mensajes/canales', { method: 'POST', body: JSON.stringify({ nombre, descripcion, roles }) })
+}
+
 export function fetchEquipoChat() {
   if (!equipoCache) equipoCache = request('/api/mensajes/equipo').catch((e) => {
     equipoCache = null

@@ -464,3 +464,36 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 @keyframes msj-escribe { 50% { opacity: 1; transform: translateY(-2px); } }
 @media (prefers-reduced-motion: reduce) { .msj-fila__escribe i { animation: none; } }
 .msj-grupo__titulo.con-novedades { color: #1d1d1f; }
+
+/* canales grupales */
+.msj-fila__hash { margin-right: 4px; font-style: normal; font-weight: 500; opacity: 0.55; }
+.msj-grupo__titulo.is-fijo { cursor: default; }
+.msj-grupo__titulo.is-fijo:hover { color: #8e8e93; }
+.msj-grupo__titulo.is-fijo span { flex: 1; }
+.msj-grupo__mas { width: 18px; height: 18px; border: 0; border-radius: 5px; background: none; color: inherit; font: inherit; font-size: 15px; line-height: 18px; text-align: center; cursor: pointer; }
+.msj-grupo__mas:hover { background: rgba(0, 0, 0, 0.07); color: var(--m-t1, #1d1d1f); }
+.msj-grupo__vacio { margin: 2px 10px 8px; font-size: 12px; color: #a1a1a6; }
+.msj-everyone { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(192, 57, 43, 0.12); color: var(--m-acento, #c0392b); font-weight: 700; }
+
+/* crear canal (ventana como una hoja de macOS) */
+.msj-modal__fondo { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(0, 0, 0, 0.28); backdrop-filter: blur(2px); }
+.msj-modal { width: min(440px, calc(100vw - 32px)); margin: 0; padding: 20px 22px 18px; border-radius: 14px; background: #fff; color: #1d1d1f; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.2), 0 24px 60px -20px rgba(0, 0, 0, 0.5); font-size: 13.5px; }
+.msj-modal h2 { margin: 0 0 4px; font-size: 17px; font-weight: 650; }
+.msj-modal__ayuda { margin: 0 0 16px; color: #6e6e73; font-size: 12.5px; }
+.msj-modal__campo { display: block; margin: 0 0 14px; padding: 0; border: 0; min-width: 0; }
+.msj-modal__campo > span, .msj-modal__campo > legend { display: block; margin-bottom: 5px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #6e6e73; padding: 0; }
+.msj-modal__campo input[type="text"] { width: 100%; box-sizing: border-box; height: 34px; padding: 0 10px; border: 1px solid #d2d2d7; border-radius: 8px; background: #fff; font: inherit; color: inherit; }
+.msj-modal__campo input[type="text"]:focus { outline: none; border-color: var(--m-acento, #c0392b); box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18); }
+.msj-modal__nombre { position: relative; }
+.msj-modal__nombre i { position: absolute; left: 10px; top: 0; line-height: 34px; color: #8e8e93; font-style: normal; }
+.msj-modal__nombre input { padding-left: 24px !important; }
+.msj-modal__campo small { display: block; margin-top: 5px; color: #8e8e93; font-size: 12px; }
+.msj-roles { display: flex; flex-wrap: wrap; gap: 6px; }
+.msj-rol { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: #f2f2f7; font-size: 12.5px; cursor: pointer; user-select: none; }
+.msj-rol input { margin: 0; accent-color: var(--m-acento, #c0392b); }
+.msj-rol.is-on { background: rgba(192, 57, 43, 0.1); color: var(--m-acento, #c0392b); font-weight: 600; }
+.msj-modal__error { margin: 0 0 10px; color: #c41e1e; font-size: 12.5px; }
+.msj-modal__botones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.msj-modal__botones button { padding: 7px 14px; border: 0; border-radius: 8px; background: #f2f2f7; color: #1d1d1f; font: inherit; font-weight: 600; cursor: pointer; }
+.msj-modal__botones button.is-primario { background: var(--m-acento, #c0392b); color: #fff; }
+.msj-modal__botones button:disabled { opacity: 0.6; cursor: default; }

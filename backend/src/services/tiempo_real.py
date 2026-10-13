@@ -14,6 +14,8 @@ import logging
 
 from fastapi import WebSocket
 
+from src.services.roles_canal import cliente_ve
+
 logger = logging.getLogger(__name__)
 
 COLA_MAX = 300          # eventos pendientes por pestaña antes de cortarla
@@ -22,13 +24,19 @@ CIERRE_LENTA = 4408     # código de cierre: el navegador reconecta (no es un pr
 
 
 def puede_ver(sesion: dict, canal: dict) -> bool:
-    """canal: {"id", "tipo", "cliente_id"}. El admin ve todo; el coach, solo los canales donde lo
-    etiquetaron (sesion["canales_coach"]); el cliente, su canal. Los anuncios los ven todos."""
+    """canal: {"id", "tipo", "cliente_id", "roles", "creado_por"}. El admin ve todo; el coach, los
+    canales donde lo etiquetaron (sesion["canales_coach"]) y los grupos del equipo o que creó él;
+    el cliente, su canal y los grupos de su rol. Los anuncios los ven todos."""
     rol = sesion.get("rol")
     if rol == "admin":
         return True
     if canal["tipo"] == "anuncios":
         return True
+    if canal["tipo"] == "grupo":
+        roles = canal.get("roles") or []
+        if rol == "coach":
+            return "equipo" in roles or canal.get("creado_por") == sesion["usuario_id"] or canal.get("id") in sesion.get("canales_coach", set())
+        return cliente_ve(rol, roles)
     if rol == "coach":
         return canal.get("id") in sesion.get("canales_coach", set())
     return canal["tipo"] == "cliente" and canal["cliente_id"] == sesion["usuario_id"]

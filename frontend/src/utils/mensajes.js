@@ -90,3 +90,25 @@ export function peso(bytes) {
 
 export const ACEPTA_ADJUNTOS =
   '.jpg,.jpeg,.png,.gif,.webp,.heic,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.mp3,.m4a,.ogg,.wav,.webm,.mp4,.mov,.zip'
+
+// Roles de un canal grupal (mismos ids que el backend: roles_canal.py).
+export const ROLES_CANAL = [
+  { id: 'equipo', nombre: 'Equipo ATV' },
+  { id: 'high', nombre: 'High Level' },
+  { id: 'boost', nombre: 'Boost' },
+  { id: 'mid', nombre: 'Mid level' },
+  { id: 'entry', nombre: 'Entry level' },
+  { id: 'mentoria', nombre: 'Mentoria' },
+]
+export const nombreRol = (id) => ROLES_CANAL.find((r) => r.id === id)?.nombre || id
+
+// Nombre de canal como en Discord: minúsculas, guiones, sin símbolos.
+export function slugCanal(nombre) {
+  return normal((nombre || '').trim())
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9_-]+/g, '')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+}
+
+export const ES_EVERYONE = /@(everyone|todos)\b/i

@@ -189,7 +189,8 @@ class SolicitudSop(db.Entity):
 
 class Canal(db.Entity):
     """Mensajería: "cliente" es el canal privado de un cliente con todo el equipo;
-    "anuncios" es un canal que leen todos y donde escribe solo el equipo."""
+    "anuncios" es un canal que leen todos y donde escribe solo el equipo;
+    "grupo" es un canal creado por alguien del equipo que ven (y usan) los roles elegidos."""
 
     _table_ = (DB_SCHEMA, "canales")
 
@@ -198,6 +199,8 @@ class Canal(db.Entity):
     cliente_id = Optional(int, nullable=True, unique=True)
     nombre = Required(str)
     descripcion = Optional(str, nullable=True)
+    roles_json = Optional(str, nullable=True)  # grupo: ["equipo", "boost", ...] (ver roles_canal.py)
+    creado_por = Optional(int, nullable=True)  # grupo: id del admin que lo creó
     ultimo_mensaje_en = Optional(datetime, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
     mensajes = Set("MensajeCanal")

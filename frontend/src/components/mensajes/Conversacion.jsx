@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } f
 import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMensajes, marcarLeido, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto } from '../../api/mensajes'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
-import { ACEPTA_ADJUNTOS, claveAutor, etiquetaDia, hora, mismoDia, normal, peso, primerNombre } from '../../utils/mensajes'
+import { ACEPTA_ADJUNTOS, ES_EVERYONE, claveAutor, etiquetaDia, hora, mismoDia, nombreRol, normal, peso, primerNombre } from '../../utils/mensajes'
 import Adjuntos from './Adjuntos'
 import Alerta from './Alerta'
 import Avatar from './Avatar'
@@ -11,6 +11,9 @@ import TextoMensaje from './TextoMensaje'
 
 const AGRUPAR_MS = 5 * 60 * 1000
 let temporal = 0
+
+// Etiqueta a todos los que ven el canal (solo lo puede usar el equipo).
+const EVERYONE = { id: 0, nombre: 'everyone', area: 'Etiqueta a todos en este canal' }
 
 function quitarMensaje(lista, id) {
   return lista
@@ -328,7 +331,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     // Solo cuentan las etiquetas elegidas que siguen escritas en el mensaje.
     const ids = []
     mencionados.current.forEach((id, marca) => {
-      if (limpio.includes(marca) && !ids.includes(id)) ids.push(id)
+      if (id && limpio.includes(marca) && !ids.includes(id)) ids.push(id)
     })
     mencionados.current = new Map()
     setSugerencias(null)
@@ -362,10 +365,13 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
       return
     }
     const q = normal(hallado[2])
-    const lista = equipo
-      .filter((m) => m.id !== (isEquipo ? user?.usuario_id : null))
-      .filter((m) => !q || normal(m.nombre).split(/\s+/).some((p) => p.startsWith(q)))
-      .slice(0, 6)
+    const todos = isEquipo && (!q || 'everyone'.startsWith(q) || 'todos'.startsWith(q)) ? [EVERYONE] : []
+    const lista = [
+      ...todos,
+      ...equipo
+        .filter((m) => m.id !== (isEquipo ? user?.usuario_id : null))
+        .filter((m) => !q || normal(m.nombre).split(/\s+/).some((p) => p.startsWith(q))),
+    ].slice(0, 7)
     setSugerencias(lista.length ? { lista, indice: 0, desde: caret - hallado[2].length - 1 } : null)
   }
 
@@ -479,6 +485,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   const canal = datos.canal
   const todos = [...mensajes, ...pendientes]
   const esPrivado = canal.tipo === 'cliente'
+  const esGrupo = canal.tipo === 'grupo'
   // "Visto": hasta dónde leyó el otro lado, sobre mi último mensaje.
   const leidoPorElOtro = isEquipo ? datos.lecturas.cliente : datos.lecturas.equipo
   const miUltimo = [...mensajes].reverse().find((m) => claveAutor(m.autor) === yo)
@@ -522,7 +529,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
               ? isEquipo
                 ? `Canal privado de ${item?.cliente?.nombre || canal.nombre} con el equipo`
                 : 'Tu canal privado con el equipo de ATV'
-              : canal.descripcion || 'Solo publica el equipo de ATV'}
+              : esGrupo
+                ? canal.descripcion || `Lo ven: ${(item?.roles || []).map(nombreRol).join(', ') || 'el equipo'}`
+                : canal.descripcion || 'Solo publica el equipo de ATV'}
           </span>
         </div>
       </header>
@@ -541,7 +550,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                 ? isEquipo
                   ? 'Lo ven el cliente y todo el equipo de ATV.'
                   : 'Lo ven vos y el equipo de ATV. Escribí acá tus dudas, avances y entregables.'
-                : 'Novedades del equipo de ATV para todos los clientes.'}
+                : esGrupo
+                  ? `Canal grupal. Lo ven: ${(item?.roles || []).map(nombreRol).join(', ') || 'el equipo'}.`
+                  : 'Novedades del equipo de ATV para todos los clientes.'}
             </span>
           </div>
         )}
@@ -566,7 +577,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
               ) : null}
               <article
                 className={`msj-m${agrupado ? ' is-agrupado' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${
-                  miPrimerNombre && !mio && m.texto && normal(m.texto).includes(`@${normal(miPrimerNombre)}`) ? ' is-mencion' : ''
+                  !mio && m.texto && ((miPrimerNombre && normal(m.texto).includes(`@${normal(miPrimerNombre)}`)) || (m.autor?.tipo === 'equipo' && ES_EVERYONE.test(m.texto))) ? ' is-mencion' : ''
                 }`}
               >
                 {m.respuesta_a ? (
@@ -695,7 +706,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                       elegir(m)
                     }}
                   >
-                    <Avatar persona={{ ...m, tipo: 'equipo' }} size={24} />
+                    {m.id === 0 ? <span className="msj-everyone" aria-hidden="true">@</span> : <Avatar persona={{ ...m, tipo: 'equipo' }} size={24} />}
                     <b>{m.nombre}</b>
                     <span>{m.area || (m.rol === 'admin' ? 'Admin' : 'Coach')}</span>
                   </button>

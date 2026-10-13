@@ -97,6 +97,9 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "frente", "revisado", "BOOLEAN NOT NULL DEFAULT FALSE")
                 # Historial traído de Discord: el nombre del autor como aparecía allá.
                 _agregar_columna(cur, "mensajes_canal", "autor_nombre", "VARCHAR")
+                # Canales grupales: roles que lo ven y quién lo creó.
+                _agregar_columna(cur, "canales", "roles_json", "TEXT")
+                _agregar_columna(cur, "canales", "creado_por", "INTEGER")
                 cur.execute(
                     f"""
                     CREATE TABLE IF NOT EXISTS "{DB_SCHEMA}"."mensaje" (

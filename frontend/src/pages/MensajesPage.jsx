@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchCanales } from '../api/mensajes'
+import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
 import Avatar from '../components/mensajes/Avatar'
@@ -30,7 +31,7 @@ function agrupar(lista) {
 
 // Fila como un canal de Discord: el nombre; en negrita con un punto si hay mensajes sin leer,
 // y un círculo rojo con la cantidad si te etiquetaron.
-function FilaCanal({ c, activo, onAbrir, escribe }) {
+function FilaCanal({ c, activo, onAbrir, escribe, hash = false }) {
   const nuevo = c.no_leidos > 0 && !activo
   const ultimo = c.ultimo ? `${c.ultimo.autor_nombre}: ${c.ultimo.texto}` : 'Sin mensajes todavía'
   // Lo que antes era la sección "Esperan respuesta" ahora va en el tooltip, sin sacar el chat de su grupo.
@@ -38,7 +39,10 @@ function FilaCanal({ c, activo, onAbrir, escribe }) {
   return (
     <button type="button" className={`msj-fila${activo ? ' is-activo' : ''}${nuevo ? ' is-nuevo' : ''}`} onClick={() => onAbrir(c.id)} title={titulo}>
       {nuevo ? <i className="msj-fila__punto" aria-label="Mensajes sin leer" /> : null}
-      <span className="msj-fila__nombre">{c.nombre}</span>
+      <span className="msj-fila__nombre">
+        {hash ? <em className="msj-fila__hash">#</em> : null}
+        {c.nombre}
+      </span>
       {escribe ? <span className="msj-fila__escribe" aria-label={`${escribe} está escribiendo`}><i /><i /><i /></span> : null}
       {c.menciones > 0 ? (
         <b className="msj-fila__menciones" aria-label={`Te etiquetaron ${c.menciones} ${c.menciones === 1 ? 'vez' : 'veces'}`}>
@@ -154,7 +158,7 @@ export default function MensajesPage() {
   useEffect(
     () =>
       suscribir((ev) => {
-        if (!['mensaje', 'leido', 'borrado', 'reconectado', 'mencion'].includes(ev.tipo)) return
+        if (!['mensaje', 'leido', 'borrado', 'reconectado', 'mencion', 'canal'].includes(ev.tipo)) return
         clearTimeout(recarga.current)
         recarga.current = setTimeout(cargar, 600)
       }),
@@ -221,16 +225,36 @@ export default function MensajesPage() {
     return canales.filter((c) => `${c.nombre} ${c.cliente?.nombre || ''}`.toLowerCase().includes(q))
   }, [canales, buscar])
 
-  const anuncios = filtrados.filter((c) => c.tipo === 'anuncios')
+  const canalesGrupo = filtrados.filter((c) => c.tipo === 'anuncios' || c.tipo === 'grupo')
   // Como en Discord: todo cliente vive en su grupo; lo urgente se ve por el punto y el contador.
   const resto = filtrados.filter((c) => c.tipo === 'cliente')
   const grupos = useMemo(() => (isEquipo ? agrupar(resto) : []), [isEquipo, resto])
   // Como en Discord: los grupos arrancan cerrados; cerrados igual muestran lo que tiene novedades.
   const [abiertos, setAbiertos] = useState([])
+  const [creando, setCreando] = useState(false)
   const alternarGrupo = (id) => setAbiertos((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]))
   const item = canales?.find((c) => c.id === activo)
   const abrir = (id) => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas', c: String(id) } : { c: String(id) })
   const cambiarVista = (v) => setParams(v === 'alertas' ? { v: 'alertas' } : {})
+
+  // Canales grupales (y anuncios), arriba de todo como en Discord. El equipo los crea con el +.
+  const seccionCanales =
+    canales && (isEquipo || canalesGrupo.length) ? (
+      <section className="msj-grupo" aria-label="Canales">
+        <div className="msj-grupo__titulo is-abierto is-fijo">
+          <span>Canales</span>
+          {isEquipo ? (
+            <button type="button" className="msj-grupo__mas" onClick={() => setCreando(true)} aria-label="Crear canal" title="Crear canal">
+              +
+            </button>
+          ) : null}
+        </div>
+        {canalesGrupo.map((c) => (
+          <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} hash />
+        ))}
+        {isEquipo && !canalesGrupo.length ? <p className="msj-grupo__vacio">Todavía no hay canales. Creá uno con el +.</p> : null}
+      </section>
+    ) : null
 
   return (
     <div className={`app-shell msj-root${isEquipo ? ' is-mac' : ''}`}>
@@ -253,6 +277,7 @@ export default function MensajesPage() {
               </button>
             </div>
           ) : null}
+          {vista === 'alertas' && esCoach ? seccionCanales : null}
           {vista === 'alertas' ? <Alertas activo={activo} onAbrir={abrir} /> : null}
           {vista === 'bandeja' && isEquipo ? (
             <input
@@ -268,6 +293,8 @@ export default function MensajesPage() {
           <>
           {error ? <p className="msj-error">{error}</p> : null}
           {!canales ? <p className="msj-vacio">Cargando…</p> : null}
+
+          {seccionCanales}
 
           {isEquipo
             ? grupos.map((g) => {
@@ -297,11 +324,17 @@ export default function MensajesPage() {
               ))
             : null}
 
-          {anuncios.length ? <p className="msj-seccion">Comunidad ATV</p> : null}
-          {anuncios.map((c) => (
-            <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
-          ))}
           </>
+          ) : null}
+          {creando ? (
+            <NuevoCanal
+              onCerrar={() => setCreando(false)}
+              onCreado={(c) => {
+                setCreando(false)
+                cargar()
+                abrir(c.id)
+              }}
+            />
           ) : null}
         </aside>
 

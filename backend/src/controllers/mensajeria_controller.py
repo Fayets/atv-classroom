@@ -11,6 +11,7 @@ from starlette.concurrency import run_in_threadpool
 from src.services.auth_service import obtener_sesion_desde_request, sesion_desde_token
 from pony.orm import db_session
 
+from src.services.roles_canal import ROLES
 from src.services.mensajeria_service import (
     MAX_TEXTO,
     MensajeriaServices,
@@ -50,6 +51,8 @@ class Leido(BaseModel):
 class CanalNuevo(BaseModel):
     nombre: str = Field(min_length=1, max_length=60)
     descripcion: str | None = Field(default=None, max_length=300)
+    roles: list[str] = Field(default_factory=list, max_length=10)
+    tipo: str = "grupo"  # "anuncios" solo lo crea un admin
 
 
 @router.get("/habilitada")
@@ -63,11 +66,22 @@ def canales(sesion: dict = Depends(sesion_mensajes)):
     return service.listar_canales(sesion)
 
 
+@router.get("/roles")
+def roles(_sesion: dict = Depends(sesion_mensajes)):
+    """Los roles que puede ver un canal grupal (para el formulario de crear canal)."""
+    return [{"id": r["id"], "nombre": r["nombre"]} for r in ROLES]
+
+
 @router.post("/canales", status_code=201)
-def crear_canal(body: CanalNuevo, sesion: dict = Depends(sesion_mensajes)):
-    if sesion.get("rol") != "admin":
-        raise HTTPException(status_code=403, detail="Solo un admin crea canales de anuncios.")
-    return service.crear_canal_anuncios(body.nombre, body.descripcion)
+async def crear_canal(body: CanalNuevo, sesion: dict = Depends(sesion_mensajes)):
+    if body.tipo == "anuncios":
+        if sesion.get("rol") != "admin":
+            raise HTTPException(status_code=403, detail="Solo un admin crea canales de anuncios.")
+        return await run_in_threadpool(service.crear_canal_anuncios, body.nombre, body.descripcion)
+    canal = await run_in_threadpool(service.crear_canal_grupo, sesion, body.nombre, body.descripcion, body.roles)
+    # Quien lo ve lo tiene en su lista al instante.
+    await hub.emitir({"tipo": "canal", "canal_id": canal["id"]}, canal.pop("info"))
+    return canal
 
 
 @router.get("/no-leidos")
