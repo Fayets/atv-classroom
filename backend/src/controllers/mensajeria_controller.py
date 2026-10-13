@@ -99,6 +99,28 @@ def mensajes(
     return service.mensajes(sesion, canal_id, antes_de=antes_de, despues_de=despues_de)
 
 
+class CanalEdicion(BaseModel):
+    nombre: str | None = Field(default=None, min_length=1, max_length=60)
+    descripcion: str | None = Field(default=None, max_length=300)
+    roles: list[str] | None = Field(default=None, max_length=10)
+
+
+@router.patch("/canales/{canal_id}")
+async def editar_canal(canal_id: int, body: CanalEdicion, sesion: dict = Depends(sesion_mensajes)):
+    canal, antes, despues = await run_in_threadpool(service.editar_canal, sesion, canal_id, body.nombre, body.descripcion, body.roles)
+    # Avisa a quien lo veía y a quien lo ve ahora: la lista se rearma sola en los dos casos.
+    await hub.emitir({"tipo": "canal", "canal_id": canal_id}, antes)
+    await hub.emitir({"tipo": "canal", "canal_id": canal_id}, despues)
+    return canal
+
+
+@router.delete("/canales/{canal_id}")
+async def borrar_canal(canal_id: int, sesion: dict = Depends(sesion_mensajes)):
+    r = await run_in_threadpool(service.borrar_canal, sesion, canal_id)
+    await hub.emitir({"tipo": "canal", "canal_id": canal_id, "borrado": True}, r["info"])
+    return {"ok": True, "mensajes": r["mensajes"]}
+
+
 @router.get("/equipo")
 def equipo(_sesion: dict = Depends(sesion_mensajes)):
     """Para el autocompletado de @."""

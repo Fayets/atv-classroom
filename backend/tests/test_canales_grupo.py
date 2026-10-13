@@ -117,3 +117,38 @@ def test_solo_el_equipo_crea_y_el_nombre_no_se_repite(equipo):
     with pytest.raises(HTTPException) as e:
         svc.crear_canal_grupo(equipo["coach"], f"{_P}-general", None, ["boost"])
     assert e.value.status_code == 409
+
+
+def test_editar_y_borrar_solo_quien_lo_creo_o_un_admin(equipo):
+    from src.models import Canal, Mencion, MensajeCanal
+
+    canal = svc.crear_canal_grupo(equipo["coach"], f"{_P}-editable", "antes", ["boost"])
+    # Otro coach (aunque lo viera) y un cliente no pueden.
+    with pytest.raises(HTTPException) as e:
+        svc.editar_canal(equipo["otro"], canal["id"], "otro-nombre", None, None)
+    assert e.value.status_code in (403, 404)
+    with pytest.raises(HTTPException) as e:
+        svc.editar_canal(BOOST, canal["id"], "otro-nombre", None, None)
+    assert e.value.status_code == 403
+    # Quien lo creó cambia nombre, descripción y roles: Boost deja de verlo, Mentoria pasa a verlo.
+    editado, antes, despues = svc.editar_canal(equipo["coach"], canal["id"], f"{_P} Renombrado", "después", ["mentoria"])
+    assert editado["nombre"] == f"{_P}-renombrado" and editado["descripcion"] == "después" and editado["roles"] == ["mentoria"]
+    assert antes["roles"] == ["boost"] and despues["roles"] == ["mentoria"]
+    ids = lambda sesion: {c["id"] for c in svc.listar_canales(sesion)}
+    assert canal["id"] not in ids(BOOST) and canal["id"] in ids(MENTORIA)
+    assert next(c for c in svc.listar_canales(equipo["coach"]) if c["id"] == canal["id"])["puede_administrar"]
+    # Un admin lo borra con todo lo que tiene.
+    m, _ = svc.enviar(equipo["coach"], canal["id"], "@everyone a borrar", None)
+    r = svc.borrar_canal(equipo["admin"], canal["id"])
+    assert r["mensajes"] == 1
+    with db_session:
+        assert Canal.get(id=canal["id"]) is None
+        assert not [x for x in list(MensajeCanal.select()) if x.id == m["id"]]
+        assert not [x for x in list(Mencion.select()) if x.canal_id == canal["id"]]
+
+
+def test_un_coach_no_borra_canales_de_clientes_ni_anuncios(equipo):
+    canal = svc.crear_canal_grupo(equipo["admin"], f"{_P}-del-admin", None, ["equipo"])
+    with pytest.raises(HTTPException) as e:
+        svc.borrar_canal(equipo["coach"], canal["id"])  # lo ve (rol equipo) pero no lo creó
+    assert e.value.status_code == 403

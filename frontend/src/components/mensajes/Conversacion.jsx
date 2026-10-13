@@ -482,7 +482,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     return <div className="msj-vacio">Cargando…</div>
   }
 
-  const canal = datos.canal
+  // Nombre y descripción salen de la lista, que se actualiza en vivo si alguien edita el canal.
+  const canal = item ? { ...datos.canal, nombre: item.nombre, descripcion: item.descripcion } : datos.canal
   const todos = [...mensajes, ...pendientes]
   const esPrivado = canal.tipo === 'cliente'
   const esGrupo = canal.tipo === 'grupo'

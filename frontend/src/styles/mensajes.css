@@ -497,3 +497,13 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 .msj-modal__botones button { padding: 7px 14px; border: 0; border-radius: 8px; background: #f2f2f7; color: #1d1d1f; font: inherit; font-weight: 600; cursor: pointer; }
 .msj-modal__botones button.is-primario { background: var(--m-acento, #c0392b); color: #fff; }
 .msj-modal__botones button:disabled { opacity: 0.6; cursor: default; }
+
+/* editar canal: engranaje al pasar el mouse, como en Discord */
+.msj-fila__editar { display: none; place-items: center; width: 20px; height: 20px; margin-right: -4px; border-radius: 5px; color: inherit; opacity: 0.7; cursor: pointer; }
+.msj-fila__editar svg { width: 13px; height: 13px; }
+.msj-fila:hover .msj-fila__editar, .msj-fila.is-activo .msj-fila__editar, .msj-fila__editar:focus-visible { display: grid; }
+.msj-fila__editar:hover { opacity: 1; background: rgba(0, 0, 0, 0.08); }
+.msj-fila.is-activo .msj-fila__editar:hover { background: rgba(255, 255, 255, 0.2); }
+.msj-modal__botones button.is-peligro { margin-right: auto; background: none; color: #d70015; }
+.msj-modal__botones button.is-peligro:hover { background: rgba(215, 0, 21, 0.08); }
+.msj-modal__fondo .msj-alerta__fondo { position: fixed; inset: 0; z-index: 210; }

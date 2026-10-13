@@ -389,6 +389,7 @@ class MensajeriaServices:
                         "esperando_desde": _iso(datos.get("esperando_desde")),
                         "roles": _roles_de(canal) if canal.tipo == "grupo" else None,
                         "creado_por": canal.creado_por,
+                        "puede_administrar": self._puede_administrar(sesion, canal),
                     }
                 )
         # Anuncios arriba; después quien espera respuesta (el que más espera primero); después lo más reciente.
@@ -590,6 +591,58 @@ class MensajeriaServices:
             canal = Canal(tipo="grupo", nombre=nombre, descripcion=(descripcion or "").strip()[:300] or None, roles_json=json.dumps(roles_ok), creado_por=sesion["usuario_id"])
             db.flush()
             return {"id": canal.id, "tipo": canal.tipo, "nombre": canal.nombre, "descripcion": canal.descripcion, "roles": roles_ok, "creado_por": canal.creado_por, "info": _info(canal)}
+
+    @staticmethod
+    def _puede_administrar(sesion: dict, canal: Canal) -> bool:
+        """Como "Gestionar canal" en Discord: un admin cualquiera; un coach, solo los grupos que creó."""
+        if sesion.get("rol") == "admin":
+            return canal.tipo in ("grupo", "anuncios")
+        return canal.tipo == "grupo" and es_equipo(sesion) and canal.creado_por == sesion["usuario_id"]
+
+    def editar_canal(self, sesion: dict, canal_id: int, nombre: str | None, descripcion: str | None, roles: list[str] | None) -> tuple[dict, dict, dict]:
+        """Cambia nombre, descripción y roles. Devuelve el canal y su visibilidad antes y después
+        (para avisar en vivo tanto a quien lo pierde como a quien lo gana)."""
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            if not self._puede_administrar(sesion, canal):
+                raise HTTPException(status_code=403, detail="Solo quien creó el canal o un admin lo puede editar.")
+            antes = _info(canal)
+            if nombre is not None:
+                nuevo = _nombre_de_canal(nombre)
+                if nuevo != canal.nombre and any(c.id != canal.id and c.nombre == nuevo and c.tipo in ("grupo", "anuncios") for c in list(Canal.select())):
+                    raise HTTPException(status_code=409, detail="Ya hay un canal con ese nombre.")
+                canal.nombre = nuevo
+            if descripcion is not None:
+                canal.descripcion = descripcion.strip()[:300] or None
+            if roles is not None and canal.tipo == "grupo":
+                roles_ok = validar_roles(roles)
+                if not roles_ok:
+                    raise HTTPException(status_code=422, detail="Elegí al menos un rol que vea el canal.")
+                canal.roles_json = json.dumps(roles_ok)
+            db.flush()
+            return (
+                {"id": canal.id, "tipo": canal.tipo, "nombre": canal.nombre, "descripcion": canal.descripcion, "roles": _roles_de(canal), "creado_por": canal.creado_por},
+                antes,
+                _info(canal),
+            )
+
+    def borrar_canal(self, sesion: dict, canal_id: int) -> dict:
+        """Borra el canal con todo lo que tiene: mensajes, adjuntos, etiquetas y lecturas."""
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            if not self._puede_administrar(sesion, canal):
+                raise HTTPException(status_code=403, detail="Solo quien creó el canal o un admin lo puede borrar.")
+            info = _info(canal)
+            for a in list(Adjunto.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."adjuntos" WHERE canal_id = $canal_id')):
+                ruta = almacen.ruta_de(a.archivo)
+                if ruta and ruta.exists():
+                    ruta.unlink()
+                a.delete()
+            db.execute(f'DELETE FROM "{DB_SCHEMA}"."menciones" WHERE canal_id = $canal_id')
+            db.execute(f'DELETE FROM "{DB_SCHEMA}"."lecturas_canal" WHERE canal_id = $canal_id')
+            mensajes = db.execute(f'DELETE FROM "{DB_SCHEMA}"."mensajes_canal" WHERE canal = $canal_id').rowcount
+            canal.delete()
+            return {"info": info, "mensajes": mensajes}
 
     def crear_canal_anuncios(self, nombre: str, descripcion: str | None) -> dict:
         nombre = (nombre or "").strip().lower().replace(" ", "-")

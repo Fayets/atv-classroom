@@ -58,6 +58,14 @@ export function crearCanal(nombre, descripcion, roles) {
   return request('/api/mensajes/canales', { method: 'POST', body: JSON.stringify({ nombre, descripcion, roles }) })
 }
 
+export function editarCanal(canalId, cambios) {
+  return request(`/api/mensajes/canales/${canalId}`, { method: 'PATCH', body: JSON.stringify(cambios) })
+}
+
+export function borrarCanal(canalId) {
+  return request(`/api/mensajes/canales/${canalId}`, { method: 'DELETE' })
+}
+
 export function fetchEquipoChat() {
   if (!equipoCache) equipoCache = request('/api/mensajes/equipo').catch((e) => {
     equipoCache = null

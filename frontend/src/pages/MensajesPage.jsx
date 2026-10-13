@@ -31,7 +31,7 @@ function agrupar(lista) {
 
 // Fila como un canal de Discord: el nombre; en negrita con un punto si hay mensajes sin leer,
 // y un círculo rojo con la cantidad si te etiquetaron.
-function FilaCanal({ c, activo, onAbrir, escribe, hash = false }) {
+function FilaCanal({ c, activo, onAbrir, escribe, hash = false, onEditar }) {
   const nuevo = c.no_leidos > 0 && !activo
   const ultimo = c.ultimo ? `${c.ultimo.autor_nombre}: ${c.ultimo.texto}` : 'Sin mensajes todavía'
   // Lo que antes era la sección "Esperan respuesta" ahora va en el tooltip, sin sacar el chat de su grupo.
@@ -44,6 +44,30 @@ function FilaCanal({ c, activo, onAbrir, escribe, hash = false }) {
         {c.nombre}
       </span>
       {escribe ? <span className="msj-fila__escribe" aria-label={`${escribe} está escribiendo`}><i /><i /><i /></span> : null}
+      {onEditar && c.puede_administrar ? (
+        <span
+          role="button"
+          tabIndex={0}
+          className="msj-fila__editar"
+          title="Editar canal"
+          aria-label={`Editar #${c.nombre}`}
+          onClick={(e) => {
+            e.stopPropagation()
+            onEditar(c)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              e.stopPropagation()
+              onEditar(c)
+            }
+          }}
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zm6.2 1.6-1.3-.3a5 5 0 0 0-.5-1.2l.7-1.1-1.4-1.4-1.1.7a5 5 0 0 0-1.2-.5L9.1 1.8H6.9l-.3 1.3a5 5 0 0 0-1.2.5l-1.1-.7-1.4 1.4.7 1.1a5 5 0 0 0-.5 1.2l-1.3.3v2.2l1.3.3c.1.4.3.8.5 1.2l-.7 1.1 1.4 1.4 1.1-.7c.4.2.8.4 1.2.5l.3 1.3h2.2l.3-1.3c.4-.1.8-.3 1.2-.5l1.1.7 1.4-1.4-.7-1.1c.2-.4.4-.8.5-1.2l1.3-.3z" fill="currentColor" />
+          </svg>
+        </span>
+      ) : null}
       {c.menciones > 0 ? (
         <b className="msj-fila__menciones" aria-label={`Te etiquetaron ${c.menciones} ${c.menciones === 1 ? 'vez' : 'veces'}`}>
           {c.menciones > 99 ? '99+' : c.menciones}
@@ -232,6 +256,16 @@ export default function MensajesPage() {
   // Como en Discord: los grupos arrancan cerrados; cerrados igual muestran lo que tiene novedades.
   const [abiertos, setAbiertos] = useState([])
   const [creando, setCreando] = useState(false)
+  const [editando, setEditando] = useState(null)
+
+  // Si otro borra el canal que estás mirando, salís de él (como en Discord).
+  useEffect(
+    () =>
+      suscribir((ev) => {
+        if (ev.tipo === 'canal' && ev.borrado && String(ev.canal_id) === params.get('c')) setParams({})
+      }),
+    [suscribir, params, setParams],
+  )
   const alternarGrupo = (id) => setAbiertos((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]))
   const item = canales?.find((c) => c.id === activo)
   const abrir = (id) => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas', c: String(id) } : { c: String(id) })
@@ -250,7 +284,7 @@ export default function MensajesPage() {
           ) : null}
         </div>
         {canalesGrupo.map((c) => (
-          <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} hash />
+          <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} hash onEditar={setEditando} />
         ))}
         {isEquipo && !canalesGrupo.length ? <p className="msj-grupo__vacio">Todavía no hay canales. Creá uno con el +.</p> : null}
       </section>
@@ -325,6 +359,21 @@ export default function MensajesPage() {
             : null}
 
           </>
+          ) : null}
+          {editando ? (
+            <NuevoCanal
+              canal={editando}
+              onCerrar={() => setEditando(null)}
+              onCreado={() => {
+                setEditando(null)
+                cargar()
+              }}
+              onBorrado={(c) => {
+                setEditando(null)
+                if (activo === c.id) setParams({})
+                cargar()
+              }}
+            />
           ) : null}
           {creando ? (
             <NuevoCanal
