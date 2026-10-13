@@ -59,3 +59,17 @@ def test_el_pedido_lleva_voz_cliente_nicho_y_clases_reales():
     assert "Sos Juan" in sistema and "Dale, fijate esto" in usuario and "planes online" in usuario
     assert "Recordatorio 2 h antes" in usuario and "voseo" in usuario
     assert "Si recomendás una clase" in usuario  # hay clases reales del concepto no-show
+
+
+def test_con_la_caja_vacia_y_el_equipo_ultimo_pide_un_seguimiento():
+    from datetime import datetime, timedelta
+
+    from src.services import sugerencias_service as sg
+
+    hace3 = (datetime.utcnow() - timedelta(days=3)).isoformat(timespec="seconds") + "Z"
+    ctx = {"conversacion": [{"de": "cliente", "texto": "dale, lo veo"}, {"de": "equipo", "texto": "te paso el doc", "cuando": hace3}]}
+    _, usuario = sg.armar_prompt("Franco", ctx, "", None)
+    assert "seguimiento" in usuario and "hace 3 días" in usuario
+    ctx["conversacion"].append({"de": "cliente", "texto": "gracias!"})
+    _, usuario = sg.armar_prompt("Franco", ctx, "", None)
+    assert "seguimiento" not in usuario and "respuesta completa" in usuario

@@ -393,3 +393,20 @@ class AccionRapida(db.Entity):
     texto = Required(str)
     orden = Required(int, default=0)
     creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class GastoIA(db.Entity):
+    """Tokens que se usaron por día y por uso (aprendizaje, tab). Sirve para ver el gasto real y para el
+    tope diario del aprendizaje, sin depender de estimaciones."""
+
+    _table_ = (DB_SCHEMA, "cerebro_gasto")
+
+    id = PrimaryKey(int, auto=True)
+    fecha = Required(date)
+    uso = Required(str)
+    llamadas = Required(int, default=0)
+    entrada = Required(int, default=0)
+    cache_escrita = Required(int, default=0)
+    cache_leida = Required(int, default=0)
+    salida = Required(int, default=0)
+    composite_key(fecha, uso)

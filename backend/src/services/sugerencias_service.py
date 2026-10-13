@@ -7,6 +7,7 @@ escribiendo. Nada se manda solo.
 """
 
 import logging
+from datetime import datetime
 import re
 import time
 from collections import defaultdict, deque
@@ -18,6 +19,7 @@ from pony.orm import db_session
 from src.models import Admin, Clase, SugerenciaIA
 from src.services.cerebro_service import CONCEPTOS, _bonito
 from src.services import aprendizaje_service as ap
+from src.services import gasto_ia
 from src.services.auth_service import es_equipo
 
 logger = logging.getLogger(__name__)
@@ -123,6 +125,21 @@ def _titulos_de_clases() -> dict[int, str]:
     return _titulos[1]
 
 
+def _hace(cuando: str | None) -> str:
+    """ " hace 3 días" a partir de la fecha ISO del mensaje (vacío si no se sabe)."""
+    if not cuando:
+        return ""
+    try:
+        dif = datetime.utcnow() - datetime.fromisoformat(cuando.rstrip("Z"))
+    except ValueError:
+        return ""
+    horas = dif.total_seconds() / 3600
+    if horas < 24:
+        return f" hace {max(1, round(horas))} {'hora' if round(horas) <= 1 else 'horas'}"
+    dias = round(horas / 24)
+    return f" hace {dias} {'día' if dias == 1 else 'días'}"
+
+
 def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> tuple[str, str]:
     voz = ctx.get("voz") or {}
     ejemplos = "\n".join(f"- {e[:400]}" for e in (voz.get("ejemplos") or [])[:16]) or "(sin ejemplos todavía)"
@@ -148,14 +165,22 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
         "ni explicaciones. No inventes datos, precios, links, fechas ni promesas: si te falta algo, preguntá."
     )
     largo = round((voz.get("rasgos") or {}).get("palabras_promedio") or 25)
+    ultimo = next((m for m in reversed(ctx.get("conversacion") or []) if m.get("texto")), None)
     if borrador.strip():
         tarea = (
             f"Ya empezó a escribir. Devolvé el mensaje COMPLETO como lo terminaría, arrancando exactamente "
             f"con lo que ya escribió, letra por letra (si cortó una palabra, completala):\n{borrador}\n"
             f"Que el mensaje entero tenga alrededor de {largo} palabras."
         )
+    elif ultimo and ultimo.get("de") != "cliente":
+        tarea = (
+            f"Todavía no escribió nada. El último mensaje lo mandó el equipo{_hace(ultimo.get('cuando'))} y el cliente no respondió. "
+            f"Devolvé un mensaje corto de seguimiento, como lo mandaría {nombre}: que retome lo último que se habló sin repetirlo "
+            f"y que invite a responder. Alrededor de {largo} palabras."
+        )
     else:
         tarea = f"Todavía no escribió nada. Devolvé la respuesta completa que mandaría ahora a los últimos mensajes del cliente, de alrededor de {largo} palabras."
+    tarea += f"\nEscribís vos, {nombre}, del lado del EQUIPO y para el cliente: nunca escribas como el cliente ni le hables a otra persona del equipo."
     clases = clases_relacionadas(ctx)
     clases_txt = ("Si recomendás una clase del classroom, solo puede ser una de estas (con este nombre): " + "; ".join(clases)) if clases else "No recomiendes clases por nombre."
     usuario = f"""Cómo escribe {nombre}: {_describir_voz(voz.get('rasgos') or {})}
@@ -205,6 +230,10 @@ def _stream(sistema: str, usuario: str):
         messages=[{"role": "user", "content": usuario}],
     ) as st:
         yield from st.text_stream
+        try:
+            gasto_ia.registrar("tab", st.get_final_message().usage)
+        except Exception:  # el registro nunca corta una sugerencia
+            pass
 
 
 class _Recorte:

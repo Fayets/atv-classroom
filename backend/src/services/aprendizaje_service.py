@@ -25,6 +25,7 @@ from decouple import config
 from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
+from src.services import gasto_ia
 from src.models import (
     Admin,
     Canal,
@@ -43,6 +44,9 @@ MODELO = config("APRENDIZAJE_MODEL", default="claude-haiku-5-5")
 LOTE = 60  # mensajes nuevos por llamada
 CONTEXTO = 8  # mensajes ya aprendidos que se mandan para que entienda la charla
 MAX_CANALES_POR_CICLO = 30
+# Tope de gasto por día para el historial importado de Discord. Los chats con mensajes nuevos del
+# classroom se aprenden siempre; lo viejo avanza solo mientras no se pase el tope.
+TOPE_DIARIO_USD = config("APRENDIZAJE_TOPE_DIARIO_USD", default=0.5, cast=float)
 DESDE_EL_PRINCIPIO = -(2**31)  # el historial de Discord tiene ids negativos: también se aprende
 
 TIPOS = {
@@ -79,20 +83,14 @@ def _norm(t: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^\w\s$%]", " ", t)).strip()
 
 
-def _prompt(cliente: str, mensajes: list[dict], nuevos_desde: int, perfil: dict) -> str:
-    lineas = []
-    for m in mensajes:
-        quien = "CLIENTE" if m["autor_tipo"] == "cliente" else f"EQUIPO ({m['autor']})"
-        marca = "" if m["id"] >= nuevos_desde else " [ya procesado, solo contexto]"
-        lineas.append(f"[{m['id']}] {quien}{marca}: {m['texto']}")
+def _instrucciones() -> str:
+    """La parte fija del pedido (formato, tipos, conceptos, reglas). Va en el system con caché:
+    es igual en cada llamada, así que se cobra entera una vez y después a una décima parte."""
     tipos = "\n".join(f'- "{k}": {v}' for k, v in TIPOS.items())
     conceptos = ", ".join(f'{c["id"]} ({c["nombre"]})' for c in CONCEPTOS["conceptos"])
-    return f"""Cliente: {cliente}
-Perfil que ya sabemos (puede estar vacío): {json.dumps(perfil, ensure_ascii=False)}
+    return f"""{_SISTEMA}
 
-Conversación (cada mensaje con su id entre corchetes):
-{chr(10).join(lineas)}
-
+Te paso un cliente, lo que ya sabemos de él y su conversación con el equipo (cada mensaje con su id entre corchetes).
 Devolvé este JSON:
 {{
   "perfil": {{
@@ -121,8 +119,21 @@ Reglas:
 - "recomendacion" sale solo de mensajes del EQUIPO; todos los demás tipos, solo del CLIENTE.
 - "le_funciono" y "no_le_funciono" solo si el cliente lo dice explícitamente.
 - En el perfil, solo lo que el cliente dijo en esta conversación; si no lo dijo, null.
-- Saludos, agradecimientos y charla sin contenido no son hechos. Si no hay nada, "hechos": [].
-"""
+- Saludos, agradecimientos y charla sin contenido no son hechos. Si no hay nada, "hechos": []."""
+
+
+def _prompt(cliente: str, mensajes: list[dict], nuevos_desde: int, perfil: dict) -> str:
+    """La parte que cambia en cada llamada: quién es el cliente y la conversación."""
+    lineas = []
+    for m in mensajes:
+        quien = "CLIENTE" if m["autor_tipo"] == "cliente" else f"EQUIPO ({m['autor']})"
+        marca = "" if m["id"] >= nuevos_desde else " [ya procesado, solo contexto]"
+        lineas.append(f"[{m['id']}] {quien}{marca}: {m['texto']}")
+    return f"""Cliente: {cliente}
+Perfil que ya sabemos (puede estar vacío): {json.dumps(perfil, ensure_ascii=False)}
+
+Conversación:
+{chr(10).join(lineas)}"""
 
 
 def _llamar(prompt: str) -> dict | None:
@@ -137,9 +148,10 @@ def _llamar(prompt: str) -> dict | None:
         max_tokens=4000,
         # Extraer datos no necesita razonar: sin "thinking" sale más barato y no corta el JSON.
         thinking={"type": "disabled"},
-        system=_SISTEMA,
+        system=[{"type": "text", "text": _instrucciones(), "cache_control": {"type": "ephemeral"}}],
         messages=[{"role": "user", "content": prompt}],
     )
+    gasto_ia.registrar("aprendizaje", r.usage)
     texto = "".join(b.text for b in r.content if b.type == "text").strip()
     return leer_json(texto)
 
@@ -411,24 +423,29 @@ def actualizar_voces() -> int:
 
 
 def ciclo(llamar=_llamar) -> dict:
-    """Una pasada: canales con mensajes nuevos (hasta MAX_CANALES_POR_CICLO) y voces del equipo."""
+    """Una pasada: primero los chats con mensajes nuevos del classroom, después el historial de Discord
+    (lo más reciente primero) mientras no se pase el tope diario. Al final, las voces del equipo."""
     with db_session:
         pendientes = db.select(
-            f'SELECT c.id FROM "{DB_SCHEMA}"."canales" c '
+            f'SELECT c.id, bool_or(m.id > 0) FROM "{DB_SCHEMA}"."canales" c '
             f'JOIN "{DB_SCHEMA}"."mensajes_canal" m ON m.canal = c.id '
             f'LEFT JOIN "{DB_SCHEMA}"."cerebro_estado" e ON e.canal_id = c.id '
             f"WHERE c.tipo = 'cliente' AND NOT m.borrado AND m.id > COALESCE(e.ultimo_mensaje_id, {DESDE_EL_PRINCIPIO}) "
-            "GROUP BY c.id ORDER BY max(m.id) DESC"
+            "GROUP BY c.id ORDER BY bool_or(m.id > 0) DESC, max(m.creado_en) DESC"
         )
     resultados = []
-    for canal_id in pendientes[:MAX_CANALES_POR_CICLO]:
+    frenado = False
+    for canal_id, vivo in pendientes[:MAX_CANALES_POR_CICLO]:
+        if not vivo and gasto_ia.gastado_hoy("aprendizaje") >= TOPE_DIARIO_USD:
+            frenado = True
+            break
         try:
             resultados.append(aprender_canal(canal_id, llamar))
         except Exception:
             logger.exception("Aprendizaje: falló el canal %s", canal_id)
             resultados.append({"canal": canal_id, "error": "excepción"})
     voces = actualizar_voces()
-    return {"canales": resultados, "voces": voces, "pendientes": max(0, len(pendientes) - MAX_CANALES_POR_CICLO)}
+    return {"canales": resultados, "voces": voces, "pendientes": max(0, len(pendientes) - len(resultados)), "tope_alcanzado": frenado}
 
 
 # ---------- lo que va a usar la IA (Tab, seguimientos) y la base por nicho ----------

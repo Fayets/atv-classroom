@@ -10,6 +10,9 @@ import Enlaces from './Enlaces'
 import TextoMensaje from './TextoMensaje'
 
 const AGRUPAR_MS = 5 * 60 * 1000
+// Sugerencias con la caja vacía ya pedidas, por chat: volver a un chat no paga otra.
+const cacheVacio = new Map() // canalId → { mensaje, fantasma }
+const SEGUIMIENTO_DESPUES_MS = 60 * 60 * 1000 // si escribiste vos último, la sugerencia de seguimiento aparece pasada una hora
 let temporal = 0
 
 // Etiqueta a todos los que ven el canal (solo lo puede usar el equipo).
@@ -185,7 +188,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   const [fantasma, setFantasma] = useState(null) // { id, base, texto, cargando }
   const pedidoIA = useRef(null)
   const esperaIA = useRef(null)
-  const vacioPedido = useRef(null) // último mensaje del cliente para el que ya se pidió respuesta
+  const vacioPedido = useRef(null) // último mensaje para el que ya se pidió una sugerencia con la caja vacía
+  const descartadoIA = useRef(null) // id del último mensaje cuando apretaste Esc
   const campo = useRef(null)
   const iaActiva = Boolean(isEquipo && datos?.canal?.tipo === 'cliente')
 
@@ -206,7 +210,11 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
         signal: ctrl.signal,
         alPedazo: (t) => setFantasma((f) => (mismo(f) ? { ...f, texto: t } : f)),
       })
-        .then(({ id, texto: t }) => setFantasma((f) => (mismo(f) ? { id, base, texto: t, cargando: false } : f)))
+        .then(({ id, texto: t }) => {
+          const lista = { id, base, texto: t, cargando: false }
+          if (!base && t) cacheVacio.set(canalId, { mensaje: vacioPedido.current, fantasma: lista })
+          setFantasma((f) => (mismo(f) ? lista : f))
+        })
         .catch(() => setFantasma((f) => (mismo(f) ? null : f)))
     },
     [canalId, cancelarIA],
@@ -216,17 +224,28 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   useEffect(() => {
     setFantasma(null)
     vacioPedido.current = null
+    descartadoIA.current = null
     return cancelarIA
   }, [canalId, cancelarIA])
 
-  // Si el cliente escribió último y todavía no empezaste a responder, se prepara la respuesta entera.
+  // Con la caja vacía siempre hay una sugerencia: la respuesta si el cliente escribió último, o un
+  // seguimiento si el último mensaje es del equipo y pasó un rato sin respuesta. Si borrás lo que
+  // escribías, vuelve la misma (sin pedir otra). Esc la descarta hasta que llegue un mensaje nuevo.
   const ultimoMensaje = mensajes[mensajes.length - 1]
   useEffect(() => {
-    if (!iaActiva || oculta || texto || !ultimoMensaje || ultimoMensaje.autor?.tipo !== 'cliente') return
+    if (!iaActiva || oculta || texto || fantasma || !ultimoMensaje || !(ultimoMensaje.id > 0 || ultimoMensaje.id < 0)) return
+    if (descartadoIA.current === ultimoMensaje.id) return
+    if (cacheVacio.get(canalId)?.mensaje === ultimoMensaje.id) {
+      setFantasma(cacheVacio.get(canalId).fantasma)
+      return
+    }
     if (vacioPedido.current === ultimoMensaje.id) return
+    const delCliente = ultimoMensaje.autor?.tipo === 'cliente'
+    const hace = Date.now() - new Date(ultimoMensaje.creado_en).getTime()
+    if (!delCliente && !(hace >= SEGUIMIENTO_DESPUES_MS)) return
     vacioPedido.current = ultimoMensaje.id
     pedirIA('')
-  }, [iaActiva, oculta, texto, ultimoMensaje, pedirIA])
+  }, [iaActiva, oculta, texto, fantasma, ultimoMensaje, pedirIA, canalId])
 
   // Lo que falta de la sugerencia: si seguís escribiendo lo mismo que proponía, se va achicando.
   const completoIA = fantasma ? fantasma.base + fantasma.texto : ''
@@ -443,6 +462,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     if (fantasma && e.key === 'Escape') {
       cancelarIA()
       setFantasma(null)
+      descartadoIA.current = ultimoMensaje?.id ?? null
       return
     }
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -750,6 +770,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                 onClick={() => {
                   cancelarIA()
                   setFantasma(null)
+                  descartadoIA.current = ultimoMensaje?.id ?? null
                 }}
               >
                 <kbd>Esc</kbd> descartar
