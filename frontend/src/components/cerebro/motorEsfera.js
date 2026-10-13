@@ -13,12 +13,6 @@ export const TIPOS = {
   solicitud: { nombre: 'Pedidos de SOP', color: '#ffd166', base: 3.6 },
 }
 
-export const FORMAS = {
-  esfera: { letra: 'A', nombre: 'Esfera', texto: 'Todo en la superficie de una esfera: lo que está conectado queda cerca y los temas forman continentes.' },
-  nucleo: { letra: 'B', nombre: 'Núcleo y órbitas', texto: 'Módulos al centro, después coaches, frentes y planes, después clases y conceptos, y los clientes afuera.' },
-  nube: { letra: 'C', nombre: 'Nube libre', texto: 'Como el gráfico 3D de Obsidian: nada está fijo y los grupos se forman solos.' },
-}
-
 const CAPA = { modulo: 0, coach: 1, frente: 1, plan: 1, clase: 2, concepto: 2, cliente: 3, solicitud: 3 }
 const RADIO_CAPA = [95, 185, 285, 370]
 const MORPH_MS = 1100

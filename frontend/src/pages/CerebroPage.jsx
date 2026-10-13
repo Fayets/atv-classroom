@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchCerebro, olvidarNeuronas, precargarNeurona } from '../api/cerebro'
 import AppHeader from '../components/AppHeader'
 import PanelNeurona from '../components/cerebro/PanelNeurona'
-import { FORMAS, MotorGrafo, TIPOS } from '../components/cerebro/motorEsfera'
+import { MotorGrafo, TIPOS } from '../components/cerebro/motorEsfera'
 import { useMensajeria } from '../context/MensajeriaContext'
 import { cuandoCorto, normal } from '../utils/mensajes'
 import '../styles/cerebro.css'
@@ -32,13 +32,6 @@ export default function CerebroPage() {
   const [hover, setHover] = useState(null)
   const [ocultos, setOcultos] = useState([])
   const [buscar, setBuscar] = useState('')
-  const [forma, setForma] = useState(() => {
-    try {
-      return FORMAS[localStorage.getItem('atv_cerebro_forma')] ? localStorage.getItem('atv_cerebro_forma') : 'esfera'
-    } catch {
-      return 'esfera'
-    }
-  })
   const { suscribir } = useMensajeria()
   const recarga = useRef(null)
   const precarga = useRef(null)
@@ -76,15 +69,6 @@ export default function CerebroPage() {
   useEffect(() => {
     motor.current?.ocultar(ocultos)
   }, [ocultos])
-
-  useEffect(() => {
-    motor.current?.forma(forma)
-    try {
-      localStorage.setItem('atv_cerebro_forma', forma)
-    } catch {
-      // sin almacenamiento, la forma vale mientras la página esté abierta
-    }
-  }, [forma])
 
   // Aprende en vivo: cada mensaje o etiqueta nueva puede sumar neuronas o conexiones.
   useEffect(
@@ -124,17 +108,6 @@ export default function CerebroPage() {
             ) : (
               <p>{error || 'Cargando…'}</p>
             )}
-          </div>
-          <div className="cb-formas">
-            <div className="cb-segmento" role="group" aria-label="Forma del cerebro">
-              {Object.entries(FORMAS).map(([id, f]) => (
-                <button key={id} type="button" aria-pressed={forma === id} onClick={() => setForma(id)}>
-                  <span>{f.letra}</span>
-                  {f.nombre}
-                </button>
-              ))}
-            </div>
-            <p className="cb-explica">{FORMAS[forma].texto}</p>
           </div>
           <div className="cb-buscar">
             <input

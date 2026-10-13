@@ -99,12 +99,3 @@
 @keyframes cb-brillo { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @media (prefers-reduced-motion: reduce) { .cb-esqueleto i { animation: none; } }
 
-.cb-formas { pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
-.cb-segmento { display: inline-flex; padding: 3px; border-radius: 11px; background: var(--cb-vidrio); backdrop-filter: blur(18px); box-shadow: inset 0 0 0 0.5px var(--cb-linea); }
-.cb-segmento button { border: 0; background: transparent; color: var(--cb-t2); font: inherit; font-size: 12.5px; padding: 6px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
-.cb-segmento button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.12); color: var(--cb-t1); font-weight: 600; }
-.cb-segmento button span { color: var(--cb-acento); font-weight: 700; margin-right: 5px; }
-.cb-explica { margin: 0; max-width: 440px; text-align: center; color: var(--cb-t2); font-size: 12px; text-wrap: balance; transition: opacity 200ms; }
-.cb-lienzo.con-panel .cb-explica { opacity: 0; }
-@container lienzo (max-width: 899px) { .cb-explica { display: none; } }
-@container lienzo (max-width: 699px) { .cb-formas { align-items: stretch; } .cb-segmento { overflow-x: auto; } }
