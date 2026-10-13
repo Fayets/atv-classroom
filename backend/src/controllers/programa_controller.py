@@ -1,22 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from src import schemas
-from src.services.auth_service import ROLES_EQUIPO, obtener_sesion_desde_request
+from src.services.auth_service import obtener_sesion_desde_request, persona
 from src.services.programa_service import ProgramaServices
 
 router = APIRouter(prefix="/api/programas", tags=["programas"])
 service = ProgramaServices()
 
 
-def _tipo_desde_rol(rol: str) -> str:
-    return "admin" if rol in ROLES_EQUIPO else "cliente"
 
 
 @router.get("", response_model=list[schemas.ProgramaListItem])
 def listar_programas(sesion: dict = Depends(obtener_sesion_desde_request)):
     try:
-        tipo = _tipo_desde_rol(sesion["rol"])
-        return service.listar_programas(sesion["usuario_id"], tipo)
+        tipo, pid = persona(sesion)
+        return service.listar_programas(pid, tipo, sesion.get("miembro_rol"))
     except HTTPException as exc:
         raise exc
     except Exception:
@@ -29,8 +27,8 @@ def obtener_programa(
     sesion: dict = Depends(obtener_sesion_desde_request),
 ):
     try:
-        tipo = _tipo_desde_rol(sesion["rol"])
-        return service.obtener_detalle_programa(programa_id, sesion["usuario_id"], tipo)
+        tipo, pid = persona(sesion)
+        return service.obtener_detalle_programa(programa_id, pid, tipo, sesion.get("miembro_rol"))
     except HTTPException as exc:
         raise exc
     except Exception:

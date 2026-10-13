@@ -32,6 +32,7 @@ export function AuthProvider({ children }) {
       rol: data.rol,
       dias_restantes: data.dias_restantes ?? null,
       foto_url: data.foto_url ?? null,
+      miembro: data.miembro ?? null,
     }
 
     setStoredToken(data.token)

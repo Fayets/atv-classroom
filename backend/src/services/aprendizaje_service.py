@@ -126,7 +126,12 @@ def _prompt(cliente: str, mensajes: list[dict], nuevos_desde: int, perfil: dict)
     """La parte que cambia en cada llamada: quién es el cliente y la conversación."""
     lineas = []
     for m in mensajes:
-        quien = "CLIENTE" if m["autor_tipo"] == "cliente" else f"EQUIPO ({m['autor']})"
+        if m["autor_tipo"] != "cliente":
+            quien = f"EQUIPO ({m['autor']})"
+        elif m.get("de_su_equipo"):
+            quien = f"CLIENTE ({m['de_su_equipo']}, de su equipo)"
+        else:
+            quien = "CLIENTE"
         marca = "" if m["id"] >= nuevos_desde else " [ya procesado, solo contexto]"
         lineas.append(f"[{m['id']}] {quien}{marca}: {m['texto']}")
     return f"""Cliente: {cliente}
@@ -233,7 +238,8 @@ def _mensajes_de(canal_id: int, desde_id: int) -> tuple[list[dict], int]:
     previos = [m for m in todos if m.id <= desde_id][-CONTEXTO:]
     nuevos = [m for m in todos if m.id > desde_id][:LOTE]
     lista = [
-        {"id": m.id, "autor_tipo": m.autor_tipo, "autor_id": m.autor_id, "autor": nombres.get(m.autor_id) or m.autor_nombre or "Equipo", "texto": m.texto, "creado_en": m.creado_en}
+        {"id": m.id, "autor_tipo": m.autor_tipo, "autor_id": m.autor_id, "autor": nombres.get(m.autor_id) or m.autor_nombre or "Equipo", "texto": m.texto, "creado_en": m.creado_en,
+         "de_su_equipo": m.autor_nombre if m.autor_tipo == "cliente" and m.miembro_id else None}
         for m in previos + nuevos
     ]
     return lista, (nuevos[0].id if nuevos else desde_id + 1)

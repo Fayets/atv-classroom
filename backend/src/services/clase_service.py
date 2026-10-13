@@ -5,13 +5,15 @@ from pony.orm import db_session
 
 from src.db import db
 from src.models import Clase, Nota, Progreso
+from src.services.equipo_cliente_service import programa_visible
 from src.services.bloqueos import exigir_desbloqueado
 from src.services.frente_service import BRIEFS, coach_de_clase
 from src.utils.clase_content import serializar_recursos
 
 
 def _campo_id(tipo: str) -> str:
-    return "admin_id" if tipo == "admin" else "cliente_id"
+    """De quién es el progreso: equipo de ATV, cliente o alguien del equipo del cliente."""
+    return {"admin": "admin_id", "miembro": "miembro_id"}.get(tipo, "cliente_id")
 
 
 def _buscar_progreso(clase_id: int, usuario_id: int, tipo: str) -> Progreso | None:
@@ -37,10 +39,10 @@ def _buscar_nota(clase_id: int, usuario_id: int, tipo: str) -> Nota | None:
 
 
 class ClaseServices:
-    def obtener_detalle_clase(self, clase_id: int, usuario_id: int, tipo: str) -> dict:
+    def obtener_detalle_clase(self, clase_id: int, usuario_id: int, tipo: str, rol_miembro: str | None = None) -> dict:
         with db_session:
             clase = Clase.get(id=clase_id)
-            if clase is None:
+            if clase is None or (tipo == "miembro" and not programa_visible(rol_miembro, clase.seccion.programa.titulo)):
                 raise HTTPException(status_code=404, detail="Clase no encontrada.")
             exigir_desbloqueado(clase.seccion.programa)
 
@@ -90,10 +92,7 @@ class ClaseServices:
                     "clase_id": clase_id,
                     "completado": completado,
                 }
-                if tipo == "admin":
-                    kwargs["admin_id"] = usuario_id
-                else:
-                    kwargs["cliente_id"] = usuario_id
+                kwargs[_campo_id(tipo)] = usuario_id
                 if completado:
                     kwargs["completado_en"] = datetime.utcnow()
                 progreso = Progreso(**kwargs)
@@ -129,10 +128,7 @@ class ClaseServices:
                     "clase_id": clase_id,
                     "contenido": texto,
                 }
-                if tipo == "admin":
-                    kwargs["admin_id"] = usuario_id
-                else:
-                    kwargs["cliente_id"] = usuario_id
+                kwargs[_campo_id(tipo)] = usuario_id
                 nota = Nota(**kwargs)
                 db.flush()
 

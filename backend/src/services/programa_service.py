@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from pony.orm import db_session
 
 from src.models import Clase, Programa, Progreso, Seccion
+from src.services.equipo_cliente_service import programa_visible
 from src.services.bloqueos import exigir_desbloqueado, programa_bloqueado
 
 
@@ -14,7 +15,8 @@ def _cover_url(programa: Programa) -> str | None:
 
 
 def _campo_id(tipo: str) -> str:
-    return "admin_id" if tipo == "admin" else "cliente_id"
+    """De quién es el progreso: equipo de ATV, cliente o alguien del equipo del cliente."""
+    return {"admin": "admin_id", "miembro": "miembro_id"}.get(tipo, "cliente_id")
 
 
 def _clases_de_programa(programa_id: int) -> list[Clase]:
@@ -73,9 +75,11 @@ def _serializar_clase(clase: Clase, usuario_id: int, tipo: str) -> dict:
 
 
 class ProgramaServices:
-    def listar_programas(self, usuario_id: int, tipo: str) -> list[dict]:
+    def listar_programas(self, usuario_id: int, tipo: str, rol_miembro: str | None = None) -> list[dict]:
         with db_session:
             programas = list(Programa.select()[:])
+            if tipo == "miembro":
+                programas = [p for p in programas if programa_visible(rol_miembro, p.titulo)]
             # Los bloqueados van al final, en su orden.
             programas_ordenados = sorted(programas, key=lambda programa: (programa_bloqueado(programa), programa.orden))
 
@@ -102,10 +106,11 @@ class ProgramaServices:
         programa_id: int,
         usuario_id: int,
         tipo: str,
+        rol_miembro: str | None = None,
     ) -> dict:
         with db_session:
             programa = Programa.get(id=programa_id)
-            if programa is None:
+            if programa is None or (tipo == "miembro" and not programa_visible(rol_miembro, programa.titulo)):
                 raise HTTPException(status_code=404, detail="Programa no encontrado.")
             exigir_desbloqueado(programa)
 

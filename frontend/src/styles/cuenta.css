@@ -39,3 +39,36 @@
   .cuenta-perfil { flex-direction: column; text-align: center; }
   .cuenta-perfil__botones { justify-content: center; }
 }
+
+/* Tu equipo (cliente) y cupos (admin) */
+.cuenta-equipo__ayuda { margin: 0 0 14px; font-size: 14px; color: #6e6e73; line-height: 1.45; }
+.cuenta-equipo__ayuda b { color: #1d1d1f; font-weight: 600; }
+.cuenta-equipo__soy { margin: 0 0 12px; font-size: 14px; color: #3a3a3c; }
+.cuenta-equipo__lista { list-style: none; margin: 0 0 14px; padding: 0; display: grid; }
+.cuenta-equipo__lista li { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+.cuenta-equipo__lista li + li { border-top: 1px solid #f0f0f2; }
+.cuenta-equipo__avatar { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(#e8e8ec, #d6d6dc); font-size: 12px; font-weight: 600; color: #3a3a3c; }
+.cuenta-equipo__quien { flex: 1; min-width: 0; display: grid; }
+.cuenta-equipo__quien b { font-size: 14px; font-weight: 600; }
+.cuenta-equipo__quien small { font-size: 12.5px; color: #8e8e93; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cuenta-equipo__rol { flex: none; padding: 3px 9px; border-radius: 999px; background: #fbeceb; color: #a5281c; font-size: 12px; font-weight: 600; }
+.cuenta-equipo__acciones { flex: none; display: flex; gap: 2px; }
+.cuenta-equipo__acciones button { border: 0; background: none; padding: 4px 6px; border-radius: 6px; font: inherit; font-size: 13px; color: #6e6e73; cursor: pointer; }
+.cuenta-equipo__acciones button:hover { background: #f2f2f7; color: #1d1d1f; }
+.cuenta-equipo__acciones button.is-peligro { color: #d70015; font-weight: 600; }
+.cuenta-equipo__form { display: grid; gap: 10px; padding: 14px; border-radius: 12px; background: #f9f9fb; }
+.cuenta-equipo__form label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: #6e6e73; }
+.cuenta-equipo__form input, .cuenta-equipo__form select, .cuenta-cupos input { height: 36px; padding: 0 10px; border: 1px solid #d2d2d7; border-radius: 8px; background: #fff; font: inherit; font-size: 14px; color: #1d1d1f; }
+.cuenta-equipo__form input:focus, .cuenta-equipo__form select:focus, .cuenta-cupos input:focus { outline: none; border-color: #c0392b; box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15); }
+.cuenta-equipo__botones, .cuenta-equipo__pie { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.cuenta-equipo__pie { justify-content: space-between; font-size: 13px; color: #8e8e93; font-variant-numeric: tabular-nums; }
+.cuenta-equipo__error { margin: 10px 0 0; font-size: 13px; color: #d70015; }
+.cuenta-cupos table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 14px; }
+.cuenta-cupos th { text-align: left; font-size: 12px; font-weight: 600; color: #8e8e93; padding: 0 0 6px; }
+.cuenta-cupos td { padding: 6px 0; border-top: 1px solid #f0f0f2; }
+.cuenta-cupos input { width: 80px; font-variant-numeric: tabular-nums; }
+.cuenta-cupos .is-num { color: #6e6e73; font-variant-numeric: tabular-nums; }
+@media (max-width: 480px) {
+  .cuenta-equipo__lista li { flex-wrap: wrap; }
+  .cuenta-equipo__acciones { margin-left: 46px; }
+}

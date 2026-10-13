@@ -37,6 +37,7 @@ class SesionGuardada(db.Entity):
     email = Required(str)
     expira_en = Required(datetime)
     creado_en = Required(datetime, default=datetime.utcnow)
+    miembro_id = Optional(int, nullable=True)  # si entró alguien del equipo del cliente
 
 
 class ClienteExterno(db.Entity):
@@ -109,6 +110,7 @@ class Progreso(db.Entity):
     clase_id = Required(int)
     admin_id = Optional(int)
     cliente_id = Optional(int)
+    miembro_id = Optional(int, nullable=True)
     completado = Required(bool, default=False)
     completado_en = Optional(datetime)
 
@@ -120,6 +122,7 @@ class Nota(db.Entity):
     clase_id = Required(int)
     admin_id = Optional(int)
     cliente_id = Optional(int)
+    miembro_id = Optional(int, nullable=True)
     contenido = Required(str)
     creado_en = Required(datetime, default=datetime.utcnow)
 
@@ -218,6 +221,8 @@ class MensajeCanal(db.Entity):
     texto = Optional(str)  # puede ir vacío si el mensaje solo lleva adjuntos
     # Solo en el historial traído de Discord (id negativo): el nombre como aparecía allá.
     autor_nombre = Optional(str, nullable=True)
+    # Si lo escribió alguien del equipo del cliente: autor_id sigue siendo el cliente y acá va quién.
+    miembro_id = Optional(int, nullable=True)
     respuesta_a = Optional(int, nullable=True)
     editado_en = Optional(datetime, nullable=True)
     borrado = Required(bool, default=False)
@@ -410,3 +415,26 @@ class GastoIA(db.Entity):
     cache_leida = Required(int, default=0)
     salida = Required(int, default=0)
     composite_key(fecha, uso)
+
+
+class MiembroCliente(db.Entity):
+    """Alguien del equipo de un cliente (socio, setter, closer…). Entra con su mail y la misma clave
+    del cliente; ve el chat del cliente y las clases de su rol, y su acceso dura lo que dura el del cliente."""
+
+    _table_ = (DB_SCHEMA, "miembros_cliente")
+
+    id = PrimaryKey(int, auto=True)
+    cliente_id = Required(int, index=True)
+    email = Required(str, unique=True)
+    nombre = Required(str)
+    rol = Required(str)  # socio | setter | closer | editor | otro
+    creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class LimiteEquipo(db.Entity):
+    """Cuántas personas de su equipo puede sumar un cliente según su plan (si no está, va el de por defecto)."""
+
+    _table_ = (DB_SCHEMA, "limites_equipo")
+
+    plan = PrimaryKey(str)
+    maximo = Required(int)

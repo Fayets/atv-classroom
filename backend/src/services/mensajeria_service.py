@@ -65,6 +65,11 @@ def _yo(sesion: dict) -> tuple[str, int]:
     return ("admin" if es_equipo(sesion) else "cliente", sesion["usuario_id"])
 
 
+def _es_mio(m, sesion: dict) -> bool:
+    """El cliente y cada persona de su equipo comparten cuenta, pero cada uno edita solo lo suyo."""
+    return (m.autor_tipo, m.autor_id) == _yo(sesion) and (getattr(m, "miembro_id", None) or None) == (sesion.get("miembro_id") or None)
+
+
 def _roles_de(canal: Canal) -> list[str]:
     try:
         return list(json.loads(canal.roles_json or "[]"))
@@ -153,6 +158,21 @@ class _Autores:
                 }
         return self._cache[clave]
 
+    def miembro(self, miembro_id: int, nombre: str | None) -> dict:
+        """Alguien del equipo del cliente: su nombre, su foto y su rol ("Setter")."""
+        clave = ("miembro", miembro_id)
+        if clave not in self._cache:
+            from src.models import MiembroCliente
+            from src.services.equipo_cliente_service import nombre_rol
+
+            mc = MiembroCliente.get(id=miembro_id)
+            self._cache[clave] = {
+                "nombre": (mc.nombre if mc else None) or nombre or "Equipo del cliente",
+                "foto_url": foto_de("miembro", miembro_id),
+                "miembro": {"id": miembro_id, "rol": mc.rol if mc else None, "rol_nombre": nombre_rol(mc.rol) if mc else "Equipo"},
+            }
+        return self._cache[clave]
+
 
 def _recorte(texto: str, largo: int = 140) -> str:
     texto = " ".join(texto.split())
@@ -177,6 +197,8 @@ def _adjuntos_de(mensaje_ids: list[int]) -> dict[int, list[dict]]:
 def _autor(m, autores: _Autores) -> dict:
     """Quién escribió. En el historial de Discord manda el nombre que tenía allá (puede no tener cuenta)."""
     base = autores.de(m.autor_tipo, m.autor_id)
+    if getattr(m, "miembro_id", None):
+        return {**base, **autores.miembro(m.miembro_id, m.autor_nombre)}
     nombre = getattr(m, "autor_nombre", None)
     if nombre and (m.autor_tipo == "cliente" or not m.autor_id):
         return {**base, "nombre": nombre, "foto_url": None}
@@ -500,6 +522,10 @@ class MensajeriaServices:
                     raise HTTPException(status_code=422, detail="Uno de los archivos no es válido. Volvé a subirlo.")
                 propios.append(a)
             m = MensajeCanal(canal=canal, autor_tipo=yo[0], autor_id=yo[1], texto=texto, respuesta_a=respuesta_a)
+            if sesion.get("miembro_id"):
+                # Alguien del equipo del cliente: la cuenta es la del cliente, la firma es la suya.
+                m.miembro_id = sesion["miembro_id"]
+                m.autor_nombre = sesion["nombre"]
             canal.ultimo_mensaje_en = datetime.utcnow()
             db.flush()
             for a in propios:
@@ -533,7 +559,7 @@ class MensajeriaServices:
             m = MensajeCanal.get(id=mensaje_id)
             if m is None or not _ve(sesion, _info(m.canal)):
                 raise HTTPException(status_code=404, detail="Mensaje no encontrado.")
-            if (m.autor_tipo, m.autor_id) != _yo(sesion) or m.borrado:
+            if not _es_mio(m, sesion) or m.borrado:
                 raise HTTPException(status_code=403, detail="Solo podés editar tus propios mensajes.")
             m.texto = texto
             m.editado_en = datetime.utcnow()
@@ -544,7 +570,7 @@ class MensajeriaServices:
             m = MensajeCanal.get(id=mensaje_id)
             if m is None or not _ve(sesion, _info(m.canal)):
                 raise HTTPException(status_code=404, detail="Mensaje no encontrado.")
-            es_mio = (m.autor_tipo, m.autor_id) == _yo(sesion)
+            es_mio = _es_mio(m, sesion)
             if not es_mio and sesion.get("rol") != "admin":
                 raise HTTPException(status_code=403, detail="Solo podés borrar tus propios mensajes.")
             m.borrado = True  # se conserva el registro; el texto deja de mostrarse

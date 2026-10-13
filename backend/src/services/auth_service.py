@@ -123,6 +123,7 @@ def _crear_token(session_data: dict) -> str:
             nombre=session_data["nombre"],
             email=session_data["email"],
             expira_en=expira,
+            miembro_id=session_data.get("miembro_id"),
         )
     _sessions[token] = {**session_data, "expires_at": _a_epoch(expira)}
     return token
@@ -142,6 +143,7 @@ def _obtener_sesion(token: str) -> dict | None:
                 "nombre": guardada.nombre,
                 "email": guardada.email,
                 "expires_at": _a_epoch(guardada.expira_en),
+                "miembro_id": guardada.miembro_id,
             }
         _sessions[token] = sesion
     if time.time() > sesion["expires_at"]:
@@ -235,8 +237,16 @@ def login(email: str, contrasena: str) -> dict:
         # Un mail puede estar en más de una ficha (ej. cliente que recompró): gana la que tenga
         # la clave correcta y, entre esas, la que siga con acceso.
         validos = [c for c in _buscar_clientes_por_email(email_norm) if _clave_correcta(c, contrasena)]
+        miembro = None
         if not validos:
-            raise HTTPException(status_code=401, detail="Email o contrasena incorrectos.")
+            # ¿Es alguien del equipo de un cliente? Entra con su mail y la clave del cliente.
+            from src.models import MiembroCliente
+
+            miembro = MiembroCliente.get(email=email_norm)
+            titular = ClienteExterno.get(id=miembro.cliente_id) if miembro else None
+            if titular is None or not _clave_correcta(titular, contrasena):
+                raise HTTPException(status_code=401, detail="Email o contrasena incorrectos.")
+            validos = [titular]
 
         cliente = next((c for c in validos if _tiene_acceso(c)), None)
         if cliente is None:
@@ -257,10 +267,14 @@ def login(email: str, contrasena: str) -> dict:
             "rol": rol,
             "tipo": "cliente",
         }
+        if miembro is not None:
+            # La cuenta es la del cliente (chat, plan, vencimiento); la persona es el miembro.
+            session_data.update({"nombre": miembro.nombre, "email": miembro.email, "miembro_id": miembro.id})
         return {
             "token": _crear_token(session_data),
             **{k: v for k, v in session_data.items() if k != "tipo"},
             "dias_restantes": dias_restantes,
+            **(_datos_miembro(miembro, cliente) if miembro is not None else {}),
         }
 
 
@@ -318,13 +332,38 @@ def _validar_token(token: str) -> dict:
             if cliente is None or not _tiene_acceso(cliente):
                 cerrar_sesion(token)
                 raise HTTPException(status_code=401, detail="Tu acceso al Classroom venció.")
+            if sesion.get("miembro_id"):
+                from src.models import MiembroCliente
+
+                m = MiembroCliente.get(id=sesion["miembro_id"])
+                if m is None or m.cliente_id != cliente.id:
+                    cerrar_sesion(token)
+                    raise HTTPException(status_code=401, detail="Ya no estás en el equipo de este cliente.")
+                sesion["miembro_rol"] = m.rol
 
     return {
         "usuario_id": sesion["usuario_id"],
         "nombre": sesion["nombre"],
         "email": sesion["email"],
         "rol": sesion["rol"],
+        "miembro_id": sesion.get("miembro_id"),
+        "miembro_rol": sesion.get("miembro_rol"),
     }
+
+
+def _datos_miembro(miembro, cliente) -> dict:
+    from src.services.equipo_cliente_service import nombre_rol
+
+    return {"miembro": {"id": miembro.id, "rol": miembro.rol, "rol_nombre": nombre_rol(miembro.rol), "cliente_nombre": cliente.nombre or cliente.email}}
+
+
+def persona(sesion: dict) -> tuple[str, int]:
+    """Quién es la persona (no la cuenta): para progreso, notas, fotos y firma de mensajes."""
+    if es_equipo(sesion):
+        return "admin", sesion["usuario_id"]
+    if sesion.get("miembro_id"):
+        return "miembro", sesion["miembro_id"]
+    return "cliente", sesion["usuario_id"]
 
 
 def _foto_cliente(cliente_id: int) -> str | None:
@@ -363,5 +402,22 @@ def obtener_perfil_sesion(sesion: dict) -> dict:
             "rol": sesion["rol"],
             "dias_restantes": _calcular_dias_restantes(fecha_vencimiento),
             "fecha_vencimiento": fecha_vencimiento.isoformat() if fecha_vencimiento else None,
-            "foto_url": _foto_cliente(sesion["usuario_id"]),
+            "foto_url": _foto_persona(sesion),
+            "miembro": _miembro_de_sesion(sesion, cliente),
         }
+
+
+def _foto_persona(sesion: dict) -> str | None:
+    from src.services.cuenta_service import foto_de
+
+    tipo, pid = persona(sesion)
+    return foto_de(tipo, pid)
+
+
+def _miembro_de_sesion(sesion: dict, cliente) -> dict | None:
+    if not sesion.get("miembro_id"):
+        return None
+    from src.models import MiembroCliente
+
+    m = MiembroCliente.get(id=sesion["miembro_id"])
+    return _datos_miembro(m, cliente)["miembro"] if m else None

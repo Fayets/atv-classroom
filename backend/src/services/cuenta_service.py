@@ -9,7 +9,7 @@ from pony.orm import db_session
 
 from src.db import db
 from src.models import Admin, ClienteExterno, FotoPerfil
-from src.services.auth_service import es_equipo, tipo_de_sesion
+from src.services.auth_service import es_equipo, persona, tipo_de_sesion
 from src.services.roles_canal import nombre_rol, rol_de_plan
 from src.storage.adjuntos import ADJUNTOS_DIR
 
@@ -67,10 +67,19 @@ class CuentaServices:
             inicio, duracion = extra[0] if extra else (None, None)
             hoy = date.today()
             vence = c.fecha_vencimiento
+            ptipo, pid = persona(sesion)
+            miembro = None
+            if ptipo == "miembro":
+                from src.models import MiembroCliente
+                from src.services.equipo_cliente_service import nombre_rol as rol_equipo
+
+                m = MiembroCliente.get(id=pid)
+                miembro = {"rol": m.rol, "rol_nombre": rol_equipo(m.rol), "cliente_nombre": c.nombre or c.email} if m else None
             return {
                 "tipo": "cliente",
-                "nombre": c.nombre or sesion["nombre"],
-                "email": c.email,
+                "miembro": miembro,
+                "nombre": sesion["nombre"] if miembro else (c.nombre or sesion["nombre"]),
+                "email": sesion["email"] if miembro else c.email,
                 "plan": c.plan_actual,
                 "plan_nombre": nombre_rol(rol_de_plan(c.plan_actual)) if rol_de_plan(c.plan_actual) else (c.plan_actual or "").capitalize() or None,
                 "fecha_inicio": inicio.isoformat() if inicio else None,
@@ -78,8 +87,8 @@ class CuentaServices:
                 "dias_restantes": (vence - hoy).days if vence else None,
                 "duracion_dias": duracion,
                 "responsable": c.responsable,
-                "foto_url": foto_de(tipo, c.id),
-                "foto_propia": bool(fotos_de(tipo, [c.id])),
+                "foto_url": foto_de(ptipo, pid),
+                "foto_propia": bool(fotos_de(ptipo, [pid])),
             }
 
     def subir_foto(self, sesion: dict, datos: bytes) -> dict:
@@ -88,8 +97,7 @@ class CuentaServices:
         ext = _tipo_imagen(datos)
         if ext is None:
             raise HTTPException(status_code=415, detail="La foto tiene que ser JPG, PNG o WEBP.")
-        tipo = tipo_de_sesion(sesion)
-        uid = sesion["usuario_id"]
+        tipo, uid = persona(sesion)
         FOTOS_DIR.mkdir(parents=True, exist_ok=True)
         # Nombre nuevo en cada cambio: así el navegador no muestra la foto vieja guardada.
         archivo = f"{tipo}-{uid}-{secrets.token_hex(8)}.{ext}"
@@ -107,9 +115,9 @@ class CuentaServices:
         return {"foto_url": url_foto(archivo)}
 
     def quitar_foto(self, sesion: dict) -> dict:
-        tipo = tipo_de_sesion(sesion)
+        tipo, uid = persona(sesion)
         with db_session:
-            f = FotoPerfil.get(tipo=tipo, usuario_id=sesion["usuario_id"])
+            f = FotoPerfil.get(tipo=tipo, usuario_id=uid)
             if f is not None:
                 ruta = FOTOS_DIR / f.archivo
                 if ruta.exists():

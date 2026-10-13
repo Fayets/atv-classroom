@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchCuenta, prepararFoto, quitarFoto, subirFoto } from '../api/cuenta'
 import AppHeader from '../components/AppHeader'
+import CuposEquipo from '../components/cuenta/CuposEquipo'
+import TuEquipo from '../components/cuenta/TuEquipo'
 import { useAuth } from '../context/AuthContext'
 import '../styles/cuenta.css'
 import { getUserInitials } from '../utils/user'
@@ -113,7 +115,8 @@ export default function CuentaPage() {
             </Seccion>
 
             {c.tipo === 'cliente' ? (
-              <Seccion titulo="Tu plan">
+              <Seccion titulo={c.miembro ? `Plan de ${c.miembro.cliente_nombre}` : 'Tu plan'}>
+                {c.miembro ? <p className="cuenta-equipo__soy">Sos parte del equipo de {c.miembro.cliente_nombre} como {c.miembro.rol_nombre.toLowerCase()}.</p> : null}
                 <div className="cuenta-plan">
                   <span className="cuenta-plan__nombre">{c.plan_nombre || 'Sin plan'}</span>
                   <span className={`cuenta-plan__dias${vencido ? ' is-vencido' : c.dias_restantes != null && c.dias_restantes <= 15 ? ' is-poco' : ''}`}>
@@ -139,6 +142,17 @@ export default function CuentaPage() {
                 </dl>
               </Seccion>
             )}
+
+            {c.tipo === 'cliente' && !c.miembro ? (
+              <Seccion titulo="Tu equipo">
+                <TuEquipo />
+              </Seccion>
+            ) : null}
+            {c.tipo === 'equipo' && c.rol === 'admin' ? (
+              <Seccion titulo="Equipos de clientes">
+                <CuposEquipo />
+              </Seccion>
+            ) : null}
 
             <Seccion titulo="Sesión">
               <button type="button" className="cuenta-boton is-peligro" onClick={logout}>

@@ -30,6 +30,9 @@ def puede_ver(sesion: dict, canal: dict) -> bool:
     rol = sesion.get("rol")
     if rol == "admin":
         return True
+    if sesion.get("miembro_id"):
+        # El equipo del cliente ve solo el chat privado de ese cliente: ni comunidad ni anuncios.
+        return canal["tipo"] == "cliente" and canal["cliente_id"] == sesion["usuario_id"]
     if canal["tipo"] == "anuncios":
         return True
     if canal["tipo"] == "grupo":

@@ -1,15 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from src import schemas
-from src.services.auth_service import ROLES_EQUIPO, obtener_sesion_desde_request
+from src.services.auth_service import obtener_sesion_desde_request, persona
 from src.services.clase_service import ClaseServices
 
 router = APIRouter(prefix="/api/clases", tags=["clases"])
 service = ClaseServices()
 
 
-def _tipo_desde_rol(rol: str) -> str:
-    return "admin" if rol in ROLES_EQUIPO else "cliente"
 
 
 @router.get("/{clase_id}", response_model=schemas.ClaseDetalleResponse)
@@ -18,8 +16,8 @@ def obtener_clase(
     sesion: dict = Depends(obtener_sesion_desde_request),
 ):
     try:
-        tipo = _tipo_desde_rol(sesion["rol"])
-        return service.obtener_detalle_clase(clase_id, sesion["usuario_id"], tipo)
+        tipo, pid = persona(sesion)
+        return service.obtener_detalle_clase(clase_id, pid, tipo, sesion.get("miembro_rol"))
     except HTTPException as exc:
         raise exc
     except Exception:
@@ -33,10 +31,10 @@ def marcar_progreso(
     sesion: dict = Depends(obtener_sesion_desde_request),
 ):
     try:
-        tipo = _tipo_desde_rol(sesion["rol"])
+        tipo, pid = persona(sesion)
         return service.marcar_progreso(
             clase_id,
-            sesion["usuario_id"],
+            pid,
             tipo,
             body.completado,
         )
@@ -53,10 +51,10 @@ def guardar_nota(
     sesion: dict = Depends(obtener_sesion_desde_request),
 ):
     try:
-        tipo = _tipo_desde_rol(sesion["rol"])
+        tipo, pid = persona(sesion)
         return service.guardar_nota(
             clase_id,
-            sesion["usuario_id"],
+            pid,
             tipo,
             body.texto,
         )

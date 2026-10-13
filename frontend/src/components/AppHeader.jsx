@@ -168,7 +168,7 @@ export default function AppHeader() {
             </div>
             {!isEquipo && (PLANES[user?.rol] || user?.dias_restantes != null) ? (
               <div className="app-header__menu-plan">
-                {PLANES[user?.rol] ? <span className="app-header__menu-chip">{PLANES[user.rol]}</span> : null}
+                {user?.miembro ? <span className="app-header__menu-chip">{user.miembro.rol_nombre} · {user.miembro.cliente_nombre}</span> : PLANES[user?.rol] ? <span className="app-header__menu-chip">{PLANES[user.rol]}</span> : null}
                 {user?.dias_restantes != null ? (
                   <span className={user.dias_restantes <= 15 ? 'is-poco' : ''}>
                     {user.dias_restantes < 0 ? 'Acceso vencido' : `${user.dias_restantes} ${user.dias_restantes === 1 ? 'día' : 'días'} de acceso`}

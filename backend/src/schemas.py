@@ -19,6 +19,7 @@ class LoginResponse(BaseModel):
     rol: str
     dias_restantes: int | None = None
     foto_url: str | None = None
+    miembro: dict | None = None  # si entró alguien del equipo del cliente: {id, rol, rol_nombre, cliente_nombre}
 
 
 class GoogleLoginRequest(BaseModel):
@@ -38,6 +39,7 @@ class SessionProfileResponse(BaseModel):
     dias_restantes: int | None = None
     fecha_vencimiento: str | None = None
     foto_url: str | None = None
+    miembro: dict | None = None
 
 
 class MiembroEquipo(BaseModel):

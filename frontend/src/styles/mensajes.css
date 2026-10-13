@@ -554,3 +554,6 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-acciones__vacio:hover { color: var(--m-t1); border-color: var(--m-t4); }
 .msj-modal__campo textarea { width: 100%; box-sizing: border-box; min-height: 96px; padding: 8px 10px; border: 1px solid #d2d2d7; border-radius: 8px; background: #fff; font: inherit; color: inherit; line-height: 1.45; resize: vertical; }
 .msj-modal__campo textarea:focus { outline: none; border-color: var(--m-acento, #c0392b); box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18); }
+
+/* Alguien del equipo del cliente (setter, closer…) */
+.msj-insignia { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; background: rgba(10, 132, 255, 0.1); color: #0a63c7; font-size: 11px; font-weight: 600; }
