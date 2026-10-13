@@ -508,24 +508,23 @@
   ]
  },
  "25": {
-  "archivo": "02_advantage/21_laboratorio_de_ventas.md",
-  "resumen": "El laboratorio de ventas es una autopsia por ingenieria inversa: agarrar los clientes (idealmente 10 que pagaron PIF) y reconstruir su camino hacia atras desde el Excel de metricas o el CRM para encontrar el patron de conversion. Se hace cada mes o 45 dias y saca seis conclusiones: top 3 de contenidos de ultimo contacto por dinero, top 3 de dolores por dinero, top 2-3 de contenidos de primer contacto por ingreso (no por volumen), dinero por agenda segun avatar (una llamada de $5.000 vale mas que 50 llamadas de $10.000 en total), eficiencia del proceso de nutricion (cuantos contenidos del mismo tema vio antes de comprar y que dudas quedaron sin resolver) y razones de compra por dinero (en ATV era la implementacion). Suma el tiempo promedio de compra, la logica fail fast and cheap y el pedido de mandar un Loom con las conclusiones.",
+  "archivo": "02_advantage/21_laboratorio_de_ventas_lucas.md",
+  "resumen": "Lucas muestra cómo arma el laboratorio de ventas en ATV para conectar marketing y ventas. Se toman los leads calificados, los que compraron y los que no, y se reconstruye su camino: qué piezas de contenido respondieron en ManyChat hasta agendar, qué avatar son, qué dolores y problemas tocaba cada pieza y qué dijeron en la llamada con el closer. Cuando los problemas de la llamada se repiten en el contenido que respondieron, la conclusión va a marketing: seguir subiendo ese contenido porque trae leads que pagan tickets altos. Un buen laboratorio tiene cinco partes (ruta de contenido, avatar, puntos de contacto, dolores y conclusión) y lleva una hora u hora y media.",
   "claves": [
-   "Reconstruir el viaje de los clientes PIF hacia atras",
-   "Top 3 contenidos y dolores por dinero",
-   "Contenido de primer contacto medido por ingreso, no volumen",
-   "Dinero por agenda segun avatar",
-   "Auditar la nutricion: contenidos repetidos y dudas sin resolver",
-   "Tiempo promedio de compra y razones de compra"
+   "Analizar leads calificados que compraron y que no compraron",
+   "Ruta de contenido: qué piezas respondió en ManyChat hasta agendar",
+   "Avatar, puntos de contacto y dolores de cada pieza",
+   "Cruzar lo que dijo en la llamada con el contenido que respondió",
+   "Sin conclusión para marketing, el laboratorio no sirve",
+   "Plata por pieza de contenido: qué secuencia trajo cuánto"
   ],
   "sintomas": [
-   "no se que contenido trajo a los clientes que me pagaron",
-   "quiero saber que dolor es el mas rentable de tocar",
-   "tengo las ventas en un Excel pero no saco conclusiones",
-   "no se cual de mis avatares deja mas plata por llamada",
-   "un reel me trae mil leads pero ninguno compra",
-   "no se por que me eligen a mi frente a otras opciones",
-   "ya tengo 10 ventas y quiero encontrar el patron para repetirlo"
+   "no sé qué contenido me trae a los clientes que pagan",
+   "marketing y ventas no se hablan en mi negocio",
+   "mi closer cierra pero no sé de qué contenido vienen los leads",
+   "quiero saber qué historias generan ventas de verdad",
+   "no sé cómo usar las llamadas de venta para mejorar el contenido",
+   "tengo leads calificados que no compran y no sé por qué"
   ]
  },
  "26": {
@@ -1602,21 +1601,23 @@
   ]
  },
  "82": {
-  "archivo": "16_seguimiento_post_call.md",
-  "resumen": "Los seguimientos están hiper infravalorados. Si hoy no estás haciendo seguimientos de la forma correcta, estás perdiendo mucho dinero. El seguimiento no es un extra que hacés solo si el lead no cerró en la llamada: es donde se cierran la mayoría de las ventas grandes. La diferencia entre un closer…",
+  "archivo": "05_sales/16_seguimiento_post_call_lucas.md",
+  "resumen": "Lucas explica el sistema de seguimiento de 90 días que usa ATV con los leads que no cerraron en la llamada, con el que cierran por encima del 70%. Los días se cuentan al revés, del 90 al 1, y los seguimientos se van haciendo más seguidos: chequeo de lo que quedó pendiente en la llamada, valor (Loom personalizado, clase o invitación), chequeo del valor, testimonio de alguien con el mismo problema, otra vez chequeo, valor y testimonio, y al final la invitación a una nueva llamada. Antes del flujo hay una semana intensa de 4 días. El tracker ordena a cada lead con su etapa, obstáculo real, si respondió y su estado, para que cualquier closer pueda retomar el seguimiento.",
   "claves": [
-   "El arte del seguimiento",
-   "Llamar en vez de escribir (cold calling de seguimiento)"
+   "90 días de seguimiento contados al revés hasta la venta",
+   "Temáticas en orden: chequeo, valor, testimonio y agenda",
+   "Semana intensa de 4 días antes de arrancar el flujo",
+   "Cada vez menos días entre seguimientos: 30, 15, 15, 9, 6, 8, 4",
+   "Tracker con etapa, obstáculo real, respuesta y estado del lead",
+   "Si se va el closer, el siguiente sabe qué mandar"
   ],
   "sintomas": [
-   "El lead no cerró en la llamada y no sé qué escribirle después",
-   "Mando '¿te decidiste?' después de la llamada y no me responden",
-   "Mis seguimientos después de la call suenan a ruego",
-   "Doy por perdido al lead si no paga en la llamada",
-   "No sé qué decirle al que me dijo que lo tenía que pensar",
-   "Mis mensajes post llamada no aportan nada nuevo",
-   "Me da miedo llamar por teléfono para retomar una venta que quedó abierta",
-   "Las ventas grandes se me escapan porque no sé acompañar la decisión"
+   "los leads me dicen que lo van a pensar y no vuelven",
+   "hago seguimiento una semana y después me olvido",
+   "no sé qué mandarle a un lead que no cerró en la llamada",
+   "mi closer pierde leads por no hacer seguimiento",
+   "no tengo ordenados a los leads que no compraron",
+   "cuántos seguimientos hago después de la llamada"
   ]
  },
  "83": {
@@ -3217,6 +3218,26 @@
    "tengo miedo todo el tiempo y no se si sirvo para esto",
    "llevo meses y siento que el resultado no llega nunca",
    "lo tecnico me abruma y no se si lo puedo aprender"
+  ]
+ },
+ "170": {
+  "archivo": "05_sales/16b_ventas_con_referidos_lucas.md",
+  "resumen": "Lucas enseña a generar más ventas sin conseguir más leads, pidiéndole referidos a los clientes. En ATV los referidos traen entre 40 y 60 mil dólares por mes y cierran casi siempre, porque el lead llega prevendido. Los clientes se organizan por avatar y por prioridad (alta si ya tuvo un resultado con plata, media si le está sirviendo el programa, baja si recién compró) con una meta semanal de referidos a pedir. El script: preguntar si conoce a alguien con los mismos problemas que tenía antes, quién y por qué, y armar en la misma llamada un grupo de WhatsApp donde el cliente presenta al referido. Los mejores momentos: justo después de comprar, cuando dice algo positivo, cuando consigue un resultado y cuando renueva o hace upsell.",
+  "claves": [
+   "Referidos: ventas sin más leads y con cierre altísimo",
+   "Organizar clientes por avatar y prioridad alta, media o baja",
+   "Meta semanal de referidos a pedir",
+   "Script: ¿conocés a alguien con los mismos problemas que tenías?",
+   "Grupo de WhatsApp en la misma llamada con el referido",
+   "Pedirlos al comprar, ante un elogio, un resultado o una renovación"
+  ],
+  "sintomas": [
+   "quiero vender más sin depender de más leads",
+   "nunca le pedí referidos a mis clientes",
+   "no sé cómo pedir un referido sin quedar mal",
+   "dependo solo del orgánico o de los anuncios para vender",
+   "tengo clientes contentos pero no me recomiendan",
+   "no sé en qué momento pedir referidos"
   ]
  }
 }
