@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { borrarDoc, crearDoc, editarDoc, fetchRoadmap, fetchSugeridos } from '../../api/roadmap'
+import { borrarDoc, crearDoc, editarDoc, fetchRoadmap } from '../../api/roadmap'
 
 const TIPOS = [
   ['revision', 'Revisión mensual'],
@@ -8,13 +8,12 @@ const TIPOS = [
   ['complementario', 'Complementario'],
 ]
 const hoy = () => new Date().toISOString().slice(0, 10)
-const VACIO = { titulo: '', url: '', tipo: 'revision', area: '', pasos_total: '', paso_actual: '', principal: true }
+const VACIO = { fathom_url: '', titulo: '', url: '', tipo: 'revision', area: '', pasos_total: '', paso_actual: '', principal: true }
 const corta = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
 
-// Panel del coach: el roadmap del cliente (los Google Docs de próximos pasos) y lo que ya mandó por el chat.
+// Panel del coach: el roadmap del cliente. Se crea al salir de la llamada, empezando por el Fathom.
 export default function RoadmapCliente({ clienteId }) {
   const [datos, setDatos] = useState(null)
-  const [sugeridos, setSugeridos] = useState([])
   const [form, setForm] = useState(null)
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -24,7 +23,6 @@ export default function RoadmapCliente({ clienteId }) {
     setForm(null)
     setError('')
     fetchRoadmap(clienteId).then((d) => vivo && setDatos(d)).catch(() => vivo && setDatos(null))
-    fetchSugeridos(clienteId).then((s) => vivo && setSugeridos(s)).catch(() => vivo && setSugeridos([]))
     return () => {
       vivo = false
     }
@@ -35,12 +33,16 @@ export default function RoadmapCliente({ clienteId }) {
     setGuardando(true)
     setError('')
     const num = (v) => (v === '' || v == null ? null : Number(v))
-    const cuerpo = { ...form, pasos_total: num(form.pasos_total), paso_actual: num(form.paso_actual), area: form.area || null }
+    if (!form.id && !form.fathom_url.trim()) {
+      setGuardando(false)
+      setError('Pegá primero el link de Fathom de la llamada.')
+      return
+    }
+    const cuerpo = { ...form, pasos_total: num(form.pasos_total), paso_actual: num(form.paso_actual), area: form.area || null, fathom_url: form.fathom_url || null }
     delete cuerpo.id
     try {
       const d = form.id ? await editarDoc(form.id, cuerpo) : await crearDoc(clienteId, cuerpo)
       setDatos(d)
-      if (form.mensaje_id) setSugeridos((s) => s.filter((x) => x.mensaje_id !== form.mensaje_id || x.url !== form.url))
       setForm(null)
     } catch (err) {
       setError(err.message || 'No se pudo guardar.')
@@ -68,13 +70,15 @@ export default function RoadmapCliente({ clienteId }) {
     <section className="msj-acciones rmc" aria-label="Roadmap del cliente">
       <div className="msj-acciones__cabeza">
         <p className="msj-seccion">Roadmap</p>
-        <button type="button" onClick={() => setForm({ ...VACIO, fecha: hoy() })} aria-label="Sumar documento al roadmap" title="Sumar documento">+</button>
+        {!form ? <button type="button" className="rmc-crear" onClick={() => setForm({ ...VACIO, fecha: hoy() })}>Crear roadmap</button> : null}
       </div>
 
       {form ? (
         <form className="rmc-form" onSubmit={guardar}>
-          <label><span>Título</span><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Ventas" maxLength={80} autoFocus /></label>
-          <label><span>Link del documento</span><input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://docs.google.com/…" /></label>
+          <label><span>Link de Fathom de la llamada</span><input value={form.fathom_url || ''} onChange={(e) => setForm({ ...form, fathom_url: e.target.value })} placeholder="https://fathom.video/…" autoFocus /></label>
+          <small className="rmc-ayuda">El cliente va a poder ver la grabación desde su roadmap.</small>
+          <label><span>Título</span><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Ventas" maxLength={80} /></label>
+          <label><span>Link del documento de próximos pasos</span><input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://docs.google.com/…" /></label>
           <div className="rmc-fila">
             <label><span>Tipo</span><select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}>{TIPOS.map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select></label>
             <label><span>Fecha</span><input type="date" value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} /></label>
@@ -101,7 +105,7 @@ export default function RoadmapCliente({ clienteId }) {
               <button
                 type="button"
                 className="msj-accion__boton"
-                onClick={() => setForm({ id: d.id, titulo: d.titulo, url: d.url, tipo: d.tipo, fecha: d.fecha, area: d.area || '', pasos_total: d.pasos_total ?? '', paso_actual: d.paso_actual ?? '', principal: d.id === principalId })}
+                onClick={() => setForm({ id: d.id, fathom_url: d.fathom_url || '', titulo: d.titulo, url: d.url, tipo: d.tipo, fecha: d.fecha, area: d.area || '', pasos_total: d.pasos_total ?? '', paso_actual: d.paso_actual ?? '', principal: d.id === principalId })}
                 title="Editar"
               >
                 <span>{d.versiones > 1 ? `${d.titulo} · v${d.version}` : d.titulo}</span>
@@ -111,28 +115,7 @@ export default function RoadmapCliente({ clienteId }) {
           ))}
         </ul>
       ) : !form ? (
-        <p className="rmc-vacio">Todavía no hay documentos. Sumá el de la última llamada.</p>
-      ) : null}
-
-      {sugeridos.length && !form ? (
-        <>
-          <p className="rmc-sub">Mandados por el chat</p>
-          <ul className="msj-acciones__lista">
-            {sugeridos.slice(0, 4).map((s) => (
-              <li key={s.url} className="msj-accion is-sugerida">
-                <button
-                  type="button"
-                  className="msj-accion__boton"
-                  title={s.extracto || s.url}
-                  onClick={() => setForm({ ...VACIO, titulo: 'Próximos pasos', url: s.url, fecha: s.fecha, coach_id: s.coach_id, mensaje_id: s.mensaje_id })}
-                >
-                  <span>{s.coach_nombre.split(' ')[0]} · {corta(s.fecha)}</span>
-                  <em>Sumar</em>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
+        <p className="rmc-vacio">Todavía no hay roadmap. Crealo al salir de la llamada.</p>
       ) : null}
 
       <Link className="rmc-ver" to={`/roadmap?cliente=${clienteId}`}>Ver el tablero como lo ve el cliente</Link>

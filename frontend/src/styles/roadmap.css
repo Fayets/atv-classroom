@@ -72,3 +72,5 @@
 
 @media (max-width: 1100px) { .rm { grid-template-columns: 200px minmax(0, 1fr); } .rm-ficha { display: none; } }
 @media (max-width: 720px) { .rm { grid-template-columns: minmax(0, 1fr); } .rm-lado { display: none; } }
+.rm-boton.is-suave { margin-top: 8px; background: #fff; color: var(--rm-t1); box-shadow: inset 0 0 0 1px var(--rm-linea); }
+.rm-boton.is-suave.is-chico { margin-top: 0; }

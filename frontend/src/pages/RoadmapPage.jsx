@@ -181,6 +181,7 @@ export default function RoadmapPage() {
                     {principal.pasos_total ? ` · paso ${principal.paso_actual || 0} de ${principal.pasos_total}` : ''}
                   </b>
                 </div>
+                {principal.fathom_url ? <a className="rm-boton is-suave is-chico" href={principal.fathom_url} target="_blank" rel="noopener noreferrer">Ver llamada</a> : null}
                 <a className="rm-boton" href={principal.url} target="_blank" rel="noopener noreferrer">Abrir</a>
               </div>
             ) : null}
@@ -260,6 +261,7 @@ export default function RoadmapPage() {
                   {doc.pasos_total ? <div><dt>Avance</dt><dd>Paso {doc.paso_actual || 0} de {doc.pasos_total}</dd></div> : null}
                 </dl>
                 <a className="rm-boton is-ancho" href={doc.url} target="_blank" rel="noopener noreferrer">Abrir documento</a>
+                {doc.fathom_url ? <a className="rm-boton is-ancho is-suave" href={doc.fathom_url} target="_blank" rel="noopener noreferrer">Ver la grabación de la llamada</a> : null}
               </>
             ) : (
               <p className="rm-ficha__sub">Elegí un documento del tablero para ver su información.</p>

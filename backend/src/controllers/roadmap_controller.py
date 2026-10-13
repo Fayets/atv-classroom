@@ -12,6 +12,7 @@ service = RoadmapServices()
 class Doc(BaseModel):
     titulo: str | None = None
     url: str | None = None
+    fathom_url: str | None = None
     tipo: str | None = None
     fecha: str | None = None
     area: str | None = None
@@ -19,7 +20,6 @@ class Doc(BaseModel):
     pasos_total: int | None = None
     paso_actual: int | None = None
     principal: bool | None = None
-    mensaje_id: int | None = None
 
 
 @router.get("")
@@ -31,11 +31,6 @@ async def mio(sesion: dict = Depends(obtener_sesion_desde_request)):
 @router.get("/clientes/{cliente_id}")
 async def de_cliente(cliente_id: int, sesion: dict = Depends(obtener_sesion_desde_request)):
     return await run_in_threadpool(service.ver, sesion, cliente_id)
-
-
-@router.get("/clientes/{cliente_id}/sugeridos")
-async def sugeridos(cliente_id: int, sesion: dict = Depends(obtener_sesion_desde_request)):
-    return await run_in_threadpool(service.sugeridos, sesion, cliente_id)
 
 
 @router.post("/clientes/{cliente_id}")

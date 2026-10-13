@@ -455,10 +455,10 @@ class RoadmapDoc(db.Entity):
     titulo = Required(str)  # "Ventas", "Roadmap inicial"
     tipo = Required(str, default="revision")  # inicial | revision | complementario
     url = Required(str)
+    fathom_url = Optional(str, nullable=True)  # la grabación de la llamada, para que el cliente la vea
     fecha = Required(date)
     pasos_total = Optional(int, nullable=True)
     paso_actual = Optional(int, nullable=True)
     principal = Required(bool, default=False)
-    mensaje_id = Optional(int, nullable=True)  # si salió de un mensaje del chat
     creado_por = Optional(int, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)

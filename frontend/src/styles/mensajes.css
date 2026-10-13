@@ -591,3 +591,6 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmc-sub { margin: 12px 4px 6px; font-size: 11.5px; font-weight: 600; color: var(--m-t3); }
 .rmc-ver { display: block; margin: 10px 4px 0; font-size: 12.5px; font-weight: 600; color: var(--m-acento); text-decoration: none; }
 .rmc-ver:hover { text-decoration: underline; }
+.msj-acciones__cabeza .rmc-crear { width: auto; height: auto; padding: 4px 10px; border-radius: 7px; background: var(--m-acento); color: #fff; font-size: 12px; font-weight: 600; }
+.msj-acciones__cabeza .rmc-crear:hover { background: var(--m-acento); color: #fff; filter: brightness(1.08); }
+.rmc-ayuda { margin: -4px 2px 2px; font-size: 11.5px; color: var(--m-t3); }

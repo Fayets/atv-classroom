@@ -4,8 +4,8 @@ Cada documento es el Google Doc de próximos pasos que deja un coach después de
 - Mismo coach + mismo título = versiones (v1, v2, v3…): la más nueva es la vigente y las otras quedan
   como reemplazadas.
 - "El que tenés que seguir ahora" lo marca el coach; si nadie lo marcó, es el vigente más reciente.
-- El cliente (y su equipo) solo lo ve; lo carga el equipo de ATV. Para no empezar de cero, se le
-  sugieren los Google Docs que ya mandó por el chat.
+- El cliente (y su equipo) solo lo ve; lo crea el coach al salir de la llamada, empezando por el
+  link de Fathom para que el cliente pueda ver la grabación.
 """
 
 import re
@@ -15,12 +15,11 @@ from fastapi import HTTPException
 from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
-from src.models import Admin, Canal, ClienteExterno, RoadmapDoc
+from src.models import Admin, ClienteExterno, RoadmapDoc
 from src.services.auth_service import es_equipo
 from src.services.cuenta_service import foto_de
 
 TIPOS = {"inicial": "Roadmap inicial", "revision": "Revisión mensual", "complementario": "Complementario"}
-_DOC = re.compile(r"https?://docs\.google\.com/(?:document|spreadsheets|presentation)/d/([\w-]{20,})[^\s<>)\"']*", re.I)
 
 
 def _cliente_de(sesion: dict, cliente_id: int | None) -> int:
@@ -54,6 +53,11 @@ def _limpiar(datos: dict, parcial: bool = False) -> dict:
         if not re.match(r"^https?://\S+$", url) or len(url) > 1000:
             raise HTTPException(status_code=422, detail="Pegá el link del documento.")
         limpio["url"] = url
+    if "fathom_url" in datos:
+        f = (datos.get("fathom_url") or "").strip()
+        if f and (not re.match(r"^https?://\S+$", f) or len(f) > 1000):
+            raise HTTPException(status_code=422, detail="Pegá el link de la grabación de Fathom.")
+        limpio["fathom_url"] = f or None
     if "tipo" in datos or not parcial:
         tipo = datos.get("tipo") or "revision"
         if tipo not in TIPOS:
@@ -107,6 +111,7 @@ def _armar(cliente_id: int) -> dict:
             "tipo": d.tipo,
             "tipo_nombre": TIPOS.get(d.tipo, d.tipo),
             "url": d.url,
+            "fathom_url": d.fathom_url,
             "fecha": d.fecha.isoformat(),
             "estado": "vigente" if ultimo_por_hilo[hilo] == d.id else "reemplazado",
             "pasos_total": d.pasos_total,
@@ -165,7 +170,7 @@ class RoadmapServices:
             if limpio.get("principal"):
                 for d in _de(cliente_id):
                     d.principal = False
-            RoadmapDoc(cliente_id=cliente_id, creado_por=sesion["usuario_id"], mensaje_id=datos.get("mensaje_id"), **limpio)
+            RoadmapDoc(cliente_id=cliente_id, creado_por=sesion["usuario_id"], **limpio)
             return _armar(cliente_id)
 
     def editar(self, sesion: dict, doc_id: int, datos: dict) -> dict:
@@ -193,40 +198,3 @@ class RoadmapServices:
             cliente_id = d.cliente_id
             d.delete()
             return _armar(cliente_id)
-
-    def sugeridos(self, sesion: dict, cliente_id: int) -> list[dict]:
-        """Google Docs que el equipo ya le mandó por el chat y todavía no están en el roadmap."""
-        _solo_equipo(sesion)
-        with db_session:
-            canal = Canal.get(cliente_id=cliente_id)
-            if canal is None:
-                return []
-            ya = {m.group(1) for d in _de(cliente_id) for m in [_DOC.search(d.url)] if m}
-            filas = db.select(
-                f'SELECT id, autor_id, autor_nombre, texto, creado_en FROM "{DB_SCHEMA}"."mensajes_canal" '
-                "WHERE canal = $canal AND autor_tipo = 'admin' AND NOT borrado AND texto ILIKE '%docs.google.com%' "
-                "ORDER BY creado_en DESC LIMIT 200",
-                {"canal": canal.id},
-            )
-            admins = {a.id: a for a in list(Admin.select())}
-            vistos, salida = set(), []
-            for mid, autor_id, autor_nombre, texto, creado in filas:
-                for m in _DOC.finditer(texto or ""):
-                    doc_id = m.group(1)
-                    if doc_id in ya or doc_id in vistos:
-                        continue
-                    vistos.add(doc_id)
-                    a = admins.get(autor_id)
-                    resto = " ".join(_DOC.sub("", texto).split())
-                    salida.append(
-                        {
-                            "url": m.group(0).rstrip(".,;"),
-                            "fecha": creado.date().isoformat(),
-                            "coach_id": autor_id if a else None,
-                            "coach_nombre": (a.nombre or a.email) if a else (autor_nombre or "Equipo"),
-                            "mensaje_id": mid,
-                            "extracto": resto[:180],
-                        }
-                    )
-            return salida[:20]
-
