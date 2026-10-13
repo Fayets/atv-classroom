@@ -462,3 +462,24 @@ class RoadmapDoc(db.Entity):
     principal = Required(bool, default=False)
     creado_por = Optional(int, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class AltaCliente(db.Entity):
+    """Un alta hecha desde el classroom: crea la sesión de onboarding, el canal de Discord (contingencia)
+    y la ficha en clients.clientes. El mail de onboarding sale aparte, una sola vez, con un botón."""
+
+    _table_ = (DB_SCHEMA, "altas_clientes")
+
+    id = PrimaryKey(int, auto=True)
+    cliente_id = Required(int, index=True)
+    session_id = Required(str)  # sesión de atv-onboarding
+    nombre = Required(str)
+    email = Required(str)
+    plan = Required(str)  # como lo nombra el onboarding: Boost | Mentoría | Advantage
+    canal = Required(str)
+    discord_invite_url = Optional(str, nullable=True)
+    discord_error = Optional(str, nullable=True)
+    creado_por = Required(int)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    mail_enviado_en = Optional(datetime, nullable=True)
+    mail_enviado_por = Optional(int, nullable=True)

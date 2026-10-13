@@ -15,6 +15,7 @@ from src.controllers.cuenta_controller import router as cuenta_router
 from src.controllers.acciones_controller import router as acciones_router
 from src.controllers.equipo_cliente_controller import router as equipo_cliente_router
 from src.controllers.roadmap_controller import router as roadmap_router
+from src.controllers.alta_controller import router as alta_router
 from src.controllers.chat_controller import router as chat_router
 from src.controllers.clase_controller import router as clase_router
 from src.controllers.equipo_controller import router as equipo_router
@@ -95,6 +96,7 @@ app.include_router(cuenta_router)
 app.include_router(acciones_router)
 app.include_router(equipo_cliente_router)
 app.include_router(roadmap_router)
+app.include_router(alta_router)
 app.include_router(sugerencias_router)
 app.include_router(programa_router)
 app.include_router(clase_router)

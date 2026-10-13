@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
+import NuevoCliente from '../components/mensajes/NuevoCliente'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
 import AccionesRapidas from '../components/mensajes/AccionesRapidas'
@@ -260,6 +261,7 @@ export default function MensajesPage() {
   // Como en Discord: los grupos arrancan cerrados; cerrados igual muestran lo que tiene novedades.
   const [abiertos, setAbiertos] = useState([])
   const [creando, setCreando] = useState(false)
+  const [dandoAlta, setDandoAlta] = useState(false)
   const [editando, setEditando] = useState(null)
 
   // Si otro borra el canal que estás mirando, salís de él (como en Discord).
@@ -305,6 +307,11 @@ export default function MensajesPage() {
               {conectado ? 'En vivo' : 'Reconectando…'}
             </span>
           </div>
+          {isEquipo ? (
+            <button type="button" className="msj-nuevo-cliente" onClick={() => setDandoAlta(true)}>
+              + Nuevo cliente
+            </button>
+          ) : null}
           {isEquipo && !esCoach ? (
             <div className="msj-segmento" role="tablist" aria-label="Vista">
               <button type="button" role="tab" aria-selected={vista === 'bandeja'} className={vista === 'bandeja' ? 'is-on' : ''} onClick={() => cambiarVista('bandeja')}>
@@ -376,6 +383,16 @@ export default function MensajesPage() {
                 setEditando(null)
                 if (activo === c.id) setParams({})
                 cargar()
+              }}
+            />
+          ) : null}
+          {dandoAlta ? (
+            <NuevoCliente
+              onCerrar={() => setDandoAlta(false)}
+              onAbrirChat={(canalId) => {
+                setDandoAlta(false)
+                cargar()
+                if (canalId) setParams({ c: String(canalId) })
               }}
             />
           ) : null}
