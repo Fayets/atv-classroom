@@ -126,3 +126,7 @@
 .cb-correcciones span { display: block; opacity: 0.8; }
 .cb-correcciones .is-sacado { color: #ff6b5e; }
 .cb-correcciones .is-agregado { color: #3ccf6a; }
+.cb-onb { margin: 0; display: grid; gap: 8px; font-size: 12.5px; }
+.cb-onb dt { color: var(--cb-t3); font-size: 11px; font-weight: 600; }
+.cb-onb dd { margin: 1px 0 0; color: var(--cb-t1); line-height: 1.45; overflow-wrap: anywhere; }
+.cb-mas { margin-top: 8px; border: 0; background: none; padding: 0; font: inherit; font-size: 12.5px; font-weight: 600; color: #c4b5fd; cursor: pointer; }

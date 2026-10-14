@@ -567,3 +567,17 @@ class AvisoMail(db.Entity):
     canal_id = Required(int, unique=True)
     ultimo_mensaje_id = Required(int)  # hasta qué mensaje del equipo ya se avisó
     enviado_en = Required(datetime, default=datetime.utcnow)
+
+
+class OnboardingCerebro(db.Entity):
+    """Lo que el cliente contó en su formulario de onboarding, ya leído por el cerebro: las respuestas
+    tal cual y la ficha armada (oferta, precio, avatar, facturación, objetivo…)."""
+
+    _table_ = (DB_SCHEMA, "cerebro_onboarding")
+
+    cliente_id = PrimaryKey(int)
+    session_id = Required(str)
+    respondido_en = Optional(datetime, nullable=True)
+    respuestas_json = Required(str)  # {"5": "…", "6": "…"}
+    ficha_json = Required(str)
+    importado_en = Required(datetime, default=datetime.utcnow)

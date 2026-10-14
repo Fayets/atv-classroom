@@ -86,6 +86,32 @@ function Lista({ titulo, items }) {
   )
 }
 
+// Lo que el cliente contó en su formulario de onboarding (copiado tal cual de sus respuestas).
+const DEL_ONBOARDING = [
+  ['oferta', 'Vende'], ['precio', 'Precio'], ['avatar', 'Le habla a'], ['facturacion', 'Factura'], ['canales', 'Canales'],
+  ['chats_por_mes', 'Chats por mes'], ['cierre', 'Tasa de cierre'], ['clientes_activos', 'Clientes activos'], ['equipo', 'Equipo'],
+  ['problemas', 'Sus 3 problemas'], ['freno', 'Lo que más lo frena'], ['objetivo', 'Objetivo a 4 meses'], ['probo_antes', 'Probó antes'],
+  ['por_que_entro', 'Por qué entró a ATV'], ['que_lo_freno', 'Qué le impedía comprar'], ['nos_conocio', 'Nos conoció por'],
+]
+
+function Onboarding({ o }) {
+  const [todo, setTodo] = useState(false)
+  if (!o?.ficha) return null
+  const filas = DEL_ONBOARDING.filter(([k]) => o.ficha[k])
+  if (!filas.length) return null
+  return (
+    <div className="cb-bloque">
+      <h4>Del onboarding{o.respondido_en ? ` · ${new Date(o.respondido_en).toLocaleDateString('es-AR')}` : ''}</h4>
+      <dl className="cb-onb">
+        {(todo ? filas : filas.slice(0, 6)).map(([k, n]) => (
+          <div key={k}><dt>{n}</dt><dd>{o.ficha[k]}</dd></div>
+        ))}
+      </dl>
+      {filas.length > 6 ? <button type="button" className="cb-mas" onClick={() => setTodo((t) => !t)}>{todo ? 'Ver menos' : `Ver todo (${filas.length})`}</button> : null}
+    </div>
+  )
+}
+
 const ESTADO_PASO = { hecho: 'Hecho', parcial: 'A medias', no_hecho: 'No lo hizo', no_se_hablo: 'No se habló' }
 
 // Roadmaps del cliente: avance (lo que tildó) y qué pasó con cada paso según la llamada siguiente.
@@ -215,6 +241,7 @@ export default function PanelNeurona({ id, base, onIr, onCerrar }) {
           </dl>
         </div>
       ) : null}
+      {datos.tipo === 'cliente' ? <Onboarding o={d.onboarding} /> : null}
       <Hechos titulo="Lo que aprendió de sus conversaciones" hechos={d.aprendido} />
       {datos.tipo === 'cliente' ? <RoadmapsCliente items={d.roadmaps} /> : <RoadmapsCoach r={d.roadmaps} />}
 

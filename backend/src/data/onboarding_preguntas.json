@@ -1,0 +1,250 @@
+{
+ "_nota": "Copia de atv-onboarding (constants/onboardingFormFields.js): si cambian las preguntas allá, regenerar.",
+ "preguntas": [
+  {
+   "id": "1",
+   "bloque": "BLOQUE 0 — QUIÉN SOS Y DE QUÉ NEGOCIO HABLAMOS",
+   "pregunta": "Nombre real, WhatsApp y email principal"
+  },
+  {
+   "id": "2",
+   "bloque": "BLOQUE 0 — QUIÉN SOS Y DE QUÉ NEGOCIO HABLAMOS",
+   "pregunta": "El negocio que vamos a trabajar, ¿es propio o de un cliente/empresa para la que trabajás? Si es de un cliente, indicá tu rol y tu nivel de decisión sobre los cambios"
+  },
+  {
+   "id": "3",
+   "bloque": "BLOQUE 0 — QUIÉN SOS Y DE QUÉ NEGOCIO HABLAMOS",
+   "pregunta": "¿Con cuál rol te identificás más?"
+  },
+  {
+   "id": "4",
+   "bloque": "BLOQUE 0 — QUIÉN SOS Y DE QUÉ NEGOCIO HABLAMOS",
+   "pregunta": "Compartí los links de todas las redes activas del negocio a trabajar (Instagram, YouTube, TikTok, Twitter, podcast, etc)"
+  },
+  {
+   "id": "5",
+   "bloque": "BLOQUE 1 — OFERTA Y POSICIONAMIENTO",
+   "pregunta": "¿Cuál es exactamente tu oferta?"
+  },
+  {
+   "id": "6",
+   "bloque": "BLOQUE 1 — OFERTA Y POSICIONAMIENTO",
+   "pregunta": "¿En qué nicho operás, por qué te eligen y qué te diferencia de la competencia?"
+  },
+  {
+   "id": "7",
+   "bloque": "BLOQUE 1 — OFERTA Y POSICIONAMIENTO",
+   "pregunta": "¿A quién le hablás? Describí los problemas y objetivos de tu avatar, no su demografía"
+  },
+  {
+   "id": "8",
+   "bloque": "BLOQUE 1 — OFERTA Y POSICIONAMIENTO",
+   "pregunta": "¿A qué precio vendés y bajo qué lógica definiste ese precio?"
+  },
+  {
+   "id": "9",
+   "bloque": "BLOQUE 2 — CONTENIDO Y ADQUISICIÓN",
+   "pregunta": "¿Dónde creás contenido, cuál es tu canal más fuerte y cuál te trae los leads más calificados hoy?"
+  },
+  {
+   "id": "10",
+   "bloque": "BLOQUE 2 — CONTENIDO Y ADQUISICIÓN",
+   "pregunta": "¿Trabajás con un calendario de contenido planificado o publicás sin una estructura definida?"
+  },
+  {
+   "id": "11",
+   "bloque": "BLOQUE 2 — CONTENIDO Y ADQUISICIÓN",
+   "pregunta": "¿Tomás decisiones en base a métricas o a percepción? Si tenés métricas, pasame las views promedio por semana en reels, historias y YouTube"
+  },
+  {
+   "id": "12",
+   "bloque": "BLOQUE 2 — CONTENIDO Y ADQUISICIÓN",
+   "pregunta": "¿Cuántos chats abrís por mes y por qué vía?"
+  },
+  {
+   "id": "13",
+   "bloque": "BLOQUE 3 — VENTAS Y EMBUDO",
+   "pregunta": "¿Cuánto facturaste en los últimos 6 meses y qué tan estable es esa cifra?"
+  },
+  {
+   "id": "14",
+   "bloque": "BLOQUE 3 — VENTAS Y EMBUDO",
+   "pregunta": "¿Qué porcentaje de esos chats agenda llamada y qué porcentaje asiste?"
+  },
+  {
+   "id": "15",
+   "bloque": "BLOQUE 3 — VENTAS Y EMBUDO",
+   "pregunta": "¿Cuál es tu tasa de cierre?"
+  },
+  {
+   "id": "16",
+   "bloque": "BLOQUE 3 — VENTAS Y EMBUDO",
+   "pregunta": "¿Contás con un funnel de conversión para tu negocio?"
+  },
+  {
+   "id": "17",
+   "bloque": "BLOQUE 3 — VENTAS Y EMBUDO",
+   "pregunta": "¿Bajo qué criterio filtrás leads o atendés a cualquiera que escribe?"
+  },
+  {
+   "id": "18",
+   "bloque": "BLOQUE 3 — VENTAS Y EMBUDO",
+   "pregunta": "¿Tenés un proceso de seguimiento para los leads que no compran?"
+  },
+  {
+   "id": "19",
+   "bloque": "BLOQUE 4 — OPERACIÓN, EQUIPO Y ENTREGA",
+   "pregunta": "¿Qué herramientas usás para operar el negocio? (Skool, GHL, Calendly, Zapier, etc)"
+  },
+  {
+   "id": "20",
+   "bloque": "BLOQUE 4 — OPERACIÓN, EQUIPO Y ENTREGA",
+   "pregunta": "¿Quiénes integran tu equipo hoy, qué función cumple cada uno y cuánto cobra?"
+  },
+  {
+   "id": "21",
+   "bloque": "BLOQUE 4 — OPERACIÓN, EQUIPO Y ENTREGA",
+   "pregunta": "¿Quién toma las decisiones o todo pasa por vos?"
+  },
+  {
+   "id": "22",
+   "bloque": "BLOQUE 4 — OPERACIÓN, EQUIPO Y ENTREGA",
+   "pregunta": "¿Qué incluye exactamente tu programa o servicio?"
+  },
+  {
+   "id": "23",
+   "bloque": "BLOQUE 4 — OPERACIÓN, EQUIPO Y ENTREGA",
+   "pregunta": "¿Cuántos clientes activos tenés y cómo medís su progreso?"
+  },
+  {
+   "id": "24",
+   "bloque": "BLOQUE 4 — OPERACIÓN, EQUIPO Y ENTREGA",
+   "pregunta": "¿Contás con algún sistema de upsell y recompra para los clientes que ya tenés dentro de tu producto?"
+  },
+  {
+   "id": "25",
+   "bloque": "BLOQUE 4 — OPERACIÓN, EQUIPO Y ENTREGA",
+   "pregunta": "¿A cuántos clientes más podrías atender sin contratar personal ni modificar el producto?"
+  },
+  {
+   "id": "26",
+   "bloque": "BLOQUE 4 — OPERACIÓN, EQUIPO Y ENTREGA",
+   "pregunta": "¿Qué experiencia atraviesa el cliente desde que compra hasta que arranca?"
+  },
+  {
+   "id": "27",
+   "bloque": "BLOQUE 5 — RESULTADOS, DOLOR Y OBJETIVO",
+   "pregunta": "Contame tus mejores casos de éxito (situación inicial, resultado logrado y cómo fue el proceso)"
+  },
+  {
+   "id": "28",
+   "bloque": "BLOQUE 5 — RESULTADOS, DOLOR Y OBJETIVO",
+   "pregunta": "¿Qué probaste antes de ATV y por qué creés que no funcionó?"
+  },
+  {
+   "id": "29",
+   "bloque": "BLOQUE 5 — RESULTADOS, DOLOR Y OBJETIVO",
+   "pregunta": "¿Cuáles son tus 3 problemas principales para escalar hoy?"
+  },
+  {
+   "id": "30",
+   "bloque": "BLOQUE 5 — RESULTADOS, DOLOR Y OBJETIVO",
+   "pregunta": "¿Qué identificás como el principal freno de tu negocio en este momento?"
+  },
+  {
+   "id": "31",
+   "bloque": "BLOQUE 5 — RESULTADOS, DOLOR Y OBJETIVO",
+   "pregunta": "¿Cuál es tu objetivo concreto a 4 meses y qué esperás lograr con tu negocio?"
+  },
+  {
+   "id": "32",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Por dónde me conociste?"
+  },
+  {
+   "id": "33",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué formato de mi contenido te aporta o te gusta más?"
+  },
+  {
+   "id": "34",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Por qué elegiste ese formato?"
+  },
+  {
+   "id": "35",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué tipo de Reels te gustan más de mi Instagram?"
+  },
+  {
+   "id": "36",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué hace que te gusten esos Reels?"
+  },
+  {
+   "id": "37",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué tipo de videos te gustan o te aportan más en mi YouTube?"
+  },
+  {
+   "id": "38",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué hace que te gusten los videos de YouTube?"
+  },
+  {
+   "id": "39",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué te gusta o aporta más de las Historias?"
+  },
+  {
+   "id": "40",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué te hizo finalmente decir \"SÍ\" y entrar a ATV?"
+  },
+  {
+   "id": "41",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué te motivó específicamente a tomar acción?"
+  },
+  {
+   "id": "42",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Cuánto tiempo tardaste en decidirte a trabajar con nosotros?"
+  },
+  {
+   "id": "43",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué creés que podría haber funcionado mejor para que te decidieras antes?"
+  },
+  {
+   "id": "44",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué aspecto del punto que elegiste antes creés que se podría mejorar?"
+  },
+  {
+   "id": "45",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "Antes de la llamada, ¿qué tan convencido estabas de ingresar, en una escala del 1 al 10?"
+  },
+  {
+   "id": "46",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué fue lo último que te convenció para tomar la decisión?"
+  },
+  {
+   "id": "47",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué fue lo que impedía que compres?"
+  },
+  {
+   "id": "48",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Qué programa compraste?"
+  },
+  {
+   "id": "49",
+   "bloque": "BLOQUE 6 — CONTENIDO Y DECISIÓN DE COMPRA",
+   "pregunta": "¿Hay algo dentro de ATV que descubriste cuando entraste y que si te lo hubiese mostrado antes, iba a ayudar a tu decisión?"
+  }
+ ]
+}

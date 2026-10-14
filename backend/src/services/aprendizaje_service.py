@@ -451,7 +451,13 @@ def ciclo(llamar=_llamar) -> dict:
             logger.exception("Aprendizaje: falló el canal %s", canal_id)
             resultados.append({"canal": canal_id, "error": "excepción"})
     voces = actualizar_voces()
-    return {"canales": resultados, "voces": voces, "pendientes": max(0, len(pendientes) - len(resultados)), "tope_alcanzado": frenado}
+    # Los formularios de onboarding nuevos (de a pocos; cada uno cuesta centavos).
+    onboardings = []
+    if llamar is _llamar and gasto_ia.gastado_hoy("onboarding") < TOPE_DIARIO_USD:
+        from src.services.cerebro_onboarding import importar_pendientes
+
+        onboardings = importar_pendientes(5)
+    return {"canales": resultados, "voces": voces, "onboardings": onboardings, "pendientes": max(0, len(pendientes) - len(resultados)), "tope_alcanzado": frenado}
 
 
 # ---------- lo que va a usar la IA (Tab, seguimientos) y la base por nicho ----------

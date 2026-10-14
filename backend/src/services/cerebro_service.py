@@ -342,6 +342,12 @@ def _roadmaps_de_cliente(cliente_id: int) -> list[dict]:
     return de_cliente(cliente_id)
 
 
+def _onboarding_de_cliente(cliente_id: int) -> dict | None:
+    from src.services.cerebro_onboarding import de_cliente
+
+    return de_cliente(cliente_id)
+
+
 def _roadmaps_de_coach(admin_id: int) -> dict | None:
     from src.services.roadmaps_aprendidos import de_coach
 
@@ -523,5 +529,6 @@ class CerebroServices:
                 "perfil": _perfil_aprendido(cliente_id),
                 "aprendido": _hechos_aprendidos(cliente_id),
                 "roadmaps": _roadmaps_de_cliente(cliente_id),
+                "onboarding": _onboarding_de_cliente(cliente_id),
                 "enlace": f"/mensajes?c={canal.id}" if canal else None,
             }
