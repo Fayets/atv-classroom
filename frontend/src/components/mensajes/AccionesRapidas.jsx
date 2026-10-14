@@ -87,7 +87,7 @@ function IconoLapiz() {
 
 // Acciones rápidas del coach en el panel derecho: un clic manda el mensaje armado al chat abierto.
 // alCrearRoadmap: la primera acción, fija, abre el formulario del roadmap (empieza por el Fathom).
-export default function AccionesRapidas({ canalId, cliente, alCrearRoadmap = null }) {
+export default function AccionesRapidas({ canalId, cliente, alCrearRoadmap = null, alVerContexto = null }) {
   const [datos, setDatos] = useState(null)
   const [editando, setEditando] = useState(null) // {} = nueva
   const [pendiente, setPendiente] = useState(null) // { clave, nombre, texto, canalId, queda }
@@ -173,8 +173,16 @@ export default function AccionesRapidas({ canalId, cliente, alCrearRoadmap = nul
       ) : null}
       {error ? <p className="msj-acciones__error" role="alert">{error}</p> : null}
 
-      {alCrearRoadmap || acciones.length || sugeridas.length ? (
+      {alVerContexto || alCrearRoadmap || acciones.length || sugeridas.length ? (
         <ul className="msj-acciones__lista">
+          {alVerContexto ? (
+            <li className="msj-accion is-fija is-contexto">
+              <button type="button" className="msj-accion__boton" onClick={alVerContexto} title="Qué pasó con este cliente: llamadas, roadmaps y chat, antes de tu llamada">
+                <span>Ver contexto</span>
+                <em>Timeline</em>
+              </button>
+            </li>
+          ) : null}
           {alCrearRoadmap ? (
             <li className="msj-accion is-fija">
               <button type="button" className="msj-accion__boton" onClick={alCrearRoadmap} title="Al salir de la llamada: pegás el Fathom y el documento de próximos pasos">

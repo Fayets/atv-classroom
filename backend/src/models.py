@@ -528,6 +528,8 @@ class Llamada(db.Entity):
     invitados_json = Optional(str, nullable=True)  # [{"nombre", "email", "externo"}]
     transcripcion = Optional(str, nullable=True)
     resumen = Optional(str, nullable=True)  # el resumen que arma Fathom
+    # Lo que se habló, para el contexto del próximo coach: temas, decisiones y compromisos, con cita.
+    puntos_json = Optional(str, nullable=True)
     cliente_id = Optional(int, nullable=True, index=True)
     creado_en = Required(datetime, default=datetime.utcnow)
 

@@ -15,6 +15,8 @@ import { useAuth } from '../context/AuthContext'
 import { useMensajeria } from '../context/MensajeriaContext'
 import { cuandoCorto, haceCuanto } from '../utils/mensajes'
 import '../styles/mensajes.css'
+import ContextoCliente from '../components/mensajes/ContextoCliente'
+import '../styles/contexto.css'
 
 // Como las categorías de Discord: un grupo por plan, en este orden.
 const GRUPOS = [
@@ -191,6 +193,10 @@ function PanelSena({ sena, alHacerOnboarding }) {
 
 function PanelCliente({ item, alVerFicha, llamadaId = null, onLlamadaUsada }) {
   const [pedidoRoadmap, setPedidoRoadmap] = useState(0)
+  const [contexto, setContexto] = useState(false)
+  const cerrarContexto = useCallback(() => setContexto(false), [])
+  // Al cambiar de chat, el contexto del cliente anterior se cierra.
+  useEffect(() => setContexto(false), [item?.cliente?.id])
   const cliente = item?.cliente
   if (!cliente) return null
   const vence = cliente.vence ? new Date(`${cliente.vence}T00:00:00`).toLocaleDateString('es-AR') : 'Sin fecha'
@@ -229,7 +235,8 @@ function PanelCliente({ item, alVerFicha, llamadaId = null, onLlamadaUsada }) {
           </div>
         ) : null}
       </dl>
-      <AccionesRapidas canalId={item.id} cliente={cliente.nombre} alCrearRoadmap={() => setPedidoRoadmap((n) => n + 1)} />
+      <AccionesRapidas canalId={item.id} cliente={cliente.nombre} alCrearRoadmap={() => setPedidoRoadmap((n) => n + 1)} alVerContexto={() => setContexto(true)} />
+      <ContextoCliente clienteId={cliente.id} abierto={contexto} alCerrar={cerrarContexto} />
       <RoadmapCliente key={cliente.id} clienteId={cliente.id} canalId={item.id} cliente={cliente.nombre.split(' ')[0]} pedido={pedidoRoadmap} llamadaId={llamadaId} onLlamadaUsada={onLlamadaUsada} />
     </aside>
   )
