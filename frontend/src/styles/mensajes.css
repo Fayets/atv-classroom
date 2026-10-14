@@ -480,7 +480,7 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 .msj-everyone { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(192, 57, 43, 0.12); color: var(--m-acento, #c0392b); font-weight: 700; }
 
 /* crear canal (ventana como una hoja de macOS) */
-.msj-modal__fondo { position: fixed; inset: 0; z-index: 200; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; -webkit-font-smoothing: antialiased; display: grid; place-items: center; background: rgba(0, 0, 0, 0.28); backdrop-filter: blur(2px); }
+.msj-modal__fondo { position: fixed; inset: 0; z-index: 200; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; -webkit-font-smoothing: antialiased; display: grid; place-items: center; background: rgba(0, 0, 0, 0.32); } /* sin backdrop-filter: con textos largos el scroll se trababa */
 .msj-modal { width: min(440px, calc(100vw - 32px)); margin: 0; padding: 20px 22px 18px; border-radius: 14px; background: #fff; color: #1d1d1f; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.2), 0 24px 60px -20px rgba(0, 0, 0, 0.5); font-size: 13.5px; }
 .msj-modal h2 { margin: 0 0 4px; font-size: 17px; font-weight: 650; }
 .msj-modal__ayuda { margin: 0 0 16px; color: #6e6e73; font-size: 12.5px; }
@@ -633,7 +633,6 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .alta-sena__pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .alta-sena__mas { border: 0; padding: 2px 0; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: #8a5a00; cursor: pointer; }
 /* Sin desenfoque detrás de este modal: con la lista de señas el scroll se trababa. */
-.msj-modal__fondo:has(.msj-modal.alta) { backdrop-filter: none; -webkit-backdrop-filter: none; }
 .alta-sena__fila { padding: 5px 0; border-top: 1px solid rgba(138, 90, 0, 0.12); }
 .alta-sena__fila:first-child { border-top: 0; }
 .alta-sena__fila > span { min-width: 0; }
@@ -742,3 +741,5 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmi-seguimiento .is-parcial em { background: rgba(255, 159, 10, 0.16); color: #a35a00; }
 .rmi-seguimiento .is-no_hecho em { background: rgba(192, 57, 43, 0.12); color: #c0392b; }
 .rmi-seguimiento small { display: block; margin-top: 2px; color: #48484a; }
+.rmi-transcripcion { max-height: 240px; overflow-y: auto; overscroll-behavior: contain; margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: #f5f5f7; font-size: 12.5px; line-height: 1.55; white-space: pre-wrap; color: #3a3a3c; contain: content; }
+.msj-modal.rmi { overscroll-behavior: contain; }

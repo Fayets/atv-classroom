@@ -25,7 +25,8 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
   const [llamada, setLlamada] = useState(null)
   const [buscando, setBuscando] = useState(false)
   const [noEncontrada, setNoEncontrada] = useState('')
-  const [aMano, setAMano] = useState(false) // mostrar la caja para pegar la transcripción
+  const [aMano, setAMano] = useState(false) // mostrar la transcripción (o la caja para pegarla)
+  const [editarTexto, setEditarTexto] = useState(false)
 
   // Pegás el link y se trae la llamada con su transcripción (de la carpeta Llamadas o del Fathom del equipo).
   useEffect(() => {
@@ -169,7 +170,12 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
               </p>
             ) : null}
             {noEncontrada && !buscando ? <p className="rmi-estado is-aviso">{noEncontrada}</p> : null}
-            {aMano ? (
+            {aMano && llamada && transcripcion && !editarTexto ? (
+              <>
+                <div className="rmi-transcripcion" tabIndex={0} aria-label="Transcripción de la llamada">{transcripcion}</div>
+                <button type="button" className="rmi-mano" onClick={() => setEditarTexto(true)}>Editar la transcripción</button>
+              </>
+            ) : aMano ? (
               <label className="msj-modal__campo">
                 <span>Transcripción de la llamada</span>
                 <textarea rows={8} value={transcripcion} onChange={(e) => setTranscripcion(e.target.value)} placeholder="En Fathom: Transcript → Copy transcript, y pegala acá." disabled={paso === 'armando'} />
