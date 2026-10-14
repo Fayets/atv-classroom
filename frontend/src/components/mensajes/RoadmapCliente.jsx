@@ -98,8 +98,10 @@ export default function RoadmapCliente({ clienteId, canalId, cliente = 'el clien
   const docs = datos ? datos.grupos.flatMap((g) => g.docs.map((d) => ({ ...d, coach: g.coach }))) : []
   const principalId = datos?.principal?.id
 
+  // Sin roadmaps no se muestra la sección (se crea desde Acciones rápidas); el armado con IA igual se abre.
+  const vacio = !docs.length && !form && !aviso
   return (
-    <section ref={seccion} className="msj-acciones rmc" aria-label="Roadmap del cliente">
+    <section ref={seccion} className={`msj-acciones rmc${vacio ? ' is-vacia' : ''}`} aria-label="Roadmap del cliente">
       <div className="msj-acciones__cabeza">
         <p className="msj-seccion">Roadmap</p>
       </div>
@@ -174,11 +176,9 @@ export default function RoadmapCliente({ clienteId, canalId, cliente = 'el clien
             </li>
           ))}
         </ul>
-      ) : !form ? (
-        <p className="rmc-vacio">Todavía no hay roadmap. Crealo con “Crear roadmap” en Acciones rápidas al salir de la llamada.</p>
       ) : null}
 
-      <Link className="rmc-ver" to={`/roadmap?cliente=${clienteId}`}>Ver el tablero como lo ve el cliente</Link>
+      {docs.length ? <Link className="rmc-ver" to={`/roadmap?cliente=${clienteId}`}>Ver el tablero como lo ve el cliente</Link> : null}
     </section>
   )
 }

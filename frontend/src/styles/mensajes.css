@@ -730,3 +730,4 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmi-llamada b { font-size: 12.5px; }
 .rmi-llamada small { font-size: 11px; color: #8e8e93; }
 .rmi-llamada.is-on { border-color: #c0392b; box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.15); }
+.msj-acciones.rmc.is-vacia { display: none; } /* el armado con IA es un portal: igual se abre */
