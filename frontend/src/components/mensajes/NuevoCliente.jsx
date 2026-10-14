@@ -143,14 +143,16 @@ export default function NuevoCliente({ onCerrar, onAbrirChat, sena = null }) {
               <input type="text" inputMode="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="juan@gmail.com" autoComplete="off" />
             </label>
             {preguntar ? (
-              <div className="alta-sena" role="group" aria-label="¿Dejó seña?">
-                <b>¿Dejó seña?</b>
-                <small>Señas cobradas que todavía no tienen onboarding. Elegí la de este cliente aunque el nombre no sea igual.</small>
+              <div className="alta-sena" role="group" aria-label="¿Dejó seña o ya tiene ficha?">
+                <b>¿Dejó seña o ya tiene ficha?</b>
+                <small>Señas cobradas y fichas ya creadas en atv-clients que todavía no tienen onboarding. Elegí la de este cliente aunque el nombre no sea igual.</small>
                 <div className="alta-sena__lista">
                   {(todas ? candidatas : candidatas.slice(0, 4)).map((c) => (
                     <div key={c.id} className={`alta-sena__fila${c.coincide ? ' is-sugerida' : ''}`}>
                       <span>
-                        {c.nombre} · {c.plan}{c.monto ? ` · ${usd(c.monto)}` : ''}{c.fecha ? ` · ${corta(c.fecha)}` : ''}
+                        {c.nombre} · {c.plan}
+                        {c.tipo === 'ficha' ? ` · #${c.canal}` : `${c.monto ? ` · ${usd(c.monto)}` : ''}${c.fecha ? ` · ${corta(c.fecha)}` : ''}`}
+                        {c.tipo === 'ficha' ? <em className="is-ficha">Ya creada</em> : null}
                         {c.coincide ? <em>{COINCIDE[c.coincide]}</em> : null}
                       </span>
                       <button type="button" className="is-si" onClick={() => { setElegida(c); setForm((f) => ({ ...f, ficha_id: c.id, sin_ficha: false, plan: c.plan && PLANES.includes(c.plan) ? c.plan : f.plan })) }}>Es esta</button>
@@ -159,19 +161,21 @@ export default function NuevoCliente({ onCerrar, onAbrirChat, sena = null }) {
                 </div>
                 <div className="alta-sena__pie">
                   {candidatas.length > 4 ? (
-                    <button type="button" className="alta-sena__mas" onClick={() => setTodas((t) => !t)}>{todas ? 'Ver menos' : `Ver todas las señas (${candidatas.length})`}</button>
+                    <button type="button" className="alta-sena__mas" onClick={() => setTodas((t) => !t)}>{todas ? 'Ver menos' : `Ver todas (${candidatas.length})`}</button>
                   ) : <span />}
-                  <button type="button" className="alta-sena__no" onClick={() => setForm((f) => ({ ...f, ficha_id: null, sin_ficha: true }))}>No dejó seña</button>
+                  <button type="button" className="alta-sena__no" onClick={() => setForm((f) => ({ ...f, ficha_id: null, sin_ficha: true }))}>No es ninguna</button>
                 </div>
               </div>
             ) : ficha ? (
               <p className="alta-sena__ok">
-                Se completa la ficha de la seña de {ficha.nombre}: conserva lo pagado y el acceso corre desde hoy.{' '}
+                {ficha.tipo === 'ficha'
+                  ? `Se completa la ficha de ${ficha.nombre} que ya estaba creada: usa su canal #${ficha.canal} (no se crea otro) y el acceso corre desde hoy.`
+                  : `Se completa la ficha de la seña de ${ficha.nombre}: conserva lo pagado y el acceso corre desde hoy.`}{' '}
                 <button type="button" onClick={() => setForm((f) => ({ ...f, ficha_id: null, sin_ficha: false }))}>Cambiar</button>
               </p>
             ) : form.sin_ficha && candidatas.length ? (
               <p className="alta-sena__ok is-gris">
-                No dejó seña: se crea una ficha nueva.{' '}
+                No es ninguna: se crea una ficha nueva.{' '}
                 <button type="button" onClick={() => setForm((f) => ({ ...f, sin_ficha: false }))}>Cambiar</button>
               </p>
             ) : null}
@@ -213,7 +217,9 @@ export default function NuevoCliente({ onCerrar, onAbrirChat, sena = null }) {
             <ul className="alta-hecho">
               <li className="is-ok">Ficha lista · plan {hecha.plan}</li>
               <li className="is-ok">Su chat en el classroom</li>
-              {hecha.discord_invite_url ? (
+              {hecha.canal_ya_existia ? (
+                <li className="is-ok">Usa su canal de Discord #{hecha.canal}, que ya existía</li>
+              ) : hecha.discord_invite_url ? (
                 <li className="is-ok">Canal de Discord #{hecha.canal}</li>
               ) : (
                 <li className="is-aviso">El canal de Discord no se pudo crear: {String(hecha.discord_error || '').replace(/\.+$/, '')}. Crealo a mano en Discord si hace falta.</li>

@@ -637,6 +637,7 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .alta-sena__fila:first-child { border-top: 0; }
 .alta-sena__fila > span { min-width: 0; }
 .alta-sena__fila em { margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: rgba(192, 57, 43, 0.12); color: #c0392b; font-size: 11px; font-style: normal; font-weight: 600; white-space: nowrap; }
+.alta-sena__fila em.is-ficha { background: rgba(10, 100, 214, 0.1); color: #0a64d6; }
 .alta-sena__fila.is-sugerida > span { font-weight: 600; }
 .alta-sena__ok.is-gris { background: rgba(0, 0, 0, 0.05); color: #6e6e73; }
 .alta-sena__ok.is-gris button { color: #6e6e73; }

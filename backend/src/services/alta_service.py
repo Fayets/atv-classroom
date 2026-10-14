@@ -78,6 +78,19 @@ _SOLO_SENAS = (
 )
 
 
+# Fichas que alguien ya creó en atv-clients (con su canal, a veces con el mail provisorio que deja el bot
+# de Discord) y que todavía no tienen onboarding: sin alta, sin sesión de onboarding y sin conversación.
+_SIN_ONBOARDING = (
+    f"""WHERE coalesce(k.canal_discord, '') <> '' AND k.estado_cliente <> 'inactivo'
+      AND NOT EXISTS (SELECT 1 FROM "{DB_SCHEMA}"."altas_clientes" a WHERE a.cliente_id = k.id)
+      AND NOT EXISTS (SELECT 1 FROM onboarding.sessions s WHERE lower(s.client_email) = lower(k.email)
+                      OR coalesce(k.emails_json, '') ILIKE '%' || lower(s.client_email) || '%')
+      AND NOT EXISTS (SELECT 1 FROM "{DB_SCHEMA}"."canales" ch JOIN "{DB_SCHEMA}"."mensajes_canal" m ON m.canal = ch.id WHERE ch.cliente_id = k.id)
+      AND (k.email ILIKE '%@discord.pendiente.atvos.io' OR k.fecha_inicio >= current_date - 14)"""
+)
+_MAIL_PROVISORIO = "@discord.pendiente.atvos.io"
+
+
 def _parecidas(a: set[str], b: set[str]) -> bool:
     """Alguna palabra casi igual a otra ("Carla" y "Karla", "Rodriguez" y "Rodrigues")."""
     return any(len(x) >= 3 and len(y) >= 3 and SequenceMatcher(None, x, y).ratio() >= 0.8 for x in a for y in b)
@@ -90,12 +103,14 @@ def _candidatas(nombre: str = "", email: str = "") -> list[dict]:
     n, e = _norm(nombre), (email or "").strip().lower()
     palabras = set(n.split()) if len(n) >= 3 else set()
     with db_session:
-        filas = db.select(
-            "SELECT id, nombre, email, plan_actual, fecha_inicio, total_pagado_usd FROM clients.clientes k " + _SOLO_SENAS
-        )
+        filas = [("sena", *f) for f in db.select(
+            "SELECT id, nombre, email, plan_actual, fecha_inicio, total_pagado_usd, canal_discord FROM clients.clientes k " + _SOLO_SENAS
+        )] + [("ficha", *f) for f in db.select(
+            "SELECT id, nombre, email, plan_actual, fecha_inicio, total_pagado_usd, canal_discord FROM clients.clientes k " + _SIN_ONBOARDING
+        )]
     inversa = {v: k for k, v in PLANES.items()}
     salida = []
-    for i, nom, mail, plan, fecha, pagado in filas:
+    for tipo, i, nom, mail, plan, fecha, pagado, canal in filas:
         otras = set(_norm(nom).split())
         if e and (mail or "").lower() == e:
             coincide = "mail"
@@ -107,7 +122,7 @@ def _candidatas(nombre: str = "", email: str = "") -> list[dict]:
             coincide = None
         salida.append({
             "id": i, "nombre": nom, "plan": inversa.get(plan, plan), "fecha": fecha.isoformat() if fecha else None,
-            "monto": float(pagado) if pagado else None, "coincide": coincide,
+            "monto": float(pagado) if pagado else None, "coincide": coincide, "tipo": tipo, "canal": canal or None,
         })
     orden = {"mail": 0, "nombre": 1, "parecido": 2, None: 3}
     # Las que coinciden primero; el resto, de la seña más nueva a la más vieja.
@@ -137,6 +152,7 @@ def _dict(a: AltaCliente) -> dict:
         "clave_classroom": clave_desde_canal(a.canal),
         "discord_invite_url": a.discord_invite_url,
         "discord_error": a.discord_error,
+        "canal_ya_existia": bool((json.loads(a.ficha_previa) if a.ficha_previa else {}).get("canal_discord")),
         "creado_en": a.creado_en.isoformat() + "Z",
         "creado_por": (autor.nombre or autor.email) if autor else None,
         "mail_enviado_en": a.mail_enviado_en.isoformat() + "Z" if a.mail_enviado_en else None,
@@ -148,7 +164,7 @@ class AltaServices:
         """Señas abiertas, las que pueden ser de este cliente primero, con lo justo para reconocerla:
         nombre, programa, fecha y cuánto dejó (Nick sabe el monto de la seña que mandó a la caja)."""
         _equipo(sesion)
-        return [{k: f[k] for k in ("id", "nombre", "plan", "fecha", "monto", "coincide")} for f in _candidatas(nombre, email)]
+        return [{k: f[k] for k in ("id", "nombre", "plan", "fecha", "monto", "coincide", "tipo", "canal")} for f in _candidatas(nombre, email)]
 
     def senas(self, sesion: dict) -> list[dict]:
         """Grupo "Señas" de Mensajes: quienes dejaron seña y todavía no tienen onboarding, la más vieja
@@ -186,6 +202,7 @@ class AltaServices:
         elif pago not in PAGOS:
             raise HTTPException(status_code=422, detail="Elegí la modalidad de pago.")
         canal = slug_de(nombre)
+        canal_previo = None  # la ficha ya tenía canal de Discord: se usa ese y no se crea otro
         # Con señas abiertas, quien hace el onboarding tiene que decir si es una de ellas o si no dejó
         # seña: así no queda la ficha de la seña por un lado y la del onboarding por otro.
         if ficha_id is None and not sin_ficha and _candidatas():
@@ -200,22 +217,26 @@ class AltaServices:
                 if not previa:
                     raise HTTPException(status_code=404, detail="No existe esa ficha.")
                 if previa[0][2]:
-                    raise HTTPException(status_code=409, detail="Esa ficha ya tiene canal: ya se le hizo el onboarding.")
-            if db.select("SELECT 1 FROM clients.clientes WHERE lower(canal_discord) = $c LIMIT 1", {"c": canal}):
+                    sin_onb = db.select("SELECT 1 FROM clients.clientes k " + _SIN_ONBOARDING + " AND k.id = $i", {"i": ficha_id})
+                    if not sin_onb:
+                        raise HTTPException(status_code=409, detail="Esa ficha ya tiene canal: ya se le hizo el onboarding.")
+                    canal = canal_previo = previa[0][2].strip().lstrip("#").lower()
+            if not canal_previo and db.select("SELECT 1 FROM clients.clientes WHERE lower(canal_discord) = $c LIMIT 1", {"c": canal}):
                 raise HTTPException(status_code=409, detail=f"Ya hay un cliente con el canal #{canal}. Agregá el apellido o una inicial al nombre.")
 
         # 1. Sesión de onboarding, sin mail.
         s = _llamar("POST", "/api/admin/add-client", json={"name": nombre, "email": email, "plan": plan, "payment_mode": pago, "send_email": False})
         session_id = s["session_id"]
-        canal = s.get("channel_slug") or canal
+        canal = canal_previo or s.get("channel_slug") or canal
 
         # 2. Canal de Discord. Si falla, el alta sigue: se avisa y se puede crear a mano.
         invite, error_discord = None, None
-        try:
-            d = _llamar("POST", f"/api/admin/sessions/{session_id}/create-discord-channel")
-            invite = d.get("discord_invite_url")
-        except HTTPException as e:
-            error_discord = e.detail
+        if not canal_previo:
+            try:
+                d = _llamar("POST", f"/api/admin/sessions/{session_id}/create-discord-channel")
+                invite = d.get("discord_invite_url")
+            except HTTPException as e:
+                error_discord = e.detail
 
         # 3. Ficha del cliente en atv-clients: se completa la de la seña o se crea una nueva.
         plan_bd = PLANES[plan]
@@ -227,7 +248,8 @@ class AltaServices:
                 previa = db.select(f"SELECT {', '.join(_CAMPOS_FICHA)} FROM clients.clientes WHERE id = $i", {"i": ficha_id})[0]
                 guardada = json.dumps({k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in zip(_CAMPOS_FICHA, previa)}, default=str)
                 emails = json.loads(previa[1] or "[]") if previa[1] else []
-                emails = [email] + [e for e in emails if e and e.lower() != email]
+                # El mail provisorio que deja el bot de Discord se reemplaza por el real.
+                emails = [email] + [e for e in emails if e and e.lower() != email and not e.lower().endswith(_MAIL_PROVISORIO)]
                 # El acceso corre desde el alta (cuando arranca el programa), no desde la seña.
                 db.execute(
                     "UPDATE clients.clientes SET email = $email, emails_json = $emails, canal_discord = $canal, plan_actual = $plan, "
@@ -236,7 +258,8 @@ class AltaServices:
                     {
                         "email": email, "emails": json.dumps(emails), "canal": canal, "plan": plan_bd, "inicio": hoy,
                         "dur": DURACION[plan_bd], "vence": hoy + timedelta(days=DURACION[plan_bd]),
-                        "obs": f"Alta desde el classroom por {quien} (completó la ficha de la seña)", "id": ficha_id,
+                        "obs": f"Alta desde el classroom por {quien} (" + ("completó la ficha que ya estaba creada" if canal_previo else "completó la ficha de la seña") + ")",
+                        "id": ficha_id,
                     },
                 )
                 fila = (ficha_id,)
