@@ -53,3 +53,39 @@ def test_lo_ve_el_cliente_y_lo_carga_solo_el_equipo():
         svc.crear(EQUIPO, CLIENTE, {"titulo": "Sin link", "url": "no es un link"})
     with pytest.raises(HTTPException):
         svc.crear(EQUIPO, CLIENTE, {"titulo": "Fathom roto", "url": DOC, "fathom_url": "fathom"})
+
+
+def test_pasos_escritos_en_el_roadmap_los_tildan_el_cliente_y_el_coach():
+    svc = RoadmapServices()
+    with pytest.raises(HTTPException):
+        svc.crear(EQUIPO, CLIENTE, {"titulo": "Ventas"})  # ni pasos ni link
+    pasos = [{"texto": "Grabá 3 historias por día", "quien": "cliente"}, {"texto": "Reunión con Juampi", "quien": "atv"}]
+    r = svc.crear(EQUIPO, CLIENTE, {"titulo": "Ventas", "pasos": pasos})
+    doc = r["principal"]
+    assert doc["url"] is None and doc["pasos_total"] == 2 and doc["paso_actual"] == 0
+    r = svc.marcar_paso(TITULAR, doc["id"], 1, True)  # lo tilda el cliente
+    assert r["principal"]["paso_actual"] == 1 and r["principal"]["pasos"][0]["hecho_por"]["tipo"] == "cliente"
+    with pytest.raises(HTTPException):
+        svc.marcar_paso(OTRO, doc["id"], 2, True)  # otro cliente no
+    svc.marcar_paso(EQUIPO, doc["id"], 2, True)  # el coach también
+    r = svc.editar(EQUIPO, doc["id"], {"pasos": pasos + [{"texto": "Paso nuevo", "quien": "cliente"}]})
+    assert r["principal"]["paso_actual"] == 2 and r["principal"]["pasos_total"] == 3  # editar no destilda
+
+
+def test_el_borrador_con_ia_trae_pasos_mensaje_con_link_y_entregables(monkeypatch):
+    from src.services import roadmap_ia_service as ria
+
+    vistos = {}
+
+    def falso(sistema, usuario):
+        vistos["prompt"] = sistema + usuario
+        return '{"titulo": "Contenido", "area": "Historias", "pasos": [{"texto": "Grabá el CTA nuevo", "quien": "cliente"}, {"texto": "", "quien": "x"}], "mensaje": "buenas, te dejé todo", "entregables": ["Plantilla de guion"], "resumen": "Hablamos de historias."}'
+
+    monkeypatch.setattr(ria.ClienteExterno, "get", staticmethod(lambda **kw: type("C", (), {"nombre": "Ana Scheffer", "email": "a@x.com"})()))
+    with pytest.raises(HTTPException):
+        ria.RoadmapIAServices().generar(TITULAR, CLIENTE, "x" * 300, llamar=falso)  # el cliente no
+    b = ria.RoadmapIAServices().generar(EQUIPO, CLIENTE, "Coach: hola Ana. " * 30, llamar=falso)
+    assert b["pasos"] == [{"texto": "Grabá el CTA nuevo", "quien": "cliente"}]
+    assert ria.ENLACE_ROADMAP in b["mensaje"] and b["entregables"] == ["Plantilla de guion"]
+    assert b["mensaje"].endswith("Plantilla de guion: [LINK]")  # la línea del entregable la pone el código
+    assert "Ana" in vistos["prompt"] and "Transcripción" in vistos["prompt"]

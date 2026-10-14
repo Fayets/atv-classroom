@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { fetchMiRoadmap, fetchRoadmap } from '../api/roadmap'
+import { fetchMiRoadmap, fetchRoadmap, marcarPaso } from '../api/roadmap'
 import AppHeader from '../components/AppHeader'
 import { useAuth } from '../context/AuthContext'
 import '../styles/roadmap.css'
@@ -18,6 +18,32 @@ const fecha = (iso) => {
   return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
 }
 const fechaLarga = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
+// Los próximos pasos escritos en el roadmap: los tilda el cliente (o su equipo) y el coach.
+function Pasos({ doc, alCambiar }) {
+  const [enviando, setEnviando] = useState(null)
+  async function tildar(p) {
+    setEnviando(p.id)
+    try {
+      alCambiar(await marcarPaso(doc.id, p.id, !p.hecho))
+    } finally {
+      setEnviando(null)
+    }
+  }
+  return (
+    <ol className="rm-pasos">
+      {doc.pasos.map((p) => (
+        <li key={p.id} className={p.hecho ? 'is-hecho' : ''}>
+          <label title={p.hecho && p.hecho_por ? `Lo tildó ${p.hecho_por.nombre || ''}` : undefined}>
+            <input type="checkbox" checked={p.hecho} disabled={enviando === p.id} onChange={() => tildar(p)} />
+            <span>{p.texto}</span>
+          </label>
+          {p.quien === 'atv' ? <em>ATV</em> : null}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
 const nombreDoc = (d) => (d.versiones > 1 ? `${d.titulo} · v${d.version}` : d.titulo)
 
 function Cara({ coach, size = 30 }) {
@@ -182,7 +208,11 @@ export default function RoadmapPage() {
                   </b>
                 </div>
                 {principal.fathom_url ? <a className="rm-boton is-suave is-chico" href={principal.fathom_url} target="_blank" rel="noopener noreferrer">Ver llamada</a> : null}
-                <a className="rm-boton" href={principal.url} target="_blank" rel="noopener noreferrer">Abrir</a>
+                {principal.url ? (
+                  <a className="rm-boton" href={principal.url} target="_blank" rel="noopener noreferrer">Abrir</a>
+                ) : (
+                  <button type="button" className="rm-boton" onClick={() => setElegido(principal.id)}>Ver pasos</button>
+                )}
               </div>
             ) : null}
 
@@ -251,7 +281,13 @@ export default function RoadmapPage() {
                   <Hoja doc={doc} principal={principal?.id === doc.id} grande />
                 </div>
                 <h2>{nombreDoc(doc)}</h2>
-                <p className="rm-ficha__sub">Documento de Google</p>
+                <p className="rm-ficha__sub">{doc.url ? 'Documento de Google' : 'Próximos pasos de la llamada'}</p>
+                {doc.pasos?.length ? (
+                  <>
+                    <p className="rm-seccion">Próximos pasos · {doc.paso_actual || 0} de {doc.pasos_total}</p>
+                    <Pasos doc={doc} alCambiar={setDatos} />
+                  </>
+                ) : null}
                 <p className="rm-seccion">Información</p>
                 <dl>
                   <div><dt>Estado</dt><dd className={doc.estado === 'vigente' ? 'is-rojo' : ''}>{doc.estado === 'vigente' ? 'Vigente' : 'Reemplazado'}</dd></div>
@@ -260,7 +296,7 @@ export default function RoadmapPage() {
                   <div><dt>Fecha</dt><dd>{fecha(doc.fecha) === 'Hoy' ? 'Hoy' : fechaLarga(doc.fecha)}</dd></div>
                   {doc.pasos_total ? <div><dt>Avance</dt><dd>Paso {doc.paso_actual || 0} de {doc.pasos_total}</dd></div> : null}
                 </dl>
-                <a className="rm-boton is-ancho" href={doc.url} target="_blank" rel="noopener noreferrer">Abrir documento</a>
+                {doc.url ? <a className="rm-boton is-ancho" href={doc.url} target="_blank" rel="noopener noreferrer">Abrir documento</a> : null}
                 {doc.fathom_url ? <a className="rm-boton is-ancho is-suave" href={doc.fathom_url} target="_blank" rel="noopener noreferrer">Ver la grabación de la llamada</a> : null}
               </>
             ) : (

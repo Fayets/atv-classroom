@@ -230,7 +230,7 @@ function PanelCliente({ item, alVerFicha }) {
         ) : null}
       </dl>
       <AccionesRapidas canalId={item.id} cliente={cliente.nombre} alCrearRoadmap={() => setPedidoRoadmap((n) => n + 1)} />
-      <RoadmapCliente key={cliente.id} clienteId={cliente.id} pedido={pedidoRoadmap} />
+      <RoadmapCliente key={cliente.id} clienteId={cliente.id} canalId={item.id} cliente={cliente.nombre.split(' ')[0]} pedido={pedidoRoadmap} />
     </aside>
   )
 }

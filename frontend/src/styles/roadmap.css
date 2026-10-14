@@ -74,3 +74,13 @@
 @media (max-width: 720px) { .rm { grid-template-columns: minmax(0, 1fr); } .rm-lado { display: none; } }
 .rm-boton.is-suave { margin-top: 8px; background: #fff; color: var(--rm-t1); box-shadow: inset 0 0 0 1px var(--rm-linea); }
 .rm-boton.is-suave.is-chico { margin-top: 0; }
+
+/* Próximos pasos tildables dentro del roadmap */
+.rm-pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; border-radius: 10px; background: #fff; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08); }
+.rm-pasos li { display: flex; align-items: flex-start; gap: 8px; padding: 9px 12px; font-size: 13px; line-height: 1.4; }
+.rm-pasos li + li { border-top: 1px solid var(--rm-linea); }
+.rm-pasos label { flex: 1; display: flex; gap: 9px; align-items: flex-start; cursor: pointer; }
+.rm-pasos input { flex: none; margin: 2px 0 0; width: 15px; height: 15px; accent-color: #c0392b; cursor: pointer; }
+.rm-pasos li.is-hecho span { color: var(--rm-t2); text-decoration: line-through; }
+.rm-pasos em { flex: none; padding: 1px 6px; border-radius: 999px; background: rgba(192, 57, 43, 0.1); color: #c0392b; font-size: 10.5px; font-style: normal; font-weight: 700; }
+.rm-ficha .rm-pasos + .rm-boton, .rm-ficha .rm-pasos ~ dl { margin-top: 0; }

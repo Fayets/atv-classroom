@@ -459,8 +459,11 @@ class RoadmapDoc(db.Entity):
     area = Optional(str, nullable=True)  # lo que trabaja ese coach: "Setting y closing"
     titulo = Required(str)  # "Ventas", "Roadmap inicial"
     tipo = Required(str, default="revision")  # inicial | revision | complementario
-    url = Required(str)
+    url = Optional(str, nullable=True)  # un Doc externo (opcional: los pasos pueden vivir acá adentro)
     fathom_url = Optional(str, nullable=True)  # la grabación de la llamada, para que el cliente la vea
+    # Próximos pasos escritos en el roadmap: [{"id", "texto", "quien": cliente|atv, "hecho", "hecho_en", "hecho_por"}].
+    # Los tildan el cliente (o su equipo) y el coach.
+    pasos_json = Optional(str, nullable=True)
     fecha = Required(date)
     pasos_total = Optional(int, nullable=True)
     paso_actual = Optional(int, nullable=True)

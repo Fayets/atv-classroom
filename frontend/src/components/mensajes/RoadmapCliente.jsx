@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { borrarDoc, crearDoc, editarDoc, fetchRoadmap } from '../../api/roadmap'
+import RoadmapIA from './RoadmapIA'
 
 const TIPOS = [
   ['revision', 'Revisión mensual'],
@@ -8,16 +9,21 @@ const TIPOS = [
   ['complementario', 'Complementario'],
 ]
 const hoy = () => new Date().toISOString().slice(0, 10)
-const VACIO = { fathom_url: '', titulo: '', url: '', tipo: 'revision', area: '', pasos_total: '', paso_actual: '', principal: true }
+const VACIO = { fathom_url: '', titulo: '', url: '', pasos_txt: '', tipo: 'revision', area: '', pasos_total: '', paso_actual: '', principal: true }
+// Pasos como texto, uno por línea; los que hace ATV van con "ATV:" adelante.
+const aTexto = (pasos) => (pasos || []).map((p) => (p.quien === 'atv' ? `ATV: ${p.texto}` : p.texto)).join('\n')
+const deTexto = (t) => t.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => (/^atv:/i.test(l) ? { texto: l.replace(/^atv:\s*/i, ''), quien: 'atv' } : { texto: l, quien: 'cliente' }))
 const corta = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
 
 // Panel del coach: el roadmap del cliente. Se crea al salir de la llamada, empezando por el Fathom.
 // pedido: cambia cada vez que el coach toca "Crear roadmap" en Acciones rápidas.
-export default function RoadmapCliente({ clienteId, pedido = 0 }) {
+export default function RoadmapCliente({ clienteId, canalId, cliente = 'el cliente', pedido = 0 }) {
   const [datos, setDatos] = useState(null)
   const [form, setForm] = useState(null)
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
+  const [conIA, setConIA] = useState(false)
+  const [aviso, setAviso] = useState('')
 
   useEffect(() => {
     let vivo = true
@@ -36,8 +42,8 @@ export default function RoadmapCliente({ clienteId, pedido = 0 }) {
     if (pedido === ultimoPedido.current) return
     ultimoPedido.current = pedido
     setError('')
-    setForm({ ...VACIO, fecha: hoy() })
-    setTimeout(() => seccion.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+    setForm(null)
+    setConIA(true)
   }, [pedido])
 
   async function guardar(e) {
@@ -51,7 +57,11 @@ export default function RoadmapCliente({ clienteId, pedido = 0 }) {
       return
     }
     const cuerpo = { ...form, pasos_total: num(form.pasos_total), paso_actual: num(form.paso_actual), area: form.area || null, fathom_url: form.fathom_url || null }
+    const pasos = deTexto(form.pasos_txt || '')
+    if (pasos.length || form.tenia_pasos) cuerpo.pasos = pasos
     delete cuerpo.id
+    delete cuerpo.pasos_txt
+    delete cuerpo.tenia_pasos
     try {
       const d = form.id ? await editarDoc(form.id, cuerpo) : await crearDoc(clienteId, cuerpo)
       setDatos(d)
@@ -84,21 +94,45 @@ export default function RoadmapCliente({ clienteId, pedido = 0 }) {
         <p className="msj-seccion">Roadmap</p>
       </div>
 
+      {aviso ? <p className="rmc-aviso" role="status">{aviso}</p> : null}
+      {conIA ? (
+        <RoadmapIA
+          clienteId={clienteId}
+          canalId={canalId}
+          cliente={cliente}
+          onCerrar={() => setConIA(false)}
+          onManual={() => {
+            setConIA(false)
+            setForm({ ...VACIO, fecha: hoy() })
+            setTimeout(() => seccion.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+          }}
+          onGuardado={(d, enviado) => {
+            setDatos(d)
+            setConIA(false)
+            setAviso(enviado ? 'Roadmap guardado y mensaje enviado.' : 'Roadmap guardado.')
+            setTimeout(() => setAviso(''), 4000)
+          }}
+        />
+      ) : null}
       {form ? (
         <form className="rmc-form" onSubmit={guardar}>
           <label><span>Link de Fathom de la llamada</span><input value={form.fathom_url || ''} onChange={(e) => setForm({ ...form, fathom_url: e.target.value })} placeholder="https://fathom.video/…" autoFocus /></label>
           <small className="rmc-ayuda">El cliente va a poder ver la grabación desde su roadmap.</small>
           <label><span>Título</span><input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Ventas" maxLength={80} /></label>
-          <label><span>Link del documento de próximos pasos</span><input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://docs.google.com/…" /></label>
+          <label><span>Próximos pasos (uno por línea)</span><textarea rows={5} value={form.pasos_txt} onChange={(e) => setForm({ ...form, pasos_txt: e.target.value })} placeholder={'Grabá 3 historias por día\nATV: Reunión con Juampi'} /></label>
+          <small className="rmc-ayuda">Los que hace ATV, con “ATV:” adelante. Lo tildado sigue tildado.</small>
+          <label><span>Link de un documento (opcional)</span><input value={form.url || ''} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://docs.google.com/…" /></label>
           <div className="rmc-fila">
             <label><span>Tipo</span><select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}>{TIPOS.map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select></label>
             <label><span>Fecha</span><input type="date" value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} /></label>
           </div>
           <label><span>Qué trabajás con el cliente</span><input value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} placeholder="Setting y closing" maxLength={60} /></label>
-          <div className="rmc-fila">
-            <label><span>Paso actual</span><input type="number" min={0} max={50} value={form.paso_actual} onChange={(e) => setForm({ ...form, paso_actual: e.target.value })} /></label>
-            <label><span>De</span><input type="number" min={0} max={50} value={form.pasos_total} onChange={(e) => setForm({ ...form, pasos_total: e.target.value })} /></label>
-          </div>
+          {!form.pasos_txt?.trim() ? (
+            <div className="rmc-fila">
+              <label><span>Paso actual</span><input type="number" min={0} max={50} value={form.paso_actual} onChange={(e) => setForm({ ...form, paso_actual: e.target.value })} /></label>
+              <label><span>De</span><input type="number" min={0} max={50} value={form.pasos_total} onChange={(e) => setForm({ ...form, pasos_total: e.target.value })} /></label>
+            </div>
+          ) : null}
           <label className="rmc-check"><input type="checkbox" checked={Boolean(form.principal)} onChange={(e) => setForm({ ...form, principal: e.target.checked })} /> Es el que tiene que seguir ahora</label>
           {error ? <p className="msj-acciones__error" role="alert">{error}</p> : null}
           <div className="rmc-botones">
@@ -116,11 +150,11 @@ export default function RoadmapCliente({ clienteId, pedido = 0 }) {
               <button
                 type="button"
                 className="msj-accion__boton"
-                onClick={() => setForm({ id: d.id, fathom_url: d.fathom_url || '', titulo: d.titulo, url: d.url, tipo: d.tipo, fecha: d.fecha, area: d.area || '', pasos_total: d.pasos_total ?? '', paso_actual: d.paso_actual ?? '', principal: d.id === principalId })}
+                onClick={() => setForm({ id: d.id, fathom_url: d.fathom_url || '', titulo: d.titulo, url: d.url || '', pasos_txt: aTexto(d.pasos), tenia_pasos: Boolean(d.pasos?.length), tipo: d.tipo, fecha: d.fecha, area: d.area || '', pasos_total: d.pasos?.length ? '' : d.pasos_total ?? '', paso_actual: d.pasos?.length ? '' : d.paso_actual ?? '', principal: d.id === principalId })}
                 title="Editar"
               >
                 <span>{d.versiones > 1 ? `${d.titulo} · v${d.version}` : d.titulo}</span>
-                <em className={d.id === principalId ? 'is-ok' : ''}>{d.id === principalId ? 'Seguir ahora' : d.estado === 'reemplazado' ? 'Reemplazado' : corta(d.fecha)}</em>
+                <em className={d.id === principalId ? 'is-ok' : ''} title={d.pasos?.length ? `${d.paso_actual} de ${d.pasos_total} pasos hechos` : undefined}>{d.id === principalId ? 'Seguir ahora' : d.estado === 'reemplazado' ? 'Reemplazado' : corta(d.fecha)}</em>
               </button>
             </li>
           ))}

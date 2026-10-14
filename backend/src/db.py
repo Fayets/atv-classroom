@@ -93,6 +93,10 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "admins", "voz_tab", "INTEGER")
                 _agregar_columna(cur, "admins", "borrado", "BOOLEAN NOT NULL DEFAULT FALSE")
                 _agregar_columna(cur, "roadmap_docs", "fathom_url", "TEXT")
+                # Los próximos pasos viven en el roadmap (ya no hace falta un Doc): el link pasa a ser opcional.
+                _agregar_columna(cur, "roadmap_docs", "pasos_json", "TEXT")
+                if _columna(cur, "roadmap_docs", "url") == "NO":
+                    cur.execute(f'ALTER TABLE "{DB_SCHEMA}"."roadmap_docs" ALTER COLUMN url DROP NOT NULL')
                 _agregar_columna(cur, "altas_clientes", "ficha_previa", "TEXT")
                 if _columna(cur, "admins", "password_hash") == "NO":
                     cur.execute(f'ALTER TABLE "{DB_SCHEMA}"."admins" ALTER COLUMN password_hash DROP NOT NULL')
