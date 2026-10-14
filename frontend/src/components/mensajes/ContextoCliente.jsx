@@ -47,15 +47,25 @@ function Lista({ titulo, items, tono }) {
 // Lo que se ve en la tarjeta del tablero: corto, para leer de un vistazo.
 function resumen(e) {
   if (e.tipo === 'llamada') return e.resumida ? e.temas.slice(0, 3) : ['Todavía sin resumir']
-  if (e.tipo === 'chat') return e.items.slice(0, 2).map((h) => h.texto)
+  if (e.tipo === 'chat') return (e.destacados || []).slice(0, 2)
   if (e.tipo === 'alta') return (e.items || []).slice(0, 2)
   return []
 }
 
+const esImportante = (e) => e.tipo !== 'chat' || e.importante
+const FILTROS = [
+  ['importante', 'Lo importante', esImportante],
+  ['todo', 'Todo', () => true],
+  ['llamada', 'Llamadas', (e) => e.tipo === 'llamada'],
+  ['roadmap', 'Roadmaps', (e) => e.tipo === 'roadmap'],
+  ['cliente', 'Lo que dijo el cliente', (e) => e.tipo === 'chat' && e.importante],
+]
+
 function Tarjeta({ e, activa, alElegir }) {
   const clase = claseDe(e)
+  const menor = e.tipo === 'chat' && !e.importante
   return (
-    <li className={`ctx-paso is-${clase}`}>
+    <li className={`ctx-paso is-${clase}${menor ? ' is-menor' : ''}`}>
       <span className="ctx-paso__fecha">{fecha(e.fecha)}</span>
       <span className="ctx-paso__punto" aria-hidden="true" />
       <button type="button" className={`ctx-tarjeta${activa ? ' is-activa' : ''}`} onClick={alElegir} aria-pressed={activa}>
@@ -64,7 +74,9 @@ function Tarjeta({ e, activa, alElegir }) {
           {e.tipo === 'llamada' && e.duracion ? ` · ${e.duracion} min` : ''}
         </span>
         <b>{e.titulo}</b>
-        {e.tipo === 'roadmap' ? (
+        {menor ? (
+          <small className="ctx-tarjeta__menor">{e.items.length + (e.mas || 0)} cosas · tocá para ver</small>
+        ) : e.tipo === 'roadmap' ? (
           <span className="ctx-avance">
             <i>
               <b style={{ transform: `scaleX(${e.total ? e.hechos / e.total : 0})` }} />
@@ -75,9 +87,15 @@ function Tarjeta({ e, activa, alElegir }) {
           </span>
         ) : (
           <ul>
-            {resumen(e).map((t, i) => (
-              <li key={i}>{corto(t, 90)}</li>
-            ))}
+            {resumen(e).map((t, i) =>
+              typeof t === 'string' ? (
+                <li key={i}>{corto(t, 90)}</li>
+              ) : (
+                <li key={i} className={`is-${t.tipo}`}>
+                  <b>{t.etiqueta}</b> {corto(t.texto, 80)}
+                </li>
+              ),
+            )}
           </ul>
         )}
       </button>
@@ -101,8 +119,9 @@ function Detalle({ e }) {
         <ul className="ctx-hechos">
           {e.items.map((h, i) => (
             <li key={i} className={`is-${h.tipo}`}>
+              <span className={`ctx-quien-dijo is-${h.de}`}>{h.quien}</span>{' '}
               {/* "Se le recomendó" sobra cuando el que habla es del equipo: el texto ya lo dice. */}
-              {e.de === 'equipo' && h.tipo === 'recomendacion' ? null : <b>{h.etiqueta}</b>} {h.texto}
+              {h.de === 'equipo' && h.tipo === 'recomendacion' ? null : <b>{h.etiqueta}</b>} {h.texto}
               {h.cita ? <q>{h.cita}</q> : null}
             </li>
           ))}
@@ -237,6 +256,7 @@ export default function ContextoCliente({ clienteId, abierto, alCerrar }) {
   const [visible, setVisible] = useState(false)
   const [montado, setMontado] = useState(abierto)
   const [elegido, setElegido] = useState(null)
+  const [filtro, setFiltro] = useState('importante')
   const hoja = useRef(null)
 
   useEffect(() => {
@@ -273,7 +293,10 @@ export default function ContextoCliente({ clienteId, abierto, alCerrar }) {
 
   // En el tablero se lee de izquierda a derecha: lo más viejo primero. Memo: si cambiara en cada render,
   // el tablero volvería a saltar al final cada vez que tocás una tarjeta.
-  const eventos = useMemo(() => (datos ? [...datos.eventos].reverse() : []), [datos])
+  const eventos = useMemo(() => {
+    const pasa = FILTROS.find((f) => f[0] === filtro)?.[2] || esImportante
+    return datos ? [...datos.eventos].reverse().filter(pasa) : []
+  }, [datos, filtro])
 
   if (!montado) return null
   const c = datos?.cliente
@@ -307,10 +330,28 @@ export default function ContextoCliente({ clienteId, abierto, alCerrar }) {
 
           {datos ? (
             <>
+              <div className="ctx-filtros" role="tablist" aria-label="Qué mostrar en el tablero">
+                {FILTROS.map(([id, nombre, pasa]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={filtro === id}
+                    className={filtro === id ? 'is-on' : ''}
+                    onClick={() => {
+                      setFiltro(id)
+                      setElegido(null)
+                    }}
+                  >
+                    {nombre}
+                    <small>{datos.eventos.filter(pasa).length}</small>
+                  </button>
+                ))}
+              </div>
               {eventos.length ? (
                 <Tablero eventos={eventos} elegido={elegido} alElegir={setElegido} />
               ) : (
-                <p className="ctx-vacio">Todavía no hay historia: el cerebro la arma con el chat, el onboarding y las llamadas.</p>
+                <p className="ctx-vacio">{datos.eventos.length ? 'Nada con este filtro.' : 'Todavía no hay historia: el cerebro la arma con el chat, el onboarding y las llamadas.'}</p>
               )}
               {elegido != null && eventos[elegido] ? (
                 <Detalle e={eventos[elegido]} />

@@ -40,6 +40,8 @@ _RIESGO = re.compile(
     re.I,
 )
 _ORDEN_TIPO = {"objecion": 0, "logro": 1, "pedido": 2, "recomendacion": 3, "le_funciono": 4, "no_le_funciono": 5, "dolor": 6, "tema": 7}
+# Lo que va en la tarjeta del tablero: lo que dijo el cliente que cambia algo.
+_IMPORTANTES = {"objecion", "logro", "pedido", "le_funciono", "no_le_funciono"}
 _ETIQUETA = {
     "objecion": "Objeción", "logro": "Logro", "pedido": "Pidió", "recomendacion": "Se le recomendó", "le_funciono": "Le funcionó",
     "no_le_funciono": "No le funcionó", "dolor": "Le duele", "tema": "Tema",
@@ -240,8 +242,9 @@ def armar(cliente_id: int, llamar=_llamar, ahora: datetime | None = None) -> dic
         resumen_onb = [v for v in (ficha.get("que_vende") or ficha.get("oferta"), ficha.get("facturacion"), ficha.get("equipo")) if v]
         eventos.append({"tipo": "alta", "fecha": datos_cliente["desde"][:10], "momento": datos_cliente["desde"], "titulo": "Entró a ATV y completó el onboarding" if onb else "Entró a ATV", "quien": None, "items": [x[:220] for x in resumen_onb[:3]]})
 
-    # El chat: por día y por persona, lo que el cerebro sacó de cada mensaje.
-    grupos: OrderedDict[tuple, list] = OrderedDict()
+    # El chat: una tarjeta por día. En la tarjeta va solo lo que pesa (lo que dijo el cliente: objeciones,
+    # logros, pedidos, lo que le funcionó o no); el resto (recomendaciones y temas) queda en el detalle.
+    grupos: OrderedDict = OrderedDict()
     for h in hechos:
         if h.mensaje_id == 0:
             continue  # los del onboarding ya están en el alta
@@ -249,19 +252,27 @@ def armar(cliente_id: int, llamar=_llamar, ahora: datetime | None = None) -> dic
         tipo_autor, quien = _autor(m, equipo, nombre) if m else (("cliente", nombre) if h.autor_tipo == "cliente" else ("equipo", equipo.get(h.autor_id, "Equipo")))
         if tipo_autor == "equipo":
             atendieron[quien] = None
-        grupos.setdefault((h.dicho_en.date(), quien, tipo_autor), []).append(h)
-    for (dia, quien, tipo_autor), hs in grupos.items():
-        hs.sort(key=lambda h: _ORDEN_TIPO.get(h.tipo, 9))
+        grupos.setdefault(h.dicho_en.date(), []).append((h, quien, tipo_autor))
+    for dia, filas in grupos.items():
+        filas.sort(key=lambda f: (f[2] != "cliente", _ORDEN_TIPO.get(f[0].tipo, 9)))
+        destacados = [f for f in filas if f[2] == "cliente" and f[0].tipo in _IMPORTANTES]
+        del_equipo = list(OrderedDict.fromkeys(q for _, q, t in filas if t == "equipo"))
+        riesgo = any(_RIESGO.search(f"{h.texto} {h.cita}") for h, _, t in filas if t == "cliente")
         eventos.append({
             "tipo": "chat",
             "fecha": dia.isoformat(),
-            "momento": _iso(hs[0].dicho_en),
-            "titulo": f"{quien} en el chat",
-            "quien": quien,
-            "de": tipo_autor,
-            "items": [{"tipo": h.tipo, "etiqueta": _ETIQUETA.get(h.tipo, h.tipo), "texto": h.texto, "cita": h.cita[:200]} for h in hs[:4]],
-            "mas": max(0, len(hs) - 4),
-            "riesgo": any(_RIESGO.search(f"{h.texto} {h.cita}") for h in hs if h.autor_tipo == "cliente"),
+            "momento": _iso(filas[0][0].dicho_en),
+            "titulo": f"{nombre} en el chat" if destacados else f"Seguimiento de {', '.join(del_equipo) or 'el equipo'}",
+            "quien": ", ".join(del_equipo) or None,
+            "de": "cliente" if destacados else "equipo",
+            "importante": bool(destacados) or riesgo,
+            "destacados": [{"tipo": h.tipo, "etiqueta": _ETIQUETA.get(h.tipo, h.tipo), "texto": h.texto} for h, _, _ in destacados[:3]],
+            "items": [
+                {"tipo": h.tipo, "etiqueta": _ETIQUETA.get(h.tipo, h.tipo), "texto": h.texto, "cita": h.cita[:200], "quien": q, "de": t}
+                for h, q, t in filas[:10]
+            ],
+            "mas": max(0, len(filas) - 10),
+            "riesgo": riesgo,
         })
 
     for lid, admin_id, inicio, duracion, url, _, _, titulo in llamadas_info:
