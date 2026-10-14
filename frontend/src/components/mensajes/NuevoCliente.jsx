@@ -6,6 +6,7 @@ const PLANES = ['Entry Level', 'Mid Level', 'High Level', 'Boost', 'Mentoría']
 // Va al contrato de ZapSign. High Level y Boost firman el contrato de High Level: siempre pago único.
 const PAGOS = ['Pago único', 'Dos cuotas', 'Tres cuotas']
 const PAGO_UNICO = ['High Level', 'Boost']
+const usd = (n) => `USD ${Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 })}`
 const corta = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR') : '')
 const cuando = (iso) => new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
@@ -31,12 +32,13 @@ function Copiable({ valor }) {
 // Nuevo onboarding: lo que hacía /add-client en Discord, desde el escritorio del classroom.
 // Si hubo una seña, la ficha ya existe en atv-clients: mientras se escribe el nombre se busca sola y,
 // si quien hace el onboarding confirma que es ese cliente, se completa esa ficha en vez de crear otra.
-// No se muestran montos: la caja es de Franco.
+// Se muestra cuánto dejó de seña: Nick sabe el monto que mandó a la caja y así la reconoce.
 // El mail de onboarding no sale solo: se manda una vez con el botón.
 export default function NuevoCliente({ onCerrar, onAbrirChat }) {
   const [form, setForm] = useState({ nombre: '', email: '', plan: 'Entry Level', pago: '', ficha_id: null, sin_ficha: false })
   const [candidatas, setCandidatas] = useState([])
   const [elegida, setElegida] = useState(null)
+  const [todas, setTodas] = useState(false)
   const [hecha, setHecha] = useState(null)
   const [recientes, setRecientes] = useState([])
   const [error, setError] = useState('')
@@ -136,17 +138,22 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
                 <b>¿Dejó seña?</b>
                 <small>Señas cobradas que todavía no tienen onboarding. Elegí la de este cliente aunque el nombre no sea igual.</small>
                 <div className="alta-sena__lista">
-                  {candidatas.map((c) => (
+                  {(todas ? candidatas : candidatas.slice(0, 4)).map((c) => (
                     <div key={c.id} className={`alta-sena__fila${c.coincide ? ' is-sugerida' : ''}`}>
                       <span>
-                        {c.nombre} · {c.plan}{c.fecha ? ` · ${corta(c.fecha)}` : ''}
+                        {c.nombre} · {c.plan}{c.monto ? ` · ${usd(c.monto)}` : ''}{c.fecha ? ` · ${corta(c.fecha)}` : ''}
                         {c.coincide ? <em>{COINCIDE[c.coincide]}</em> : null}
                       </span>
                       <button type="button" className="is-si" onClick={() => { setElegida(c); setForm((f) => ({ ...f, ficha_id: c.id, sin_ficha: false, plan: c.plan && PLANES.includes(c.plan) ? c.plan : f.plan })) }}>Es esta</button>
                     </div>
                   ))}
                 </div>
-                <button type="button" className="alta-sena__no" onClick={() => setForm((f) => ({ ...f, ficha_id: null, sin_ficha: true }))}>No dejó seña</button>
+                <div className="alta-sena__pie">
+                  {candidatas.length > 4 ? (
+                    <button type="button" className="alta-sena__mas" onClick={() => setTodas((t) => !t)}>{todas ? 'Ver menos' : `Ver todas las señas (${candidatas.length})`}</button>
+                  ) : <span />}
+                  <button type="button" className="alta-sena__no" onClick={() => setForm((f) => ({ ...f, ficha_id: null, sin_ficha: true }))}>No dejó seña</button>
+                </div>
               </div>
             ) : ficha ? (
               <p className="alta-sena__ok">

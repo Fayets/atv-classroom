@@ -91,6 +91,7 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "admins", "google_sub", "VARCHAR")
                 _agregar_columna(cur, "admins", "foto_url", "VARCHAR")
                 _agregar_columna(cur, "admins", "voz_tab", "INTEGER")
+                _agregar_columna(cur, "admins", "borrado", "BOOLEAN NOT NULL DEFAULT FALSE")
                 _agregar_columna(cur, "roadmap_docs", "fathom_url", "TEXT")
                 _agregar_columna(cur, "altas_clientes", "ficha_previa", "TEXT")
                 if _columna(cur, "admins", "password_hash") == "NO":

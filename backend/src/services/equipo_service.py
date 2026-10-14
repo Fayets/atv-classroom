@@ -46,7 +46,8 @@ class EquipoServices:
             # Pony en Python 3.13 no soporta comprensiones sobre consultas: bucle explícito.
             miembros = []
             for a in list(Admin.select()):
-                miembros.append(_a_dict(a))
+                if not a.borrado:
+                    miembros.append(_a_dict(a))
         miembros.sort(key=lambda m: (not m["activo"], m["rol"] != "admin", m["nombre"].lower() or m["email"]))
         return miembros
 
@@ -56,7 +57,14 @@ class EquipoServices:
         with db_session:
             for a in Admin.select()[:]:
                 if a.email.strip().lower() == email:
-                    raise HTTPException(status_code=409, detail="Ese mail ya está en el equipo.")
+                    if not a.borrado:
+                        raise HTTPException(status_code=409, detail="Ese mail ya está en el equipo.")
+                    # Vuelve alguien que se había borrado: se reusa su fila (y su historial).
+                    a.borrado, a.activo = False, True
+                    a.nombre = (data.get("nombre") or "").strip() or a.nombre
+                    a.rol = data.get("rol") or "coach"
+                    a.area = data.get("area") or None
+                    return _a_dict(a)
             admin = Admin(
                 email=email,
                 nombre=(data.get("nombre") or "").strip(),
@@ -92,3 +100,20 @@ class EquipoServices:
             # Rol o baja nuevos: que vuelva a entrar con los permisos que le tocan.
             cerrar_sesiones_de_admin(miembro_id)
         return resultado
+
+    def borrar(self, miembro_id: int, sesion: dict) -> dict:
+        """Solo a quien ya está de baja. No se borra la fila: queda marcada para que sus mensajes, altas y
+        roadmaps sigan mostrando quién los hizo, y deja de aparecer en el equipo."""
+        with db_session:
+            admin = Admin.get(id=miembro_id)
+            if admin is None or admin.borrado:
+                raise HTTPException(status_code=404, detail="No existe ese miembro del equipo.")
+            if admin.id == sesion["usuario_id"]:
+                raise HTTPException(status_code=409, detail="No podés borrarte a vos mismo.")
+            if admin.activo:
+                raise HTTPException(status_code=409, detail="Primero dalo de baja.")
+            admin.borrado = True
+            admin.google_sub = None
+            admin.password_hash = None
+        cerrar_sesiones_de_admin(miembro_id)
+        return {"ok": True}

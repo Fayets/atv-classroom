@@ -83,12 +83,12 @@ def _candidatas(nombre: str = "", email: str = "") -> list[dict]:
     palabras = set(n.split()) if len(n) >= 3 else set()
     with db_session:
         filas = db.select(
-            "SELECT id, nombre, email, plan_actual, fecha_inicio FROM clients.clientes "
+            "SELECT id, nombre, email, plan_actual, fecha_inicio, total_pagado_usd FROM clients.clientes "
             "WHERE coalesce(canal_discord, '') = '' AND estado_cliente <> 'inactivo'"
         )
     inversa = {v: k for k, v in PLANES.items()}
     salida = []
-    for i, nom, mail, plan, fecha in filas:
+    for i, nom, mail, plan, fecha, pagado in filas:
         otras = set(_norm(nom).split())
         if e and (mail or "").lower() == e:
             coincide = "mail"
@@ -98,7 +98,10 @@ def _candidatas(nombre: str = "", email: str = "") -> list[dict]:
             coincide = "parecido"
         else:
             coincide = None
-        salida.append({"id": i, "nombre": nom, "plan": inversa.get(plan, plan), "fecha": fecha.isoformat() if fecha else None, "coincide": coincide})
+        salida.append({
+            "id": i, "nombre": nom, "plan": inversa.get(plan, plan), "fecha": fecha.isoformat() if fecha else None,
+            "monto": float(pagado) if pagado else None, "coincide": coincide,
+        })
     orden = {"mail": 0, "nombre": 1, "parecido": 2, None: 3}
     # Las que coinciden primero; el resto, de la seña más nueva a la más vieja.
     salida.sort(key=lambda f: f["fecha"] or "", reverse=True)
@@ -135,10 +138,10 @@ def _dict(a: AltaCliente) -> dict:
 
 class AltaServices:
     def buscar_ficha(self, sesion: dict, nombre: str, email: str = "") -> list[dict]:
-        """Señas abiertas, las que pueden ser de este cliente primero. Quien hace el onboarding no ve la
-        caja: no se devuelven montos, solo lo justo para reconocerla (nombre, programa y fecha)."""
+        """Señas abiertas, las que pueden ser de este cliente primero, con lo justo para reconocerla:
+        nombre, programa, fecha y cuánto dejó (Nick sabe el monto de la seña que mandó a la caja)."""
         _equipo(sesion)
-        return [{k: f[k] for k in ("id", "nombre", "plan", "fecha", "coincide")} for f in _candidatas(nombre, email)]
+        return [{k: f[k] for k in ("id", "nombre", "plan", "fecha", "monto", "coincide")} for f in _candidatas(nombre, email)]
 
     def crear(
         self, sesion: dict, nombre: str, email: str, plan: str, ficha_id: int | None = None, sin_ficha: bool = False, pago: str | None = None

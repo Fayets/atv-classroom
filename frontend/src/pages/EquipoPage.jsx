@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { actualizarMiembroEquipo, crearMiembroEquipo, fetchEquipo } from '../api/admin'
+import { actualizarMiembroEquipo, borrarMiembroEquipo, crearMiembroEquipo, fetchEquipo } from '../api/admin'
 import AppHeader from '../components/AppHeader'
 import { useAuth } from '../context/AuthContext'
 import { getUserInitials } from '../utils/user'
@@ -33,6 +33,7 @@ export default function EquipoPage() {
   const [cargando, setCargando] = useState(true)
   const [nuevo, setNuevo] = useState(NUEVO)
   const [guardando, setGuardando] = useState(null)
+  const [borrando, setBorrando] = useState(null)
   const [error, setError] = useState('')
 
   const cargar = useCallback(async () => {
@@ -62,6 +63,20 @@ export default function EquipoPage() {
       setError(err instanceof Error ? err.message : 'No se pudo agregar.')
     } finally {
       setGuardando(null)
+    }
+  }
+
+  async function borrar(miembro) {
+    setError('')
+    setGuardando(miembro.id)
+    try {
+      await borrarMiembroEquipo(miembro.id)
+      setMiembros((lista) => lista.filter((m) => m.id !== miembro.id))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo borrar.')
+    } finally {
+      setGuardando(null)
+      setBorrando(null)
     }
   }
 
@@ -174,14 +189,30 @@ export default function EquipoPage() {
                     </option>
                   ))}
                 </select>
-                <button
-                  type="button"
-                  className={`admin-btn ${m.activo ? 'admin-btn--ghost' : 'admin-btn--primary'}`}
-                  disabled={guardando === m.id || m.id === user?.usuario_id}
-                  onClick={() => cambiar(m, { activo: !m.activo })}
-                >
-                  {m.activo ? 'Dar de baja' : 'Reactivar'}
-                </button>
+                {!m.activo && borrando === m.id ? (
+                  <span className="eq-borrar">
+                    <button type="button" className="admin-btn admin-btn--primary" disabled={guardando === m.id} onClick={() => borrar(m)}>
+                      {guardando === m.id ? 'Borrando…' : 'Sí, borrar'}
+                    </button>
+                    <button type="button" className="admin-btn admin-btn--ghost" onClick={() => setBorrando(null)}>No</button>
+                  </span>
+                ) : (
+                  <span className="eq-borrar">
+                    <button
+                      type="button"
+                      className={`admin-btn ${m.activo ? 'admin-btn--ghost' : 'admin-btn--primary'}`}
+                      disabled={guardando === m.id || m.id === user?.usuario_id}
+                      onClick={() => cambiar(m, { activo: !m.activo })}
+                    >
+                      {m.activo ? 'Dar de baja' : 'Reactivar'}
+                    </button>
+                    {!m.activo ? (
+                      <button type="button" className="admin-btn admin-btn--ghost admin-btn--danger" disabled={guardando === m.id} onClick={() => setBorrando(m.id)} title="Sacarlo del equipo para siempre">
+                        Borrar
+                      </button>
+                    ) : null}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

@@ -22,6 +22,9 @@ class Admin(db.Entity):
     google_sub = Optional(str, nullable=True)
     foto_url = Optional(str, nullable=True)
     voz_tab = Optional(int, nullable=True)  # con la voz de quién le sugiere el Tab (vacío = la propia)
+    # Borrado del equipo: no aparece más ni entra, pero la fila queda para que sus mensajes y altas
+    # sigan diciendo quién los hizo.
+    borrado = Required(bool, default=False)
 
 
 class SesionGuardada(db.Entity):

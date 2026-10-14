@@ -21,3 +21,8 @@ def crear(body: schemas.MiembroEquipoCreate, _sesion: dict = Depends(requerir_ad
 @router.patch("/{miembro_id}", response_model=schemas.MiembroEquipo)
 def actualizar(miembro_id: int, body: schemas.MiembroEquipoPatch, sesion: dict = Depends(requerir_admin)):
     return service.actualizar(miembro_id, body.model_dump(exclude_unset=True), sesion)
+
+
+@router.delete("/{miembro_id}")
+def borrar(miembro_id: int, sesion: dict = Depends(requerir_admin)):
+    return service.borrar(miembro_id, sesion)

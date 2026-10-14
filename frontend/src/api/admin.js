@@ -107,3 +107,7 @@ export function actualizarMiembroEquipo(miembroId, data) {
     body: JSON.stringify(data),
   })
 }
+
+export function borrarMiembroEquipo(miembroId) {
+  return adminRequest(`/api/admin/equipo/${miembroId}`, { method: 'DELETE' })
+}
