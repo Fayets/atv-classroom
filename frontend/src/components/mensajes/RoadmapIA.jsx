@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { enviarMensaje } from '../../api/mensajes'
+import { fetchLlamada, fetchLlamadas } from '../../api/llamadas'
 import { crearDoc, generarRoadmap } from '../../api/roadmap'
 
 const ENLACE = '[ROADMAP]'
@@ -10,13 +11,40 @@ const faltan = (texto) => (texto.match(/\[LINK\]/g) || []).length
 // Crear roadmap desde la llamada (lo que Mauri hacía con Poppy): el coach pega la transcripción, la
 // IA arma los pasos y el mensaje en su voz, y el coach revisa, completa los [LINK] y envía.
 // Los pasos quedan escritos en el roadmap del cliente; el mensaje sale en su chat con el link al roadmap.
-export default function RoadmapIA({ clienteId, canalId, cliente, onCerrar, onGuardado, onManual }) {
+// llamadaId: si viene de la carpeta Llamadas, arranca con esa llamada ya cargada.
+export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = null, onCerrar, onGuardado, onManual }) {
   const [paso, setPaso] = useState('entrada') // entrada | armando | borrador
   const [fathom, setFathom] = useState('')
   const [transcripcion, setTranscripcion] = useState('')
   const [b, setB] = useState(null) // el borrador, editable
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState('')
+  const [recientes, setRecientes] = useState([]) // llamadas de su Fathom, las de este cliente primero
+  const [llamada, setLlamada] = useState(null)
+
+  async function usarLlamada(id) {
+    setError('')
+    try {
+      const d = await fetchLlamada(id)
+      setLlamada(d)
+      setFathom(d.fathom_url || '')
+      setTranscripcion(d.transcripcion || '')
+    } catch (err) {
+      setError(err.message || 'No se pudo traer la llamada.')
+    }
+  }
+
+  useEffect(() => {
+    if (llamadaId) usarLlamada(llamadaId)
+    fetchLlamadas()
+      .then((d) => {
+        const todas = d.admin ? d.coaches.flatMap((c) => c.llamadas) : d.llamadas
+        const conTexto = todas.filter((l) => l.con_transcripcion)
+        conTexto.sort((a, b) => (b.cliente?.id === clienteId) - (a.cliente?.id === clienteId) || (b.inicio || '').localeCompare(a.inicio || ''))
+        setRecientes(conTexto.slice(0, 6))
+      })
+      .catch(() => null)
+  }, [llamadaId, clienteId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const esc = (e) => e.key === 'Escape' && !guardando && paso !== 'armando' && onCerrar()
@@ -74,6 +102,19 @@ export default function RoadmapIA({ clienteId, canalId, cliente, onCerrar, onGua
           <form onSubmit={armar}>
             <h2 id="rmi-titulo">Crear roadmap de {cliente}</h2>
             <p className="msj-modal__ayuda">Pegá la llamada y la IA arma los próximos pasos y el mensaje en tu voz. Vos lo revisás antes de que lo vea.</p>
+            {recientes.length ? (
+              <div className="rmi-llamadas">
+                <span>Tus llamadas de Fathom</span>
+                <div>
+                  {recientes.map((l) => (
+                    <button key={l.id} type="button" className={`rmi-llamada${llamada?.id === l.id ? ' is-on' : ''}`} onClick={() => usarLlamada(l.id)} disabled={paso === 'armando'}>
+                      <b>{l.cliente?.nombre || l.titulo}</b>
+                      <small>{l.inicio ? new Date(l.inicio).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : ''}{l.cliente?.id === clienteId ? ' · este cliente' : ''}</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <label className="msj-modal__campo">
               <span>Link de Fathom de la llamada</span>
               <input type="text" value={fathom} onChange={(e) => setFathom(e.target.value)} placeholder="https://fathom.video/…" autoFocus disabled={paso === 'armando'} />

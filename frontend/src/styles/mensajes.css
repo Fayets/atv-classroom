@@ -723,3 +723,10 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmc-form textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; padding: 7px 9px; border-radius: 8px; border: 1px solid rgba(0, 0, 0, 0.14); resize: vertical; }
 .msj-modal.rmi textarea.rmi-auto { field-sizing: content; min-height: 2.6em; resize: none; }
 .rmi-fila input { width: 100%; box-sizing: border-box; }
+.rmi-llamadas { display: grid; gap: 6px; margin-bottom: 12px; }
+.rmi-llamadas > span { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #6e6e73; }
+.rmi-llamadas > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.rmi-llamada { display: grid; gap: 1px; padding: 6px 10px; border: 1px solid #d2d2d7; border-radius: 9px; background: #fff; font: inherit; text-align: left; cursor: pointer; }
+.rmi-llamada b { font-size: 12.5px; }
+.rmi-llamada small { font-size: 11px; color: #8e8e93; }
+.rmi-llamada.is-on { border-color: #c0392b; box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.15); }

@@ -4,6 +4,7 @@ import AppHeader from '../components/AppHeader'
 import CuposEquipo from '../components/cuenta/CuposEquipo'
 import TuEquipo from '../components/cuenta/TuEquipo'
 import VozTab from '../components/cuenta/VozTab'
+import FathomCuenta from '../components/cuenta/FathomCuenta'
 import { useAuth } from '../context/AuthContext'
 import '../styles/cuenta.css'
 import { getUserInitials } from '../utils/user'
@@ -152,6 +153,11 @@ export default function CuentaPage() {
             {c.tipo === 'equipo' ? (
               <Seccion titulo="Voz del Tab">
                 <VozTab />
+              </Seccion>
+            ) : null}
+            {c.tipo === 'equipo' ? (
+              <Seccion titulo="Fathom">
+                <FathomCuenta />
               </Seccion>
             ) : null}
             {c.tipo === 'equipo' && c.rol === 'admin' ? (

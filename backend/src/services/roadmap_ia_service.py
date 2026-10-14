@@ -18,7 +18,7 @@ from decouple import config
 from fastapi import HTTPException
 from pony.orm import db_session
 
-from src.models import Admin, Canal, ClienteExterno
+from src.models import Admin, Canal, ClienteExterno, Llamada
 from src.services import aprendizaje_service as ap
 from src.services import gasto_ia
 from src.services.auth_service import es_equipo
@@ -130,9 +130,16 @@ Transcripción de la llamada:
 
 
 class RoadmapIAServices:
-    def generar(self, sesion: dict, cliente_id: int, transcripcion: str, llamar=_llamar) -> dict:
+    def generar(self, sesion: dict, cliente_id: int, transcripcion: str | None, llamar=_llamar, llamada_id: int | None = None) -> dict:
         if not es_equipo(sesion):
             raise HTTPException(status_code=403, detail="El roadmap lo arma el equipo de ATV.")
+        if llamada_id:
+            # La llamada que trajo su Fathom (carpeta Llamadas): la transcripción ya está guardada.
+            with db_session:
+                ll = Llamada.get(id=llamada_id)
+                if ll is None or (sesion.get("rol") != "admin" and ll.admin_id != sesion["usuario_id"]):
+                    raise HTTPException(status_code=404, detail="No existe esa llamada.")
+                transcripcion = ll.transcripcion or ""
         if len((transcripcion or "").strip()) < 200:
             raise HTTPException(status_code=422, detail="Pegá la transcripción completa de la llamada.")
         with db_session:

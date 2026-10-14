@@ -18,6 +18,7 @@ from src.controllers.roadmap_controller import router as roadmap_router
 from src.controllers.alta_controller import router as alta_router
 from src.controllers.onboardings_controller import router as onboardings_router
 from src.controllers.contratos_controller import router as contratos_router
+from src.controllers.llamadas_controller import router as llamadas_router
 from src.controllers.chat_controller import router as chat_router
 from src.controllers.clase_controller import router as clase_router
 from src.controllers.equipo_controller import router as equipo_router
@@ -60,14 +61,37 @@ async def _aprender_siempre():
         await asyncio.sleep(_CADA_MIN * 60)
 
 
+# Las llamadas de Fathom de cada coach conectado entran solas cada FATHOM_CADA_MIN minutos.
+_FATHOM = config("FATHOM_SYNC", default=True, cast=bool)
+_FATHOM_CADA_MIN = config("FATHOM_CADA_MIN", default=15, cast=int)
+
+
+async def _traer_llamadas_siempre():
+    from starlette.concurrency import run_in_threadpool
+
+    from src.services.fathom_service import ciclo
+
+    await asyncio.sleep(90)
+    while True:
+        try:
+            nuevas = await run_in_threadpool(ciclo)
+            if nuevas:
+                logging.getLogger("fathom").info("Fathom: %s llamadas nuevas", nuevas)
+        except Exception:
+            logging.getLogger("fathom").exception("Fathom: falló la sincronización")
+        await asyncio.sleep(_FATHOM_CADA_MIN * 60)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     ensure_upload_dirs()
     init_db()
     tarea = asyncio.create_task(_aprender_siempre()) if _APRENDIZAJE and config("ANTHROPIC_API_KEY", default="") else None
+    fathom = asyncio.create_task(_traer_llamadas_siempre()) if _FATHOM else None
     yield
-    if tarea:
-        tarea.cancel()
+    for t in (tarea, fathom):
+        if t:
+            t.cancel()
 
 
 # La documentación automática lista todos los endpoints: solo se prende en local con DOCS=1.
@@ -101,6 +125,7 @@ app.include_router(roadmap_router)
 app.include_router(alta_router)
 app.include_router(onboardings_router)
 app.include_router(contratos_router)
+app.include_router(llamadas_router)
 app.include_router(sugerencias_router)
 app.include_router(programa_router)
 app.include_router(clase_router)

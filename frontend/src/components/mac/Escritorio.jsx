@@ -6,6 +6,7 @@ import { useMensajeria } from '../../context/MensajeriaContext'
 import MensajesPage from '../../pages/MensajesPage'
 import Finder, { IconoCarpeta } from './Finder'
 import ContratosCarpeta from './ContratosCarpeta'
+import LlamadasCarpeta from './LlamadasCarpeta'
 import OnboardingsCarpeta from './OnboardingsCarpeta'
 import NuevoCliente from '../mensajes/NuevoCliente'
 import '../../styles/escritorio.css'
@@ -151,8 +152,9 @@ export default function Escritorio({ children }) {
   // Con la carpeta Clientes abierta hay una ventana: el Dock se esconde como siempre.
   const [onboardings, setOnboardings] = useState(false)
   const [contratos, setContratos] = useState(false)
+  const [llamadas, setLlamadas] = useState(false)
   const [dandoAlta, setDandoAlta] = useState(false)
-  const fijo = visible !== 'abierta' && !finder && !onboardings && !contratos
+  const fijo = visible !== 'abierta' && !finder && !onboardings && !contratos && !llamadas
 
   // Solo el teclado (Tab) deja el Dock fijo: un clic no tiene que dejarlo trabado arriba.
   function mostrarDock() {
@@ -192,7 +194,7 @@ export default function Escritorio({ children }) {
   }
 
   // Carpeta Clientes (solo admin): ícono en el escritorio, pila en el Dock y su ventana de Finder.
-  const [finderFrente, setFinderFrente] = useState(false) // 'clientes' | 'onboardings' | 'contratos' | false
+  const [finderFrente, setFinderFrente] = useState(false) // 'clientes' | 'onboardings' | 'contratos' | 'llamadas' | false
   const [iconoSel, setIconoSel] = useState(null)
   function abrirClientes() {
     setFinder(true)
@@ -207,6 +209,11 @@ export default function Escritorio({ children }) {
   function abrirOnboardings() {
     setOnboardings(true)
     setFinderFrente('onboardings')
+    setIconoSel(null)
+  }
+  function abrirLlamadas() {
+    setLlamadas(true)
+    setFinderFrente('llamadas')
     setIconoSel(null)
   }
   function abrirContratos() {
@@ -232,6 +239,7 @@ export default function Escritorio({ children }) {
         {[
           ...(isAdmin ? [{ id: 'clientes', nombre: 'Clientes', abrir: abrirClientes }, { id: 'contratos', nombre: 'Contratos', abrir: abrirContratos }] : []),
           { id: 'onboardings', nombre: 'Onboardings', abrir: abrirOnboardings },
+          { id: 'llamadas', nombre: 'Llamadas', abrir: abrirLlamadas },
           { id: 'alta', nombre: 'Nuevo onboarding', abrir: () => { setDandoAlta(true); setIconoSel(null) }, mas: true },
         ].map((ic) => (
           <button
@@ -273,6 +281,7 @@ export default function Escritorio({ children }) {
       {isAdmin ? (
         <ContratosCarpeta abierta={contratos} alFrente={finderFrente === 'contratos'} alEnfocar={() => setFinderFrente('contratos')} alCerrar={() => setContratos(false)} />
       ) : null}
+      <LlamadasCarpeta abierta={llamadas} alFrente={finderFrente === 'llamadas'} alEnfocar={() => setFinderFrente('llamadas')} alCerrar={() => setLlamadas(false)} alAbrirChat={abrirChat} />
       <OnboardingsCarpeta abierta={onboardings} alFrente={finderFrente === 'onboardings'} alEnfocar={() => setFinderFrente('onboardings')} alCerrar={() => setOnboardings(false)} alAbrirChat={abrirChat} />
       {dandoAlta ? (
         <NuevoCliente

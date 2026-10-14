@@ -97,13 +97,18 @@ def _equipo_que_ve(canal: Canal, autor_id: int) -> set[int]:
 
 
 def canales_de_coach(admin_id: int) -> set[int]:
-    """Los chats de clientes que ve un coach: donde lo etiquetaron y los de los clientes que dio de alta."""
+    """Los chats de clientes que ve un coach: donde lo etiquetaron, los de los clientes que dio de alta
+    y los de los clientes con los que tuvo una llamada (su Fathom), para armarles el roadmap."""
     filas = db.select(f'SELECT DISTINCT canal_id FROM "{DB_SCHEMA}"."menciones" WHERE admin_id = $admin_id')
     altas = db.select(
         f'SELECT c.id FROM "{DB_SCHEMA}"."canales" c JOIN "{DB_SCHEMA}"."altas_clientes" a ON a.cliente_id = c.cliente_id '
         "WHERE a.creado_por = $admin_id"
     )
-    return {int(f) for f in filas} | {int(f) for f in altas}
+    llamadas = db.select(
+        f'SELECT c.id FROM "{DB_SCHEMA}"."canales" c JOIN "{DB_SCHEMA}"."llamadas" l ON l.cliente_id = c.cliente_id '
+        "WHERE l.admin_id = $admin_id"
+    )
+    return {int(f) for f in filas} | {int(f) for f in altas} | {int(f) for f in llamadas}
 
 
 def _ve(sesion: dict, canal: dict) -> bool:

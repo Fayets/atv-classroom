@@ -6,7 +6,8 @@ from pony.orm import db_session
 from src.db import DB_SCHEMA, db, init_db
 from src.services.equipo_service import EquipoServices
 
-init_db()
+if db.provider is None:
+    init_db()
 MAIL = "borrar-test@atvos-prueba.com"
 
 

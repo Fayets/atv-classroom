@@ -17,7 +17,8 @@ const corta = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', {
 
 // Panel del coach: el roadmap del cliente. Se crea al salir de la llamada, empezando por el Fathom.
 // pedido: cambia cada vez que el coach toca "Crear roadmap" en Acciones rápidas.
-export default function RoadmapCliente({ clienteId, canalId, cliente = 'el cliente', pedido = 0 }) {
+// llamadaId: viene de la carpeta Llamadas ("Crear roadmap" en una llamada): abre el armado con esa llamada.
+export default function RoadmapCliente({ clienteId, canalId, cliente = 'el cliente', pedido = 0, llamadaId = null, onLlamadaUsada }) {
   const [datos, setDatos] = useState(null)
   const [form, setForm] = useState(null)
   const [error, setError] = useState('')
@@ -45,6 +46,15 @@ export default function RoadmapCliente({ clienteId, canalId, cliente = 'el clien
     setForm(null)
     setConIA(true)
   }, [pedido])
+
+  const [llamadaIA, setLlamadaIA] = useState(null)
+  useEffect(() => {
+    if (!llamadaId) return
+    setLlamadaIA(llamadaId)
+    setForm(null)
+    setConIA(true)
+    onLlamadaUsada?.()
+  }, [llamadaId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function guardar(e) {
     e.preventDefault()
@@ -100,7 +110,11 @@ export default function RoadmapCliente({ clienteId, canalId, cliente = 'el clien
           clienteId={clienteId}
           canalId={canalId}
           cliente={cliente}
-          onCerrar={() => setConIA(false)}
+          llamadaId={llamadaIA}
+          onCerrar={() => {
+            setConIA(false)
+            setLlamadaIA(null)
+          }}
           onManual={() => {
             setConIA(false)
             setForm({ ...VACIO, fecha: hoy() })
@@ -109,6 +123,7 @@ export default function RoadmapCliente({ clienteId, canalId, cliente = 'el clien
           onGuardado={(d, enviado) => {
             setDatos(d)
             setConIA(false)
+            setLlamadaIA(null)
             setAviso(enviado ? 'Roadmap guardado y mensaje enviado.' : 'Roadmap guardado.')
             setTimeout(() => setAviso(''), 4000)
           }}

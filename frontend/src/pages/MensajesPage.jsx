@@ -189,7 +189,7 @@ function PanelSena({ sena, alHacerOnboarding }) {
   )
 }
 
-function PanelCliente({ item, alVerFicha }) {
+function PanelCliente({ item, alVerFicha, llamadaId = null, onLlamadaUsada }) {
   const [pedidoRoadmap, setPedidoRoadmap] = useState(0)
   const cliente = item?.cliente
   if (!cliente) return null
@@ -230,7 +230,7 @@ function PanelCliente({ item, alVerFicha }) {
         ) : null}
       </dl>
       <AccionesRapidas canalId={item.id} cliente={cliente.nombre} alCrearRoadmap={() => setPedidoRoadmap((n) => n + 1)} />
-      <RoadmapCliente key={cliente.id} clienteId={cliente.id} canalId={item.id} cliente={cliente.nombre.split(' ')[0]} pedido={pedidoRoadmap} />
+      <RoadmapCliente key={cliente.id} clienteId={cliente.id} canalId={item.id} cliente={cliente.nombre.split(' ')[0]} pedido={pedidoRoadmap} llamadaId={llamadaId} onLlamadaUsada={onLlamadaUsada} />
     </aside>
   )
 }
@@ -533,7 +533,12 @@ export default function MensajesPage() {
           )}
         </main>
 
-        {isEquipo && item?.cliente && !senaActiva ? <PanelCliente item={item} alVerFicha={isAdmin && escritorio ? escritorio.verFicha : null} /> : null}
+        {isEquipo && item?.cliente && !senaActiva ? <PanelCliente
+            item={item}
+            alVerFicha={isAdmin && escritorio ? escritorio.verFicha : null}
+            llamadaId={enMensajes ? Number(params.get('roadmap')) || null : null}
+            onLlamadaUsada={() => setParams({ c: String(item.id) }, { replace: true })}
+          /> : null}
         {onboardingDe ? (
           <NuevoCliente
             sena={onboardingDe}

@@ -493,3 +493,37 @@ class AltaCliente(db.Entity):
     creado_en = Required(datetime, default=datetime.utcnow)
     mail_enviado_en = Optional(datetime, nullable=True)
     mail_enviado_por = Optional(int, nullable=True)
+
+
+class FathomConexion(db.Entity):
+    """El Fathom de cada coach, conectado desde Mi cuenta con su API key (cifrada: nadie la ve)."""
+
+    _table_ = (DB_SCHEMA, "fathom_conexiones")
+
+    id = PrimaryKey(int, auto=True)
+    admin_id = Required(int, unique=True)
+    clave_cifrada = Required(str)
+    conectada_en = Required(datetime, default=datetime.utcnow)
+    ultima_sync = Optional(datetime, nullable=True)
+    error = Optional(str, nullable=True)  # lo último que respondió mal Fathom (clave vencida, etc.)
+
+
+class Llamada(db.Entity):
+    """Una llamada grabada con Fathom por un coach (carpeta Llamadas). cliente_id: el cliente que
+    estaba invitado (por su mail), si se encontró."""
+
+    _table_ = (DB_SCHEMA, "llamadas")
+
+    id = PrimaryKey(int, auto=True)
+    admin_id = Required(int, index=True)
+    fathom_id = Required(str, unique=True)  # recording_id de Fathom
+    titulo = Optional(str, nullable=True)
+    inicio = Optional(datetime, nullable=True)  # UTC
+    duracion_min = Optional(int, nullable=True)
+    url = Optional(str, nullable=True)
+    share_url = Optional(str, nullable=True)
+    invitados_json = Optional(str, nullable=True)  # [{"nombre", "email", "externo"}]
+    transcripcion = Optional(str, nullable=True)
+    resumen = Optional(str, nullable=True)  # el resumen que arma Fathom
+    cliente_id = Optional(int, nullable=True, index=True)
+    creado_en = Required(datetime, default=datetime.utcnow)

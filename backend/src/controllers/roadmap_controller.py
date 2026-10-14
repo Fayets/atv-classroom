@@ -26,7 +26,8 @@ class Doc(BaseModel):
 
 
 class Generar(BaseModel):
-    transcripcion: str
+    transcripcion: str | None = None
+    llamada_id: int | None = None  # una llamada de la carpeta Llamadas (su Fathom conectado)
 
 
 class Tilde(BaseModel):
@@ -62,7 +63,7 @@ async def borrar(doc_id: int, sesion: dict = Depends(obtener_sesion_desde_reques
 @router.post("/clientes/{cliente_id}/generar")
 async def generar(cliente_id: int, datos: Generar, sesion: dict = Depends(obtener_sesion_desde_request)):
     """Borrador con IA desde la transcripción de la llamada: pasos, mensaje y entregables. No guarda nada."""
-    return await run_in_threadpool(ia.generar, sesion, cliente_id, datos.transcripcion)
+    return await run_in_threadpool(lambda: ia.generar(sesion, cliente_id, datos.transcripcion, llamada_id=datos.llamada_id))
 
 
 @router.put("/docs/{doc_id}/pasos/{paso_id}")
