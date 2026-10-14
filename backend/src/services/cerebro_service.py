@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import time
 import unicodedata
 from collections import defaultdict
@@ -48,7 +49,10 @@ from src.services.frente_service import BRIEFS, CATALOGO, COACHES, coach_de_clas
 _DATA = Path(__file__).resolve().parent.parent / "data"
 CONCEPTOS = json.loads((_DATA / "conceptos.json").read_text(encoding="utf-8"))
 _CONCEPTO = {c["id"]: c for c in CONCEPTOS["conceptos"]}
-_TTL = 5
+# Armar el grafo entero lleva varios segundos (cientos de neuronas, miles de enlaces). Se sirve siempre
+# el que está en memoria y, si tiene más de _TTL segundos, se rearma en segundo plano: nadie espera.
+_TTL = 120
+_armando = threading.Lock()
 _cache: dict = {"t": 0.0, "grafo": None}
 
 
@@ -344,11 +348,35 @@ def _roadmaps_de_coach(admin_id: int) -> dict | None:
     return de_coach(admin_id)
 
 
+def _rearmar() -> None:
+    _cache["grafo"] = _construir()
+    _cache["t"] = time.time()
+
+
+def _rearmar_en_fondo() -> None:
+    if not _armando.acquire(blocking=False):
+        return
+    try:
+        _rearmar()
+    except Exception:  # si falla, queda el anterior y se reintenta en la próxima consulta
+        _cache["t"] = time.time() - _TTL + 15
+    finally:
+        _armando.release()
+
+
+def precalentar() -> None:
+    """Al arrancar el servidor: el grafo queda armado antes de que alguien abra el Cerebro."""
+    threading.Thread(target=_rearmar_en_fondo, daemon=True).start()
+
+
 class CerebroServices:
     def grafo(self) -> dict:
-        if _cache["grafo"] is None or time.time() - _cache["t"] > _TTL:
-            _cache["grafo"] = _construir()
-            _cache["t"] = time.time()
+        if _cache["grafo"] is None:
+            with _armando:  # la primera vez sí hay que esperar (y una sola vez aunque pidan varios)
+                if _cache["grafo"] is None:
+                    _rearmar()
+        elif time.time() - _cache["t"] > _TTL and not _armando.locked():
+            threading.Thread(target=_rearmar_en_fondo, daemon=True).start()
         return _cache["grafo"]
 
     def nodo(self, nid: str) -> dict:

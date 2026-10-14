@@ -107,6 +107,9 @@ async def _avisar_siempre():
 async def lifespan(_app: FastAPI):
     ensure_upload_dirs()
     init_db()
+    from src.services.cerebro_service import precalentar
+
+    precalentar()
     tarea = asyncio.create_task(_aprender_siempre()) if _APRENDIZAJE and config("ANTHROPIC_API_KEY", default="") else None
     fathom = asyncio.create_task(_traer_llamadas_siempre()) if _FATHOM else None
     from src.services import avisos_service
