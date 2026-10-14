@@ -254,9 +254,8 @@ export default function MensajesPage() {
   const guardado = useRef({ activo: activoUrl, vista: vistaUrl })
   if (enMensajes) guardado.current = { activo: activoUrl, vista: vistaUrl }
   const activo = enMensajes ? activoUrl : guardado.current.activo
-  // El coach solo trabaja con alertas (donde lo etiquetaron); el admin elige entre la bandeja y sus alertas.
-  const esCoach = isEquipo && !isAdmin
-  const vista = esCoach ? 'alertas' : (enMensajes ? vistaUrl : guardado.current.vista) === 'alertas' ? 'alertas' : 'bandeja'
+  // Todo el equipo (admin y coach) elige entre la bandeja de clientes y sus alertas.
+  const vista = (enMensajes ? vistaUrl : guardado.current.vista) === 'alertas' ? 'alertas' : 'bandeja'
 
   const [senas, setSenas] = useState(null)
   const [senasAbiertas, setSenasAbiertas] = useState(false)
@@ -390,7 +389,7 @@ export default function MensajesPage() {
     onDrop: (e) => soltar(e, grupoId),
   })
   const item = canales?.find((c) => c.id === activo)
-  const abrir = (id) => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas', c: String(id) } : { c: String(id) })
+  const abrir = (id) => setParams(vista === 'alertas' ? { v: 'alertas', c: String(id) } : { c: String(id) })
   const cambiarVista = (v) => setParams(v === 'alertas' ? { v: 'alertas' } : {})
 
   // Un grupo de clientes de la bandeja (por plan, o Inactivos), con su zona para soltar chats.
@@ -452,7 +451,7 @@ export default function MensajesPage() {
             </span>
           </div>
 
-          {isEquipo && !esCoach ? (
+          {isEquipo ? (
             <div className="msj-segmento" role="tablist" aria-label="Vista">
               <button type="button" role="tab" aria-selected={vista === 'bandeja'} className={vista === 'bandeja' ? 'is-on' : ''} onClick={() => cambiarVista('bandeja')}>
                 Clientes
@@ -462,8 +461,6 @@ export default function MensajesPage() {
               </button>
             </div>
           ) : null}
-          {vista === 'alertas' && esCoach ? seccionCanales : null}
-          {vista === 'alertas' && esCoach ? seccionSenas : null}
           {vista === 'alertas' ? <Alertas activo={activo} onAbrir={abrir} /> : null}
           {vista === 'bandeja' && isEquipo ? (
             <input
@@ -525,7 +522,7 @@ export default function MensajesPage() {
           {senaActiva && isEquipo ? (
             <PanelSena sena={sena} alHacerOnboarding={() => setOnboardingDe(sena)} />
           ) : activo ? (
-            <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} onVolver={() => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas' } : {})} />
+            <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} onVolver={() => setParams(vista === 'alertas' ? { v: 'alertas' } : {})} />
           ) : (
             <div className="msj-vacio">
               {vista === 'alertas' ? 'Elegí una alerta para ir a la conversación.' : 'Elegí un canal para ver la conversación.'}

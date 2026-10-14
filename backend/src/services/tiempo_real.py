@@ -24,8 +24,8 @@ CIERRE_LENTA = 4408     # código de cierre: el navegador reconecta (no es un pr
 
 
 def puede_ver(sesion: dict, canal: dict) -> bool:
-    """canal: {"id", "tipo", "cliente_id", "roles", "creado_por"}. El admin ve todo; el coach, los
-    canales donde lo etiquetaron (sesion["canales_coach"]) y los grupos del equipo o que creó él;
+    """canal: {"id", "tipo", "cliente_id", "roles", "creado_por"}. El admin ve todo; el coach, todos los
+    chats de clientes (como el admin) y los grupos del equipo, los que creó él o donde lo etiquetaron;
     el cliente, su canal y los grupos de su rol. Los anuncios los ven todos."""
     rol = sesion.get("rol")
     if rol == "admin":
@@ -41,7 +41,7 @@ def puede_ver(sesion: dict, canal: dict) -> bool:
             return "equipo" in roles or canal.get("creado_por") == sesion["usuario_id"] or canal.get("id") in sesion.get("canales_coach", set())
         return cliente_ve(rol, roles)
     if rol == "coach":
-        return canal.get("id") in sesion.get("canales_coach", set())
+        return canal["tipo"] == "cliente"
     return canal["tipo"] == "cliente" and canal["cliente_id"] == sesion["usuario_id"]
 
 

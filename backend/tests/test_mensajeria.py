@@ -253,13 +253,11 @@ def test_escribiendo_le_llega_al_otro_y_no_a_quien_escribe(coach, monkeypatch):
         assert uno.receive_json()["tipo"] == "pong"
 
 
-def test_el_coach_solo_ve_donde_lo_etiquetan_y_la_alerta_mide_la_demora(coach, coach_real):
+def test_el_coach_ve_la_bandeja_y_la_alerta_mide_la_demora(coach, coach_real):
     a = _cliente(CLI_A)
     canal = _canal_de(a)
-    # Sin etiqueta, el coach no ve el canal.
-    with pytest.raises(HTTPException):
-        svc.mensajes(dict(coach_real), canal)
-    assert all(c["tipo"] != "cliente" for c in svc.listar_canales(dict(coach_real)))
+    # El coach ve los chats de los clientes como el admin, aunque no lo hayan etiquetado.
+    assert svc.mensajes(dict(coach_real), canal)["mensajes"] is not None
 
     m, _ = svc.enviar(a, canal, "@Zebedeo no me queda claro el paso 3", None)
     assert m["menciones"] == [coach_real["usuario_id"]]
@@ -267,9 +265,8 @@ def test_el_coach_solo_ve_donde_lo_etiquetan_y_la_alerta_mide_la_demora(coach, c
     alertas = svc.menciones(dict(coach_real))
     assert alertas["pendientes"] == 1 and alertas["alertas"][0]["estado"] == "pendiente"
     assert alertas["alertas"][0]["autor"]["tipo"] == "cliente"
-    assert svc.no_leidos(dict(coach_real))["esperando"] == 1
 
-    # Ahora ve el canal y, al responder, la alerta queda respondida con su demora.
+    # Al responder, la alerta queda respondida con su demora.
     assert svc.mensajes(dict(coach_real), canal)["mensajes"][-1]["id"] == m["id"]
     svc.enviar(dict(coach_real), canal, "Te lo explico: es el guion de setting", None)
     alertas = svc.menciones(dict(coach_real))

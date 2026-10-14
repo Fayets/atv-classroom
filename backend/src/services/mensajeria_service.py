@@ -374,7 +374,7 @@ class MensajeriaServices:
     def listar_canales(self, sesion: dict) -> list[dict]:
         equipo = es_equipo(sesion)
         with db_session:
-            if sesion.get("rol") == "admin":
+            if equipo:
                 _asegurar_canales_de_clientes()
             elif not equipo:
                 _canal_del_cliente(sesion["usuario_id"])
@@ -607,9 +607,6 @@ class MensajeriaServices:
             return evento, _info(canal)
 
     def no_leidos(self, sesion: dict) -> dict:
-        if sesion.get("rol") == "coach":
-            pendientes = self.menciones(sesion)["pendientes"]
-            return {"no_leidos": pendientes, "esperando": pendientes}
         canales = self.listar_canales(sesion)
         total = 0
         esperando = 0
