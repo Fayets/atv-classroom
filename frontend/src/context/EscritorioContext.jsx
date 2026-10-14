@@ -17,6 +17,9 @@ function leer() {
 export function EscritorioProvider({ children }) {
   const [tamano, setTamano] = useState(() => leer().tamano) // cómo vuelve al abrirse
   const [visible, setVisible] = useState('abierta') // abierta | min | cerrada
+  // Desde Mensajes se pide abrir la ficha de un cliente en la carpeta Clientes (n cambia en cada pedido).
+  const [fichaPedida, setFichaPedida] = useState(null)
+  const verFicha = useCallback((clienteId) => setFichaPedida({ id: clienteId, n: Date.now() }), [])
 
   const guardar = (t) => {
     try {
@@ -38,8 +41,8 @@ export function EscritorioProvider({ children }) {
   const abrir = useCallback(() => setVisible('abierta'), [])
 
   const valor = useMemo(
-    () => ({ tamano, visible, alternarTamano, minimizar, cerrar, abrir }),
-    [tamano, visible, alternarTamano, minimizar, cerrar, abrir],
+    () => ({ tamano, visible, alternarTamano, minimizar, cerrar, abrir, fichaPedida, verFicha }),
+    [tamano, visible, alternarTamano, minimizar, cerrar, abrir, fichaPedida, verFicha],
   )
   return <EscritorioContext.Provider value={valor}>{children}</EscritorioContext.Provider>
 }

@@ -64,7 +64,7 @@ function seccionDe(ruta) {
 export default function Escritorio({ children }) {
   const { isAdmin } = useAuth()
   const { resumen } = useMensajeria()
-  const { tamano, visible, abrir } = useEscritorio()
+  const { tamano, visible, abrir, fichaPedida } = useEscritorio()
   const location = useLocation()
   const { pathname, search } = location
   const navigate = useNavigate()
@@ -199,6 +199,11 @@ export default function Escritorio({ children }) {
     setFinderFrente('clientes')
     setIconoSel(null)
   }
+  // Tocar al cliente en Mensajes abre su ficha en la carpeta Clientes.
+  useEffect(() => {
+    if (fichaPedida && isAdmin) abrirClientes()
+  }, [fichaPedida]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function abrirOnboardings() {
     setOnboardings(true)
     setFinderFrente('onboardings')
@@ -263,7 +268,7 @@ export default function Escritorio({ children }) {
       </div>
 
       {isAdmin ? (
-        <Finder abierta={finder} alFrente={finderFrente === 'clientes'} alEnfocar={() => setFinderFrente('clientes')} alCerrar={() => setFinder(false)} alAbrirChat={abrirChat} />
+        <Finder irA={fichaPedida} abierta={finder} alFrente={finderFrente === 'clientes'} alEnfocar={() => setFinderFrente('clientes')} alCerrar={() => setFinder(false)} alAbrirChat={abrirChat} />
       ) : null}
       {isAdmin ? (
         <ContratosCarpeta abierta={contratos} alFrente={finderFrente === 'contratos'} alEnfocar={() => setFinderFrente('contratos')} alCerrar={() => setContratos(false)} />

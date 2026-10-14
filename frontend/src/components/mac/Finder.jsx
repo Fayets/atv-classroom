@@ -238,7 +238,7 @@ function Ficha({ id, alAbrirChat }) {
   )
 }
 
-export default function Finder({ abierta, alCerrar, alEnfocar, alFrente, alAbrirChat }) {
+export default function Finder({ abierta, alCerrar, alEnfocar, alFrente, alAbrirChat, irA = null }) {
   const [clientes, setClientes] = useState(null)
   const [error, setError] = useState('')
   const [filtro, setFiltro] = useState('todos')
@@ -286,6 +286,14 @@ export default function Finder({ abierta, alCerrar, alEnfocar, alFrente, alAbrir
     setHistoria((h) => ({ pila: [...h.pila.slice(0, h.i + 1), id], i: h.i + 1 }))
     setSel(null)
   }
+  // Pedido desde Mensajes (tocar al cliente): entra directo a su ficha.
+  useEffect(() => {
+    if (!irA) return
+    setFiltro('todos')
+    setPlan(null)
+    setBuscar('')
+    setHistoria((h) => (h.pila[h.i] === irA.id ? h : { pila: [null, irA.id], i: 1 }))
+  }, [irA])
   const atras = () => setHistoria((h) => ({ ...h, i: Math.max(0, h.i - 1) }))
   const adelante = () => setHistoria((h) => ({ ...h, i: Math.min(h.pila.length - 1, h.i + 1) }))
   function elegir(id) {

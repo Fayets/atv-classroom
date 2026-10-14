@@ -686,3 +686,6 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-sena-panel__ayuda { margin: 0; font-size: 13px; color: #6e6e73; line-height: 1.5; }
 .msj-sena-panel__boton { justify-self: start; padding: 10px 18px; border: 0; border-radius: 9px; background: #c0392b; color: #fff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .msj-sena-panel__boton:hover { background: #a93226; }
+.msj-panel__quien.is-link { width: 100%; border: 0; background: none; font: inherit; padding: 8px 4px; border-radius: 12px; cursor: pointer; }
+.msj-panel__quien.is-link:hover { background: rgba(0, 0, 0, 0.04); }
+.msj-panel__quien.is-link small { margin-top: -6px; font-size: 12px; font-weight: 600; color: #c0392b; }

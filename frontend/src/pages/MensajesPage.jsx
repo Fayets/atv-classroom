@@ -9,6 +9,7 @@ import AccionesRapidas from '../components/mensajes/AccionesRapidas'
 import Avatar from '../components/mensajes/Avatar'
 import RoadmapCliente from '../components/mensajes/RoadmapCliente'
 import Conversacion from '../components/mensajes/Conversacion'
+import { useEscritorio } from '../context/EscritorioContext'
 import NuevoCliente from '../components/mensajes/NuevoCliente'
 import { useAuth } from '../context/AuthContext'
 import { useMensajeria } from '../context/MensajeriaContext'
@@ -188,17 +189,25 @@ function PanelSena({ sena, alHacerOnboarding }) {
   )
 }
 
-function PanelCliente({ item }) {
+function PanelCliente({ item, alVerFicha }) {
   const cliente = item?.cliente
   if (!cliente) return null
   const vence = cliente.vence ? new Date(`${cliente.vence}T00:00:00`).toLocaleDateString('es-AR') : 'Sin fecha'
   return (
     <aside className="msj-panel" aria-label="Datos del cliente">
       <p className="msj-seccion">Cliente</p>
-      <div className="msj-panel__quien">
-        <Avatar persona={{ tipo: 'cliente', nombre: cliente.nombre }} size={44} />
-        <b>{cliente.nombre}</b>
-      </div>
+      {alVerFicha ? (
+        <button type="button" className="msj-panel__quien is-link" onClick={() => alVerFicha(cliente.id)} title="Ver su ficha en la carpeta Clientes">
+          <Avatar persona={{ tipo: 'cliente', nombre: cliente.nombre }} size={44} />
+          <b>{cliente.nombre}</b>
+          <small>Ver ficha →</small>
+        </button>
+      ) : (
+        <div className="msj-panel__quien">
+          <Avatar persona={{ tipo: 'cliente', nombre: cliente.nombre }} size={44} />
+          <b>{cliente.nombre}</b>
+        </div>
+      )}
       <dl className="msj-panel__datos">
         <div>
           <dt>Plan</dt>
@@ -227,6 +236,7 @@ function PanelCliente({ item }) {
 
 export default function MensajesPage() {
   const { isEquipo, isAdmin } = useAuth()
+  const escritorio = useEscritorio()
   const { suscribir, conectado } = useMensajeria()
   const [params, setParams] = useSearchParams()
   const [canales, setCanales] = useState(null)
@@ -522,7 +532,7 @@ export default function MensajesPage() {
           )}
         </main>
 
-        {isEquipo && item?.cliente && !senaActiva ? <PanelCliente item={item} /> : null}
+        {isEquipo && item?.cliente && !senaActiva ? <PanelCliente item={item} alVerFicha={isAdmin && escritorio ? escritorio.verFicha : null} /> : null}
         {onboardingDe ? (
           <NuevoCliente
             sena={onboardingDe}
