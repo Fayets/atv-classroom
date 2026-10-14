@@ -656,3 +656,11 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-visor__flecha:hover, .msj-visor__barra button:hover { background: rgba(255, 255, 255, 0.24); }
 @keyframes msj-visor-entra { from { opacity: 0; } }
 @media (max-width: 600px) { .msj-visor { padding: 52px 8px 16px; } .msj-visor > img { max-width: calc(100vw - 16px); max-height: calc(100dvh - 68px); } .msj-visor__flecha { display: none; } }
+
+/* Inactivos: chats archivados por el equipo (se arrastran ahí) */
+.msj-grupo { border-radius: 8px; transition: background-color 0.12s, box-shadow 0.12s; }
+.msj-grupo.is-inactivos { margin-top: 14px; padding-top: 6px; border-top: 1px solid rgba(0, 0, 0, 0.06); border-radius: 0; }
+.msj-grupo.is-inactivos .msj-fila__nombre { color: #8e8e93; }
+.msj-grupo.is-soltar { background: rgba(10, 100, 214, 0.08); box-shadow: inset 0 0 0 1.5px rgba(10, 100, 214, 0.45); border-radius: 8px; }
+.msj-fila[draggable='true'] { cursor: grab; }
+.msj-fila[draggable='true']:active { cursor: grabbing; }

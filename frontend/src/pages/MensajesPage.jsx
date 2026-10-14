@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
-import { fetchCanales } from '../api/mensajes'
+import { fetchCanales, marcarInactivo } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
@@ -24,22 +24,36 @@ const GRUPOS = [
 function agrupar(lista) {
   const grupos = GRUPOS.map((g) => ({ ...g, canales: [] }))
   const sinPlan = { id: 'otros', nombre: 'Sin plan', canales: [] }
+  // Los que el equipo arrastró a Inactivos van ahí, sea cual sea su plan. El grupo está siempre
+  // (aunque vacío) para poder soltar chats encima.
+  const inactivos = { id: 'inactivos', nombre: 'Inactivos', canales: [], fijo: true }
   for (const c of lista) {
     const plan = (c.cliente?.plan || '').toLowerCase()
-    ;(grupos.find((g) => g.planes.includes(plan)) || sinPlan).canales.push(c)
+    if (c.inactivo) inactivos.canales.push(c)
+    else (grupos.find((g) => g.planes.includes(plan)) || sinPlan).canales.push(c)
   }
-  return [...grupos, sinPlan].filter((g) => g.canales.length)
+  return [...grupos, sinPlan].filter((g) => g.canales.length).concat(inactivos)
 }
 
 // Fila como un canal de Discord: el nombre; en negrita con un punto si hay mensajes sin leer,
 // y un círculo rojo con la cantidad si te etiquetaron.
-function FilaCanal({ c, activo, onAbrir, escribe, hash = false, onEditar }) {
+function FilaCanal({ c, activo, onAbrir, escribe, hash = false, onEditar, arrastrable = false }) {
   const nuevo = c.no_leidos > 0 && !activo
   const ultimo = c.ultimo ? `${c.ultimo.autor_nombre}: ${c.ultimo.texto}` : 'Sin mensajes todavía'
   // Lo que antes era la sección "Esperan respuesta" ahora va en el tooltip, sin sacar el chat de su grupo.
   const titulo = c.esperando_desde ? `Espera respuesta · ${haceCuanto(c.esperando_desde)}\n${ultimo}` : ultimo
   return (
-    <button type="button" className={`msj-fila${activo ? ' is-activo' : ''}${nuevo ? ' is-nuevo' : ''}`} onClick={() => onAbrir(c.id)} title={titulo}>
+    <button
+      type="button"
+      className={`msj-fila${activo ? ' is-activo' : ''}${nuevo ? ' is-nuevo' : ''}`}
+      onClick={() => onAbrir(c.id)}
+      title={arrastrable ? `${titulo}\n\nArrastralo a Inactivos para archivarlo` : titulo}
+      draggable={arrastrable}
+      onDragStart={arrastrable ? (e) => {
+        e.dataTransfer.setData('application/x-atv-canal', String(c.id))
+        e.dataTransfer.effectAllowed = 'move'
+      } : undefined}
+    >
       {nuevo ? <i className="msj-fila__punto" aria-label="Mensajes sin leer" /> : null}
       <span className="msj-fila__nombre">
         {hash ? <em className="msj-fila__hash">#</em> : null}
@@ -271,6 +285,33 @@ export default function MensajesPage() {
     [suscribir, params, setParams],
   )
   const alternarGrupo = (id) => setAbiertos((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]))
+  // Arrastrar un chat a "Inactivos" lo archiva; soltarlo en cualquier otro grupo lo devuelve.
+  const [soltandoEn, setSoltandoEn] = useState(null)
+  async function soltar(e, grupoId) {
+    e.preventDefault()
+    setSoltandoEn(null)
+    const id = Number(e.dataTransfer.getData('application/x-atv-canal'))
+    const canal = canales?.find((c) => c.id === id)
+    const inactivo = grupoId === 'inactivos'
+    if (!canal || Boolean(canal.inactivo) === inactivo) return
+    setCanales((l) => l.map((c) => (c.id === id ? { ...c, inactivo } : c)))
+    try {
+      await marcarInactivo(id, inactivo)
+    } catch (err) {
+      setCanales((l) => l.map((c) => (c.id === id ? { ...c, inactivo: !inactivo } : c)))
+      setError(err.message || 'No se pudo mover el chat.')
+    }
+  }
+  const zonaDeSoltar = (grupoId) => ({
+    onDragOver: (e) => {
+      if (!e.dataTransfer.types.includes('application/x-atv-canal')) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      if (soltandoEn !== grupoId) setSoltandoEn(grupoId)
+    },
+    onDragLeave: (e) => !e.currentTarget.contains(e.relatedTarget) && setSoltandoEn(null),
+    onDrop: (e) => soltar(e, grupoId),
+  })
   const item = canales?.find((c) => c.id === activo)
   const abrir = (id) => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas', c: String(id) } : { c: String(id) })
   const cambiarVista = (v) => setParams(v === 'alertas' ? { v: 'alertas' } : {})
@@ -341,17 +382,18 @@ export default function MensajesPage() {
                 const visibles = abierto ? g.canales : g.canales.filter((c) => c.id === activo || c.no_leidos > 0 || c.menciones > 0 || escriben[c.id])
                 const novedades = g.canales.filter((c) => c.no_leidos > 0).length
                 return (
-                  <section key={g.id} className="msj-grupo" aria-label={g.nombre}>
+                  <section key={g.id} className={`msj-grupo${g.id === 'inactivos' ? ' is-inactivos' : ''}${soltandoEn === g.id ? ' is-soltar' : ''}`} aria-label={g.nombre} {...zonaDeSoltar(g.id)}>
                     <button type="button" className={`msj-grupo__titulo${abierto ? ' is-abierto' : ''}${!abierto && novedades ? ' con-novedades' : ''}`} onClick={() => alternarGrupo(g.id)} aria-expanded={abierto}>
                       <svg viewBox="0 0 10 10" aria-hidden="true">
                         <path d="M3 2l4 3-4 3z" fill="currentColor" />
                       </svg>
                       <span>{g.nombre}</span>
-                      <small>{g.canales.length}</small>
+                      <small>{g.canales.length || ''}</small>
                     </button>
                     {visibles.map((c) => (
-                      <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} />
+                      <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} arrastrable />
                     ))}
+                    {g.id === 'inactivos' && !g.canales.length && soltandoEn === g.id ? <p className="msj-grupo__vacio">Soltalo acá para archivarlo</p> : null}
                   </section>
                 )
               })

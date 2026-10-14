@@ -208,6 +208,8 @@ class Canal(db.Entity):
     descripcion = Optional(str, nullable=True)
     roles_json = Optional(str, nullable=True)  # grupo: ["equipo", "boost", ...] (ver roles_canal.py)
     creado_por = Optional(int, nullable=True)  # grupo: id del admin que lo creó
+    # Cliente archivado por el equipo (arrastrado a "Inactivos"): sale de su grupo, el chat sigue igual.
+    inactivo = Required(bool, default=False)
     ultimo_mensaje_en = Optional(datetime, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
     mensajes = Set("MensajeCanal")

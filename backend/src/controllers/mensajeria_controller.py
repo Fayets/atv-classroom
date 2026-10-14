@@ -114,6 +114,18 @@ async def editar_canal(canal_id: int, body: CanalEdicion, sesion: dict = Depends
     return canal
 
 
+class CanalInactivo(BaseModel):
+    inactivo: bool
+
+
+@router.put("/canales/{canal_id}/inactivo")
+async def marcar_inactivo(canal_id: int, body: CanalInactivo, sesion: dict = Depends(sesion_mensajes)):
+    info = await run_in_threadpool(service.marcar_inactivo, sesion, canal_id, body.inactivo)
+    # Todo el equipo ve el chat moverse de grupo al instante.
+    await hub.emitir({"tipo": "canal", "canal_id": canal_id}, info)
+    return {"ok": True, "inactivo": body.inactivo}
+
+
 @router.delete("/canales/{canal_id}")
 async def borrar_canal(canal_id: int, sesion: dict = Depends(sesion_mensajes)):
     r = await run_in_threadpool(service.borrar_canal, sesion, canal_id)

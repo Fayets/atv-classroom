@@ -104,6 +104,7 @@ def _apply_migrations() -> None:
                 # Canales grupales: roles que lo ven y quién lo creó.
                 _agregar_columna(cur, "canales", "roles_json", "TEXT")
                 _agregar_columna(cur, "canales", "creado_por", "INTEGER")
+                _agregar_columna(cur, "canales", "inactivo", "BOOLEAN NOT NULL DEFAULT FALSE")
                 # Equipo del cliente (setters, closers, socios): quién escribió, sesión y progreso propios.
                 _agregar_columna(cur, "mensajes_canal", "miembro_id", "INTEGER")
                 _agregar_columna(cur, "sesiones", "miembro_id", "INTEGER")

@@ -62,6 +62,11 @@ export function editarCanal(canalId, cambios) {
   return request(`/api/mensajes/canales/${canalId}`, { method: 'PATCH', body: JSON.stringify(cambios) })
 }
 
+// Mueve el chat de un cliente a "Inactivos" o lo devuelve a su grupo (lo ve todo el equipo).
+export function marcarInactivo(canalId, inactivo) {
+  return request(`/api/mensajes/canales/${canalId}/inactivo`, { method: 'PUT', body: JSON.stringify({ inactivo }) })
+}
+
 export function borrarCanal(canalId) {
   return request(`/api/mensajes/canales/${canalId}`, { method: 'DELETE' })
 }

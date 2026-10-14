@@ -346,3 +346,19 @@ def test_en_el_chat_del_cliente_se_puede_etiquetar_al_cliente(coach):
     assert lista and lista[0]["clave"] == f"c{CLI_A}" and lista[0]["detalle"] == "Cliente"
     with pytest.raises(HTTPException):
         svc.participantes(_cliente(CLI_B), canal)  # otro cliente no ve ese chat
+
+
+def test_el_equipo_pasa_un_chat_a_inactivos_y_lo_devuelve(coach):
+    canal = _canal_de(_cliente(CLI_A))
+    with pytest.raises(HTTPException) as e:
+        svc.marcar_inactivo(_cliente(CLI_A), canal, True)  # el cliente no archiva su propio chat
+    assert e.value.status_code == 403
+    svc.marcar_inactivo(coach, canal, True)
+    from src.models import Canal
+
+    with db_session:
+        assert Canal.get(id=canal).inactivo is True
+    assert all(c["inactivo"] is False for c in svc.listar_canales(_cliente(CLI_A)))  # el cliente no se entera
+    svc.marcar_inactivo(coach, canal, False)
+    with db_session:
+        assert Canal.get(id=canal).inactivo is False

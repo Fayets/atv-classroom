@@ -418,6 +418,7 @@ class MensajeriaServices:
                         # Quién ve el canal es cosa del equipo: al cliente no se le manda.
                         "roles": _roles_de(canal) if canal.tipo == "grupo" and equipo else None,
                         "creado_por": canal.creado_por if equipo else None,
+                        "inactivo": bool(canal.inactivo) if equipo else False,
                         "puede_administrar": self._puede_administrar(sesion, canal),
                     }
                 )
@@ -658,6 +659,18 @@ class MensajeriaServices:
                 antes,
                 _info(canal),
             )
+
+    def marcar_inactivo(self, sesion: dict, canal_id: int, inactivo: bool) -> dict:
+        """Pasa el chat de un cliente a "Inactivos" (o lo saca). Lo puede hacer cualquiera del equipo y
+        lo ven todos: es solo dónde se muestra el chat, no toca el acceso del cliente."""
+        if not es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Solo el equipo.")
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            if canal.tipo != "cliente":
+                raise HTTPException(status_code=422, detail="Solo los chats de clientes van a Inactivos.")
+            canal.inactivo = bool(inactivo)
+            return _info(canal)
 
     def borrar_canal(self, sesion: dict, canal_id: int) -> dict:
         """Borra el canal con todo lo que tiene: mensajes, adjuntos, etiquetas y lecturas."""
