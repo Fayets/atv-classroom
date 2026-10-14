@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { enviarMensaje } from '../../api/mensajes'
 import { fetchLlamada, fetchLlamadas, llamadaPorLink } from '../../api/llamadas'
 import { crearDoc, generarRoadmap } from '../../api/roadmap'
+import { useAuth } from '../../context/AuthContext'
 
 const ENLACE = '[ROADMAP]'
 const hoy = () => new Date().toISOString().slice(0, 10)
@@ -243,7 +244,8 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
   const [b, setB] = useState(null) // el borrador, editable
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState('')
-  const [recientes, setRecientes] = useState([]) // llamadas de su Fathom, las de este cliente primero
+  const [recientes, setRecientes] = useState([]) // las llamadas que tuvo hoy (su Fathom), las de este cliente primero
+  const { user } = useAuth()
   const [llamada, setLlamada] = useState(null)
   const [buscando, setBuscando] = useState(false)
   const [noEncontrada, setNoEncontrada] = useState('')
@@ -295,10 +297,12 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
     if (llamadaId) usarLlamada(llamadaId)
     fetchLlamadas()
       .then((d) => {
-        const todas = d.admin ? d.coaches.flatMap((c) => c.llamadas) : d.llamadas
-        const conTexto = todas.filter((l) => l.con_transcripcion)
-        conTexto.sort((a, b) => (b.cliente?.id === clienteId) - (a.cliente?.id === clienteId) || (b.inicio || '').localeCompare(a.inicio || ''))
-        setRecientes(conTexto.slice(0, 6))
+        // Solo las suyas y solo las de hoy: es el atajo para armar el roadmap al salir de la llamada.
+        const mias = d.admin ? d.coaches.find((c) => c.id === user?.usuario_id)?.llamadas || [] : d.llamadas
+        const dia = new Date().toDateString()
+        const deHoy = mias.filter((l) => l.con_transcripcion && l.inicio && new Date(l.inicio).toDateString() === dia)
+        deHoy.sort((a, b) => (b.cliente?.id === clienteId) - (a.cliente?.id === clienteId) || (b.inicio || '').localeCompare(a.inicio || ''))
+        setRecientes(deHoy)
       })
       .catch(() => null)
   }, [llamadaId, clienteId]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -367,12 +371,12 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
             <p className="msj-modal__ayuda">Pegá el link de Fathom y la IA arma los próximos pasos y el mensaje en tu voz. Vos lo revisás antes de que lo vea.</p>
             {recientes.length ? (
               <div className="rmi-llamadas">
-                <span>Tus llamadas de Fathom</span>
+                <span>Tus llamadas de hoy</span>
                 <div>
                   {recientes.map((l) => (
                     <button key={l.id} type="button" className={`rmi-llamada${llamada?.id === l.id ? ' is-on' : ''}`} onClick={() => usarLlamada(l.id)} disabled={paso === 'armando'}>
                       <b>{l.cliente?.nombre || l.titulo}</b>
-                      <small>{l.inicio ? new Date(l.inicio).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : ''}{l.cliente?.id === clienteId ? ' · este cliente' : ''}</small>
+                      <small>{l.inicio ? new Date(l.inicio).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : ''}{l.cliente?.id === clienteId ? ' · este cliente' : ''}</small>
                     </button>
                   ))}
                 </div>
