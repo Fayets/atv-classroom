@@ -253,7 +253,8 @@ def _asegurar_canales_de_clientes() -> None:
         if canal.cliente_id is not None:
             con_canal.add(canal.cliente_id)
     for cliente in ClienteExterno.select()[:]:
-        if cliente.id not in con_canal and _tiene_acceso(cliente):
+        # Las fichas sin canal de Discord son señas (todavía sin onboarding): no tienen chat.
+        if cliente.id not in con_canal and _tiene_acceso(cliente) and (cliente.canal_discord or "").strip():
             Canal(tipo="cliente", cliente_id=cliente.id, nombre=_nombre_canal(cliente))
 
 
@@ -389,6 +390,8 @@ class MensajeriaServices:
                     continue  # clientes vencidos fuera de la bandeja
                 datos = resumen.get(canal.id, {})
                 ultimo = datos.get("ultimo")
+                if equipo and canal.tipo == "cliente" and not (cliente.canal_discord or "").strip() and not ultimo:
+                    continue  # seña sin onboarding: va en el grupo Señas, no como chat vacío en su plan
                 items.append(
                     {
                         "id": canal.id,

@@ -70,6 +70,14 @@ def _norm(t: str | None) -> str:
     return " ".join(re.sub(r"[^a-z0-9@.\s]", " ", t).split())
 
 
+# Una seña pendiente: ficha sin canal de Discord, no inactiva y sin conversación. Si ya tiene mensajes en
+# su chat (historial de Discord atado a esa ficha), el onboarding ya se hizo por otro lado: no es seña.
+_SOLO_SENAS = (
+    f"""WHERE coalesce(k.canal_discord, '') = '' AND k.estado_cliente <> 'inactivo' AND NOT EXISTS (
+      SELECT 1 FROM "{DB_SCHEMA}"."canales" ch JOIN "{DB_SCHEMA}"."mensajes_canal" m ON m.canal = ch.id WHERE ch.cliente_id = k.id)"""
+)
+
+
 def _parecidas(a: set[str], b: set[str]) -> bool:
     """Alguna palabra casi igual a otra ("Carla" y "Karla", "Rodriguez" y "Rodrigues")."""
     return any(len(x) >= 3 and len(y) >= 3 and SequenceMatcher(None, x, y).ratio() >= 0.8 for x in a for y in b)
@@ -83,8 +91,7 @@ def _candidatas(nombre: str = "", email: str = "") -> list[dict]:
     palabras = set(n.split()) if len(n) >= 3 else set()
     with db_session:
         filas = db.select(
-            "SELECT id, nombre, email, plan_actual, fecha_inicio, total_pagado_usd FROM clients.clientes "
-            "WHERE coalesce(canal_discord, '') = '' AND estado_cliente <> 'inactivo'"
+            "SELECT id, nombre, email, plan_actual, fecha_inicio, total_pagado_usd FROM clients.clientes k " + _SOLO_SENAS
         )
     inversa = {v: k for k, v in PLANES.items()}
     salida = []
@@ -149,8 +156,8 @@ class AltaServices:
         _equipo(sesion)
         with db_session:
             filas = db.select(
-                "SELECT id, nombre, plan_actual, fecha_inicio, total_pagado_usd, observaciones FROM clients.clientes "
-                "WHERE coalesce(canal_discord, '') = '' AND estado_cliente <> 'inactivo' ORDER BY fecha_inicio NULLS LAST, id"
+                "SELECT id, nombre, plan_actual, fecha_inicio, total_pagado_usd, observaciones FROM clients.clientes k "
+                + _SOLO_SENAS + " ORDER BY fecha_inicio NULLS LAST, id"
             )
         inversa = {v: k for k, v in PLANES.items()}
         hoy = date.today()
