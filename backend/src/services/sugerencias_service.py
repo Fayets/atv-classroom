@@ -28,6 +28,48 @@ MODELO = config("SUGERENCIAS_MODEL", default="claude-haiku-5-5")
 TOPE_POR_MINUTO = 40
 _pedidos: dict[int, deque] = defaultdict(deque)
 _nicho_cache: dict[str, tuple[float, dict | None]] = {}
+# Sugerencias en curso que salen sin emojis (la persona casi no los usa): lo decide el código, no la IA.
+_sin_emojis: set[int] = set()
+
+_EMOJI = re.compile(
+    "[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF\U00002B00-\U00002BFF\u200d\ufe0f\u20e3]"
+)
+# Un mensaje del cliente que solo cierra: agradece, confirma o es un emoji. No pide nada nuevo.
+_CIERRE = re.compile(
+    r"^(mil |muchas |muchisimas |muchísimas )?(gracias|grax|genial|perfecto|perfe|dale|listo|joya|buenisimo|buenísimo|"
+    r"de diez|ok|okey|oka|sisi|si|sí|bien|barbaro|bárbaro|excelente|re bien|vamos|hecho|entendido|ahi va|ahí va|"
+    r"nos vemos|hablamos|abrazo|saludos)\b[^?¿]*$",
+    re.I,
+)
+
+
+def sin_emojis(texto: str) -> str:
+    return re.sub(r"[ \t]{2,}", " ", _EMOJI.sub("", texto))
+
+
+def pendientes_del_cliente(conversacion: list[dict]) -> list[dict]:
+    """Los mensajes del cliente que llegaron después de la última respuesta del equipo."""
+    salida = []
+    for m in reversed(conversacion or []):
+        if m.get("de") != "cliente":
+            break
+        salida.append(m)
+    return list(reversed(salida))
+
+
+def es_cierre(mensajes: list[dict]) -> bool:
+    """Lo último del cliente es solo un agradecimiento, un ok o un emoji (no pide nada)."""
+    textos = [(m.get("texto") or "").strip() for m in mensajes]
+    textos = [t for t in textos if t]
+    if not textos:
+        return False
+    for t in textos:
+        limpio = sin_emojis(t).strip(" !.¡,")
+        if not limpio:
+            continue  # solo emoji
+        if len(limpio.split()) > 8 or not _CIERRE.match(limpio):
+            return False
+    return True
 
 
 def _frenar(admin_id: int) -> None:
@@ -154,15 +196,23 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
         nicho_txt = f"\nEn su nicho ({nicho['nicho']}) los dolores más comunes son: {dolores or 'sin datos'}.\n"
         if funciono:
             nicho_txt += "A otros clientes del mismo nicho les funcionó (no nombres a nadie):\n" + "\n".join(funciono) + "\n"
-    conversacion = "\n".join(
-        f"{'CLIENTE' if m['de'] == 'cliente' else 'EQUIPO'}: {m['texto']}" for m in (ctx.get("conversacion") or [])[-15:] if m.get("texto")
-    )
+    ultimos = [m for m in (ctx.get("conversacion") or [])[-15:] if m.get("texto")]
+    sin_responder = pendientes_del_cliente(ultimos)
+    corte = len(ultimos) - len(sin_responder)
+    lineas = []
+    for i, m in enumerate(ultimos):
+        if i == corte and sin_responder:
+            lineas.append("--- lo que el cliente escribió después de la última respuesta del equipo ---")
+        lineas.append(f"{'CLIENTE' if m['de'] == 'cliente' else 'EQUIPO'}{_hace(m.get('cuando'))}: {m['texto']}")
+    conversacion = "\n".join(lineas)
     sistema = (
         f"Sos {nombre}, del equipo de ATV (mentoría para creadores y expertos que venden infoproductos). "
         "Escribís en el chat privado con un cliente. Imitá su forma de escribir al detalle: mayúsculas y "
         "minúsculas, puntuación, palabras y muletillas, abreviaturas, largo, signos y emojis, como en sus "
         "mensajes reales de ejemplo. Si los ejemplos y las reglas no coinciden, mandan los ejemplos. Devolvés SOLO el mensaje, sin comillas "
-        "ni explicaciones. No inventes datos, precios, links, fechas ni promesas: si te falta algo, preguntá."
+        "ni explicaciones. No inventes datos, precios, links, fechas ni promesas: si te falta algo, preguntá. "
+        "Respondés solo a lo último que escribió el cliente: los mensajes viejos y lo aprendido son contexto, no temas "
+        "para retomar (eso ya se habló, muchas veces en audios o llamadas que no ves)."
     )
     largo = round((voz.get("rasgos") or {}).get("palabras_promedio") or 25)
     ultimo = next((m for m in reversed(ctx.get("conversacion") or []) if m.get("texto")), None)
@@ -178,8 +228,17 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
             f"Devolvé un mensaje corto de seguimiento, como lo mandaría {nombre}: que retome lo último que se habló sin repetirlo "
             f"y que invite a responder. Alrededor de {largo} palabras."
         )
+    elif es_cierre(pendientes_del_cliente(ctx.get("conversacion") or [])):
+        tarea = (
+            "Todavía no escribió nada. El cliente solo agradeció o confirmó: no pide nada. Devolvé un cierre "
+            f"cortito como lo mandaría {nombre} (de 2 a 6 palabras, ej. \"de nada!\" o \"a vos!\"), sin sumar temas, "
+            "preguntas, links ni pedidos."
+        )
     else:
-        tarea = f"Todavía no escribió nada. Devolvé la respuesta completa que mandaría ahora a los últimos mensajes del cliente, de alrededor de {largo} palabras."
+        tarea = (
+            "Todavía no escribió nada. Devolvé la respuesta que mandaría ahora a lo que el cliente escribió después "
+            f"de la última respuesta del equipo, de hasta {largo} palabras (menos si alcanza)."
+        )
     tarea += f"\nEscribís vos, {nombre}, del lado del EQUIPO y para el cliente: nunca escribas como el cliente ni le hables a otra persona del equipo."
     clases = clases_relacionadas(ctx)
     clases_txt = ("Si recomendás una clase del classroom, solo puede ser una de estas (con este nombre): " + "; ".join(clases)) if clases else "No recomiendes clases por nombre."
@@ -300,16 +359,24 @@ class SugerenciasServices:
             s.flush()
             sid = s.id
         sistema, usuario = armar_prompt(nombre.split()[0], ctx, borrador, nicho)
+        if ((ctx.get("voz") or {}).get("rasgos") or {}).get("emojis_pct", 0) < 15:
+            _sin_emojis.add(sid)
         return sistema, usuario, sid
 
     def transmitir(self, sistema: str, usuario: str, borrador: str, sid: int, stream=_stream):
         """Generador de texto: lo que sigue después del borrador, a medida que la IA lo escribe."""
         a = time.time()
         recorte = _Recorte(borrador)
+        limpiar_emojis = sid in _sin_emojis
+        _sin_emojis.discard(sid)
         total = ""
         try:
             for pedazo in stream(sistema, usuario):
                 nuevo = recorte.agregar(pedazo)
+                if nuevo and limpiar_emojis:
+                    nuevo = sin_emojis(nuevo)
+                    if not total:
+                        nuevo = nuevo.lstrip()
                 if nuevo:
                     total += nuevo
                     yield nuevo

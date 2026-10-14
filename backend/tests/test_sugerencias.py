@@ -70,6 +70,19 @@ def test_con_la_caja_vacia_y_el_equipo_ultimo_pide_un_seguimiento():
     ctx = {"conversacion": [{"de": "cliente", "texto": "dale, lo veo"}, {"de": "equipo", "texto": "te paso el doc", "cuando": hace3}]}
     _, usuario = sg.armar_prompt("Franco", ctx, "", None)
     assert "seguimiento" in usuario and "hace 3 días" in usuario
-    ctx["conversacion"].append({"de": "cliente", "texto": "gracias!"})
+    # Si el cliente solo agradece, no se inventan temas: un cierre cortito.
+    ctx["conversacion"].append({"de": "cliente", "texto": "Mil gracias 🙏🏼"})
     _, usuario = sg.armar_prompt("Franco", ctx, "", None)
-    assert "seguimiento" not in usuario and "respuesta completa" in usuario
+    assert "solo agradeció" in usuario and "mensaje corto de seguimiento" not in usuario
+    # Si pregunta algo, se responde solo a lo que escribió después de la última respuesta del equipo.
+    ctx["conversacion"].append({"de": "cliente", "texto": "una duda, cuándo arrancamos con el setter?"})
+    _, usuario = sg.armar_prompt("Franco", ctx, "", None)
+    assert "solo agradeció" not in usuario and "después de la última respuesta del equipo ---" in usuario
+
+
+def test_sin_emojis_y_cierres():
+    from src.services import sugerencias_service as sg
+
+    assert sg.sin_emojis("vamos! 🙌 a full 👍🏻") == "vamos! a full "
+    assert sg.es_cierre([{"texto": "Mil gracias 🙏🏼"}]) and sg.es_cierre([{"texto": "🙂"}])
+    assert not sg.es_cierre([{"texto": "gracias! y cuándo arrancamos?"}])
