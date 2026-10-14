@@ -98,6 +98,9 @@ def _apply_migrations() -> None:
                 if _columna(cur, "roadmap_docs", "url") == "NO":
                     cur.execute(f'ALTER TABLE "{DB_SCHEMA}"."roadmap_docs" ALTER COLUMN url DROP NOT NULL')
                 _agregar_columna(cur, "altas_clientes", "ficha_previa", "TEXT")
+                _agregar_columna(cur, "solicitud_sop", "entrega_url", "TEXT")
+                _agregar_columna(cur, "solicitud_sop", "resuelto_por", "INTEGER")
+                _agregar_columna(cur, "solicitud_sop", "resuelto_en", "TIMESTAMP")
                 if _columna(cur, "admins", "password_hash") == "NO":
                     cur.execute(f'ALTER TABLE "{DB_SCHEMA}"."admins" ALTER COLUMN password_hash DROP NOT NULL')
                 # Frente: un link por plantilla de SOP y la revisión con el coach (reemplaza "automatizar").

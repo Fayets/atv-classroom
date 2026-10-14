@@ -189,9 +189,12 @@ class SolicitudSop(db.Entity):
     area = Required(str)
     problema = Required(str, column="entregable")
     consulta = Optional(str, nullable=True)
-    estado = Required(str, default="pendiente")
+    estado = Required(str, default="pendiente")  # pendiente | en_proceso | entregado
     avisado_discord = Required(bool, default=False)
     creado_en = Required(datetime, default=datetime.utcnow)
+    entrega_url = Optional(str, nullable=True)  # el link del SOP que se le pasó
+    resuelto_por = Optional(int, nullable=True)  # admins.id
+    resuelto_en = Optional(datetime, nullable=True)
 
 
 class Canal(db.Entity):
