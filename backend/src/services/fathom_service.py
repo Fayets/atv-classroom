@@ -174,7 +174,42 @@ def _guardada_por_link(ident: str) -> Llamada | None:
     return None
 
 
-def buscar_por_link(sesion: dict, url: str, http=httpx.get) -> int:
+def _del_link_publico(token: str, http=httpx.get) -> dict | None:
+    """Un link de compartir de Fathom (fathom.video/share/<token>) se puede ver sin cuenta: la página
+    trae los datos de la llamada y un enlace para copiar la transcripción con ese mismo token.
+    El link se arma acá con el token (nunca se pide una dirección que mandó el usuario)."""
+    import html as _html
+
+    if not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", token):
+        return None
+    pagina = f"https://fathom.video/share/{token}"
+    try:
+        r = http(pagina, headers={"User-Agent": "Mozilla/5.0", "Accept": "text/html"}, timeout=20, follow_redirects=True)
+        m = re.search(r'data-page="([^"]+)"', r.text) if r.status_code == 200 else None
+        if not m:
+            return None
+        props = json.loads(_html.unescape(m.group(1))).get("props") or {}
+        call, copiar = props.get("call") or {}, props.get("copyTranscriptUrl") or ""
+        if not call.get("id") or not copiar.startswith("https://fathom.video/"):
+            return None
+        t = http(copiar, headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"}, timeout=30, follow_redirects=True)
+        texto = (t.json().get("plain_text") or "").strip() if t.status_code == 200 else ""
+    except (httpx.HTTPError, ValueError):
+        return None
+    if not texto:
+        return None
+    inicio = _fecha(call.get("started_at") or (call.get("recording") or {}).get("started_at"))
+    return {
+        "recording_id": str(call["id"]),
+        "title": call.get("title") or call.get("topic"),
+        "share_url": pagina,
+        "recording_start_time": inicio.isoformat() + "Z" if inicio else None,
+        "recording_end_time": (inicio + timedelta(minutes=call["duration_minutes"])).isoformat() + "Z" if inicio and call.get("duration_minutes") else None,
+        "transcript": texto,
+    }
+
+
+def buscar_por_link(sesion: dict, url: str, http=httpx.get, cliente_id: int | None = None) -> int:
     """La llamada de ese link de Fathom, con su transcripción, para armar el roadmap pegando solo el link.
     Primero entre las que ya entraron; si no, en el Fathom de quien la pide y después en el de los demás
     del equipo que lo tengan conectado (la transcripción no es pública: hace falta la clave de esa cuenta).
@@ -186,12 +221,33 @@ def buscar_por_link(sesion: dict, url: str, http=httpx.get) -> int:
     with db_session:
         ll = _guardada_por_link(ident)
         if ll is not None and ll.transcripcion:
+            if ll.cliente_id is None and cliente_id:
+                ll.cliente_id = cliente_id
             return ll.id
+    # 1. El link de compartir es público: se lee la transcripción sin necesitar el Fathom conectado.
+    if "/share/" in url:
+        item = _del_link_publico(ident, http=http)
+        if item is not None:
+            with db_session:
+                ll = Llamada.get(fathom_id=item["recording_id"])
+                if ll is None:
+                    _guardar(yo, item, {})
+                    db.flush()  # para que la llamada nueva ya tenga id
+                    ll = Llamada.get(fathom_id=item["recording_id"])
+                elif not ll.transcripcion:
+                    ll.transcripcion = item["transcript"]
+                if ll.share_url is None:
+                    ll.share_url = item["share_url"]
+                if ll.cliente_id is None and cliente_id:
+                    ll.cliente_id = cliente_id
+                return ll.id
+    # 2. Si no, con la API de Fathom de quien la pide y de los demás del equipo conectados.
+    with db_session:
         conexiones = sorted(list(FathomConexion.select()), key=lambda c: c.admin_id != yo)
         claves = [(c.admin_id, descifrar(c.clave_cifrada)) for c in conexiones]
         por_mail = _clientes_por_mail()
     if not claves:
-        raise HTTPException(status_code=404, detail="Para traer la llamada con el link, conectá tu Fathom en Mi cuenta. Mientras, pegá la transcripción.")
+        raise HTTPException(status_code=404, detail="No pudimos leer esa llamada. Usá el link de compartir de Fathom (Share → Copy link) o conectá tu Fathom en Mi cuenta. Mientras, pegá la transcripción.")
     desde = (datetime.utcnow() - timedelta(days=DIAS_PRIMERA_VEZ)).strftime("%Y-%m-%dT%H:%M:%SZ")
     params = {"include_transcript": "true", "include_summary": "true", "created_after": desde}
     for admin_id, clave in claves:
@@ -207,7 +263,10 @@ def buscar_por_link(sesion: dict, url: str, http=httpx.get) -> int:
                 if ident in (str(item.get("recording_id") or ""), ) or ident in str(item.get("share_url") or "") or ident in str(item.get("url") or ""):
                     with db_session:
                         _guardar(admin_id, item, por_mail)
-                        return _guardada_por_link(ident).id
+                        ll = _guardada_por_link(ident)
+                        if ll.cliente_id is None and cliente_id:
+                            ll.cliente_id = cliente_id
+                        return ll.id
             cursor = data.get("next_cursor")
             if not cursor:
                 break

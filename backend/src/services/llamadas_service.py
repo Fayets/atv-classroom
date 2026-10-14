@@ -102,9 +102,9 @@ class LlamadasServices:
             ll.cliente_id = cliente_id
         return self.detalle(sesion, llamada_id)
 
-    def por_link(self, sesion: dict, url: str) -> dict:
+    def por_link(self, sesion: dict, url: str, cliente_id: int | None = None) -> dict:
         from src.services.fathom_service import buscar_por_link
 
-        llamada_id = buscar_por_link(sesion, url)
+        llamada_id = buscar_por_link(sesion, url, cliente_id=cliente_id)
         # Quien la pidió la ve aunque sea de otro coach: la trajo para armar el roadmap.
         return self.detalle({**sesion, "rol": "admin"}, llamada_id)

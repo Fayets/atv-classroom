@@ -35,7 +35,9 @@ def fathom_falso(clave_buena="k" * 40, cliente_mail=None):
         "default_summary": {"markdown_formatted": "Resumen de prueba"},
     }
 
-    def http(url, params=None, headers=None, timeout=None):
+    def http(url, params=None, headers=None, timeout=None, **kw):
+        if "X-Api-Key" not in (headers or {}):
+            return Resp(404, {})  # la página pública del link de prueba no existe
         if headers["X-Api-Key"] != clave_buena:
             return Resp(401, {})
         return Resp(200, {"items": [item], "next_cursor": None})
@@ -94,3 +96,22 @@ def test_pegar_solo_el_link_trae_la_transcripcion(coach):
     assert "Franco: hola Ana" in detalle["transcripcion"]
     # La segunda vez ya está guardada: no hace falta Fathom.
     assert fs.buscar_por_link(coach, "https://fathom.video/share/prueba-test", http=None) == d
+
+
+
+def test_el_link_de_compartir_se_lee_sin_fathom_conectado(coach):
+    pagina = '<div data-page="{&quot;props&quot;:{&quot;call&quot;:{&quot;id&quot;:55443322,&quot;title&quot;:&quot;Ana y Franco&quot;,&quot;started_at&quot;:&quot;2026-10-08T18:30:00Z&quot;,&quot;duration_minutes&quot;:30},&quot;copyTranscriptUrl&quot;:&quot;https://fathom.video/calls/55443322/copy_transcript?token=abcdefghij&quot;}}"></div>'
+
+    def http(url, headers=None, timeout=None, follow_redirects=None, params=None):
+        if url == "https://fathom.video/share/abcdefghij":
+            return Resp(200, None) if False else type("R", (), {"status_code": 200, "text": pagina})()
+        if url.startswith("https://fathom.video/calls/55443322/copy_transcript"):
+            return Resp(200, {"plain_text": "0:00 - Franco\n  hola Ana"})
+        return Resp(404, {})
+
+    try:
+        d = LlamadasServices().detalle(coach, fs.buscar_por_link(coach, "https://fathom.video/share/abcdefghij", http=http, cliente_id=999999101))
+        assert "hola Ana" in d["transcripcion"] and d["duracion_min"] == 30
+    finally:
+        with db_session:
+            db.execute(f'DELETE FROM "{DB_SCHEMA}"."llamadas" WHERE fathom_id = $f', {"f": "55443322"})

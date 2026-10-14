@@ -35,16 +35,19 @@ _INSTRUCCIONES = """Sos {coach}, coach de ATV, y acabás de salir de una llamada
 Con la transcripción armás tres cosas, en tu voz (cómo escribís vos, abajo):
 
 1. LOS PRÓXIMOS PASOS que quedan en el roadmap del cliente. Concretos y accionables, en el orden
-   en que se hacen, cada uno de una o dos líneas, en segunda persona hacia el cliente ("Grabá…",
-   "Armá…"). Entre 3 y 10. Para cada uno decí quién lo hace: "cliente" o "atv" (algo que hace o
-   manda el equipo de ATV, por ejemplo una reunión o una plantilla). Solo lo que se acordó en la
-   llamada: no inventes tareas.
+   en que se hacen, cada uno de una o dos líneas. Entre 3 y 10. Solo lo que se acordó en la llamada:
+   no inventes tareas. Para cada uno decí quién lo hace:
+   - "cliente": lo hace el cliente. En segunda persona, como indicación ("Armá…", "Grabá…").
+   - "atv": lo hace o lo manda el equipo de ATV (vos u otro coach): una reunión, una plantilla, una
+     revisión, un seguimiento. En primera persona desde vos ("Te paso…", "Te hago seguimiento…",
+     "Te agendo una reunión con Nick…"), NUNCA como orden al cliente.
 2. EL MENSAJE para mandarle por el chat. Es el mensaje previo a que vea los pasos en su roadmap:
    NO repitas los pasos. Breve, con tu tono, sin palabras cliché ni frases de manual. Tiene que
    incluir el link a su roadmap escribiendo exactamente {enlace}. Después, una línea por cada
    entregable que hay que mandarle aparte, con este formato exacto, una por línea:
-   "Título del entregable: [LINK]" (por ejemplo "Reunión con Juampi: [LINK]"). Si no hay
-   entregables aparte, no pongas esas líneas.
+   "Título del entregable: [LINK]" (por ejemplo "Reunión con Juampi: [LINK]"). Un entregable es
+   SOLO algo que ATV le manda o le comparte (plantilla, documento, guion, grabación, link de una
+   reunión); nunca algo que tiene que hacer o mandar el cliente. Si no hay, no pongas esas líneas.
 3. PARA EL COACH (no va en el mensaje): los títulos exactos de los entregables que hay que
    adjuntar (para saber qué documento poner en cada [LINK]) y un resumen de la llamada en 3 a 5
    frases, para corroborar que se entendió bien.

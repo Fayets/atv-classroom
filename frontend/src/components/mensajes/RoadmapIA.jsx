@@ -36,7 +36,7 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
       setBuscando(true)
       setNoEncontrada('')
       try {
-        const d = await llamadaPorLink(url)
+        const d = await llamadaPorLink(url, clienteId)
         if (!vivo) return
         setLlamada({ ...d, fathom_url: url })
         setTranscripcion(d.transcripcion || '')
@@ -160,7 +160,7 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
               <span>Link de Fathom de la llamada</span>
               <input type="text" value={fathom} onChange={(e) => setFathom(e.target.value)} placeholder="https://fathom.video/…" autoFocus disabled={paso === 'armando'} />
             </label>
-            {buscando ? <p className="rmi-estado">Buscando la llamada en Fathom…</p> : null}
+            {buscando ? <p className="rmi-estado">Trayendo la llamada de Fathom…</p> : null}
             {llamada && !buscando ? (
               <p className="rmi-estado is-ok">
                 ✓ {llamada.titulo}{llamada.inicio ? ` · ${new Date(llamada.inicio).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}` : ''}
