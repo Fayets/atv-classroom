@@ -8,6 +8,7 @@ Cada llamada se ata al cliente que estaba invitado, por su mail.
 
 import json
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -156,6 +157,61 @@ def sincronizar(admin_id: int, http=httpx.get) -> dict:
         con = FathomConexion.get(admin_id=admin_id)
         con.ultima_sync, con.error = datetime.utcnow(), None
     return {"nuevas": nuevas}
+
+
+def _id_del_link(url: str) -> str:
+    """El identificador de la grabación en el link: fathom.video/calls/853532880 o /share/<token>."""
+    m = re.search(r"fathom\.video/(?:calls|share|recording)/([A-Za-z0-9_-]+)", url or "")
+    return m.group(1) if m else ""
+
+
+def _guardada_por_link(ident: str) -> Llamada | None:
+    for ll in list(Llamada.select_by_sql(
+        f'SELECT * FROM "{DB_SCHEMA}"."llamadas" WHERE fathom_id = $ident OR share_url LIKE $patron OR url LIKE $patron LIMIT 1',
+        {"ident": ident, "patron": f"%{ident}%"},
+    )):
+        return ll
+    return None
+
+
+def buscar_por_link(sesion: dict, url: str, http=httpx.get) -> int:
+    """La llamada de ese link de Fathom, con su transcripción, para armar el roadmap pegando solo el link.
+    Primero entre las que ya entraron; si no, en el Fathom de quien la pide y después en el de los demás
+    del equipo que lo tengan conectado (la transcripción no es pública: hace falta la clave de esa cuenta).
+    Devuelve el id de la llamada guardada."""
+    yo = _equipo(sesion)
+    ident = _id_del_link(url)
+    if not ident:
+        raise HTTPException(status_code=422, detail="Ese link no es de Fathom. Tiene que ser fathom.video/share/… o fathom.video/calls/…")
+    with db_session:
+        ll = _guardada_por_link(ident)
+        if ll is not None and ll.transcripcion:
+            return ll.id
+        conexiones = sorted(list(FathomConexion.select()), key=lambda c: c.admin_id != yo)
+        claves = [(c.admin_id, descifrar(c.clave_cifrada)) for c in conexiones]
+        por_mail = _clientes_por_mail()
+    if not claves:
+        raise HTTPException(status_code=404, detail="Para traer la llamada con el link, conectá tu Fathom en Mi cuenta. Mientras, pegá la transcripción.")
+    desde = (datetime.utcnow() - timedelta(days=DIAS_PRIMERA_VEZ)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    params = {"include_transcript": "true", "include_summary": "true", "created_after": desde}
+    for admin_id, clave in claves:
+        if not clave:
+            continue
+        cursor = None
+        for _ in range(MAX_PAGINAS):
+            try:
+                data = _pedir(clave, dict(params, **({"cursor": cursor} if cursor else {})), http=http)
+            except HTTPException:
+                break  # esa cuenta falla: se prueba con la siguiente
+            for item in data.get("items") or []:
+                if ident in (str(item.get("recording_id") or ""), ) or ident in str(item.get("share_url") or "") or ident in str(item.get("url") or ""):
+                    with db_session:
+                        _guardar(admin_id, item, por_mail)
+                        return _guardada_por_link(ident).id
+            cursor = data.get("next_cursor")
+            if not cursor:
+                break
+    raise HTTPException(status_code=404, detail="No encontramos esa llamada en el Fathom del equipo (de los últimos 90 días). Pegá la transcripción.")
 
 
 def ciclo() -> int:

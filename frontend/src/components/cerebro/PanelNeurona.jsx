@@ -86,6 +86,63 @@ function Lista({ titulo, items }) {
   )
 }
 
+const ESTADO_PASO = { hecho: 'Hecho', parcial: 'A medias', no_hecho: 'No lo hizo', no_se_hablo: 'No se habló' }
+
+// Roadmaps del cliente: avance (lo que tildó) y qué pasó con cada paso según la llamada siguiente.
+function RoadmapsCliente({ items }) {
+  if (!items?.length) return null
+  return (
+    <div className="cb-bloque">
+      <h4>Roadmaps y resultados</h4>
+      <ul className="cb-roadmaps">
+        {items.map((r, i) => (
+          <li key={i}>
+            <b>{r.titulo}</b> <small>{new Date(`${r.fecha}T00:00:00`).toLocaleDateString('es-AR')}{r.coach ? ` · ${r.coach.split(' ')[0]}` : ''} · {r.hechos} de {r.total} pasos</small>
+            {r.resultado?.length ? (
+              <ul>
+                {r.resultado.map((p, j) => (
+                  <li key={j} className={`is-${p.estado}`}>
+                    <em>{ESTADO_PASO[p.estado] || p.estado}</em> {p.paso}
+                    {p.resultado ? <q>{p.resultado}</q> : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+// Cómo arma sus roadmaps un coach: cuánto corrige los borradores de la IA y cuánto se cumplen.
+function RoadmapsCoach({ r }) {
+  if (!r) return null
+  return (
+    <div className="cb-bloque">
+      <h4>Sus roadmaps con IA</h4>
+      <dl className="cb-datos">
+        <div><dt>Armados</dt><dd>{r.guardados} de {r.borradores} borradores{r.enviados ? ` · ${r.enviados} enviados` : ''}</dd></div>
+        <div><dt>Sin tocar</dt><dd>{r.sin_cambios} de {r.guardados}</dd></div>
+        <div><dt>Correcciones</dt><dd>{r.pasos_sacados} sacados · {r.pasos_agregados} agregados · {r.pasos_reescritos} reescritos</dd></div>
+        {r.cumplimiento != null ? <div><dt>Los clientes cumplen</dt><dd>{r.cumplimiento}% de los pasos</dd></div> : null}
+      </dl>
+      {r.ultimos?.some((u) => !u.sin_cambios) ? (
+        <ul className="cb-correcciones">
+          {r.ultimos.filter((u) => !u.sin_cambios).slice(0, 3).map((u, i) => (
+            <li key={i}>
+              <b>{u.cliente}</b>
+              {u.sacados.slice(0, 2).map((t, j) => <span key={`s${j}`} className="is-sacado">− {t}</span>)}
+              {u.agregados.slice(0, 2).map((t, j) => <span key={`a${j}`} className="is-agregado">+ {t}</span>)}
+              {u.reescritos.slice(0, 1).map((t, j) => <span key={`r${j}`} className="is-reescrito">{t.antes} → {t.despues}</span>)}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
 // Lo que hay adentro de una neurona: su contenido real y con qué está conectada (y desde cuándo).
 // `base` sale del grafo que ya está en memoria: el panel se pinta en el mismo cuadro del click
 // y el contenido de la neurona (resumen, mensajes, etc.) entra apenas llega.
@@ -159,6 +216,7 @@ export default function PanelNeurona({ id, base, onIr, onCerrar }) {
         </div>
       ) : null}
       <Hechos titulo="Lo que aprendió de sus conversaciones" hechos={d.aprendido} />
+      {datos.tipo === 'cliente' ? <RoadmapsCliente items={d.roadmaps} /> : <RoadmapsCoach r={d.roadmaps} />}
 
       {datos.tipo === 'nicho' ? (
         <>

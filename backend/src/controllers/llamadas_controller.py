@@ -15,6 +15,10 @@ class Clave(BaseModel):
     clave: str
 
 
+class Link(BaseModel):
+    url: str
+
+
 class Cliente(BaseModel):
     cliente_id: int | None = None
 
@@ -22,6 +26,12 @@ class Cliente(BaseModel):
 @router.get("/llamadas")
 async def listar(sesion: dict = Depends(obtener_sesion_desde_request)):
     return await run_in_threadpool(llamadas.listar, sesion)
+
+
+@router.post("/llamadas/por-link")
+async def por_link(datos: Link, sesion: dict = Depends(obtener_sesion_desde_request)):
+    """Pegás el link de Fathom y trae la llamada con su transcripción."""
+    return await run_in_threadpool(llamadas.por_link, sesion, datos.url)
 
 
 @router.get("/llamadas/{llamada_id}")

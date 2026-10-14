@@ -186,13 +186,27 @@ class RoadmapServices:
 
     def crear(self, sesion: dict, cliente_id: int, datos: dict) -> dict:
         _solo_equipo(sesion)
+        borrador_id = datos.pop("borrador_id", None)
+        mensaje_final = datos.pop("mensaje_final", None)
+        enviado = datos.pop("enviado", None)
         with db_session:
             limpio = _limpiar(datos)
             limpio.setdefault("coach_id", sesion["usuario_id"])
             if limpio.get("principal"):
                 for d in _de(cliente_id):
                     d.principal = False
-            RoadmapDoc(cliente_id=cliente_id, creado_por=sesion["usuario_id"], **limpio)
+            doc = RoadmapDoc(cliente_id=cliente_id, creado_por=sesion["usuario_id"], **limpio)
+            doc.flush()
+            doc_id = doc.id
+            pasos = [{"texto": p["texto"], "quien": p["quien"]} for p in _pasos(doc)]
+            titulo = doc.titulo
+        if borrador_id:
+            from src.services import roadmaps_aprendidos
+
+            roadmaps_aprendidos.registrar_final(
+                borrador_id, doc_id, {"titulo": titulo, "pasos": pasos, "mensaje": mensaje_final}, bool(enviado), sesion["usuario_id"]
+            )
+        with db_session:
             return _armar(cliente_id)
 
     def editar(self, sesion: dict, doc_id: int, datos: dict) -> dict:
@@ -216,6 +230,10 @@ class RoadmapServices:
                     otro.principal = False
             for k, v in limpio.items():
                 setattr(d, k, v)
+            if "pasos_json" in limpio or "titulo" in limpio:
+                from src.services import roadmaps_aprendidos
+
+                roadmaps_aprendidos.registrar_edicion(d)  # el cerebro también aprende de lo que corrige después
             if d.pasos_total is not None and (d.paso_actual or 0) > d.pasos_total:
                 raise HTTPException(status_code=422, detail="El paso actual no puede pasar el total.")
             return _armar(d.cliente_id)

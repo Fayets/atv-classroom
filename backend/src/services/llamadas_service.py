@@ -101,3 +101,10 @@ class LlamadasServices:
                 raise HTTPException(status_code=404, detail="No existe ese cliente.")
             ll.cliente_id = cliente_id
         return self.detalle(sesion, llamada_id)
+
+    def por_link(self, sesion: dict, url: str) -> dict:
+        from src.services.fathom_service import buscar_por_link
+
+        llamada_id = buscar_por_link(sesion, url)
+        # Quien la pidió la ve aunque sea de otro coach: la trajo para armar el roadmap.
+        return self.detalle({**sesion, "rol": "admin"}, llamada_id)

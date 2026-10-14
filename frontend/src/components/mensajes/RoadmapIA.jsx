@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { enviarMensaje } from '../../api/mensajes'
-import { fetchLlamada, fetchLlamadas } from '../../api/llamadas'
+import { fetchLlamada, fetchLlamadas, llamadaPorLink } from '../../api/llamadas'
 import { crearDoc, generarRoadmap } from '../../api/roadmap'
 
 const ENLACE = '[ROADMAP]'
 const hoy = () => new Date().toISOString().slice(0, 10)
 const faltan = (texto) => (texto.match(/\[LINK\]/g) || []).length
+const esFathom = (url) => /fathom\.video\/(share|calls|recording)\/[A-Za-z0-9_-]+/.test(url || '')
+const ESTADO = { hecho: 'Hecho', parcial: 'A medias', no_hecho: 'No lo hizo', no_se_hablo: 'No se habló' }
 
 // Crear roadmap desde la llamada (lo que Mauri hacía con Poppy): el coach pega la transcripción, la
 // IA arma los pasos y el mensaje en su voz, y el coach revisa, completa los [LINK] y envía.
@@ -21,6 +23,38 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
   const [guardando, setGuardando] = useState('')
   const [recientes, setRecientes] = useState([]) // llamadas de su Fathom, las de este cliente primero
   const [llamada, setLlamada] = useState(null)
+  const [buscando, setBuscando] = useState(false)
+  const [noEncontrada, setNoEncontrada] = useState('')
+  const [aMano, setAMano] = useState(false) // mostrar la caja para pegar la transcripción
+
+  // Pegás el link y se trae la llamada con su transcripción (de la carpeta Llamadas o del Fathom del equipo).
+  useEffect(() => {
+    const url = fathom.trim()
+    if (!esFathom(url) || (llamada && llamada.fathom_url === url)) return undefined
+    let vivo = true
+    const t = setTimeout(async () => {
+      setBuscando(true)
+      setNoEncontrada('')
+      try {
+        const d = await llamadaPorLink(url)
+        if (!vivo) return
+        setLlamada({ ...d, fathom_url: url })
+        setTranscripcion(d.transcripcion || '')
+        if (!d.transcripcion) setAMano(true)
+      } catch (err) {
+        if (!vivo) return
+        setLlamada(null)
+        setNoEncontrada(err.message || 'No encontramos esa llamada.')
+        setAMano(true)
+      } finally {
+        if (vivo) setBuscando(false)
+      }
+    }, 400)
+    return () => {
+      vivo = false
+      clearTimeout(t)
+    }
+  }, [fathom]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function usarLlamada(id) {
     setError('')
@@ -56,10 +90,13 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
     e.preventDefault()
     setError('')
     if (!fathom.trim()) return setError('Pegá el link de Fathom: el cliente va a poder ver la grabación desde su roadmap.')
-    if (transcripcion.trim().length < 200) return setError('Pegá la transcripción completa de la llamada.')
+    if (transcripcion.trim().length < 200) {
+      setAMano(true)
+      return setError(buscando ? 'Esperá un segundo: estamos trayendo la llamada.' : 'Pegá la transcripción completa de la llamada.')
+    }
     setPaso('armando')
     try {
-      const r = await generarRoadmap(clienteId, transcripcion)
+      const r = await generarRoadmap(clienteId, transcripcion, fathom.trim())
       setB({ ...r, tipo: 'revision', fecha: hoy() })
       setPaso('borrador')
     } catch (err) {
@@ -86,6 +123,10 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
         fathom_url: fathom.trim(),
         pasos,
         principal: true,
+        // Para el cerebro: qué corrigió el coach del borrador y si lo mandó.
+        borrador_id: b.borrador_id,
+        mensaje_final: b.mensaje,
+        enviado: enviar,
       })
       if (enviar) await enviarMensaje(canalId, b.mensaje.split(ENLACE).join(`${window.location.origin}/roadmap`))
       onGuardado(datos, enviar)
@@ -101,7 +142,7 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
         {paso !== 'borrador' ? (
           <form onSubmit={armar}>
             <h2 id="rmi-titulo">Crear roadmap de {cliente}</h2>
-            <p className="msj-modal__ayuda">Pegá la llamada y la IA arma los próximos pasos y el mensaje en tu voz. Vos lo revisás antes de que lo vea.</p>
+            <p className="msj-modal__ayuda">Pegá el link de Fathom y la IA arma los próximos pasos y el mensaje en tu voz. Vos lo revisás antes de que lo vea.</p>
             {recientes.length ? (
               <div className="rmi-llamadas">
                 <span>Tus llamadas de Fathom</span>
@@ -119,10 +160,23 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
               <span>Link de Fathom de la llamada</span>
               <input type="text" value={fathom} onChange={(e) => setFathom(e.target.value)} placeholder="https://fathom.video/…" autoFocus disabled={paso === 'armando'} />
             </label>
-            <label className="msj-modal__campo">
-              <span>Transcripción de la llamada</span>
-              <textarea rows={10} value={transcripcion} onChange={(e) => setTranscripcion(e.target.value)} placeholder="En Fathom: Transcript → Copy transcript, y pegala acá." disabled={paso === 'armando'} />
-            </label>
+            {buscando ? <p className="rmi-estado">Buscando la llamada en Fathom…</p> : null}
+            {llamada && !buscando ? (
+              <p className="rmi-estado is-ok">
+                ✓ {llamada.titulo}{llamada.inicio ? ` · ${new Date(llamada.inicio).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}` : ''}
+                {transcripcion ? ` · transcripción lista (${Math.round(transcripcion.length / 1000)}k caracteres)` : ''}
+                {!aMano ? <button type="button" onClick={() => setAMano(true)}>Ver</button> : null}
+              </p>
+            ) : null}
+            {noEncontrada && !buscando ? <p className="rmi-estado is-aviso">{noEncontrada}</p> : null}
+            {aMano ? (
+              <label className="msj-modal__campo">
+                <span>Transcripción de la llamada</span>
+                <textarea rows={8} value={transcripcion} onChange={(e) => setTranscripcion(e.target.value)} placeholder="En Fathom: Transcript → Copy transcript, y pegala acá." disabled={paso === 'armando'} />
+              </label>
+            ) : !llamada && !buscando && !noEncontrada ? (
+              <button type="button" className="rmi-mano" onClick={() => setAMano(true)}>O pegá la transcripción a mano</button>
+            ) : null}
             {error ? <p className="msj-modal__error" role="alert">{error}</p> : null}
             <div className="msj-modal__botones">
               <button type="button" className="rmi-manual" onClick={onManual} disabled={paso === 'armando'}>Cargar a mano</button>
@@ -169,6 +223,19 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
                       <ul>{b.entregables.map((e) => <li key={e}>{e}</li>)}</ul>
                     </>
                   ) : <span>No hay entregables aparte.</span>}
+                  {b.seguimiento?.pasos?.length ? (
+                    <>
+                      <span>Qué pasó con el roadmap anterior ({b.seguimiento.titulo})</span>
+                      <ul className="rmi-seguimiento">
+                        {b.seguimiento.pasos.map((p) => (
+                          <li key={p.id} className={`is-${p.estado}`}>
+                            <em>{ESTADO[p.estado]}</em> {p.paso}
+                            {p.resultado ? <small>“{p.resultado}”</small> : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
                   {b.resumen ? (
                     <>
                       <span>Resumen de la llamada</span>

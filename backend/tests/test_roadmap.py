@@ -21,6 +21,7 @@ def _base():
     yield
     with db_session:
         db.execute(f'DELETE FROM "{DB_SCHEMA}"."roadmap_docs" WHERE cliente_id = $c', {"c": CLIENTE})
+        db.execute(f'DELETE FROM "{DB_SCHEMA}"."cerebro_roadmaps" WHERE cliente_id = $c', {"c": CLIENTE})
 
 
 def test_versiones_vigente_y_el_que_hay_que_seguir():
@@ -81,7 +82,7 @@ def test_el_borrador_con_ia_trae_pasos_mensaje_con_link_y_entregables(monkeypatc
         vistos["prompt"] = sistema + usuario
         return '{"titulo": "Contenido", "area": "Historias", "pasos": [{"texto": "Grabá el CTA nuevo", "quien": "cliente"}, {"texto": "", "quien": "x"}], "mensaje": "buenas, te dejé todo", "entregables": ["Plantilla de guion"], "resumen": "Hablamos de historias."}'
 
-    monkeypatch.setattr(ria.ClienteExterno, "get", staticmethod(lambda **kw: type("C", (), {"nombre": "Ana Scheffer", "email": "a@x.com"})()))
+    monkeypatch.setattr(ria.ClienteExterno, "get", staticmethod(lambda **kw: type("C", (), {"nombre": "Ana Scheffer", "email": "a@x.com", "plan_actual": "mentoria"})()))
     with pytest.raises(HTTPException):
         ria.RoadmapIAServices().generar(TITULAR, CLIENTE, "x" * 300, llamar=falso)  # el cliente no
     b = ria.RoadmapIAServices().generar(EQUIPO, CLIENTE, "Coach: hola Ana. " * 30, llamar=falso)
@@ -89,3 +90,51 @@ def test_el_borrador_con_ia_trae_pasos_mensaje_con_link_y_entregables(monkeypatc
     assert ria.ENLACE_ROADMAP in b["mensaje"] and b["entregables"] == ["Plantilla de guion"]
     assert b["mensaje"].endswith("Plantilla de guion: [LINK]")  # la línea del entregable la pone el código
     assert "Ana" in vistos["prompt"] and "Transcripción" in vistos["prompt"]
+
+
+
+def test_el_cerebro_aprende_de_las_correcciones_y_de_los_resultados(monkeypatch):
+    from src.services import roadmap_ia_service as ria
+    from src.services import roadmaps_aprendidos as apr
+
+    coach = {"usuario_id": 999990062, "rol": "admin", "nombre": "Coach Test", "email": "c@x.com"}
+    monkeypatch.setattr(ria.ClienteExterno, "get", staticmethod(lambda **kw: type("C", (), {"nombre": "Ana Scheffer", "email": "a@x.com", "plan_actual": "mentoria"})()))
+    prompts = []
+
+    def ia(respuesta):
+        def llamar(sistema, usuario):
+            prompts.append(sistema + usuario)
+            return respuesta
+        return llamar
+
+    svc, gen = RoadmapServices(), ria.RoadmapIAServices()
+    primera = '{"titulo": "Contenido", "pasos": [{"texto": "Grabá 3 historias por día con el CTA PLAN", "quien": "cliente"}, {"texto": "Leé un libro de marketing", "quien": "cliente"}], "mensaje": "hola ana [ROADMAP]"}'
+    b1 = gen.generar(coach, CLIENTE, "Coach: hola Ana. " * 30, llamar=ia(primera))
+    # El coach saca un paso, reescribe otro y agrega uno.
+    r = svc.crear(coach, CLIENTE, {
+        "titulo": "Contenido", "borrador_id": b1["borrador_id"], "mensaje_final": "ana! [ROADMAP]", "enviado": True,
+        "pasos": [{"texto": "Grabá 3 historias por día con el CTA PLAN y medí respuestas", "quien": "cliente"}, {"texto": "Reunión con Nick", "quien": "atv"}],
+    })
+    doc = r["principal"]
+    with db_session:
+        fila = apr.RoadmapAprendido.get(doc_id=doc["id"])
+        cambios = apr._j(fila.cambios_json)
+    assert cambios["sacados"] == ["Leé un libro de marketing"] and cambios["agregados"] == ["Reunión con Nick"]
+    assert cambios["reescritos"][0]["antes"].startswith("Grabá 3 historias") and fila.enviado
+    svc.marcar_paso(TITULAR, doc["id"], 1, True)  # el cliente lo tildó
+
+    # Llamada siguiente: la IA revisa los pasos del roadmap anterior y cuenta el resultado.
+    segunda = '{"titulo": "Ventas", "pasos": [{"texto": "Pasá las conversaciones a llamada", "quien": "cliente"}], "mensaje": "[ROADMAP]", "seguimiento": [{"id": 1, "estado": "hecho", "resultado": "le entraron 14 conversaciones en la semana"}, {"id": 2, "estado": "no_se_hablo"}]}'
+    b2 = gen.generar(coach, CLIENTE, "Coach: ¿cómo te fue Ana? " * 30, llamar=ia(segunda))
+    assert "SACÓ" in prompts[-1] and "Leé un libro de marketing" in prompts[-1]  # aprendió la corrección
+    assert "Roadmap anterior" in prompts[-1] and "[el cliente lo tildó como hecho]" in prompts[-1]
+    assert b2["seguimiento"]["pasos"][0]["resultado"] == "le entraron 14 conversaciones en la semana"
+    svc.crear(coach, CLIENTE, {"titulo": "Ventas", "borrador_id": b2["borrador_id"], "pasos": b2["pasos"]})
+    hist = apr.de_cliente(CLIENTE)
+    assert hist[-1]["titulo"] == "Contenido" and hist[-1]["resultado"][0]["estado"] == "hecho"
+    stats = apr.de_coach(coach["usuario_id"])
+    assert stats["guardados"] == 2 and stats["pasos_sacados"] == 1 and stats["enviados"] == 1
+    # Editarlo después también cuenta.
+    svc.editar(coach, doc["id"], {"pasos": [{"texto": "Grabá 3 historias por día con el CTA PLAN y medí respuestas", "quien": "cliente"}]})
+    with db_session:
+        assert apr.RoadmapAprendido.get(doc_id=doc["id"]).editado_despues

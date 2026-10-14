@@ -332,6 +332,18 @@ def _hechos_aprendidos(cliente_id: int) -> list[dict]:
     return [{"tipo": h.tipo, "texto": h.texto, "cita": h.cita, "dicho_en": _iso(h.dicho_en)} for h in hechos[:15]]
 
 
+def _roadmaps_de_cliente(cliente_id: int) -> list[dict]:
+    from src.services.roadmaps_aprendidos import de_cliente
+
+    return de_cliente(cliente_id)
+
+
+def _roadmaps_de_coach(admin_id: int) -> dict | None:
+    from src.services.roadmaps_aprendidos import de_coach
+
+    return de_coach(admin_id)
+
+
 class CerebroServices:
     def grafo(self) -> dict:
         if _cache["grafo"] is None or time.time() - _cache["t"] > _TTL:
@@ -420,7 +432,7 @@ class CerebroServices:
             admin = next((a for a in list(Admin.select()) if a.activo and _clave_coach_de_admin(a) == clave), None)
             voz = VozEquipo.get(admin_id=admin.id) if admin else None
             rasgos = json.loads(voz.rasgos_json) if voz else {}
-        return {"area": c["area"], "voz": rasgos or None}
+        return {"area": c["area"], "voz": rasgos or None, "roadmaps": _roadmaps_de_coach(admin.id) if admin else None}
 
     @staticmethod
     def _detalle_nicho(clave: str) -> dict:
@@ -433,7 +445,7 @@ class CerebroServices:
     def _detalle_equipo(clave: str) -> dict:
         with db_session:
             a = Admin.get(id=int(clave))
-            return {"area": a.area, "email": a.email} if a else {}
+            return {"area": a.area, "email": a.email, "roadmaps": _roadmaps_de_coach(a.id)} if a else {}
 
     @staticmethod
     def _detalle_plan(_clave: str) -> dict:
@@ -482,5 +494,6 @@ class CerebroServices:
                 "consultas": consultas,
                 "perfil": _perfil_aprendido(cliente_id),
                 "aprendido": _hechos_aprendidos(cliente_id),
+                "roadmaps": _roadmaps_de_cliente(cliente_id),
                 "enlace": f"/mensajes?c={canal.id}" if canal else None,
             }

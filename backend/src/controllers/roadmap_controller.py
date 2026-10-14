@@ -23,10 +23,15 @@ class Doc(BaseModel):
     paso_actual: int | None = None
     principal: bool | None = None
     pasos: list[dict] | None = None  # [{"texto", "quien": cliente|atv}]
+    # Si sale de un borrador con IA: para que el cerebro aprenda qué corrigió el coach.
+    borrador_id: int | None = None
+    mensaje_final: str | None = None
+    enviado: bool | None = None
 
 
 class Generar(BaseModel):
     transcripcion: str | None = None
+    fathom_url: str | None = None
     llamada_id: int | None = None  # una llamada de la carpeta Llamadas (su Fathom conectado)
 
 
@@ -63,7 +68,7 @@ async def borrar(doc_id: int, sesion: dict = Depends(obtener_sesion_desde_reques
 @router.post("/clientes/{cliente_id}/generar")
 async def generar(cliente_id: int, datos: Generar, sesion: dict = Depends(obtener_sesion_desde_request)):
     """Borrador con IA desde la transcripción de la llamada: pasos, mensaje y entregables. No guarda nada."""
-    return await run_in_threadpool(lambda: ia.generar(sesion, cliente_id, datos.transcripcion, llamada_id=datos.llamada_id))
+    return await run_in_threadpool(lambda: ia.generar(sesion, cliente_id, datos.transcripcion, llamada_id=datos.llamada_id, fathom_url=datos.fathom_url))
 
 
 @router.put("/docs/{doc_id}/pasos/{paso_id}")

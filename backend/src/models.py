@@ -527,3 +527,29 @@ class Llamada(db.Entity):
     resumen = Optional(str, nullable=True)  # el resumen que arma Fathom
     cliente_id = Optional(int, nullable=True, index=True)
     creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class RoadmapAprendido(db.Entity):
+    """Lo que el cerebro guarda de cada roadmap armado con IA, para que el próximo salga mejor:
+    el borrador que propuso la IA, cómo quedó después de que el coach lo corrigió (también si lo
+    edita más tarde) y qué pasó con cada paso según la llamada siguiente."""
+
+    _table_ = (DB_SCHEMA, "cerebro_roadmaps")
+
+    id = PrimaryKey(int, auto=True)
+    cliente_id = Required(int, index=True)
+    coach_id = Required(int, index=True)  # quien lo armó
+    voz_id = Optional(int, nullable=True)  # con la voz de quién se escribió
+    doc_id = Optional(int, nullable=True, index=True)  # el roadmap guardado (vacío si quedó en borrador)
+    fathom_url = Optional(str, nullable=True)
+    transcripcion = Optional(str, nullable=True)
+    borrador_json = Required(str)  # lo que propuso la IA
+    final_json = Optional(str, nullable=True)  # lo que guardó el coach (pasos, título, mensaje)
+    cambios_json = Optional(str, nullable=True)  # qué corrigió el coach: pasos sacados/agregados/reescritos, mensaje
+    editado_despues = Required(bool, default=False)
+    enviado = Required(bool, default=False)
+    # Lo que la IA leyó en la llamada siguiente sobre los pasos de este roadmap: hecho / parcial / no, y el resultado.
+    resultado_json = Optional(str, nullable=True)
+    resultado_en = Optional(datetime, nullable=True)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    guardado_en = Optional(datetime, nullable=True)

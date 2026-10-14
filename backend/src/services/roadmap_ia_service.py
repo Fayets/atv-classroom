@@ -21,6 +21,7 @@ from pony.orm import db_session
 from src.models import Admin, Canal, ClienteExterno, Llamada
 from src.services import aprendizaje_service as ap
 from src.services import gasto_ia
+from src.services import roadmaps_aprendidos as aprendidos
 from src.services.auth_service import es_equipo
 from src.services.sugerencias_service import _describir_voz
 
@@ -53,7 +54,15 @@ También proponé un título corto para el roadmap (el tema que se trabajó, por
 
 Respondé SOLO con un JSON válido, sin texto antes ni después:
 {{"titulo": "...", "area": "...", "pasos": [{{"texto": "...", "quien": "cliente"}}],
-"mensaje": "...", "entregables": ["..."], "resumen": "..."}}"""
+"mensaje": "...", "entregables": ["..."], "resumen": "..."{seguimiento}}}"""
+
+_SEGUIMIENTO = """
+
+4. SEGUIMIENTO DEL ROADMAP ANTERIOR (más abajo están sus pasos): para cada uno, según lo que se
+   dijo en ESTA llamada, si se hizo ("hecho"), a medias ("parcial"), no se hizo ("no_hecho") o no se
+   habló ("no_se_hablo"), y el resultado concreto que contó el cliente (números, hechos), con sus
+   palabras. Si no contó un resultado, dejalo vacío: no lo inventes. No vuelvas a proponer pasos que
+   ya están hechos."""
 
 
 def _recortar(texto: str) -> str:
@@ -71,7 +80,21 @@ def _json_de(texto: str) -> dict:
     return json.loads(m.group(0))
 
 
-def _limpiar(datos: dict) -> dict:
+def _seguimiento(datos: dict, anterior: dict | None) -> dict | None:
+    if not anterior:
+        return None
+    por_id = {p["id"]: p for p in anterior["pasos"]}
+    pasos = []
+    for x in datos.get("seguimiento") or []:
+        p = por_id.get(x.get("id")) if isinstance(x, dict) else None
+        if p is None:
+            continue
+        estado = x.get("estado") if x.get("estado") in aprendidos.ESTADOS else "no_se_hablo"
+        pasos.append({"id": p["id"], "paso": p["texto"], "tildado": bool(p.get("hecho")), "estado": estado, "resultado": " ".join(str(x.get("resultado") or "").split())[:300]})
+    return {"doc_id": anterior["doc_id"], "titulo": anterior["titulo"], "fecha": anterior["fecha"], "pasos": pasos}
+
+
+def _limpiar(datos: dict, anterior: dict | None = None) -> dict:
     """Lo que vuelve del modelo, acotado a lo que el formulario espera."""
     pasos = []
     for p in datos.get("pasos") or []:
@@ -93,6 +116,7 @@ def _limpiar(datos: dict) -> dict:
         "mensaje": mensaje[:3000],
         "entregables": entregables,
         "resumen": str(datos.get("resumen") or "").strip()[:1500],
+        "seguimiento": _seguimiento(datos, anterior),
     }
 
 
@@ -114,15 +138,22 @@ def _llamar(sistema: str, usuario: str) -> str:
     return "".join(b.text for b in r.content if getattr(b, "type", "") == "text")
 
 
-def armar_prompt(coach: str, cliente: str, voz: dict, perfil: dict | None, transcripcion: str) -> tuple[str, str]:
+def armar_prompt(coach: str, cliente: str, voz: dict, perfil: dict | None, transcripcion: str, aprendido: str = "", anterior: dict | None = None) -> tuple[str, str]:
     ejemplos = "\n".join(f"- {e[:400]}" for e in (voz.get("ejemplos") or [])[:16]) or "(sin ejemplos todavía)"
     perfil_txt = "; ".join(f"{k}: {v}" for k, v in (perfil or {}).items() if v) or "sin datos todavía"
-    sistema = _INSTRUCCIONES.format(coach=coach, cliente=cliente, enlace=ENLACE_ROADMAP)
+    sistema = _INSTRUCCIONES.format(
+        coach=coach, cliente=cliente, enlace=ENLACE_ROADMAP,
+        seguimiento=', "seguimiento": [{"id": 1, "estado": "hecho", "resultado": "..."}]' if anterior else "",
+    ) + (_SEGUIMIENTO if anterior else "")
+    previo = ""
+    if anterior:
+        lineas = "\n".join(f"  {p['id']}. {p['texto']}" + (" [el cliente lo tildó como hecho]" if p.get("hecho") else "") for p in anterior["pasos"])
+        previo = f"\n\nRoadmap anterior de {cliente} ({anterior['titulo']}, {anterior['fecha']}):\n{lineas}"
     usuario = f"""Cómo escribe {coach}: {_describir_voz(voz.get('rasgos') or {})}
 Mensajes reales de {coach} (copiá el tono, no el contenido):
 {ejemplos}
-
-Lo que sabemos de {cliente}: {perfil_txt}
+{(chr(10) + "Lo que aprendimos de los roadmaps anteriores:" + chr(10) + aprendido + chr(10)) if aprendido else ""}
+Lo que sabemos de {cliente}: {perfil_txt}{previo}
 
 Transcripción de la llamada:
 {_recortar(transcripcion)}"""
@@ -130,7 +161,7 @@ Transcripción de la llamada:
 
 
 class RoadmapIAServices:
-    def generar(self, sesion: dict, cliente_id: int, transcripcion: str | None, llamar=_llamar, llamada_id: int | None = None) -> dict:
+    def generar(self, sesion: dict, cliente_id: int, transcripcion: str | None, llamar=_llamar, llamada_id: int | None = None, fathom_url: str | None = None) -> dict:
         if not es_equipo(sesion):
             raise HTTPException(status_code=403, detail="El roadmap lo arma el equipo de ATV.")
         if llamada_id:
@@ -140,6 +171,7 @@ class RoadmapIAServices:
                 if ll is None or (sesion.get("rol") != "admin" and ll.admin_id != sesion["usuario_id"]):
                     raise HTTPException(status_code=404, detail="No existe esa llamada.")
                 transcripcion = ll.transcripcion or ""
+                fathom_url = fathom_url or ll.share_url or ll.url
         if len((transcripcion or "").strip()) < 200:
             raise HTTPException(status_code=422, detail="Pegá la transcripción completa de la llamada.")
         with db_session:
@@ -155,11 +187,17 @@ class RoadmapIAServices:
             voz_id = voz_admin.id if voz_admin else sesion["usuario_id"]
             canal = Canal.get(cliente_id=cliente_id)
         perfil = ap.perfil_de(cliente_id)["perfil"] if canal else None
-        sistema, usuario = armar_prompt(coach, cliente, ap.voz_de(voz_id), perfil, transcripcion)
+        # Lo aprendido de los roadmaps anteriores: correcciones de este coach, sus roadmaps finales y
+        # qué pasos dieron resultado con clientes parecidos. Y el roadmap anterior de este cliente.
+        aprendido = aprendidos.texto_para_prompt(aprendidos.contexto(sesion["usuario_id"], cliente_id, (perfil or {}).get("nicho")), coach)
+        anterior = aprendidos.anterior_del_cliente(cliente_id)
+        sistema, usuario = armar_prompt(coach, cliente, ap.voz_de(voz_id), perfil, transcripcion, aprendido, anterior)
         try:
-            return _limpiar(_json_de(llamar(sistema, usuario)))
+            borrador = _limpiar(_json_de(llamar(sistema, usuario)), anterior)
         except HTTPException:
             raise
         except Exception:
             logger.exception("No se pudo armar el roadmap con IA")
             raise HTTPException(status_code=502, detail="No se pudo armar el borrador. Probá de nuevo en un minuto.")
+        borrador["borrador_id"] = aprendidos.registrar_borrador(cliente_id, sesion["usuario_id"], voz_id, borrador, transcripcion, fathom_url)
+        return borrador

@@ -78,3 +78,19 @@ def test_conectar_guarda_la_clave_cifrada_y_trae_las_llamadas(coach):
     assert fs.sincronizar(coach["usuario_id"], http=fathom_falso())["nuevas"] == 0
     svc.desconectar(coach)
     assert svc.estado(coach) == {"conectado": False}
+
+
+def test_pegar_solo_el_link_trae_la_transcripcion(coach):
+    svc = fs.FathomServices()
+    with pytest.raises(HTTPException):
+        LlamadasServices().por_link(coach, "https://google.com/x")  # no es de Fathom
+    with db_session:
+        db.execute(f'DELETE FROM "{DB_SCHEMA}"."llamadas" WHERE fathom_id = $f', {"f": "99887766"})
+    with db_session:
+        FathomConexion(admin_id=coach["usuario_id"], clave_cifrada=fs.cifrar("k" * 40))
+    # No estaba guardada: la busca en su Fathom por el token del link.
+    d = fs.buscar_por_link(coach, "https://fathom.video/share/prueba-test", http=fathom_falso())
+    detalle = LlamadasServices().detalle(coach, d)
+    assert "Franco: hola Ana" in detalle["transcripcion"]
+    # La segunda vez ya está guardada: no hace falta Fathom.
+    assert fs.buscar_por_link(coach, "https://fathom.video/share/prueba-test", http=None) == d
