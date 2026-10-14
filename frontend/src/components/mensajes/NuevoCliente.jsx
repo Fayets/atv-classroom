@@ -34,10 +34,18 @@ function Copiable({ valor }) {
 // si quien hace el onboarding confirma que es ese cliente, se completa esa ficha en vez de crear otra.
 // Se muestra cuánto dejó de seña: Nick sabe el monto que mandó a la caja y así la reconoce.
 // El mail de onboarding no sale solo: se manda una vez con el botón.
-export default function NuevoCliente({ onCerrar, onAbrirChat }) {
-  const [form, setForm] = useState({ nombre: '', email: '', plan: 'Entry Level', pago: '', ficha_id: null, sin_ficha: false })
+// sena: si se abre desde el grupo "Señas" de Mensajes, ya viene elegida (Nick completa mail y pago).
+export default function NuevoCliente({ onCerrar, onAbrirChat, sena = null }) {
+  const [form, setForm] = useState({
+    nombre: sena?.nombre || '',
+    email: '',
+    plan: sena?.plan && PLANES.includes(sena.plan) ? sena.plan : 'Entry Level',
+    pago: '',
+    ficha_id: sena?.id ?? null,
+    sin_ficha: false,
+  })
   const [candidatas, setCandidatas] = useState([])
-  const [elegida, setElegida] = useState(null)
+  const [elegida, setElegida] = useState(sena)
   const [todas, setTodas] = useState(false)
   const [hecha, setHecha] = useState(null)
   const [recientes, setRecientes] = useState([])
@@ -47,12 +55,13 @@ export default function NuevoCliente({ onCerrar, onAbrirChat }) {
   const campo = useRef(null)
 
   useEffect(() => {
-    campo.current?.focus()
+    if (sena) document.querySelector('.msj-modal.alta input[inputmode=email]')?.focus()
+    else campo.current?.focus()
     fetchAltas().then(setRecientes).catch(() => null)
     const esc = (e) => e.key === 'Escape' && onCerrar()
     window.addEventListener('keydown', esc)
     return () => window.removeEventListener('keydown', esc)
-  }, [onCerrar])
+  }, [onCerrar, sena])
 
   // Señas abiertas (fichas que Franco crea en atv-clients al cobrar la seña). Se muestran todas, con las
   // que se parecen al nombre o al mail arriba: Franco y Nick no siempre las nombran igual.

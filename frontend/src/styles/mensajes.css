@@ -664,3 +664,25 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-grupo.is-soltar { background: rgba(10, 100, 214, 0.08); box-shadow: inset 0 0 0 1.5px rgba(10, 100, 214, 0.45); border-radius: 8px; }
 .msj-fila[draggable='true'] { cursor: grab; }
 .msj-fila[draggable='true']:active { cursor: grabbing; }
+
+/* Señas: pagaron la seña y todavía no tienen onboarding (no tienen chat) */
+.msj-sena { display: flex; align-items: baseline; gap: 8px; }
+.msj-sena .msj-fila__nombre { flex: 1; min-width: 0; }
+.msj-sena__dias { flex: none; font-size: 11px; color: #8e8e93; font-variant-numeric: tabular-nums; }
+.msj-sena.is-atrasada .msj-sena__dias { color: #c46a00; font-weight: 600; }
+.msj-sena.is-activo .msj-sena__dias { color: rgba(255, 255, 255, 0.85); }
+.msj-sena-panel { width: 100%; max-width: 520px; margin: 48px auto; padding: 0 24px; display: grid; gap: 14px; align-content: start; align-self: start; box-sizing: border-box; }
+.msj-sena-panel__eyebrow { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #c46a00; }
+.msj-sena-panel h2 { margin: 0; font-size: 24px; font-weight: 650; letter-spacing: -0.01em; }
+.msj-sena-panel dl { margin: 0; display: grid; border-radius: 12px; background: #f5f5f7; overflow: hidden; }
+.msj-sena-panel dl > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid rgba(0, 0, 0, 0.05); font-size: 13.5px; }
+.msj-sena-panel dl > div:first-child { border-top: 0; }
+.msj-sena-panel dt { color: #6e6e73; }
+.msj-sena-panel dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.msj-sena-panel dd.is-atrasada { color: #c46a00; }
+.msj-sena-panel__notas { padding: 10px 14px; border-radius: 12px; background: #fff8e6; box-shadow: inset 0 0 0 1px #f2d48a; }
+.msj-sena-panel__notas span { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #8a5a00; }
+.msj-sena-panel__notas p { margin: 4px 0 0; font-size: 13.5px; white-space: pre-wrap; }
+.msj-sena-panel__ayuda { margin: 0; font-size: 13px; color: #6e6e73; line-height: 1.5; }
+.msj-sena-panel__boton { justify-self: start; padding: 10px 18px; border: 0; border-radius: 9px; background: #c0392b; color: #fff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.msj-sena-panel__boton:hover { background: #a93226; }

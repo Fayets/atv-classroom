@@ -89,6 +89,10 @@ def test_completa_la_ficha_de_la_sena_y_anular_la_deja_como_estaba(onboarding):
         encontradas = svc.buscar_ficha(COACH, "sena test")
         assert encontradas[0]["id"] == ficha and encontradas[0]["coincide"] == "nombre" and encontradas[0]["monto"] == 500.0
         assert svc.buscar_ficha(COACH, "Sena")[0]["coincide"] == "parecido"
+        sena = next(x for x in svc.senas(COACH) if x["id"] == ficha)
+        assert sena["monto"] == 500.0 and sena["notas"] == "Seña de Nick"
+        with pytest.raises(HTTPException):
+            svc.senas(CLIENTE)
         assert svc.buscar_ficha(COACH, "Senna Test")[0]["id"] == ficha  # Franco y Nick no la escriben igual
         lejos = [f for f in svc.buscar_ficha(COACH, "Nombre Que No Coincide") if f["id"] == ficha]
         assert lejos and lejos[0]["coincide"] is None  # igual aparece en la lista para elegirla

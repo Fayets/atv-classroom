@@ -143,6 +143,25 @@ class AltaServices:
         _equipo(sesion)
         return [{k: f[k] for k in ("id", "nombre", "plan", "fecha", "monto", "coincide")} for f in _candidatas(nombre, email)]
 
+    def senas(self, sesion: dict) -> list[dict]:
+        """Grupo "Señas" de Mensajes: quienes dejaron seña y todavía no tienen onboarding, la más vieja
+        primero (son las que hay que perseguir), con el monto, hace cuántos días y las notas de la caja."""
+        _equipo(sesion)
+        with db_session:
+            filas = db.select(
+                "SELECT id, nombre, plan_actual, fecha_inicio, total_pagado_usd, observaciones FROM clients.clientes "
+                "WHERE coalesce(canal_discord, '') = '' AND estado_cliente <> 'inactivo' ORDER BY fecha_inicio NULLS LAST, id"
+            )
+        inversa = {v: k for k, v in PLANES.items()}
+        hoy = date.today()
+        return [
+            {
+                "id": i, "nombre": nom, "plan": inversa.get(plan, plan), "fecha": fecha.isoformat() if fecha else None,
+                "dias": (hoy - fecha).days if fecha else None, "monto": float(pagado) if pagado else None, "notas": obs or None,
+            }
+            for i, nom, plan, fecha, pagado, obs in filas
+        ]
+
     def crear(
         self, sesion: dict, nombre: str, email: str, plan: str, ficha_id: int | None = None, sin_ficha: bool = False, pago: str | None = None
     ) -> dict:

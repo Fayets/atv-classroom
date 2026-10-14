@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
+import { fetchSenas } from '../api/altas'
 import { fetchCanales, marcarInactivo } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
@@ -8,6 +9,7 @@ import AccionesRapidas from '../components/mensajes/AccionesRapidas'
 import Avatar from '../components/mensajes/Avatar'
 import RoadmapCliente from '../components/mensajes/RoadmapCliente'
 import Conversacion from '../components/mensajes/Conversacion'
+import NuevoCliente from '../components/mensajes/NuevoCliente'
 import { useAuth } from '../context/AuthContext'
 import { useMensajeria } from '../context/MensajeriaContext'
 import { cuandoCorto, haceCuanto } from '../utils/mensajes'
@@ -127,6 +129,65 @@ function ItemCanal({ c, activo, onAbrir, isEquipo, escribe }) {
   )
 }
 
+// Señas: quienes pagaron la seña y todavía no tienen onboarding. No tienen chat (no tienen mail ni
+// clave): son pendientes. Desde acá se arranca su onboarding con la seña ya elegida.
+const DIAS_ALERTA = 7
+const usd = (n) => `USD ${Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 })}`
+const hace = (d) => (d == null ? '' : d === 0 ? 'hoy' : d === 1 ? 'hace 1 día' : `hace ${d} días`)
+
+function SeccionSenas({ senas, abierta, alAlternar, activa, alAbrir }) {
+  if (!senas?.length) return null
+  const atrasadas = senas.filter((x) => (x.dias ?? 0) > DIAS_ALERTA).length
+  const visibles = abierta ? senas : senas.filter((x) => x.id === activa)
+  return (
+    <section className="msj-grupo is-senas" aria-label="Señas">
+      <button type="button" className={`msj-grupo__titulo${abierta ? ' is-abierto' : ''}${!abierta && atrasadas ? ' con-novedades' : ''}`} onClick={alAlternar} aria-expanded={abierta}>
+        <svg viewBox="0 0 10 10" aria-hidden="true">
+          <path d="M3 2l4 3-4 3z" fill="currentColor" />
+        </svg>
+        <span>Señas</span>
+        <small>{senas.length}</small>
+      </button>
+      {visibles.map((x) => (
+        <button
+          key={x.id}
+          type="button"
+          className={`msj-fila msj-sena${x.id === activa ? ' is-activo' : ''}${(x.dias ?? 0) > DIAS_ALERTA ? ' is-atrasada' : ''}`}
+          onClick={() => alAbrir(x.id)}
+          title={`${x.nombre} · ${x.plan || 'sin programa'}${x.monto ? ` · ${usd(x.monto)}` : ''} · seña ${hace(x.dias)}`}
+        >
+          <span className="msj-fila__nombre">{x.nombre}</span>
+          <small className="msj-sena__dias">{x.monto ? `${usd(x.monto)} · ` : ''}{hace(x.dias)}</small>
+        </button>
+      ))}
+    </section>
+  )
+}
+
+function PanelSena({ sena, alHacerOnboarding }) {
+  if (!sena) return <div className="msj-vacio">Esa seña ya no está pendiente.</div>
+  const atrasada = (sena.dias ?? 0) > DIAS_ALERTA
+  return (
+    <div className="msj-sena-panel">
+      <p className="msj-sena-panel__eyebrow">Seña sin onboarding</p>
+      <h2>{sena.nombre}</h2>
+      <dl>
+        <div><dt>Programa</dt><dd>{sena.plan || '—'}</dd></div>
+        <div><dt>Seña</dt><dd>{sena.monto ? usd(sena.monto) : '—'}</dd></div>
+        <div><dt>Cobrada</dt><dd className={atrasada ? 'is-atrasada' : ''}>{sena.fecha ? new Date(`${sena.fecha}T00:00:00`).toLocaleDateString('es-AR') : '—'} · {hace(sena.dias)}</dd></div>
+      </dl>
+      {sena.notas ? (
+        <div className="msj-sena-panel__notas">
+          <span>Notas de la caja</span>
+          <p>{sena.notas}</p>
+        </div>
+      ) : null}
+      <p className="msj-sena-panel__ayuda">Todavía no tiene chat ni acceso: los recibe cuando le hagas el onboarding. Completás su mail real y la modalidad de pago; la seña ya queda elegida.</p>
+      <button type="button" className="msj-sena-panel__boton" onClick={alHacerOnboarding}>Hacer onboarding</button>
+    </div>
+  )
+}
+
 function PanelCliente({ item }) {
   const cliente = item?.cliente
   if (!cliente) return null
@@ -186,11 +247,16 @@ export default function MensajesPage() {
   const esCoach = isEquipo && !isAdmin
   const vista = esCoach ? 'alertas' : (enMensajes ? vistaUrl : guardado.current.vista) === 'alertas' ? 'alertas' : 'bandeja'
 
+  const [senas, setSenas] = useState(null)
+  const [senasAbiertas, setSenasAbiertas] = useState(false)
+  const [onboardingDe, setOnboardingDe] = useState(null)
+  const senaActiva = enMensajes ? Number(params.get('s')) || null : null
   const cargar = useCallback(() => {
     fetchCanales()
       .then(setCanales)
       .catch((err) => setError(err.message || 'No se pudieron cargar los canales.'))
-  }, [])
+    if (isEquipo) fetchSenas().then(setSenas).catch(() => null)
+  }, [isEquipo])
 
   useEffect(() => {
     cargar()
@@ -250,7 +316,7 @@ export default function MensajesPage() {
 
   // El cliente entra directo a su canal; en escritorio el equipo abre el primero de la bandeja.
   useEffect(() => {
-    if (!enMensajes || activo || !canales?.length) return
+    if (!enMensajes || activo || senaActiva || !canales?.length) return
     if (!isEquipo) {
       const propio = canales.find((c) => c.tipo === 'cliente')
       if (propio) setParams({ c: String(propio.id) }, { replace: true })
@@ -258,7 +324,7 @@ export default function MensajesPage() {
       const primero = canales.find((c) => c.tipo === 'cliente') || canales[0]
       setParams({ c: String(primero.id) }, { replace: true })
     }
-  }, [enMensajes, activo, canales, isEquipo, vista, setParams])
+  }, [enMensajes, activo, canales, isEquipo, vista, setParams, senaActiva])
 
   const filtrados = useMemo(() => {
     if (!canales) return []
@@ -316,6 +382,34 @@ export default function MensajesPage() {
   const abrir = (id) => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas', c: String(id) } : { c: String(id) })
   const cambiarVista = (v) => setParams(v === 'alertas' ? { v: 'alertas' } : {})
 
+  // Un grupo de clientes de la bandeja (por plan, o Inactivos), con su zona para soltar chats.
+  const grupoDe = (g) => {
+    const abierto = Boolean(buscar.trim()) || abiertos.includes(g.id)
+    const visibles = abierto ? g.canales : g.canales.filter((c) => c.id === activo || c.no_leidos > 0 || c.menciones > 0 || escriben[c.id])
+    const novedades = g.canales.filter((c) => c.no_leidos > 0).length
+    return (
+      <section key={g.id} className={`msj-grupo${g.id === 'inactivos' ? ' is-inactivos' : ''}${soltandoEn === g.id ? ' is-soltar' : ''}`} aria-label={g.nombre} {...zonaDeSoltar(g.id)}>
+        <button type="button" className={`msj-grupo__titulo${abierto ? ' is-abierto' : ''}${!abierto && novedades ? ' con-novedades' : ''}`} onClick={() => alternarGrupo(g.id)} aria-expanded={abierto}>
+          <svg viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M3 2l4 3-4 3z" fill="currentColor" />
+          </svg>
+          <span>{g.nombre}</span>
+          <small>{g.canales.length || ''}</small>
+        </button>
+        {visibles.map((c) => (
+          <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} arrastrable />
+        ))}
+        {g.id === 'inactivos' && !g.canales.length && soltandoEn === g.id ? <p className="msj-grupo__vacio">Soltalo acá para archivarlo</p> : null}
+      </section>
+    )
+  }
+
+  const abrirSena = (id) => setParams({ s: String(id) })
+  const seccionSenas = isEquipo ? (
+    <SeccionSenas key="senas" senas={buscar.trim() ? senas?.filter((x) => x.nombre.toLowerCase().includes(buscar.trim().toLowerCase())) : senas} abierta={senasAbiertas || Boolean(buscar.trim())} alAlternar={() => setSenasAbiertas((a) => !a)} activa={senaActiva} alAbrir={abrirSena} />
+  ) : null
+  const sena = senas?.find((x) => x.id === senaActiva)
+
   // Canales grupales (y anuncios), arriba de todo como en Discord. El equipo los crea con el +.
   const seccionCanales =
     canales && (isEquipo || canalesGrupo.length) ? (
@@ -338,7 +432,7 @@ export default function MensajesPage() {
   return (
     <div className={`app-shell msj-root${isEquipo ? ' is-mac' : ''}`}>
       <AppHeader />
-      <div className={`msj-layout${activo ? ' ver-conv' : ' ver-lista'}${isEquipo && item?.cliente ? ' con-panel' : ''}`}>
+      <div className={`msj-layout${activo || senaActiva ? ' ver-conv' : ' ver-lista'}${isEquipo && item?.cliente ? ' con-panel' : ''}`}>
         <aside className="msj-lateral" aria-label="Canales">
           <div className="msj-lateral__head">
             <h1>Mensajes</h1>
@@ -358,6 +452,7 @@ export default function MensajesPage() {
             </div>
           ) : null}
           {vista === 'alertas' && esCoach ? seccionCanales : null}
+          {vista === 'alertas' && esCoach ? seccionSenas : null}
           {vista === 'alertas' ? <Alertas activo={activo} onAbrir={abrir} /> : null}
           {vista === 'bandeja' && isEquipo ? (
             <input
@@ -377,26 +472,7 @@ export default function MensajesPage() {
           {seccionCanales}
 
           {isEquipo
-            ? grupos.map((g) => {
-                const abierto = Boolean(buscar.trim()) || abiertos.includes(g.id)
-                const visibles = abierto ? g.canales : g.canales.filter((c) => c.id === activo || c.no_leidos > 0 || c.menciones > 0 || escriben[c.id])
-                const novedades = g.canales.filter((c) => c.no_leidos > 0).length
-                return (
-                  <section key={g.id} className={`msj-grupo${g.id === 'inactivos' ? ' is-inactivos' : ''}${soltandoEn === g.id ? ' is-soltar' : ''}`} aria-label={g.nombre} {...zonaDeSoltar(g.id)}>
-                    <button type="button" className={`msj-grupo__titulo${abierto ? ' is-abierto' : ''}${!abierto && novedades ? ' con-novedades' : ''}`} onClick={() => alternarGrupo(g.id)} aria-expanded={abierto}>
-                      <svg viewBox="0 0 10 10" aria-hidden="true">
-                        <path d="M3 2l4 3-4 3z" fill="currentColor" />
-                      </svg>
-                      <span>{g.nombre}</span>
-                      <small>{g.canales.length || ''}</small>
-                    </button>
-                    {visibles.map((c) => (
-                      <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} arrastrable />
-                    ))}
-                    {g.id === 'inactivos' && !g.canales.length && soltandoEn === g.id ? <p className="msj-grupo__vacio">Soltalo acá para archivarlo</p> : null}
-                  </section>
-                )
-              })
+            ? grupos.flatMap((g) => (g.id === 'inactivos' ? [seccionSenas, grupoDe(g)] : [grupoDe(g)]))
             : null}
           {!isEquipo && resto.length ? <p className="msj-seccion">Tu canal</p> : null}
           {!isEquipo
@@ -435,7 +511,9 @@ export default function MensajesPage() {
         </aside>
 
         <main className="msj-centro">
-          {activo ? (
+          {senaActiva && isEquipo ? (
+            <PanelSena sena={sena} alHacerOnboarding={() => setOnboardingDe(sena)} />
+          ) : activo ? (
             <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} onVolver={() => setParams(vista === 'alertas' && !esCoach ? { v: 'alertas' } : {})} />
           ) : (
             <div className="msj-vacio">
@@ -444,7 +522,21 @@ export default function MensajesPage() {
           )}
         </main>
 
-        {isEquipo && item?.cliente ? <PanelCliente item={item} /> : null}
+        {isEquipo && item?.cliente && !senaActiva ? <PanelCliente item={item} /> : null}
+        {onboardingDe ? (
+          <NuevoCliente
+            sena={onboardingDe}
+            onCerrar={() => {
+              setOnboardingDe(null)
+              cargar()
+            }}
+            onAbrirChat={(canalId) => {
+              setOnboardingDe(null)
+              cargar()
+              if (canalId) setParams({ c: String(canalId) })
+            }}
+          />
+        ) : null}
       </div>
     </div>
   )

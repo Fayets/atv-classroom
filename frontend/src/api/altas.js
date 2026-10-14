@@ -5,3 +5,4 @@ export const crearAlta = (datos) => request('/api/altas', { method: 'POST', body
 export const enviarOnboarding = (id) => request(`/api/altas/${id}/enviar-onboarding`, { method: 'POST' })
 export const anularAlta = (id) => request(`/api/altas/${id}`, { method: 'DELETE' })
 export const buscarFicha = (nombre, email) => request(`/api/altas/buscar-ficha?nombre=${encodeURIComponent(nombre)}&email=${encodeURIComponent(email)}`)
+export const fetchSenas = () => request('/api/altas/senas')
