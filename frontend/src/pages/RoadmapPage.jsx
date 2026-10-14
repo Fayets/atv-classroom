@@ -62,7 +62,7 @@ function Lector({ doc, esPrincipal, alCambiar, alCerrar }) {
         {pasos.length ? (
           <>
             <div className="rm-progreso">
-              <span className="rm-barra" aria-hidden="true"><i style={{ width: `${Math.round((100 * hechos) / pasos.length)}%` }} /></span>
+              <span className="rm-barra" aria-hidden="true"><i style={{ transform: `scaleX(${hechos / pasos.length})` }} /></span>
               <b>{hechos} de {pasos.length} listos</b>
             </div>
             {pasos.some((p) => p.quien !== 'atv') ? (
@@ -112,7 +112,33 @@ export default function RoadmapPage() {
   const [error, setError] = useState('')
   const [filtro, setFiltro] = useState('todo')
   const [elegido, setElegido] = useState(null)
-  const [vista, setVista] = useState({ x: 0, y: 0, z: 1 })
+  // Mover y hacer zoom no pasa por React: se escribe el transform directo, una vez por cuadro (fluido a
+  // cualquier tasa de refresco). React solo se entera del % de zoom para el botón.
+  const vista = useRef({ x: 0, y: 0, z: 1 })
+  const mundo = useRef(null)
+  const cuadroPan = useRef(0)
+  const quieto = useRef(0)
+  const [zoomPct, setZoomPct] = useState(100)
+  const pintar = useCallback((suave = false) => {
+    cancelAnimationFrame(cuadroPan.current)
+    cuadroPan.current = requestAnimationFrame(() => {
+      const m = mundo.current
+      if (!m) return
+      const { x, y, z } = vista.current
+      m.classList.toggle('is-suave', suave)
+      m.classList.add('is-moviendo') // capa en la placa de video solo mientras se mueve: quieto, el texto queda nítido
+      m.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${z})`
+      clearTimeout(quieto.current)
+      quieto.current = setTimeout(() => {
+        m.classList.remove('is-moviendo', 'is-suave')
+        setZoomPct(Math.round(vista.current.z * 100))
+      }, suave ? 420 : 160)
+    })
+  }, [])
+  const setVista = useCallback((cambio, suave = false) => {
+    vista.current = typeof cambio === 'function' ? cambio(vista.current) : cambio
+    pintar(suave)
+  }, [pintar])
   const lienzo = useRef(null)
   const arrastre = useRef(null)
 
@@ -159,8 +185,8 @@ export default function RoadmapPage() {
     const ancho = Math.max(...ubicadas.map((u) => u.x + u.ancho))
     const alto = Math.max(...ubicadas.map((u) => u.y + u.alto))
     const z = Math.min(1.1, Math.max(0.4, Math.min((caja.width - 80) / ancho, (caja.height - 80) / alto)))
-    setVista({ z, x: (caja.width - ancho * z) / 2, y: Math.max(40, (caja.height - alto * z) / 2.4) })
-  }, [ubicadas])
+    setVista({ z, x: (caja.width - ancho * z) / 2, y: Math.max(40, (caja.height - alto * z) / 2.4) }, true)
+  }, [ubicadas, setVista])
 
   useEffect(() => {
     ajustar()
@@ -183,7 +209,7 @@ export default function RoadmapPage() {
     }
     el.addEventListener('wheel', rueda, { passive: false })
     return () => el.removeEventListener('wheel', rueda)
-  }, [datos])
+  }, [datos, setVista])
 
   const zoom = (f) => {
     const caja = lienzo.current.getBoundingClientRect()
@@ -192,12 +218,12 @@ export default function RoadmapPage() {
     setVista((v) => {
       const z = Math.min(2, Math.max(0.3, v.z * f))
       return { z, x: px - ((px - v.x) * z) / v.z, y: py - ((py - v.y) * z) / v.z }
-    })
+    }, true)
   }
 
   function bajar(e) {
     if (e.button !== 0 || e.target.closest('button, a')) return
-    arrastre.current = { x: e.clientX, y: e.clientY, vx: vista.x, vy: vista.y }
+    arrastre.current = { x: e.clientX, y: e.clientY, vx: vista.current.x, vy: vista.current.y }
     e.currentTarget.setPointerCapture(e.pointerId)
   }
   function mover(e) {
@@ -209,7 +235,7 @@ export default function RoadmapPage() {
     const u = ubicadas.find((x) => x.coach.id === grupo.coach.id)
     const caja = lienzo.current?.getBoundingClientRect()
     if (!u || !caja) return
-    setVista((v) => ({ ...v, x: caja.width / 2 - (u.x + u.ancho / 2) * v.z, y: caja.height / 2.4 - (u.y + u.alto / 2) * v.z }))
+    setVista((v) => ({ ...v, x: caja.width / 2 - (u.x + u.ancho / 2) * v.z, y: caja.height / 2.4 - (u.y + u.alto / 2) * v.z }), true)
     setElegido(u.docs[u.docs.length - 1].id)
   }
 
@@ -246,7 +272,7 @@ export default function RoadmapPage() {
                 </div>
                 {principal.pasos_total ? (
                   <div className="rm-ahora__avance">
-                    <span className="rm-barra" aria-hidden="true"><i style={{ width: `${Math.round((100 * (principal.paso_actual || 0)) / principal.pasos_total)}%` }} /></span>
+                    <span className="rm-barra" aria-hidden="true"><i style={{ transform: `scaleX(${(principal.paso_actual || 0) / principal.pasos_total})` }} /></span>
                     <small>{principal.paso_actual || 0} de {principal.pasos_total}</small>
                   </div>
                 ) : null}
@@ -266,7 +292,7 @@ export default function RoadmapPage() {
                   <span>Después de cada llamada, tu coach suma acá los próximos pasos.</span>
                 </div>
               ) : (
-                <div className="rm-mundo" style={{ transform: `translate(${vista.x}px, ${vista.y}px) scale(${vista.z})` }}>
+                <div className="rm-mundo" ref={mundo} style={{ transform: `translate3d(${vista.current.x}px, ${vista.current.y}px, 0) scale(${vista.current.z})` }}>
                   <svg className="rm-flechas" width="1" height="1" aria-hidden="true">
                     <defs>
                       <marker id="rm-punta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
@@ -310,7 +336,7 @@ export default function RoadmapPage() {
               {ubicadas.length ? (
                 <div className="rm-zoom" role="group" aria-label="Zoom">
                   <button type="button" onClick={() => zoom(1 / 1.2)} aria-label="Alejar">−</button>
-                  <button type="button" onClick={ajustar}>{Math.round(vista.z * 100)}%</button>
+                  <button type="button" onClick={ajustar}>{zoomPct}%</button>
                   <button type="button" onClick={() => zoom(1.2)} aria-label="Acercar">+</button>
                 </div>
               ) : null}

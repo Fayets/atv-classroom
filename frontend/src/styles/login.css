@@ -41,6 +41,7 @@
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(176, 69, 69, 0.28), transparent);
   filter: blur(40px);
+  will-change: transform, opacity;
   animation: lg-respira 8s ease-in-out infinite;
 }
 @keyframes lg-respira { 0%, 100% { opacity: 0.7; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1.04); } }

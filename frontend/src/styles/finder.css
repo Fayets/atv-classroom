@@ -25,6 +25,7 @@
   box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.3), 0 28px 70px -18px rgba(0, 0, 0, 0.55);
   font-size: 13px;
   opacity: 0; scale: 0.96; visibility: hidden; pointer-events: none;
+  will-change: scale, opacity;
   transition: opacity 170ms ease, scale 220ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 220ms;
   will-change: transform; outline: none;
 }

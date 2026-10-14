@@ -170,20 +170,34 @@ export default function Escritorio({ children }) {
 
   // Lupa del Dock: cada ícono crece según qué tan cerca está el mouse (una vez por cuadro).
   const cuadro = useRef(null)
+  // La lupa sigue al cursor sin transición (una por cuadro). Los centros de los íconos se miden una vez
+  // al entrar al Dock: medir después de agrandar el anterior obligaba a recalcular la página varias
+  // veces por cuadro.
+  const centros = useRef(null)
   function lupa(x) {
     cancelAnimationFrame(cuadro.current)
     cuadro.current = requestAnimationFrame(() => aplicarLupa(x))
   }
   function aplicarLupa(x) {
-    iconos.current.forEach((el) => {
-      if (!el) return
-      if (x == null) {
-        el.style.setProperty('--zoom', 1)
-        return
-      }
-      const r = el.getBoundingClientRect()
-      const distancia = Math.abs(x - (r.left + r.width / 2))
-      el.style.setProperty('--zoom', (1 + 0.5 * Math.max(0, 1 - distancia / 140)).toFixed(3))
+    const dock = iconos.current.find(Boolean)?.closest('.esc-dock')
+    if (x == null) {
+      centros.current = null
+      dock?.classList.remove('is-lupa')
+      iconos.current.forEach((el) => el && el.style.setProperty('--zoom', 1))
+      return
+    }
+    if (!centros.current) {
+      centros.current = iconos.current.map((el) => {
+        if (!el) return null
+        const r = el.getBoundingClientRect()
+        return r.left + r.width / 2
+      })
+      dock?.classList.add('is-lupa')
+    }
+    iconos.current.forEach((el, i) => {
+      const c = centros.current[i]
+      if (!el || c == null) return
+      el.style.setProperty('--zoom', (1 + 0.5 * Math.max(0, 1 - Math.abs(x - c) / 140)).toFixed(3))
     })
   }
 

@@ -811,7 +811,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                   </span>
                   {!a.adjunto && !a.error ? (
                     <span className="msj-subidas__barra">
-                      <i style={{ width: `${a.progreso}%` }} />
+                      <i style={{ transform: `scaleX(${(a.progreso || 0) / 100})` }} />
                     </span>
                   ) : null}
                   <button type="button" onClick={() => quitarArchivo(a.clave)} aria-label={`Quitar ${a.nombre}`}>

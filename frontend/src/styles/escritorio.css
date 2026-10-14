@@ -69,6 +69,7 @@
   transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
 }
+.esc-dock.is-lupa .esc-dock__icono { transition: none; }
 .esc-dock__icono svg { width: 56%; height: 56%; }
 .esc-dock__app:active .esc-dock__icono { filter: brightness(0.82); }
 .esc-dock__app:focus-visible .esc-dock__icono { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85); }
