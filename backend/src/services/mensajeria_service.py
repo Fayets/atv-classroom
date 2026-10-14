@@ -740,7 +740,8 @@ class MensajeriaServices:
     def resolver_mencion(self, sesion: dict, mencion_id: int) -> dict:
         with db_session:
             men = Mencion.get(id=mencion_id)
-            if men is None or men.admin_id != sesion["usuario_id"]:
+            # Los ids de clientes y de admins son de tablas distintas: un cliente con el mismo número no es el admin.
+            if men is None or not es_equipo(sesion) or men.admin_id != sesion["usuario_id"]:
                 raise HTTPException(status_code=404, detail="Alerta no encontrada.")
             if men.respondida_en is None:
                 men.respondida_en = datetime.utcnow()

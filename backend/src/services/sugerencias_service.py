@@ -392,7 +392,7 @@ class SugerenciasServices:
     def usada(self, sesion: dict, sugerencia_id: int) -> dict:
         with db_session:
             s = SugerenciaIA.get(id=sugerencia_id)
-            if s is None or s.admin_id != sesion["usuario_id"]:
+            if s is None or not es_equipo(sesion) or s.admin_id != sesion["usuario_id"]:
                 raise HTTPException(status_code=404, detail="Sugerencia no encontrada.")
             s.usada = True
         return {"ok": True}
