@@ -20,6 +20,7 @@ from src.controllers.onboardings_controller import router as onboardings_router
 from src.controllers.contratos_controller import router as contratos_router
 from src.controllers.llamadas_controller import router as llamadas_router
 from src.controllers.sops_controller import router as sops_router
+from src.controllers.biblioteca_controller import router as biblioteca_router
 from src.controllers.chat_controller import router as chat_router
 from src.controllers.clase_controller import router as clase_router
 from src.controllers.equipo_controller import router as equipo_router
@@ -155,6 +156,7 @@ app.include_router(onboardings_router)
 app.include_router(contratos_router)
 app.include_router(llamadas_router)
 app.include_router(sops_router)
+app.include_router(biblioteca_router)
 app.include_router(sugerencias_router)
 app.include_router(programa_router)
 app.include_router(clase_router)

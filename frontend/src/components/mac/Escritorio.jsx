@@ -9,6 +9,7 @@ import ContratosCarpeta from './ContratosCarpeta'
 import LlamadasCarpeta from './LlamadasCarpeta'
 import SopsCarpeta from './SopsCarpeta'
 import OnboardingsCarpeta from './OnboardingsCarpeta'
+import BibliotecaApp, { IconoBiblioteca } from './BibliotecaApp'
 import NuevoCliente from '../mensajes/NuevoCliente'
 import '../../styles/escritorio.css'
 import '../../styles/finder.css'
@@ -155,8 +156,9 @@ export default function Escritorio({ children }) {
   const [contratos, setContratos] = useState(false)
   const [llamadas, setLlamadas] = useState(false)
   const [sops, setSops] = useState(false)
+  const [biblioteca, setBiblioteca] = useState(false)
   const [dandoAlta, setDandoAlta] = useState(false)
-  const fijo = visible !== 'abierta' && !finder && !onboardings && !contratos && !llamadas && !sops
+  const fijo = visible !== 'abierta' && !finder && !onboardings && !contratos && !llamadas && !sops && !biblioteca
 
   // Solo el teclado (Tab) deja el Dock fijo: un clic no tiene que dejarlo trabado arriba.
   function mostrarDock() {
@@ -232,6 +234,11 @@ export default function Escritorio({ children }) {
     setFinderFrente('sops')
     setIconoSel(null)
   }
+  function abrirBiblioteca() {
+    setBiblioteca(true)
+    setFinderFrente('biblioteca')
+    setIconoSel(null)
+  }
   function abrirLlamadas() {
     setLlamadas(true)
     setFinderFrente('llamadas')
@@ -262,6 +269,7 @@ export default function Escritorio({ children }) {
           { id: 'onboardings', nombre: 'Onboardings', abrir: abrirOnboardings },
           { id: 'llamadas', nombre: 'Llamadas', abrir: abrirLlamadas },
           { id: 'sops', nombre: 'SOPs solicitados', abrir: abrirSops },
+          { id: 'biblioteca', nombre: 'Biblioteca', abrir: abrirBiblioteca, icono: <IconoBiblioteca tamano={58} /> },
           { id: 'alta', nombre: 'Nuevo onboarding', abrir: () => { setDandoAlta(true); setIconoSel(null) }, mas: true },
         ].map((ic) => (
           <button
@@ -271,10 +279,10 @@ export default function Escritorio({ children }) {
             onClick={() => setIconoSel(ic.id)}
             onDoubleClick={ic.abrir}
             onKeyDown={(e) => e.key === 'Enter' && ic.abrir()}
-            aria-label={`Carpeta ${ic.nombre}`}
+            aria-label={ic.icono ? ic.nombre : `Carpeta ${ic.nombre}`}
           >
             <span className="esc-icono__dibujo">
-              <IconoCarpeta tamano={64} />
+              {ic.icono || <IconoCarpeta tamano={64} />}
               {ic.mas ? <b aria-hidden="true">+</b> : null}
             </span>
             <span>{ic.nombre}</span>
@@ -303,6 +311,7 @@ export default function Escritorio({ children }) {
       {isAdmin ? (
         <ContratosCarpeta abierta={contratos} alFrente={finderFrente === 'contratos'} alEnfocar={() => setFinderFrente('contratos')} alCerrar={() => setContratos(false)} />
       ) : null}
+      <BibliotecaApp abierta={biblioteca} alFrente={finderFrente === 'biblioteca'} alEnfocar={() => setFinderFrente('biblioteca')} alCerrar={() => setBiblioteca(false)} alAbrirChat={abrirChat} />
       <SopsCarpeta abierta={sops} alFrente={finderFrente === 'sops'} alEnfocar={() => setFinderFrente('sops')} alCerrar={() => setSops(false)} alAbrirChat={abrirChat} />
       <LlamadasCarpeta abierta={llamadas} alFrente={finderFrente === 'llamadas'} alEnfocar={() => setFinderFrente('llamadas')} alCerrar={() => setLlamadas(false)} alAbrirChat={abrirChat} />
       <OnboardingsCarpeta abierta={onboardings} alFrente={finderFrente === 'onboardings'} alEnfocar={() => setFinderFrente('onboardings')} alCerrar={() => setOnboardings(false)} alAbrirChat={abrirChat} />
@@ -354,12 +363,28 @@ export default function Escritorio({ children }) {
             </button>
           )
         })}
+        <button
+          ref={(el) => {
+            iconos.current[apps.length] = el
+          }}
+          type="button"
+          className="esc-dock__app is-biblioteca"
+          onClick={(e) => {
+            abrirBiblioteca()
+            if (!e.currentTarget.matches(':focus-visible')) e.currentTarget.blur()
+          }}
+          aria-label="Biblioteca"
+        >
+          <span className="esc-dock__icono"><IconoBiblioteca tamano={50} /></span>
+          <span className="esc-dock__nombre">Biblioteca</span>
+          {biblioteca ? <i className="esc-dock__punto" aria-label="Abierta" /> : null}
+        </button>
         {isAdmin ? (
           <>
             <i className="esc-dock__separador" aria-hidden="true" />
             <button
               ref={(el) => {
-                iconos.current[apps.length] = el
+                iconos.current[apps.length + 1] = el
               }}
               type="button"
               className="esc-dock__app is-clientes"
