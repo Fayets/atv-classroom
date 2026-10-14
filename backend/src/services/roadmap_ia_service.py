@@ -37,17 +37,21 @@ Con la transcripción armás tres cosas, en tu voz (cómo escribís vos, abajo):
 1. LOS PRÓXIMOS PASOS que quedan en el roadmap del cliente. Concretos y accionables, en el orden
    en que se hacen, cada uno de una o dos líneas. Entre 3 y 10. Solo lo que se acordó en la llamada:
    no inventes tareas. Para cada uno decí quién lo hace:
-   - "cliente": lo hace el cliente. En segunda persona, como indicación ("Armá…", "Grabá…").
+   - "cliente": lo hace el cliente. En segunda persona y con voseo, como indicación: "Armá el
+     Typeform…", "Grabá 4 videos…", "Mandame el borrador…". NUNCA en infinitivo ("Armar…",
+     "Crear…", "Grabar…") ni en tercera persona ("Ana arma…").
    - "atv": lo hace o lo manda el equipo de ATV (vos u otro coach): una reunión, una plantilla, una
      revisión, un seguimiento. En primera persona desde vos ("Te paso…", "Te hago seguimiento…",
-     "Te agendo una reunión con Nick…"), NUNCA como orden al cliente.
+     "Te agendo una reunión con Nick…"), NUNCA como orden al cliente ni en infinitivo
+     ("Hacer seguimiento…", "Recibir de Franco…").
 2. EL MENSAJE para mandarle por el chat. Es el mensaje previo a que vea los pasos en su roadmap:
    NO repitas los pasos. Breve, con tu tono, sin palabras cliché ni frases de manual. Tiene que
    incluir el link a su roadmap escribiendo exactamente {enlace}. Después, una línea por cada
    entregable que hay que mandarle aparte, con este formato exacto, una por línea:
    "Título del entregable: [LINK]" (por ejemplo "Reunión con Juampi: [LINK]"). Un entregable es
    SOLO algo que ATV le manda o le comparte (plantilla, documento, guion, grabación, link de una
-   reunión); nunca algo que tiene que hacer o mandar el cliente. Si no hay, no pongas esas líneas.
+   reunión); nunca algo que tiene que hacer o mandar el cliente, ni la grabación de esta llamada
+   (ya la ve en su roadmap). Si no hay, no pongas esas líneas.
 3. PARA EL COACH (no va en el mensaje): los títulos exactos de los entregables que hay que
    adjuntar (para saber qué documento poner en cada [LINK]) y un resumen de la llamada en 3 a 5
    frases, para corroborar que se entendió bien.
@@ -141,6 +145,41 @@ def _llamar(sistema: str, usuario: str) -> str:
     return "".join(b.text for b in r.content if getattr(b, "type", "") == "text")
 
 
+_INFINITIVO = re.compile(r"^\W*([A-Za-zÁÉÍÓÚáéíóúñÑ]+?)(ar|er|ir|ár|ér|ír)(me|te|se|nos|le|les|lo|la|los|las|selo|sela|melo|mela)?\b", re.I)
+
+
+def _en_infinitivo(texto: str) -> bool:
+    """El paso arranca con un verbo en infinitivo ("Armar…", "Hacer seguimiento…")."""
+    m = _INFINITIVO.match(texto or "")
+    return bool(m) and len(m.group(1)) >= 1
+
+
+_REESCRIBIR = """Reescribí estos pasos de un roadmap sin cambiar su contenido:
+- quien "cliente": segunda persona con voseo, como indicación al cliente ("Armá…", "Grabá…", "Mandame…").
+- quien "atv": primera persona de {coach}, que es quien lo hace ("Te paso…", "Te hago seguimiento…", "Revisamos juntos…").
+Respondé SOLO un JSON: una lista con un texto por paso, en el mismo orden."""
+
+
+def _corregir_persona(borrador: dict, coach: str, llamar) -> dict:
+    """Haiku a veces escribe los pasos en infinitivo aunque se le pida otra cosa: lo decide el código.
+    Si hay pasos en infinitivo, se le pide reescribir solo esos y se acepta lo que ya no lo esté."""
+    malos = [i for i, p in enumerate(borrador["pasos"]) if _en_infinitivo(p["texto"])]
+    if not malos:
+        return borrador
+    pedido = [{"quien": borrador["pasos"][i]["quien"], "texto": borrador["pasos"][i]["texto"]} for i in malos]
+    try:
+        texto = llamar(_REESCRIBIR.format(coach=coach), json.dumps(pedido, ensure_ascii=False))
+        m = re.search(r"\[.*\]", texto or "", re.S)
+        nuevos = json.loads(m.group(0)) if m else []
+    except Exception:
+        return borrador
+    for i, nuevo in zip(malos, nuevos):
+        nuevo = " ".join(str(nuevo.get("texto") if isinstance(nuevo, dict) else nuevo).split())[:400]
+        if nuevo and not _en_infinitivo(nuevo):
+            borrador["pasos"][i]["texto"] = nuevo
+    return borrador
+
+
 def armar_prompt(coach: str, cliente: str, voz: dict, perfil: dict | None, transcripcion: str, aprendido: str = "", anterior: dict | None = None) -> tuple[str, str]:
     ejemplos = "\n".join(f"- {e[:400]}" for e in (voz.get("ejemplos") or [])[:16]) or "(sin ejemplos todavía)"
     perfil_txt = "; ".join(f"{k}: {v}" for k, v in (perfil or {}).items() if v) or "sin datos todavía"
@@ -196,7 +235,7 @@ class RoadmapIAServices:
         anterior = aprendidos.anterior_del_cliente(cliente_id)
         sistema, usuario = armar_prompt(coach, cliente, ap.voz_de(voz_id), perfil, transcripcion, aprendido, anterior)
         try:
-            borrador = _limpiar(_json_de(llamar(sistema, usuario)), anterior)
+            borrador = _corregir_persona(_limpiar(_json_de(llamar(sistema, usuario)), anterior), coach, llamar)
         except HTTPException:
             raise
         except Exception:

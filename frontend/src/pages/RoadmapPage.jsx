@@ -18,9 +18,15 @@ const fecha = (iso) => {
   return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
 }
 const fechaLarga = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
-// Los próximos pasos escritos en el roadmap: los tilda el cliente (o su equipo) y el coach.
-function Pasos({ doc, alCambiar }) {
+// El roadmap abierto: el documento de esa llamada como checklist, separado en lo que hace el cliente y lo
+// que hace ATV, con su avance. Se abre desde el tablero (como abrir un documento en Miro).
+function Lector({ doc, esPrincipal, alCambiar, alCerrar }) {
   const [enviando, setEnviando] = useState(null)
+  useEffect(() => {
+    const esc = (e) => e.key === 'Escape' && alCerrar()
+    window.addEventListener('keydown', esc)
+    return () => window.removeEventListener('keydown', esc)
+  }, [alCerrar])
   async function tildar(p) {
     setEnviando(p.id)
     try {
@@ -29,18 +35,50 @@ function Pasos({ doc, alCambiar }) {
       setEnviando(null)
     }
   }
+  const pasos = doc.pasos || []
+  const hechos = pasos.filter((p) => p.hecho).length
+  const coach = doc.coach.nombre.split(' ')[0]
+  const fila = (p) => (
+    <label key={p.id} className={`rm-check${p.hecho ? ' is-hecho' : ''}`} title={p.hecho && p.hecho_por?.nombre ? `Lo tildó ${p.hecho_por.nombre}` : undefined}>
+      <input type="checkbox" checked={p.hecho} disabled={enviando === p.id} onChange={() => tildar(p)} />
+      <span>
+        {p.texto}
+        {p.quien === 'atv' ? <small>Lo hace {coach} · se tilda cuando esté</small> : null}
+      </span>
+    </label>
+  )
   return (
-    <ol className="rm-pasos">
-      {doc.pasos.map((p) => (
-        <li key={p.id} className={p.hecho ? 'is-hecho' : ''}>
-          <label title={p.hecho && p.hecho_por ? `Lo tildó ${p.hecho_por.nombre || ''}` : undefined}>
-            <input type="checkbox" checked={p.hecho} disabled={enviando === p.id} onChange={() => tildar(p)} />
-            <span>{p.texto}</span>
-          </label>
-          {p.quien === 'atv' ? <em>ATV</em> : null}
-        </li>
-      ))}
-    </ol>
+    <div className="rm-lector-fondo" onMouseDown={(e) => e.target === e.currentTarget && alCerrar()}>
+      <aside className="rm-lector" role="dialog" aria-modal="true" aria-label={nombreDoc(doc)}>
+        <div className="rm-lector__arriba">
+          <span>Roadmap de {coach} · {fechaLarga(doc.fecha)}</span>
+          <button type="button" onClick={alCerrar} aria-label="Cerrar">✕</button>
+        </div>
+        <h2>{nombreDoc(doc)}</h2>
+        <p className="rm-lector__sub">
+          {doc.estado === 'reemplazado' ? 'Este roadmap fue reemplazado por uno más nuevo. ' : esPrincipal ? 'Es el que tenés que seguir ahora. ' : ''}
+          {pasos.length ? 'Lo que acordamos en la llamada. Tildá cada paso cuando lo termines.' : doc.area || doc.tipo_nombre}
+        </p>
+        {pasos.length ? (
+          <>
+            <div className="rm-progreso">
+              <span className="rm-barra" aria-hidden="true"><i style={{ width: `${Math.round((100 * hechos) / pasos.length)}%` }} /></span>
+              <b>{hechos} de {pasos.length} listos</b>
+            </div>
+            {pasos.some((p) => p.quien !== 'atv') ? (
+              <div className="rm-grupo"><h4>Lo hacés vos</h4>{pasos.filter((p) => p.quien !== 'atv').map(fila)}</div>
+            ) : null}
+            {pasos.some((p) => p.quien === 'atv') ? (
+              <div className="rm-grupo"><h4>Lo hace ATV</h4>{pasos.filter((p) => p.quien === 'atv').map(fila)}</div>
+            ) : null}
+          </>
+        ) : null}
+        <div className="rm-lector__acciones">
+          {doc.fathom_url ? <a className="rm-boton is-suave" href={doc.fathom_url} target="_blank" rel="noopener noreferrer">▶ Ver la llamada</a> : null}
+          {doc.url ? <a className="rm-boton" href={doc.url} target="_blank" rel="noopener noreferrer">Abrir documento</a> : null}
+        </div>
+      </aside>
+    </div>
   )
 }
 
@@ -112,7 +150,7 @@ export default function RoadmapPage() {
   const principal = datos?.principal
   const doc = useMemo(() => {
     const todos = datos?.grupos.flatMap((g) => g.docs.map((d) => ({ ...d, coach: g.coach }))) || []
-    return todos.find((d) => d.id === (elegido ?? principal?.id)) || null
+    return todos.find((d) => d.id === elegido) || null
   }, [datos, elegido, principal])
 
   const ajustar = useCallback(() => {
@@ -204,14 +242,19 @@ export default function RoadmapPage() {
                   <small>El que tenés que seguir ahora</small>
                   <b>
                     {nombreDoc(principal)} · {datos.grupos.find((g) => g.docs.some((d) => d.id === principal.id))?.coach.nombre.split(' ')[0]}
-                    {principal.pasos_total ? ` · paso ${principal.paso_actual || 0} de ${principal.pasos_total}` : ''}
                   </b>
                 </div>
+                {principal.pasos_total ? (
+                  <div className="rm-ahora__avance">
+                    <span className="rm-barra" aria-hidden="true"><i style={{ width: `${Math.round((100 * (principal.paso_actual || 0)) / principal.pasos_total)}%` }} /></span>
+                    <small>{principal.paso_actual || 0} de {principal.pasos_total}</small>
+                  </div>
+                ) : null}
                 {principal.fathom_url ? <a className="rm-boton is-suave is-chico" href={principal.fathom_url} target="_blank" rel="noopener noreferrer">Ver llamada</a> : null}
                 {principal.url ? (
                   <a className="rm-boton" href={principal.url} target="_blank" rel="noopener noreferrer">Abrir</a>
                 ) : (
-                  <button type="button" className="rm-boton" onClick={() => setElegido(principal.id)}>Ver pasos</button>
+                  <button type="button" className="rm-boton" onClick={() => setElegido(principal.id)}>Ver mis pasos</button>
                 )}
               </div>
             ) : null}
@@ -255,7 +298,7 @@ export default function RoadmapPage() {
                             <button type="button" key={d.id} className={`rm-doc${doc?.id === d.id ? ' is-elegido' : ''}${esPrincipal ? ' is-principal' : ''}`} onClick={() => setElegido(d.id)}>
                               <Hoja doc={d} principal={esPrincipal} grande />
                               <b>{nombreDoc(d)}</b>
-                              <small>{d.estado === 'reemplazado' ? 'Reemplazado' : d.tipo === 'complementario' ? 'Complementario' : fecha(d.fecha)}</small>
+                              <small>{d.estado === 'reemplazado' ? 'Reemplazado' : d.tipo === 'complementario' ? 'Complementario' : fecha(d.fecha)}{d.pasos?.length ? ` · ${d.paso_actual} de ${d.pasos_total}` : ''}</small>
                             </button>
                           )
                         })}
@@ -274,35 +317,7 @@ export default function RoadmapPage() {
             </div>
           </section>
 
-          <aside className="rm-ficha" aria-label="Documento elegido">
-            {doc ? (
-              <>
-                <div className="rm-ficha__hoja">
-                  <Hoja doc={doc} principal={principal?.id === doc.id} grande />
-                </div>
-                <h2>{nombreDoc(doc)}</h2>
-                <p className="rm-ficha__sub">{doc.url ? 'Documento de Google' : 'Próximos pasos de la llamada'}</p>
-                {doc.pasos?.length ? (
-                  <>
-                    <p className="rm-seccion">Próximos pasos · {doc.paso_actual || 0} de {doc.pasos_total}</p>
-                    <Pasos doc={doc} alCambiar={setDatos} />
-                  </>
-                ) : null}
-                <p className="rm-seccion">Información</p>
-                <dl>
-                  <div><dt>Estado</dt><dd className={doc.estado === 'vigente' ? 'is-rojo' : ''}>{doc.estado === 'vigente' ? 'Vigente' : 'Reemplazado'}</dd></div>
-                  <div><dt>Tipo</dt><dd>{doc.tipo_nombre}</dd></div>
-                  <div><dt>Coach</dt><dd>{doc.coach.nombre.split(' ')[0]}</dd></div>
-                  <div><dt>Fecha</dt><dd>{fecha(doc.fecha) === 'Hoy' ? 'Hoy' : fechaLarga(doc.fecha)}</dd></div>
-                  {doc.pasos_total ? <div><dt>Avance</dt><dd>Paso {doc.paso_actual || 0} de {doc.pasos_total}</dd></div> : null}
-                </dl>
-                {doc.url ? <a className="rm-boton is-ancho" href={doc.url} target="_blank" rel="noopener noreferrer">Abrir documento</a> : null}
-                {doc.fathom_url ? <a className="rm-boton is-ancho is-suave" href={doc.fathom_url} target="_blank" rel="noopener noreferrer">Ver la grabación de la llamada</a> : null}
-              </>
-            ) : (
-              <p className="rm-ficha__sub">Elegí un documento del tablero para ver su información.</p>
-            )}
-          </aside>
+          {doc ? <Lector doc={doc} esPrincipal={principal?.id === doc.id} alCambiar={setDatos} alCerrar={() => setElegido(null)} /> : null}
         </div>
       )}
     </div>

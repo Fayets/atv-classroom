@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { enviarMensaje } from '../../api/mensajes'
 import { fetchLlamada, fetchLlamadas, llamadaPorLink } from '../../api/llamadas'
@@ -9,6 +9,228 @@ const hoy = () => new Date().toISOString().slice(0, 10)
 const faltan = (texto) => (texto.match(/\[LINK\]/g) || []).length
 const esFathom = (url) => /fathom\.video\/(share|calls|recording)\/[A-Za-z0-9_-]+/.test(url || '')
 const ESTADO = { hecho: 'Hecho', parcial: 'A medias', no_hecho: 'No lo hizo', no_se_hablo: 'No se habló' }
+
+// ---------------------------------------------------------------- el borrador como un documento
+
+const escapar = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+const CHIP_ROADMAP = '<span class="rmi-chip" contenteditable="false" data-token="1">tu roadmap</span>'
+let siguiente = 1
+const nuevoId = () => siguiente++
+
+// Lo que dice el mensaje, sin las líneas "Entregable: [LINK]" (esas se completan aparte, en la hoja).
+function separarMensaje(mensaje, fathom = '') {
+  const huecos = []
+  const cuerpo = []
+  for (const linea of (mensaje || '').split('\n')) {
+    const m = linea.match(/^\s*(.+?):\s*\[LINK\]\s*$/)
+    // La grabación de la llamada ya la tenemos: ese link se completa solo.
+    if (m) huecos.push({ id: nuevoId(), titulo: m[1], url: fathom && /grabaci|llamada|fathom/i.test(m[1]) ? fathom : '' })
+    else cuerpo.push(linea)
+  }
+  return { cuerpo: cuerpo.join('\n').trim(), huecos }
+}
+
+// Lee el texto de un bloque editable: saltos de línea y el chip del roadmap vuelven a ser texto.
+function leerCuerpo(el) {
+  let out = ''
+  const andar = (n) => {
+    if (n.nodeType === 3) out += n.textContent
+    else if (n.dataset?.token) out += ENLACE
+    else if (n.nodeName === 'BR') out += '\n'
+    else {
+      const bloque = n !== el && /^(DIV|P)$/.test(n.nodeName)
+      if (bloque && out && !out.endsWith('\n')) out += '\n'
+      n.childNodes.forEach(andar)
+    }
+  }
+  andar(el)
+  return out.replace(/\u00a0/g, ' ').trim()
+}
+
+// Pegar siempre como texto plano (sin formatos de otro lado).
+const pegarPlano = (e) => {
+  e.preventDefault()
+  document.execCommand('insertText', false, e.clipboardData.getData('text/plain'))
+}
+
+function Documento({ b, cliente, llamada, fathom, error, guardando, onVolver, onGuardar }) {
+  const [pasos, setPasos] = useState(() => b.pasos.map((p) => ({ id: nuevoId(), quien: p.quien, inicial: p.texto })))
+  const textos = useRef(Object.fromEntries(pasos.map((p) => [p.id, p.inicial])))
+  const [huecos, setHuecos] = useState(() => separarMensaje(b.mensaje, fathom).huecos)
+  const titulo = useRef(null)
+  const cuerpo = useRef(null)
+  const [area, setArea] = useState(b.area || '')
+  const enfocar = useRef(null)
+
+  // Lo editable se carga una vez: escribir no redibuja la hoja (por eso no se traba).
+  useEffect(() => {
+    titulo.current.textContent = b.titulo
+    cuerpo.current.innerHTML = escapar(separarMensaje(b.mensaje).cuerpo).split(ENLACE).join(CHIP_ROADMAP).replace(/\n/g, '<br>')
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!enfocar.current) return
+    const el = document.querySelector(`[data-paso="${enfocar.current.id}"]`)
+    if (el) {
+      el.focus()
+      if (enfocar.current.alFinal) {
+        const r = document.createRange()
+        r.selectNodeContents(el)
+        r.collapse(false)
+        const sel = window.getSelection()
+        sel.removeAllRanges()
+        sel.addRange(r)
+      }
+    }
+    enfocar.current = null
+  })
+
+  function teclaEnPaso(e, i) {
+    const id = pasos[i].id
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      const nuevo = { id: nuevoId(), quien: pasos[i].quien, inicial: '' }
+      textos.current[nuevo.id] = ''
+      enfocar.current = { id: nuevo.id }
+      setPasos((ps) => [...ps.slice(0, i + 1), nuevo, ...ps.slice(i + 1)])
+    } else if (e.key === 'Backspace' && !(textos.current[id] || '').length && pasos.length > 1) {
+      e.preventDefault()
+      if (i > 0) enfocar.current = { id: pasos[i - 1].id, alFinal: true }
+      setPasos((ps) => ps.filter((p) => p.id !== id))
+    }
+  }
+
+  function armar() {
+    const lineas = huecos.map((h) => `${h.titulo}: ${h.url.trim() || '[LINK]'}`)
+    return {
+      titulo: titulo.current.textContent.trim(),
+      area,
+      pasos: pasos.map((p) => ({ texto: (textos.current[p.id] || '').trim(), quien: p.quien })),
+      mensaje: [leerCuerpo(cuerpo.current), ...lineas].filter(Boolean).join('\n'),
+    }
+  }
+
+  const sinLink = huecos.filter((h) => !h.url.trim()).length
+  return (
+    <div className="rmi-doc">
+      <div className="rmi-doc__barra">
+        <b>Roadmap de {cliente}</b>
+        {llamada ? <span className="is-ok">✓ {llamada.titulo}{llamada.duracion_min ? ` · ${llamada.duracion_min} min` : ''}</span> : null}
+        <span className="rmi-doc__ayuda">Borrador de la IA en tu voz · editá directo sobre la hoja</span>
+      </div>
+      <div className="rmi-doc__marco">
+        <article className="rmi-hoja" aria-label="Documento del roadmap">
+          <h2 ref={titulo} id="rmi-titulo" contentEditable suppressContentEditableWarning spellCheck={false} onPaste={pegarPlano} />
+          <div className="rmi-hoja__meta">
+            <input value={area} onChange={(e) => setArea(e.target.value)} placeholder="Qué trabajás con el cliente" maxLength={60} aria-label="Qué trabajás con el cliente" />
+            <span>{new Date(`${b.fecha}T00:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}</span>
+          </div>
+
+          <h3>Próximos pasos <small>los van tildando {cliente} y vos</small></h3>
+          <ol className="rmi-hoja__pasos">
+            {pasos.map((p, i) => (
+              <li key={p.id}>
+                <span className="rmi-caja" aria-hidden="true" />
+                <div
+                  className="rmi-paso"
+                  data-paso={p.id}
+                  contentEditable
+                  suppressContentEditableWarning
+                  spellCheck={false}
+                  onInput={(e) => (textos.current[p.id] = e.currentTarget.textContent)}
+                  onKeyDown={(e) => teclaEnPaso(e, i)}
+                  onPaste={pegarPlano}
+                  ref={(el) => {
+                    if (el && !el.dataset.cargado) {
+                      el.textContent = p.inicial
+                      el.dataset.cargado = '1'
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className={`rmi-quien${p.quien === 'atv' ? ' is-atv' : ''}`}
+                  onClick={() => setPasos((ps) => ps.map((x) => (x.id === p.id ? { ...x, quien: x.quien === 'atv' ? 'cliente' : 'atv' } : x)))}
+                  title="Quién lo hace (tocá para cambiar)"
+                >
+                  {p.quien === 'atv' ? 'ATV' : cliente}
+                </button>
+                <button type="button" className="rmi-x" onClick={() => setPasos((ps) => ps.filter((x) => x.id !== p.id))} aria-label="Sacar este paso">✕</button>
+              </li>
+            ))}
+          </ol>
+          <button
+            type="button"
+            className="rmi-hoja__mas"
+            onClick={() => {
+              const nuevo = { id: nuevoId(), quien: 'cliente', inicial: '' }
+              textos.current[nuevo.id] = ''
+              enfocar.current = { id: nuevo.id }
+              setPasos((ps) => [...ps, nuevo])
+            }}
+          >
+            + Escribí otro paso…
+          </button>
+
+          <h3>Mensaje para el chat <small>sale cuando tocás Enviar</small></h3>
+          <div className="rmi-hoja__mensaje" ref={cuerpo} contentEditable suppressContentEditableWarning spellCheck={false} onPaste={pegarPlano} />
+          {huecos.length ? (
+            <div className="rmi-hoja__huecos">
+              {huecos.map((h) => (
+                <label key={h.id}>
+                  <span>{h.titulo}:</span>
+                  <input
+                    className={h.url.trim() ? 'is-lleno' : ''}
+                    value={h.url}
+                    onChange={(e) => setHuecos((hs) => hs.map((x) => (x.id === h.id ? { ...x, url: e.target.value } : x)))}
+                    placeholder="pegá el link"
+                  />
+                  <button type="button" onClick={() => setHuecos((hs) => hs.filter((x) => x.id !== h.id))} aria-label={`Sacar ${h.titulo}`}>✕</button>
+                </label>
+              ))}
+            </div>
+          ) : null}
+
+          {error ? <p className="msj-modal__error" role="alert">{error}</p> : null}
+          <div className="rmi-hoja__botones">
+            <button type="button" onClick={onVolver} disabled={Boolean(guardando)}>Volver</button>
+            <button type="button" onClick={() => onGuardar(false, armar())} disabled={Boolean(guardando)}>{guardando === 'guardar' ? 'Guardando…' : 'Solo guardar'}</button>
+            <button type="button" className="is-primario" onClick={() => onGuardar(true, armar())} disabled={Boolean(guardando) || sinLink > 0}>
+              {guardando === 'enviar' ? 'Enviando…' : sinLink ? `Guardar y enviar · ${sinLink === 1 ? 'falta 1 link' : `faltan ${sinLink} links`}` : 'Guardar y enviar'}
+            </button>
+          </div>
+        </article>
+
+        <aside className="rmi-margen" aria-label="Solo para vos">
+          <div className="rmi-nota">
+            <p className="rmi-nota__de"><i />Solo para vos</p>
+            <span>Entregables para adjuntar</span>
+            {b.entregables.length ? <ul>{b.entregables.map((e) => <li key={e}>{e}</li>)}</ul> : <p>No hay entregables aparte.</p>}
+          </div>
+          {b.resumen ? (
+            <div className="rmi-nota">
+              <span>Resumen de la llamada</span>
+              <p>{b.resumen}</p>
+            </div>
+          ) : null}
+          {b.seguimiento?.pasos?.length ? (
+            <div className="rmi-nota">
+              <span>Qué pasó con el roadmap anterior</span>
+              <ul className="rmi-seguimiento">
+                {b.seguimiento.pasos.map((p) => (
+                  <li key={p.id} className={`is-${p.estado}`}>
+                    <em>{ESTADO[p.estado]}</em> {p.paso}
+                    {p.resultado ? <small>“{p.resultado}”</small> : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </aside>
+      </div>
+    </div>
+  )
+}
 
 // Crear roadmap desde la llamada (lo que Mauri hacía con Poppy): el coach pega la transcripción, la
 // IA arma los pasos y el mensaje en su voz, y el coach revisa, completa los [LINK] y envía.
@@ -106,19 +328,18 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
     }
   }
 
-  const cambiarPaso = (i, cambios) => setB((x) => ({ ...x, pasos: x.pasos.map((p, j) => (j === i ? { ...p, ...cambios } : p)) }))
 
-  async function guardar(enviar) {
+  async function guardar(enviar, armado) {
     setError('')
-    const pasos = b.pasos.filter((p) => p.texto.trim())
-    if (!b.titulo.trim()) return setError('Poné un título al roadmap.')
+    const pasos = armado.pasos.filter((p) => p.texto.trim())
+    if (!armado.titulo.trim()) return setError('Poné un título al roadmap.')
     if (!pasos.length) return setError('Dejá al menos un paso.')
-    if (enviar && faltan(b.mensaje)) return setError(`Completá los ${faltan(b.mensaje)} [LINK] del mensaje antes de enviarlo (o borrá esas líneas).`)
+    if (enviar && faltan(armado.mensaje)) return setError(`Pegá ${faltan(armado.mensaje) === 1 ? 'el link que falta' : `los ${faltan(armado.mensaje)} links que faltan`} antes de enviarlo (o sacá esa línea).`)
     setGuardando(enviar ? 'enviar' : 'guardar')
     try {
       const datos = await crearDoc(clienteId, {
-        titulo: b.titulo.trim(),
-        area: b.area?.trim() || null,
+        titulo: armado.titulo.trim(),
+        area: armado.area?.trim() || null,
         tipo: b.tipo,
         fecha: b.fecha,
         fathom_url: fathom.trim(),
@@ -126,10 +347,10 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
         principal: true,
         // Para el cerebro: qué corrigió el coach del borrador y si lo mandó.
         borrador_id: b.borrador_id,
-        mensaje_final: b.mensaje,
+        mensaje_final: armado.mensaje,
         enviado: enviar,
       })
-      if (enviar) await enviarMensaje(canalId, b.mensaje.split(ENLACE).join(`${window.location.origin}/roadmap`))
+      if (enviar) await enviarMensaje(canalId, armado.mensaje.split(ENLACE).join(`${window.location.origin}/roadmap`))
       onGuardado(datos, enviar)
     } catch (err) {
       setError(err.message || 'No se pudo guardar.')
@@ -139,7 +360,7 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
 
   return createPortal(
     <div className="msj-modal__fondo" onMouseDown={(e) => e.target === e.currentTarget && paso === 'entrada' && onCerrar()}>
-      <div className={`msj-modal rmi${paso === 'borrador' ? ' is-ancho' : ''}`} role="dialog" aria-modal="true" aria-labelledby="rmi-titulo">
+      <div className={`msj-modal rmi${paso === 'borrador' ? ' is-doc' : ''}`} role="dialog" aria-modal="true" aria-labelledby="rmi-titulo">
         {paso !== 'borrador' ? (
           <form onSubmit={armar}>
             <h2 id="rmi-titulo">Crear roadmap de {cliente}</h2>
@@ -191,73 +412,7 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
             </div>
           </form>
         ) : (
-          <div>
-            <h2 id="rmi-titulo">Revisá el roadmap de {cliente}</h2>
-            <div className="rmi-cols">
-              <section>
-                <div className="rmi-fila">
-                  <label className="msj-modal__campo"><span>Título</span><input type="text" value={b.titulo} onChange={(e) => setB({ ...b, titulo: e.target.value })} maxLength={80} /></label>
-                  <label className="msj-modal__campo"><span>Qué trabajás</span><input type="text" value={b.area || ''} onChange={(e) => setB({ ...b, area: e.target.value })} maxLength={60} /></label>
-                </div>
-                <p className="rmi-sub">Próximos pasos <small>· quedan en su roadmap y los tildan los dos</small></p>
-                <ol className="rmi-pasos">
-                  {b.pasos.map((p, i) => (
-                    <li key={i}>
-                      <textarea rows={2} className="rmi-auto" value={p.texto} onChange={(e) => cambiarPaso(i, { texto: e.target.value })} />
-                      <button type="button" className={`rmi-quien${p.quien === 'atv' ? ' is-atv' : ''}`} onClick={() => cambiarPaso(i, { quien: p.quien === 'atv' ? 'cliente' : 'atv' })} title="Quién lo hace (tocá para cambiar)">
-                        {p.quien === 'atv' ? 'ATV' : 'Cliente'}
-                      </button>
-                      <button type="button" className="rmi-x" onClick={() => setB({ ...b, pasos: b.pasos.filter((_, j) => j !== i) })} aria-label="Sacar este paso">✕</button>
-                    </li>
-                  ))}
-                </ol>
-                <button type="button" className="rmi-mas" onClick={() => setB({ ...b, pasos: [...b.pasos, { texto: '', quien: 'cliente' }] })}>+ Agregar paso</button>
-              </section>
-              <section>
-                <label className="msj-modal__campo">
-                  <span>Mensaje para el chat</span>
-                  <textarea rows={9} value={b.mensaje} onChange={(e) => setB({ ...b, mensaje: e.target.value })} />
-                </label>
-                <small className="rmi-ayuda">
-                  {ENLACE} se cambia solo por el link a su roadmap. {faltan(b.mensaje) ? <b>Te faltan {faltan(b.mensaje)} [LINK] por completar.</b> : 'Todos los links completos.'}
-                </small>
-                <div className="rmi-coach">
-                  <p>Solo para vos</p>
-                  {b.entregables.length ? (
-                    <>
-                      <span>Entregables para adjuntar</span>
-                      <ul>{b.entregables.map((e) => <li key={e}>{e}</li>)}</ul>
-                    </>
-                  ) : <span>No hay entregables aparte.</span>}
-                  {b.seguimiento?.pasos?.length ? (
-                    <>
-                      <span>Qué pasó con el roadmap anterior ({b.seguimiento.titulo})</span>
-                      <ul className="rmi-seguimiento">
-                        {b.seguimiento.pasos.map((p) => (
-                          <li key={p.id} className={`is-${p.estado}`}>
-                            <em>{ESTADO[p.estado]}</em> {p.paso}
-                            {p.resultado ? <small>“{p.resultado}”</small> : null}
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  ) : null}
-                  {b.resumen ? (
-                    <>
-                      <span>Resumen de la llamada</span>
-                      <q>{b.resumen}</q>
-                    </>
-                  ) : null}
-                </div>
-              </section>
-            </div>
-            {error ? <p className="msj-modal__error" role="alert">{error}</p> : null}
-            <div className="msj-modal__botones">
-              <button type="button" onClick={() => setPaso('entrada')} disabled={Boolean(guardando)}>Volver</button>
-              <button type="button" onClick={() => guardar(false)} disabled={Boolean(guardando)}>{guardando === 'guardar' ? 'Guardando…' : 'Solo guardar'}</button>
-              <button type="button" className="is-primario" onClick={() => guardar(true)} disabled={Boolean(guardando)}>{guardando === 'enviar' ? 'Enviando…' : 'Guardar y enviar'}</button>
-            </div>
-          </div>
+          <Documento b={b} cliente={cliente} llamada={llamada} fathom={fathom.trim()} error={error} guardando={guardando} onVolver={() => setPaso('entrada')} onGuardar={guardar} />
         )}
       </div>
     </div>,

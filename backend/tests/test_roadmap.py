@@ -138,3 +138,18 @@ def test_el_cerebro_aprende_de_las_correcciones_y_de_los_resultados(monkeypatch)
     svc.editar(coach, doc["id"], {"pasos": [{"texto": "Grabá 3 historias por día con el CTA PLAN y medí respuestas", "quien": "cliente"}]})
     with db_session:
         assert apr.RoadmapAprendido.get(doc_id=doc["id"]).editado_despues
+
+
+def test_los_pasos_en_infinitivo_se_reescriben():
+    from src.services import roadmap_ia_service as ria
+
+    b = {"pasos": [{"texto": "Armá el Typeform", "quien": "cliente"}, {"texto": "Enviarme el Typeform", "quien": "cliente"}, {"texto": "Hacer seguimiento cada dos días", "quien": "atv"}]}
+    pedidos = []
+
+    def llamar(sistema, usuario):
+        pedidos.append(usuario)
+        return '["Mandame el Typeform", "Te hago seguimiento cada dos días"]'
+
+    r = ria._corregir_persona(b, "Franco", llamar)
+    assert [p["texto"] for p in r["pasos"]] == ["Armá el Typeform", "Mandame el Typeform", "Te hago seguimiento cada dos días"]
+    assert "Armá" not in pedidos[0]  # solo se mandan a reescribir los que estaban mal
