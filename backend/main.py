@@ -82,14 +82,38 @@ async def _traer_llamadas_siempre():
         await asyncio.sleep(_FATHOM_CADA_MIN * 60)
 
 
+# Mails al cliente cuando tiene mensajes del equipo sin leer (solo con AVISOS_MAIL=1 y SMTP cargado).
+_AVISOS_CADA_MIN = config("AVISOS_CADA_MIN", default=5, cast=int)
+
+
+async def _avisar_siempre():
+    from starlette.concurrency import run_in_threadpool
+
+    from src.services import avisos_service
+    from src.services.tiempo_real import hub
+
+    await asyncio.sleep(120)
+    while True:
+        try:
+            n = await run_in_threadpool(avisos_service.ciclo, hub.clientes_conectados())
+            if n:
+                logging.getLogger("avisos").info("Avisos: %s mails a clientes con mensajes sin leer", n)
+        except Exception:
+            logging.getLogger("avisos").exception("Avisos: falló el ciclo")
+        await asyncio.sleep(_AVISOS_CADA_MIN * 60)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     ensure_upload_dirs()
     init_db()
     tarea = asyncio.create_task(_aprender_siempre()) if _APRENDIZAJE and config("ANTHROPIC_API_KEY", default="") else None
     fathom = asyncio.create_task(_traer_llamadas_siempre()) if _FATHOM else None
+    from src.services import avisos_service
+
+    avisos = asyncio.create_task(_avisar_siempre()) if avisos_service.activo() else None
     yield
-    for t in (tarea, fathom):
+    for t in (tarea, fathom, avisos):
         if t:
             t.cancel()
 

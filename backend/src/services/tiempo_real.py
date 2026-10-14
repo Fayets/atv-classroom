@@ -109,6 +109,10 @@ class Hub:
     def conectados(self) -> int:
         return len(self._conexiones)
 
+    def clientes_conectados(self) -> set[int]:
+        """Clientes con el classroom abierto ahora (a esos no se les manda aviso por mail)."""
+        return {s["usuario_id"] for s in self._conexiones.values() if s.get("rol") not in ("admin", "coach")}
+
     def enviar(self, ws: WebSocket, evento: dict) -> None:
         """Encola un evento para una pestaña. Si no da abasto, se la corta (reconecta sola)."""
         salida = self._salidas.get(ws)

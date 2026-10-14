@@ -553,3 +553,14 @@ class RoadmapAprendido(db.Entity):
     resultado_en = Optional(datetime, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
     guardado_en = Optional(datetime, nullable=True)
+
+
+class AvisoMail(db.Entity):
+    """El último aviso por mail que se le mandó a un cliente por mensajes sin leer en su chat."""
+
+    _table_ = (DB_SCHEMA, "avisos_mail")
+
+    id = PrimaryKey(int, auto=True)
+    canal_id = Required(int, unique=True)
+    ultimo_mensaje_id = Required(int)  # hasta qué mensaje del equipo ya se avisó
+    enviado_en = Required(datetime, default=datetime.utcnow)
