@@ -692,3 +692,4 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 /* Señas e Inactivos van juntos abajo, separados de los programas por una sola línea. */
 .msj-grupo.is-senas { margin-top: 14px; padding-top: 6px; border-top: 1px solid rgba(0, 0, 0, 0.06); border-radius: 0; }
 .msj-grupo.is-senas + .msj-grupo.is-inactivos { margin-top: 2px; padding-top: 0; border-top: 0; }
+.msj-accion.is-fija .msj-accion__boton em { color: #c0392b; }

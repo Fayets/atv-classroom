@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { borrarDoc, crearDoc, editarDoc, fetchRoadmap } from '../../api/roadmap'
 
@@ -12,7 +12,8 @@ const VACIO = { fathom_url: '', titulo: '', url: '', tipo: 'revision', area: '',
 const corta = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
 
 // Panel del coach: el roadmap del cliente. Se crea al salir de la llamada, empezando por el Fathom.
-export default function RoadmapCliente({ clienteId }) {
+// pedido: cambia cada vez que el coach toca "Crear roadmap" en Acciones rápidas.
+export default function RoadmapCliente({ clienteId, pedido = 0 }) {
   const [datos, setDatos] = useState(null)
   const [form, setForm] = useState(null)
   const [error, setError] = useState('')
@@ -27,6 +28,17 @@ export default function RoadmapCliente({ clienteId }) {
       vivo = false
     }
   }, [clienteId])
+
+  const seccion = useRef(null)
+  // Solo un toque nuevo abre el formulario (al cambiar de cliente no se abre solo).
+  const ultimoPedido = useRef(pedido)
+  useEffect(() => {
+    if (pedido === ultimoPedido.current) return
+    ultimoPedido.current = pedido
+    setError('')
+    setForm({ ...VACIO, fecha: hoy() })
+    setTimeout(() => seccion.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }, [pedido])
 
   async function guardar(e) {
     e.preventDefault()
@@ -67,10 +79,9 @@ export default function RoadmapCliente({ clienteId }) {
   const principalId = datos?.principal?.id
 
   return (
-    <section className="msj-acciones rmc" aria-label="Roadmap del cliente">
+    <section ref={seccion} className="msj-acciones rmc" aria-label="Roadmap del cliente">
       <div className="msj-acciones__cabeza">
         <p className="msj-seccion">Roadmap</p>
-        {!form ? <button type="button" className="rmc-crear" onClick={() => setForm({ ...VACIO, fecha: hoy() })}>Crear roadmap</button> : null}
       </div>
 
       {form ? (
@@ -115,7 +126,7 @@ export default function RoadmapCliente({ clienteId }) {
           ))}
         </ul>
       ) : !form ? (
-        <p className="rmc-vacio">Todavía no hay roadmap. Crealo al salir de la llamada.</p>
+        <p className="rmc-vacio">Todavía no hay roadmap. Crealo con “Crear roadmap” en Acciones rápidas al salir de la llamada.</p>
       ) : null}
 
       <Link className="rmc-ver" to={`/roadmap?cliente=${clienteId}`}>Ver el tablero como lo ve el cliente</Link>

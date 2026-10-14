@@ -86,7 +86,8 @@ function IconoLapiz() {
 }
 
 // Acciones rápidas del coach en el panel derecho: un clic manda el mensaje armado al chat abierto.
-export default function AccionesRapidas({ canalId, cliente }) {
+// alCrearRoadmap: la primera acción, fija, abre el formulario del roadmap (empieza por el Fathom).
+export default function AccionesRapidas({ canalId, cliente, alCrearRoadmap = null }) {
   const [datos, setDatos] = useState(null)
   const [editando, setEditando] = useState(null) // {} = nueva
   const [pendiente, setPendiente] = useState(null) // { clave, nombre, texto, canalId, queda }
@@ -172,16 +173,25 @@ export default function AccionesRapidas({ canalId, cliente }) {
       ) : null}
       {error ? <p className="msj-acciones__error" role="alert">{error}</p> : null}
 
-      {acciones.length || sugeridas.length ? (
+      {alCrearRoadmap || acciones.length || sugeridas.length ? (
         <ul className="msj-acciones__lista">
+          {alCrearRoadmap ? (
+            <li className="msj-accion is-fija">
+              <button type="button" className="msj-accion__boton" onClick={alCrearRoadmap} title="Al salir de la llamada: pegás el Fathom y el documento de próximos pasos">
+                <span>Crear roadmap</span>
+                <em>Roadmap</em>
+              </button>
+            </li>
+          ) : null}
           {acciones.map((a) => fila(`a${a.id}`, a))}
           {sugeridas.map((s, i) => fila(`s${i}`, s, { sugerida: true }))}
         </ul>
-      ) : (
+      ) : null}
+      {!acciones.length && !sugeridas.length ? (
         <button type="button" className="msj-acciones__vacio" onClick={() => setEditando({ nombre: 'Enviar mi agenda', texto: '{nombre}, te dejo mi link para agendar: ' })}>
           Creá tu primera acción, por ejemplo tu link de agenda.
         </button>
-      )}
+      ) : null}
 
       {editando ? (
         <EditarAccion

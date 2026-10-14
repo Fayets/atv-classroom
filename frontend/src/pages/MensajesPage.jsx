@@ -190,6 +190,7 @@ function PanelSena({ sena, alHacerOnboarding }) {
 }
 
 function PanelCliente({ item, alVerFicha }) {
+  const [pedidoRoadmap, setPedidoRoadmap] = useState(0)
   const cliente = item?.cliente
   if (!cliente) return null
   const vence = cliente.vence ? new Date(`${cliente.vence}T00:00:00`).toLocaleDateString('es-AR') : 'Sin fecha'
@@ -228,8 +229,8 @@ function PanelCliente({ item, alVerFicha }) {
           </div>
         ) : null}
       </dl>
-      <AccionesRapidas canalId={item.id} cliente={cliente.nombre} />
-      <RoadmapCliente clienteId={cliente.id} />
+      <AccionesRapidas canalId={item.id} cliente={cliente.nombre} alCrearRoadmap={() => setPedidoRoadmap((n) => n + 1)} />
+      <RoadmapCliente key={cliente.id} clienteId={cliente.id} pedido={pedidoRoadmap} />
     </aside>
   )
 }
