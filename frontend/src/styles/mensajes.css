@@ -689,3 +689,6 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-panel__quien.is-link { width: 100%; border: 0; background: none; font: inherit; padding: 8px 4px; border-radius: 12px; cursor: pointer; }
 .msj-panel__quien.is-link:hover { background: rgba(0, 0, 0, 0.04); }
 .msj-panel__quien.is-link small { margin-top: -6px; font-size: 12px; font-weight: 600; color: #c0392b; }
+/* Señas e Inactivos van juntos abajo, separados de los programas por una sola línea. */
+.msj-grupo.is-senas { margin-top: 14px; padding-top: 6px; border-top: 1px solid rgba(0, 0, 0, 0.06); border-radius: 0; }
+.msj-grupo.is-senas + .msj-grupo.is-inactivos { margin-top: 2px; padding-top: 0; border-top: 0; }
