@@ -36,7 +36,7 @@ PROGRAMAS_OBSOLETOS = ("live-sessions", "live-sessions-advantage")
 
 
 def _cover_path(slug: str) -> str:
-    return f"/modules/{slug}.png"
+    return f"/modules/{slug}.jpg"
 
 
 def seed_admin() -> list[str]:

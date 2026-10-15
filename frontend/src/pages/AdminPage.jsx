@@ -557,7 +557,7 @@ export default function AdminPage() {
                         onChange={(e) =>
                           setFormPrograma((p) => ({ ...p, cover_url: e.target.value }))
                         }
-                        placeholder="/modules/start-here.png"
+                        placeholder="/modules/start-here.jpg"
                       />
                     </Field>
                     <Field label="Descripción">

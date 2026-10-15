@@ -11,7 +11,7 @@ def _cover_url(programa: Programa) -> str | None:
     if programa.cover_url:
         return programa.cover_url
     if programa.slug:
-        return f"/modules/{programa.slug}.png"
+        return f"/modules/{programa.slug}.jpg"
     return None
 
 
