@@ -8,7 +8,7 @@ from src.models import Admin
 from src.services.auth_service import cerrar_sesiones_de_admin
 
 ROLES = ("admin", "coach")
-AREAS = ("marketing", "ventas", "sistemas", "equipo", "fulfillment", "mentalidad")
+AREAS = ("marketing", "ventas", "sistemas", "equipo", "fulfillment", "mentalidad", "va")
 
 
 def _a_dict(admin: Admin) -> dict:

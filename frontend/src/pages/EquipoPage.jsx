@@ -13,6 +13,7 @@ const AREAS = [
   ['equipo', 'Equipo'],
   ['fulfillment', 'Fulfillment'],
   ['mentalidad', 'Mentalidad'],
+  ['va', 'VA'],
 ]
 const ROLES = [
   ['coach', 'Coach'],
