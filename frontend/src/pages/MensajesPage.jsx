@@ -176,7 +176,7 @@ function PanelSena({ sena, alHacerOnboarding }) {
       <h2>{sena.nombre}</h2>
       <dl>
         <div><dt>Programa</dt><dd>{sena.plan || '—'}</dd></div>
-        <div><dt>Seña</dt><dd>{sena.monto ? usd(sena.monto) : '—'}</dd></div>
+        {sena.monto ? <div><dt>Seña</dt><dd>{usd(sena.monto)}</dd></div> : null}
         <div><dt>Cobrada</dt><dd className={atrasada ? 'is-atrasada' : ''}>{sena.fecha ? new Date(`${sena.fecha}T00:00:00`).toLocaleDateString('es-AR') : '—'} · {hace(sena.dias)}</dd></div>
       </dl>
       {sena.notas ? (

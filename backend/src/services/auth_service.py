@@ -22,6 +22,20 @@ def es_equipo(sesion: dict) -> bool:
     return sesion.get("rol") in ROLES_EQUIPO
 
 
+# Plata (señas, pagos, cuotas) y notas de la caja: solo admins y las áreas que las usan.
+AREAS_CON_PLATA = ("ventas", "sistemas")
+
+
+def ve_plata(sesion: dict) -> bool:
+    if sesion.get("rol") == "admin":
+        return True
+    if not es_equipo(sesion):
+        return False
+    with db_session:
+        yo = Admin.get(id=sesion.get("usuario_id"))
+        return bool(yo and yo.activo and yo.area in AREAS_CON_PLATA)
+
+
 def tipo_de_sesion(sesion: dict) -> str:
     """'admin' para cualquier miembro del equipo (su id es de la tabla admins), 'cliente' si no."""
     return "admin" if es_equipo(sesion) else "cliente"

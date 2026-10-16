@@ -20,7 +20,7 @@ from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
 from src.models import Admin, AltaCliente
-from src.services.auth_service import _buscar_admin_por_email, _buscar_clientes_por_email, clave_desde_canal, es_equipo
+from src.services.auth_service import _buscar_admin_por_email, _buscar_clientes_por_email, clave_desde_canal, es_equipo, ve_plata
 
 # Las ofertas como las vende ATV hoy (Mentoría y Entry Level son lo mismo con otro nombre; Boost y High
 # Level también): nombre del onboarding → plan en atv-clients.
@@ -164,7 +164,9 @@ class AltaServices:
         """Señas abiertas, las que pueden ser de este cliente primero, con lo justo para reconocerla:
         nombre, programa, fecha y cuánto dejó (Nick sabe el monto de la seña que mandó a la caja)."""
         _equipo(sesion)
-        return [{k: f[k] for k in ("id", "nombre", "plan", "fecha", "monto", "coincide", "tipo", "canal")} for f in _candidatas(nombre, email)]
+        campos = ("id", "nombre", "plan", "fecha", "monto", "coincide", "tipo", "canal") if ve_plata(sesion) else (
+            "id", "nombre", "plan", "fecha", "coincide", "tipo", "canal")
+        return [{k: f[k] for k in campos} for f in _candidatas(nombre, email)]
 
     def senas(self, sesion: dict) -> list[dict]:
         """Grupo "Señas" de Mensajes: quienes dejaron seña y todavía no tienen onboarding, la más vieja
@@ -177,10 +179,12 @@ class AltaServices:
             )
         inversa = {v: k for k, v in PLANES.items()}
         hoy = date.today()
+        plata = ve_plata(sesion)  # el resto del equipo ve quién dejó seña, pero no cuánto ni las notas de la caja
         return [
             {
                 "id": i, "nombre": nom, "plan": inversa.get(plan, plan), "fecha": fecha.isoformat() if fecha else None,
-                "dias": (hoy - fecha).days if fecha else None, "monto": float(pagado) if pagado else None, "notas": obs or None,
+                "dias": (hoy - fecha).days if fecha else None,
+                "monto": (float(pagado) if pagado else None) if plata else None, "notas": (obs or None) if plata else None,
             }
             for i, nom, plan, fecha, pagado, obs in filas
         ]
