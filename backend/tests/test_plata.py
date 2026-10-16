@@ -49,6 +49,6 @@ def test_senas_sin_monto_ni_notas_para_el_resto(equipo):
         assert any(s["monto"] for s in completas)
 
 
-def test_buscar_ficha_sin_monto_para_el_resto(equipo):
-    assert all("monto" not in c for c in svc.buscar_ficha(equipo["fulfillment"], "a"))
-    assert all("monto" in c for c in svc.buscar_ficha(equipo["sistemas"], "a"))
+def test_nuevo_onboarding_muestra_la_sena_a_todo_el_equipo(equipo):
+    # Sirve para reconocer la seña que hizo Nick, así que no se esconde.
+    assert all("monto" in c for c in svc.buscar_ficha(equipo["fulfillment"], "a"))

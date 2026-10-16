@@ -164,9 +164,8 @@ class AltaServices:
         """Señas abiertas, las que pueden ser de este cliente primero, con lo justo para reconocerla:
         nombre, programa, fecha y cuánto dejó (Nick sabe el monto de la seña que mandó a la caja)."""
         _equipo(sesion)
-        campos = ("id", "nombre", "plan", "fecha", "monto", "coincide", "tipo", "canal") if ve_plata(sesion) else (
-            "id", "nombre", "plan", "fecha", "coincide", "tipo", "canal")
-        return [{k: f[k] for k in campos} for f in _candidatas(nombre, email)]
+        # El monto se muestra a todo el equipo: Nick hace las señas y es lo que permite reconocerlas.
+        return [{k: f[k] for k in ("id", "nombre", "plan", "fecha", "monto", "coincide", "tipo", "canal")} for f in _candidatas(nombre, email)]
 
     def senas(self, sesion: dict) -> list[dict]:
         """Grupo "Señas" de Mensajes: quienes dejaron seña y todavía no tienen onboarding, la más vieja
