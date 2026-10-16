@@ -591,3 +591,18 @@ class OnboardingCerebro(db.Entity):
     respuestas_json = Required(str)  # {"5": "…", "6": "…"}
     ficha_json = Required(str)
     importado_en = Required(datetime, default=datetime.utcnow)
+
+
+class PizarraOnboarding(db.Entity):
+    """La pizarra a lápiz de un onboarding (carpeta Onboardings): lo que el cliente contó en el formulario,
+    ordenado para el coach que lo atiende en el 1 a 1. Se arma una vez por formulario enviado; si el cliente
+    lo vuelve a mandar, se rearma."""
+
+    _table_ = (DB_SCHEMA, "pizarras_onboarding")
+
+    id = PrimaryKey(int, auto=True)
+    session_id = Required(str, unique=True)
+    respondido_en = Optional(datetime, nullable=True)  # el formulario con el que se armó
+    datos_json = Required(str)
+    modelo = Optional(str, nullable=True)
+    creado_en = Required(datetime, default=datetime.utcnow)

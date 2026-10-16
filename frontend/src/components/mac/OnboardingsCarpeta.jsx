@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import PizarraOnboarding from './PizarraOnboarding'
 import { enviarOnboarding } from '../../api/altas'
 import { fetchFormularios, fetchOnboarding, fetchOnboardings } from '../../api/onboardings'
 import { createFormPdfBlob, downloadAllFormFilesAsZip, downloadFormFile } from '../../utils/onboardingPdf'
@@ -57,6 +58,22 @@ function Vista({ id, alEnviar, enviando, alAbrirChat }) {
   const [url, setUrl] = useState(null)
   const [error, setError] = useState('')
   const [bajando, setBajando] = useState(false)
+  // PDF o pizarra: se recuerda la última que eligió cada uno.
+  const [modo, setModo] = useState(() => {
+    try {
+      return localStorage.getItem('ob-modo') === 'pizarra' ? 'pizarra' : 'pdf'
+    } catch {
+      return 'pdf'
+    }
+  })
+  function elegir(m) {
+    setModo(m)
+    try {
+      localStorage.setItem('ob-modo', m)
+    } catch {
+      /* sin almacenamiento: solo dura esta vez */
+    }
+  }
 
   useEffect(() => {
     let vivo = true
@@ -101,12 +118,20 @@ function Vista({ id, alEnviar, enviando, alAbrirChat }) {
           </span>
         </div>
         <div className="ob-acciones">
+          {d.pasos.formulario ? (
+            <div className="ob-modo" role="group" aria-label="Ver como">
+              <button type="button" aria-pressed={modo === 'pdf'} onClick={() => elegir('pdf')}>PDF</button>
+              <button type="button" aria-pressed={modo === 'pizarra'} onClick={() => elegir('pizarra')}>✏️ Pizarra</button>
+            </div>
+          ) : null}
           {d.mail_pendiente ? <button type="button" className="fd-boton" onClick={() => alEnviar(d)} disabled={enviando}>{enviando ? 'Enviando…' : 'Enviar link de onboarding'}</button> : null}
           {d.canal_id ? <button type="button" className="fd-boton is-suave" onClick={() => alAbrirChat(`/mensajes?c=${d.canal_id}`)}>Abrir su chat</button> : null}
           {d.pasos.formulario ? <button type="button" className="fd-boton" onClick={bajar} disabled={bajando}>{bajando ? 'Generando…' : 'Descargar PDF'}</button> : null}
         </div>
       </div>
-      {d.pasos.formulario ? (
+      {d.pasos.formulario && modo === 'pizarra' ? (
+        <PizarraOnboarding id={id} />
+      ) : d.pasos.formulario ? (
         url ? <iframe className="ob-vista__pdf" src={`${url}#navpanes=0&view=FitH`} title={`Formulario de ${d.nombre}`} /> : <p className="fd-vacio">Generando el PDF…</p>
       ) : (
         <div className="ob-vista__vacia">
