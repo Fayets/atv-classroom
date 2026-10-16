@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchSenas } from '../api/altas'
-import { abrirDirecto, fetchCanales, fetchEquipoChat, marcarInactivo } from '../api/mensajes'
+import { abrirDirecto, fetchCanales, fetchEquipoChat, marcarInactivo, ordenarCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
@@ -489,6 +489,33 @@ export default function MensajesPage() {
       </section>
     ) : null
 
+  // Como en Discord, un admin acomoda los canales manteniéndolos apretados y arrastrándolos.
+  const [moviendoCanal, setMoviendoCanal] = useState(null)
+  const [soltarCanal, setSoltarCanal] = useState(null) // { id, lado: 'arriba' | 'abajo' }
+  async function soltarOrden(e, destino) {
+    e.preventDefault()
+    const origen = Number(e.dataTransfer.getData('application/x-atv-orden'))
+    const lado = soltarCanal?.lado
+    setMoviendoCanal(null)
+    setSoltarCanal(null)
+    if (!origen || origen === destino) return
+    const ids = canalesGrupo.map((c) => c.id).filter((id) => id !== origen)
+    ids.splice(ids.indexOf(destino) + (lado === 'abajo' ? 1 : 0), 0, origen)
+    const pos = new Map(ids.map((id, i) => [id, i]))
+    const esGrupo = (c) => pos.has(c.id)
+    setCanales((prev) => {
+      const ordenados = prev.filter(esGrupo).sort((x, y) => pos.get(x.id) - pos.get(y.id))
+      let k = 0
+      return prev.map((c) => (esGrupo(c) ? ordenados[k++] : c))
+    })
+    try {
+      await ordenarCanales(ids)
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar el orden.')
+      cargar()
+    }
+  }
+
   // Canales grupales (y anuncios), arriba de todo como en Discord. El equipo los crea con el +.
   const seccionCanales =
     canales && (isEquipo || canalesGrupo.length) ? (
@@ -502,7 +529,31 @@ export default function MensajesPage() {
           ) : null}
         </div>
         {canalesGrupo.map((c) => (
-          <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} hash onEditar={setEditando} />
+          <div
+            key={c.id}
+            className={`msj-orden${moviendoCanal === c.id ? ' is-moviendo' : ''}${soltarCanal?.id === c.id ? ` is-soltar-${soltarCanal.lado}` : ''}`}
+            draggable={isAdmin && canalesGrupo.length > 1}
+            onDragStart={(e) => {
+              e.dataTransfer.setData('application/x-atv-orden', String(c.id))
+              e.dataTransfer.effectAllowed = 'move'
+              setMoviendoCanal(c.id)
+            }}
+            onDragOver={(e) => {
+              if (!e.dataTransfer.types.includes('application/x-atv-orden')) return
+              e.preventDefault()
+              const r = e.currentTarget.getBoundingClientRect()
+              const lado = e.clientY < r.top + r.height / 2 ? 'arriba' : 'abajo'
+              if (soltarCanal?.id !== c.id || soltarCanal?.lado !== lado) setSoltarCanal({ id: c.id, lado })
+            }}
+            onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget) && setSoltarCanal(null)}
+            onDrop={(e) => soltarOrden(e, c.id)}
+            onDragEnd={() => {
+              setMoviendoCanal(null)
+              setSoltarCanal(null)
+            }}
+          >
+            <FilaCanal c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} hash onEditar={setEditando} />
+          </div>
         ))}
         {isEquipo && !canalesGrupo.length ? <p className="msj-grupo__vacio">Todavía no hay canales. Creá uno con el +.</p> : null}
       </section>

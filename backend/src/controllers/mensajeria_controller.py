@@ -128,6 +128,18 @@ class CanalInactivo(BaseModel):
     inactivo: bool
 
 
+class OrdenCanales(BaseModel):
+    ids: list[int] = Field(max_length=200)
+
+
+@router.put("/canales-orden")
+async def ordenar_canales(body: OrdenCanales, sesion: dict = Depends(sesion_mensajes)):
+    """El nuevo orden de los canales (solo admins). Todos lo ven al instante."""
+    await run_in_threadpool(service.ordenar_canales, sesion, body.ids)
+    await hub.emitir_a_todos({"tipo": "canal"})
+    return {"ok": True}
+
+
 @router.put("/canales/{canal_id}/inactivo")
 async def marcar_inactivo(canal_id: int, body: CanalInactivo, sesion: dict = Depends(sesion_mensajes)):
     info = await run_in_threadpool(service.marcar_inactivo, sesion, canal_id, body.inactivo)

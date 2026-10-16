@@ -72,6 +72,11 @@ export function marcarInactivo(canalId, inactivo) {
   return request(`/api/mensajes/canales/${canalId}/inactivo`, { method: 'PUT', body: JSON.stringify({ inactivo }) })
 }
 
+// El orden de los canales (como en Discord, solo admins): la lista de ids de arriba a abajo.
+export function ordenarCanales(ids) {
+  return request('/api/mensajes/canales-orden', { method: 'PUT', body: JSON.stringify({ ids }) })
+}
+
 export function borrarCanal(canalId) {
   return request(`/api/mensajes/canales/${canalId}`, { method: 'DELETE' })
 }

@@ -142,6 +142,11 @@ class Hub:
             if sesion.get("rol") in ("admin", "coach") and sesion.get("usuario_id") == admin_id:
                 self.enviar(ws, evento)
 
+    async def emitir_a_todos(self, evento: dict) -> None:
+        """Algo que cambia la lista para todos (por ejemplo, el orden de los canales)."""
+        for ws in list(self._conexiones):
+            self.enviar(ws, evento)
+
     async def emitir(self, evento: dict, canal: dict, excepto: WebSocket | None = None) -> None:
         for ws, sesion in list(self._conexiones.items()):
             if ws is not excepto and puede_ver(sesion, canal):

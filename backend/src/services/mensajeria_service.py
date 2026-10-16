@@ -450,13 +450,15 @@ class MensajeriaServices:
                         # Quién ve el canal es cosa del equipo: al cliente no se le manda.
                         "roles": _roles_de(canal) if canal.tipo == "grupo" and equipo else None,
                         "creado_por": canal.creado_por if equipo else None,
+                        "orden": canal.orden,
                         "inactivo": bool(canal.inactivo) if equipo else False,
                         "puede_administrar": self._puede_administrar(sesion, canal),
                     }
                 )
         # Anuncios arriba; después quien espera respuesta (el que más espera primero); después lo más reciente.
         anuncios = [c for c in items if c["tipo"] in ("anuncios", "grupo")]
-        anuncios.sort(key=lambda c: (c["tipo"] != "anuncios", c["nombre"]))
+        # El orden que les dio un admin arrastrándolos; los que no tienen orden van al final, como antes.
+        anuncios.sort(key=lambda c: (c["orden"] is None, c["orden"] or 0, c["tipo"] != "anuncios", c["nombre"]))
         esperando = [c for c in items if c["tipo"] == "cliente" and c["esperando_desde"]]
         esperando.sort(key=lambda c: c["esperando_desde"])
         resto = [c for c in items if c["tipo"] == "cliente" and not c["esperando_desde"]]
@@ -711,6 +713,16 @@ class MensajeriaServices:
                 antes,
                 _info(canal),
             )
+
+    def ordenar_canales(self, sesion: dict, ids: list[int]) -> None:
+        """Como en Discord: un admin acomoda los canales arrastrándolos y el orden queda para todos."""
+        if sesion.get("rol") != "admin":
+            raise HTTPException(status_code=403, detail="Solo un admin acomoda los canales.")
+        with db_session:
+            canales = {c.id: c for c in list(Canal.select()) if c.tipo in ("grupo", "anuncios")}
+            for i, cid in enumerate(dict.fromkeys(ids)):
+                if cid in canales:
+                    canales[cid].orden = i
 
     def marcar_inactivo(self, sesion: dict, canal_id: int, inactivo: bool) -> dict:
         """Pasa el chat de un cliente a "Inactivos" (o lo saca). Lo puede hacer cualquiera del equipo y

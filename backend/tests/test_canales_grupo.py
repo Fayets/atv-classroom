@@ -160,3 +160,16 @@ def test_el_cliente_no_recibe_los_roles_del_canal(equipo):
     assert visto["roles"] is None and visto["creado_por"] is None
     visto_equipo = next(c for c in svc.listar_canales(equipo["admin"]) if c["id"] == canal["id"])
     assert visto_equipo["roles"] == ["equipo", "boost"]
+
+
+def test_un_admin_acomoda_los_canales_y_un_coach_no(equipo):
+    a = svc.crear_canal_grupo(equipo["admin"], f"{_P}-orden-a", None, ["equipo"])
+    b = svc.crear_canal_grupo(equipo["admin"], f"{_P}-orden-b", None, ["equipo"])
+    with pytest.raises(HTTPException) as e:
+        svc.ordenar_canales(equipo["coach"], [b["id"], a["id"]])
+    assert e.value.status_code == 403
+    # Solo toca los canales que se le pasan (y no un chat de cliente aunque venga en la lista).
+    svc.ordenar_canales(equipo["admin"], [b["id"], a["id"], b["id"]])
+    lista = [c for c in svc.listar_canales(equipo["admin"]) if c["id"] in (a["id"], b["id"])]
+    assert [c["id"] for c in lista] == [b["id"], a["id"]]
+    assert [c["orden"] for c in lista] == [0, 1]

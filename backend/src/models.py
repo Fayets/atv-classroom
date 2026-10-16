@@ -214,6 +214,7 @@ class Canal(db.Entity):
     creado_por = Optional(int, nullable=True)  # grupo: id del admin que lo creó
     # directo: mensaje privado entre dos del equipo, como un DM de Discord. Los ids de los dos (admins).
     participantes_json = Optional(str, nullable=True)
+    orden = Optional(int, nullable=True)  # canales grupales y anuncios: el orden que les dio un admin (arrastrando)
     # Cliente archivado por el equipo (arrastrado a "Inactivos"): sale de su grupo, el chat sigue igual.
     inactivo = Required(bool, default=False)
     ultimo_mensaje_en = Optional(datetime, nullable=True)

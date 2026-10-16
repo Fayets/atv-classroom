@@ -796,3 +796,11 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 /* Mensajes directos entre el equipo (como en Discord): la persona con su foto chica */
 .msj-fila--persona { gap: 9px; }
 .msj-fila--persona .msj-av { flex: none; }
+
+/* Acomodar canales arrastrando (admins): la línea marca dónde va a quedar */
+.msj-orden { position: relative; }
+.msj-orden[draggable="true"] { cursor: grab; }
+.msj-orden.is-moviendo { opacity: 0.4; }
+.msj-orden.is-soltar-arriba::before, .msj-orden.is-soltar-abajo::after { content: ''; position: absolute; left: 10px; right: 6px; height: 2px; border-radius: 1px; background: #c0392b; pointer-events: none; }
+.msj-orden.is-soltar-arriba::before { top: -1px; }
+.msj-orden.is-soltar-abajo::after { bottom: -1px; }
