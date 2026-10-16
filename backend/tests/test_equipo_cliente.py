@@ -37,12 +37,17 @@ def _base(monkeypatch):
         init_db()
     monkeypatch.setattr(auth, "ClienteExterno", _Clientes)
     monkeypatch.setattr(eq, "ClienteExterno", _Clientes)
+    # Los cupos son de producción (la base es compartida): se guardan y se devuelven tal cual.
+    with db_session:
+        cupos = list(db.select(f'SELECT plan, maximo FROM "{DB_SCHEMA}"."limites_equipo"'))
     yield
     with db_session:
+        db.execute(f'DELETE FROM "{DB_SCHEMA}"."limites_equipo"')
+        for plan, maximo in cupos:
+            db.execute(f'INSERT INTO "{DB_SCHEMA}"."limites_equipo" (plan, maximo) VALUES ($plan, $maximo)', {"plan": plan, "maximo": maximo})
         ids = db.select(f'SELECT id FROM "{DB_SCHEMA}"."miembros_cliente" WHERE cliente_id = $c', {"c": CLIENTE_ID})
         db.execute(f'DELETE FROM "{DB_SCHEMA}"."sesiones" WHERE miembro_id = ANY($ids)', {"ids": list(ids)})
         db.execute(f'DELETE FROM "{DB_SCHEMA}"."miembros_cliente" WHERE cliente_id = $c', {"c": CLIENTE_ID})
-        db.execute(f'DELETE FROM "{DB_SCHEMA}"."limites_equipo" WHERE plan = \'boost\' AND maximo = 2')
 
 
 def test_el_setter_entra_con_su_mail_y_la_clave_del_cliente_y_se_corta_al_sacarlo():
@@ -64,7 +69,8 @@ def test_el_setter_entra_con_su_mail_y_la_clave_del_cliente_y_se_corta_al_sacarl
 
 def test_solo_el_titular_maneja_el_equipo_y_respeta_el_cupo_del_plan():
     svc = eq.EquipoClienteServices()
-    assert svc.listar(TITULAR)["maximo"] == eq.LIMITE_POR_DEFECTO
+    with db_session:
+        assert svc.listar(TITULAR)["maximo"] == eq.limite_de("boost")  # el cupo configurado (o el de por defecto)
     svc.guardar_limites({"boost": 2})
     svc.agregar(TITULAR, "a@atvos-prueba.com", "A", "closer")
     m = svc.agregar(TITULAR, "b@atvos-prueba.com", "B", "socio")

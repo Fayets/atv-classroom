@@ -27,11 +27,95 @@ export function IconoLlamada({ tamano = 64, hecha = false }) {
   )
 }
 
+// La miniatura de la llamada: Fathom no da la imagen del video, así que va la foto del cliente
+// (o sus iniciales) con el play chico, la duración y el tilde si ya tiene roadmap.
+const TONOS = ['#5b4ef0', '#0a84ff', '#30b0c7', '#28a745', '#ff9f0a', '#ff375f', '#a2845e', '#8e5cd9']
+const tono = (t) => TONOS[[...(t || '')].reduce((a, c) => a + c.charCodeAt(0), 0) % TONOS.length]
+const iniciales = (n) => (n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase()
+
+export function MiniaturaLlamada({ l }) {
+  const quien = l.cliente?.nombre
+  return (
+    <span className="ll-mini" style={{ '--tono': tono(quien || l.titulo) }} aria-hidden="true">
+      {quien ? (
+        l.cliente.foto_url ? <img className="ll-mini__cara" src={l.cliente.foto_url} alt="" /> : <span className="ll-mini__cara is-ini">{iniciales(quien)}</span>
+      ) : (
+        <span className="ll-mini__cara is-equipo">ATV</span>
+      )}
+      <i className="ll-mini__play"><svg viewBox="0 0 10 10"><path d="M3 2v6l5-3z" fill="currentColor" /></svg></i>
+      {l.duracion_min ? <em className="ll-mini__dur">{l.duracion_min} min</em> : null}
+      {l.con_roadmap ? <em className="ll-mini__ok">✓</em> : null}
+    </span>
+  )
+}
+
+// El resumen de Fathom viene en markdown: títulos, viñetas, **negritas** y [texto](link al momento).
+function Resumen({ texto }) {
+  const enLinea = (t, k) => {
+    const partes = []
+    const re = /\[([^\]]+)\]\((https?:[^)\s]+)\)|\*\*([^*]+)\*\*/g
+    let ultimo = 0
+    let m
+    while ((m = re.exec(t))) {
+      if (m.index > ultimo) partes.push(t.slice(ultimo, m.index))
+      if (m[1] != null) {
+        partes.push(
+          <span key={`${k}-${m.index}`}>
+            {enLinea(m[1], `${k}-${m.index}`)}{' '}
+            <a className="ll-res__ir" href={m[2]} target="_blank" rel="noopener noreferrer" title="Ver este momento en Fathom">▶</a>
+          </span>,
+        )
+      } else partes.push(<b key={`${k}-${m.index}`}>{m[3]}</b>)
+      ultimo = re.lastIndex
+    }
+    if (ultimo < t.length) partes.push(t.slice(ultimo))
+    return partes
+  }
+  const bloques = []
+  texto.split('\n').forEach((linea, i) => {
+    const l = linea.trim()
+    if (!l) return
+    if (/^#{1,6}\s/.test(l)) bloques.push(<p key={i} className="ll-res__titulo">{l.replace(/^#+\s*/, '')}</p>)
+    else if (/^[-*]\s/.test(l)) bloques.push(<p key={i} className="ll-res__punto">{enLinea(l.replace(/^[-*]\s*/, ''), i)}</p>)
+    else bloques.push(<p key={i} className="ll-res__texto">{enLinea(l, i)}</p>)
+  })
+  return <div className="ll-res">{bloques}</div>
+}
+
+// La transcripción ordenada como una charla: cada vez que cambia quien habla, su nombre arriba.
+function Transcripcion({ texto, coach }) {
+  const grupos = []
+  texto.split('\n').forEach((linea) => {
+    const m = linea.match(/^([^:]{2,60}):\s(.*)$/)
+    const quien = m ? m[1].trim() : null
+    const dicho = m ? m[2] : linea.trim()
+    if (!dicho) return
+    const ultimo = grupos[grupos.length - 1]
+    if (ultimo && (quien === null || quien === ultimo.quien)) ultimo.lineas.push(dicho)
+    else grupos.push({ quien: quien || '', lineas: [dicho] })
+  })
+  const nombreCoach = (coach || '').split(' ')[0].toLowerCase()
+  return (
+    <div className="ll-charla">
+      {grupos.map((g, i) => {
+        const delEquipo = nombreCoach && g.quien.toLowerCase().startsWith(nombreCoach)
+        return (
+          <div key={i} className={`ll-charla__turno${delEquipo ? ' is-equipo' : ''}`}>
+            {g.quien ? <b>{g.quien}</b> : null}
+            {g.lineas.map((t, j) => <p key={j}>{t}</p>)}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function Vista({ id, alAbrirChat }) {
   const [d, setD] = useState(null)
   const [error, setError] = useState('')
   const [clientes, setClientes] = useState(null)
   const [eligiendo, setEligiendo] = useState(false)
+  const [copiado, setCopiado] = useState(false)
 
   useEffect(() => {
     setD(null)
@@ -46,6 +130,21 @@ function Vista({ id, alAbrirChat }) {
   if (error) return <p className="fd-vacio">{error}</p>
   if (!d) return <p className="fd-vacio">Abriendo…</p>
   const puedeRoadmap = d.cliente?.canal_id && d.con_transcripcion
+  async function copiar() {
+    const texto = `${d.titulo}\n${fechaHora(d.inicio)}${d.duracion_min ? ` · ${d.duracion_min} min` : ''}\n\n${d.transcripcion}`
+    try {
+      await navigator.clipboard.writeText(texto)
+    } catch {
+      const area = document.createElement('textarea')
+      area.value = texto
+      document.body.appendChild(area)
+      area.select()
+      document.execCommand('copy')
+      area.remove()
+    }
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 2000)
+  }
   return (
     <div className="ll-vista">
       <div className="ob-vista__barra">
@@ -100,13 +199,20 @@ function Vista({ id, alAbrirChat }) {
           {d.resumen ? (
             <>
               <p className="ll-sub">Resumen de Fathom</p>
-              <div className="ll-resumen">{d.resumen}</div>
+              <Resumen texto={d.resumen} />
             </>
           ) : null}
         </aside>
         <section className="ll-transcripcion">
-          <p className="ll-sub">Transcripción</p>
-          {d.transcripcion ? <pre>{d.transcripcion}</pre> : <p className="fd-gris">Fathom todavía no terminó la transcripción. Vuelve a aparecer en unos minutos.</p>}
+          <div className="ll-transcripcion__cabeza">
+            <p className="ll-sub">Transcripción</p>
+            {d.transcripcion ? (
+              <button type="button" className={`ll-copiar${copiado ? ' is-ok' : ''}`} onClick={copiar}>
+                {copiado ? 'Copiada ✓' : 'Copiar transcripción'}
+              </button>
+            ) : null}
+          </div>
+          {d.transcripcion ? <Transcripcion texto={d.transcripcion} coach={d.coach} /> : <p className="fd-gris">Fathom todavía no terminó la transcripción. Vuelve a aparecer en unos minutos.</p>}
         </section>
       </div>
     </div>
@@ -258,7 +364,7 @@ export default function LlamadasCarpeta({ abierta, alCerrar, alEnfocar, alFrente
             <div className="fd-grilla" onClick={(e) => e.target === e.currentTarget && setSel(null)}>
               {visibles.map((l) => (
                 <button key={l.id} type="button" className={`fd-item${sel === l.id ? ' is-sel' : ''}`} onClick={() => setSel(l.id)} onDoubleClick={() => setDentro(l.id)} title={`${l.titulo} · ${fecha(l.inicio)}`}>
-                  <IconoLlamada tamano={64} hecha={l.con_roadmap} />
+                  <MiniaturaLlamada l={l} />
                   <span>{l.cliente?.nombre || l.titulo}</span>
                   <small className="fd-gris">{fecha(l.inicio)}{l.duracion_min ? ` · ${l.duracion_min} min` : ''}</small>
                 </button>

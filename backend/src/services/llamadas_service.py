@@ -13,7 +13,7 @@ from pony.orm import db_session
 from src.db import DB_SCHEMA, db
 from src.models import Admin, Canal, ClienteExterno, FathomConexion, Llamada
 from src.services.auth_service import es_equipo
-from src.services.cuenta_service import foto_de
+from src.services.cuenta_service import foto_de, fotos_de
 
 
 def _iso(d):
@@ -25,7 +25,7 @@ def _con_roadmap() -> set[str]:
     return {r[0] for r in db.select(f'SELECT fathom_url FROM "{DB_SCHEMA}"."roadmap_docs" WHERE fathom_url IS NOT NULL')}
 
 
-def _fila(ll: Llamada, clientes: dict, canales: dict, hechos: set[str]) -> dict:
+def _fila(ll: Llamada, clientes: dict, canales: dict, hechos: set[str], fotos: dict | None = None) -> dict:
     c = clientes.get(ll.cliente_id) if ll.cliente_id else None
     links = {x for x in (ll.share_url, ll.url) if x}
     return {
@@ -34,7 +34,7 @@ def _fila(ll: Llamada, clientes: dict, canales: dict, hechos: set[str]) -> dict:
         "inicio": _iso(ll.inicio),
         "duracion_min": ll.duracion_min,
         "fathom_url": ll.share_url or ll.url,
-        "cliente": {"id": c.id, "nombre": c.nombre or c.email, "canal_id": canales.get(c.id)} if c else None,
+        "cliente": {"id": c.id, "nombre": c.nombre or c.email, "canal_id": canales.get(c.id), "foto_url": (fotos or {}).get(c.id)} if c else None,
         "con_transcripcion": bool(ll.transcripcion),
         "con_roadmap": bool(links & hechos),
         "coach_id": ll.admin_id,
@@ -52,7 +52,8 @@ class LlamadasServices:
             clientes = {c.id: c for c in list(ClienteExterno.select())}
             canales = {c.cliente_id: c.id for c in list(Canal.select()) if c.cliente_id}
             hechos = _con_roadmap()
-            filas = [_fila(ll, clientes, canales, hechos) for ll in llamadas]
+            fotos = fotos_de("cliente")  # la foto que subió cada cliente en Mi cuenta (si subió)
+            filas = [_fila(ll, clientes, canales, hechos, fotos) for ll in llamadas]
             conectados = {c.admin_id for c in list(FathomConexion.select())}
             if not admin:
                 return {"admin": False, "conectado": yo in conectados, "llamadas": filas}

@@ -111,7 +111,9 @@ def _guardar(admin_id: int, item: dict, por_mail: dict[str, int]) -> bool:
         "transcripcion": _texto_transcripcion(_primero(item, "transcript", "transcription", default="")) or None,
         "resumen": (resumen or None),
     }
-    ll = Llamada.get(fathom_id=fid)
+    # La misma llamada pudo entrar antes por su link (fathom.video/calls/<n> o /share/<token>), guardada
+    # con otro identificador: se la reconoce por el link y no se duplica.
+    ll = Llamada.get(fathom_id=fid) or _misma_por_link(datos.get("url"), datos.get("share_url"))
     if ll is None:
         Llamada(admin_id=admin_id, fathom_id=fid, cliente_id=cliente_id, **datos)
         return True
@@ -165,12 +167,25 @@ def _id_del_link(url: str) -> str:
     return m.group(1) if m else ""
 
 
+def _misma_por_link(*links) -> Llamada | None:
+    for link in links:
+        ident = _id_del_link(link)
+        if ident:
+            ll = _guardada_por_link(ident)
+            if ll is not None:
+                return ll
+    return None
+
+
 def _guardada_por_link(ident: str) -> Llamada | None:
+    # El LIKE solo acerca candidatos: se confirma que el identificador del link sea exactamente ese
+    # (si no, "calls/1" agarraría cualquier llamada con un 1 en el link).
     for ll in list(Llamada.select_by_sql(
-        f'SELECT * FROM "{DB_SCHEMA}"."llamadas" WHERE fathom_id = $ident OR share_url LIKE $patron OR url LIKE $patron LIMIT 1',
+        f'SELECT * FROM "{DB_SCHEMA}"."llamadas" WHERE fathom_id = $ident OR share_url LIKE $patron OR url LIKE $patron',
         {"ident": ident, "patron": f"%{ident}%"},
     )):
-        return ll
+        if ll.fathom_id == ident or _id_del_link(ll.url) == ident or _id_del_link(ll.share_url) == ident:
+            return ll
     return None
 
 
