@@ -503,7 +503,7 @@ export default function PizarraOnboarding({ id }) {
       <div className="pz-cargando">
         <span className="pz-lapiz" aria-hidden="true">✏️</span>
         <b>{armando ? 'Armando el diagnóstico…' : 'Abriendo la pizarra…'}</b>
-        <span>{armando ? 'La IA lee el formulario y busca los cuellos de botella: tarda alrededor de 2 minutos. Podés seguir trabajando y volver.' : 'Un momento.'}</span>
+        <span>{armando ? 'La IA lee el formulario y busca los cuellos de botella: tarda menos de un minuto. Podés seguir trabajando y volver.' : 'Un momento.'}</span>
       </div>
     )
   }

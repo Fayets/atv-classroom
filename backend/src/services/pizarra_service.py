@@ -317,10 +317,11 @@ def del_formulario(respuestas: dict) -> dict:
 def _llamar(sistema: str, usuario: str) -> dict | None:
     from anthropic import Anthropic
 
-    # Con pensamiento, el razonamiento sale del mismo tope de tokens: con 12.000 se lo comía entero y el JSON
-    # quedaba cortado. Se pide holgado y por streaming, que es lo que el SDK exige para respuestas largas.
-    with Anthropic(api_key=config("ANTHROPIC_API_KEY", default=""), timeout=600).messages.stream(
-        model=MODELO, max_tokens=32000, thinking={"type": "adaptive"}, system=sistema, messages=[{"role": "user", "content": usuario}],
+    # Sin pensamiento extendido: con él la respuesta usaba 4 a 5 veces más tokens de salida (el razonamiento se
+    # cobra) y tardaba 2 minutos, para llegar a los mismos cuellos de botella. Medido con el formulario de Consu
+    # el 16-10-2026: ~9.700 de entrada, ~3.500 de salida, 25 s. En este modelo "apagarlo" es "between_tools".
+    with Anthropic(api_key=config("ANTHROPIC_API_KEY", default=""), timeout=300).messages.stream(
+        model=MODELO, max_tokens=12000, thinking={"type": "between_tools"}, system=sistema, messages=[{"role": "user", "content": usuario}],
     ) as flujo:
         r = flujo.get_final_message()
     if r.stop_reason == "max_tokens":
@@ -351,8 +352,7 @@ _en_curso: dict[str, dict] = {}   # session_id -> {"desde": datetime, "error": s
 
 
 class PizarraServices:
-    """El diagnóstico tarda alrededor de dos minutos (el modelo piensa antes de escribir), más de lo que
-    aguanta el proxy. Por eso se arma en segundo plano: el primer pedido lo lanza y contesta "armando", y la
+    """El diagnóstico tarda entre 25 segundos y un minuto, cerca de lo que aguanta el proxy. Por eso se arma en segundo plano: el primer pedido lo lanza y contesta "armando", y la
     pantalla vuelve a preguntar hasta que está."""
 
     def ver(self, sesion: dict, session_id: str, rearmar: bool = False, llamar=_llamar, esperar: bool = False) -> dict:
