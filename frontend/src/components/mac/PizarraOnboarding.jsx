@@ -37,25 +37,49 @@ function Evidencia({ e }) {
   return e.cita ? <li><span className="pz-marcador">“{e.cita}”</span> <Ref p={e.p} /></li> : <li>{e.dato} <Ref p={e.p} /></li>
 }
 
-// Una tarjeta por cuello de botella: síntoma (con la evidencia del formulario) → causa raíz → impacto →
-// solución, encadenados con flechas. Rojo lo que se ve, verde cómo se resuelve.
+const fmt = (v) => new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 }).format(v)
+
+// El embudo comercial con los números que escribió: cada tramo se dibuja a mano como un trapecio (data-r).
+function Embudo({ etapas }) {
+  const top = etapas[0].valor
+  return (
+    <div className="pz-bloque">
+      <p className="pz-et">Su embudo <Ref p={etapas[0].p} /></p>
+      <div className="pz-embudo" data-r="embudo">
+        {etapas.map((e, k) => (
+          <div key={k} className="pz-embudo__tramo" style={{ width: `${100 - (k * 62) / Math.max(etapas.length - 1, 1)}%` }}>
+            <b>{fmt(e.valor)}</b> <span>{e.etapa}</span>
+          </div>
+        ))}
+      </div>
+      <ul className="pz-embudo__tasas">
+        {etapas.slice(1).map((e, k) => (
+          <li key={k}>{etapas[k].etapa} → {e.etapa}: <b className={e.valor / etapas[k].valor < 0.1 ? 'pz-rojo' : ''}>{fmt((e.valor / etapas[k].valor) * 100)}%</b></li>
+        ))}
+        <li className="pz-chico">de punta a punta: {fmt((etapas[etapas.length - 1].valor / top) * 100)}%</li>
+      </ul>
+    </div>
+  )
+}
+
+// Un carril por cuello de botella, de izquierda a derecha: síntoma → causa raíz → impacto → solución.
 function Cuello({ c, k, prioritario }) {
   return (
-    <div className="pz-cuello">
-      <p className="pz-et pz-cuello__titulo">
-        <span className="pz-cuello__n">{k + 1}</span> {c.titulo}
-        {prioritario ? <span className="pz-prioridad">primero</span> : null}
-      </p>
-      {c.su_frase ? (
-        <div className="pz-dice">
+    <div className="pz-carril">
+      <div className="pz-carril__cab">
+        <p className="pz-et pz-cuello__titulo">
+          <span className="pz-cuello__n">{k + 1}</span> {c.titulo}
+        </p>
+        {prioritario ? <span className="pz-prioridad">se ataca primero</span> : null}
+        {c.su_frase ? (
           <div className="pz-postit is-claro" style={{ '--g': k % 2 ? '1.5deg' : '-1.5deg' }}>
             <p className="pz-chico">Lo que dice:</p>
             <p className="pz-cita">{c.su_frase.cita} <Ref p={c.su_frase.p} /></p>
+            <p className="pz-chico pz-rojo">es un síntoma →</p>
           </div>
-          <p className="pz-chico pz-dice__nota">es un síntoma: la causa real está abajo ↓</p>
-        </div>
-      ) : null}
-      <div className="pz-cadena" data-r="cadena">
+        ) : null}
+      </div>
+      <div className="pz-carril__pasos" data-r="flechas">
         <div className="pz-paso is-sintoma" data-r="caja-roja" data-seed={60 + k}>
           <p className="pz-paso__et pz-rojo">Síntoma</p>
           <p className="pz-tx">{c.sintoma.texto}</p>
@@ -76,33 +100,68 @@ function Cuello({ c, k, prioritario }) {
           <p className="pz-tx">{c.solucion}</p>
         </div>
       </div>
-      {c.falta ? <div className="pz-falta" data-r="ovalo-punteado" data-seed={100 + k}><b>sin dato, preguntar en la llamada:</b> {c.falta}</div> : null}
+      {c.falta ? <div className="pz-falta" data-r="caja-punteada" data-seed={100 + k}><b>sin dato, preguntar:</b> {c.falta}</div> : null}
     </div>
   )
 }
 
-function Negocio({ n, i }) {
+function Camino({ n }) {
+  if (!n.hoy.length && !n.meta) return null
   return (
-    <section className="pz-col pz-negocio" data-r="marco" data-seed={i}>
+    <div className="pz-bloque">
+      <p className="pz-et">De dónde parte → a dónde quiere llegar {n.meta ? <Ref p={n.meta.p} /> : null}</p>
+      <div className="pz-camino" data-r="camino">
+        <ul className="pz-lista is-hoy">
+          <li className="pz-chico is-sin">hoy</li>
+          {n.hoy.map((h, j) => <li key={j}>{h.texto} <Ref p={h.p} /></li>)}
+        </ul>
+        {n.meta ? (
+          <div className="pz-meta" data-r="ovalo">
+            <p className="pz-chico">en 4 meses</p>
+            <p className="pz-num">{n.meta.titular}</p>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function Negocio({ n, i, varios }) {
+  return (
+    <section className="pz-negocio" data-r="marco" data-seed={i}>
       <h2 className="pz-h">
-        {n.persona} <small>{[n.marca, n.rubro].filter(Boolean).join(' · ')}</small>
+        {varios ? n.persona : (n.marca || n.persona)} <small>{[varios ? n.marca : n.persona, n.rubro].filter(Boolean).join(' · ')}</small>
       </h2>
 
-      <div className="pz-fila">
-        {n.que_vende ? (
-          <div className="pz-postit is-claro" style={{ '--g': i ? '1.5deg' : '-2deg' }}>
-            <p className="pz-et">Qué vende</p>
-            <p className="pz-tx">{n.que_vende.texto} <Ref p={n.que_vende.p} /></p>
-          </div>
-        ) : null}
-        {n.contexto.length ? (
-          <div className="pz-bloque">
-            <p className="pz-et">Contexto</p>
-            <ul className="pz-lista">
-              {n.contexto.map((a, k) => <li key={k}>{a.texto} <Ref p={a.p} /></li>)}
-            </ul>
-          </div>
-        ) : null}
+      <div className="pz-arriba">
+        <div className="pz-col">
+          {n.que_vende ? (
+            <div className="pz-postit is-claro" style={{ '--g': i ? '1.5deg' : '-2deg' }}>
+              <p className="pz-et">Qué vende</p>
+              <p className="pz-tx">{n.que_vende.texto} <Ref p={n.que_vende.p} /></p>
+            </div>
+          ) : null}
+          {n.contexto.length ? (
+            <div className="pz-bloque">
+              <p className="pz-et">Contexto</p>
+              <ul className="pz-lista">
+                {n.contexto.map((a, k) => <li key={k}>{a.texto} <Ref p={a.p} /></li>)}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+        <div className="pz-col">
+          {n.embudo?.length ? <Embudo etapas={n.embudo} /> : <Camino n={n} />}
+        </div>
+        <div className="pz-col">
+          {n.embudo?.length ? <Camino n={n} /> : null}
+          {n.freno ? (
+            <div className="pz-postit" style={{ '--g': '2deg' }}>
+              <p className="pz-et is-chica">Su freno, con sus palabras</p>
+              <p className="pz-cita">{n.freno.cita} <Ref p={n.freno.p} /></p>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {n.cuellos.length ? (
@@ -116,34 +175,36 @@ function Negocio({ n, i }) {
         <p className="pz-chico">El formulario no tiene datos suficientes para marcar cuellos de botella con evidencia.</p>
       )}
 
-      {n.prioridad ? (
-        <div className="pz-bloque pz-prioridad__bloque">
-          <p className="pz-et">Prioridad para la llamada</p>
-          <div className="pz-prioridad__fila">
-            <span className="pz-num" data-r="circulo-num" data-seed={110 + i}>{n.prioridad.cuello}</span>
-            <p className="pz-tx"><b>{n.cuellos[n.prioridad.cuello - 1]?.titulo}.</b> {n.prioridad.por_que}</p>
+      <div className="pz-abajo">
+        {n.prioridad ? (
+          <div className="pz-bloque">
+            <p className="pz-et">Prioridad para la llamada</p>
+            <div className="pz-prioridad__fila">
+              <span className="pz-num" data-r="circulo-num" data-seed={110 + i}>{n.prioridad.cuello}</span>
+              <p className="pz-tx"><b>{n.cuellos[n.prioridad.cuello - 1]?.titulo}.</b> {n.prioridad.por_que}</p>
+            </div>
           </div>
-        </div>
-      ) : null}
-
-      {n.decidir.length ? (
-        <div className="pz-bloque">
-          <p className="pz-et">Qué decidir hoy en la llamada</p>
-          <ul className="pz-lista is-check">
-            {n.decidir.map((q, k) => <li key={k}>{q}</li>)}
-          </ul>
-        </div>
-      ) : null}
+        ) : <div />}
+        {n.decidir.length ? (
+          <div className="pz-bloque">
+            <p className="pz-et">Qué decidir hoy en la llamada</p>
+            <ul className="pz-lista is-check">
+              {n.decidir.map((q, k) => <li key={k}>{q}</li>)}
+            </ul>
+          </div>
+        ) : null}
+      </div>
     </section>
   )
 }
 
 const NOTA_ESTADO = { nada: 'pz-rojo', algo: '', listo: 'pz-verde', sin_dato: 'pz-gris' }
 
-function Centro({ d }) {
-  const varios = d.negocios.length > 1
+// Lo que vale para todo el formulario: el termómetro y las alertas, en una franja arriba.
+function Franja({ d }) {
+  if (!d.termometro.length && !d.alertas?.length) return null
   return (
-    <section className="pz-col pz-centro">
+    <div className="pz-franja">
       {d.termometro.length ? (
         <div className="pz-bloque">
           <p className="pz-et">Termómetro del negocio hoy</p>
@@ -157,8 +218,7 @@ function Centro({ d }) {
             ))}
           </div>
         </div>
-      ) : null}
-
+      ) : <div />}
       {d.alertas?.length ? (
         <div className="pz-bloque">
           <p className="pz-et">Señales de alerta</p>
@@ -171,36 +231,7 @@ function Centro({ d }) {
           </div>
         </div>
       ) : null}
-
-      {d.negocios.map((n, k) => (n.hoy.length || n.meta ? (
-        <div key={`c${k}`} className="pz-bloque">
-          <p className="pz-et">De dónde parte → a dónde quiere llegar{varios ? ` · ${n.persona}` : ''} {n.meta ? <Ref p={n.meta.p} /> : null}</p>
-          <div className="pz-camino" data-r="camino">
-            <ul className="pz-lista is-hoy">
-              <li className="pz-chico is-sin">hoy</li>
-              {n.hoy.map((h, j) => <li key={j}>{h.texto} <Ref p={h.p} /></li>)}
-            </ul>
-            {n.meta ? (
-              <div className="pz-meta" data-r="ovalo">
-                <p className="pz-chico">en 4 meses</p>
-                <p className="pz-num">{n.meta.titular}</p>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null))}
-
-      {d.negocios.some((n) => n.freno) ? (
-        <div className="pz-fila is-citas">
-          {d.negocios.filter((n) => n.freno).map((n, k) => (
-            <div key={k} className={`pz-postit${k ? ' is-claro' : ''}`} style={{ '--g': k ? '2.5deg' : '-3deg' }}>
-              <p className="pz-et is-chica">Su freno, con sus palabras{varios ? ` · ${n.persona}` : ''}</p>
-              <p className="pz-cita">{n.freno.cita} <Ref p={n.freno.p} /></p>
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </section>
+    </div>
   )
 }
 
@@ -238,8 +269,20 @@ function dibujar(svg, tablero, escala) {
     else if (r === 'caja-verde') add(rc.rectangle(b.x, b.y, b.w, b.h, { ...base, stroke: VERDE, strokeWidth: 2.4, fill: 'rgba(47,125,79,.06)', fillStyle: 'solid', seed: seed(el) }))
     else if (r === 'ovalo-rojo') add(rc.ellipse(b.x + b.w / 2, b.y + b.h / 2, b.w + 34, b.h + 26, { ...base, stroke: ROJO, strokeWidth: 2, seed: seed(el) }))
     else if (r === 'ovalo-punteado') add(rc.ellipse(b.x + b.w / 2, b.y + b.h / 2, b.w + 30, b.h + 22, { ...base, stroke: TINTA, strokeWidth: 1.4, strokeLineDash: [6, 6], seed: seed(el) }))
+    else if (r === 'caja-punteada') add(rc.rectangle(b.x - 6, b.y - 4, b.w + 12, b.h + 8, { ...base, stroke: TINTA, strokeWidth: 1.3, strokeLineDash: [6, 6], seed: seed(el) }))
     else if (r === 'circulo-num') add(rc.ellipse(b.x + b.w / 2, b.y + b.h / 2, b.w + 34, b.h + 18, { ...base, stroke: ROJO, strokeWidth: 2.4, seed: seed(el) }))
-    else if (r === 'cadena') {
+    else if (r === 'embudo') {
+      // Cada tramo es un trapecio: arriba su ancho, abajo el del tramo siguiente.
+      const tramos = [...el.children].map(caja)
+      tramos.forEach((t, k) => {
+        const sig = tramos[k + 1]
+        const abajo = sig ? sig.w : t.w * 0.55
+        const cx = t.x + t.w / 2
+        const pts = [[t.x, t.y], [t.x + t.w, t.y], [cx + abajo / 2, t.y + t.h], [cx - abajo / 2, t.y + t.h]]
+        const ultimo = !sig
+        add(rc.polygon(pts, { ...base, stroke: ultimo ? VERDE : TINTA, strokeWidth: 2, fill: ultimo ? 'rgba(47,125,79,.18)' : 'rgba(27,36,112,.10)', fillStyle: 'hachure', hachureGap: 7, seed: 140 + k }))
+      })
+    } else if (r === 'cadena') {
       // Síntoma → causa → impacto → solución, de arriba hacia abajo.
       const hijos = [...el.children].map(caja)
       for (let k = 0; k + 1 < hijos.length; k++) {
@@ -331,7 +374,8 @@ export default function PizarraOnboarding({ id }) {
     }
   }, [id, rearmes])
 
-  const ancho = d?.negocios.length > 1 ? 1880 : 1280
+  // Apaisada, como una hoja de Miro: los carriles de cuellos de botella necesitan el ancho.
+  const ancho = 1880
 
   // Se dibuja una vez por pizarra (con las fuentes ya cargadas); el zoom es un transform y no redibuja.
   useLayoutEffect(() => {
@@ -490,10 +534,9 @@ export default function PizarraOnboarding({ id }) {
                 </div>
               ) : null}
             </header>
-            <div className={`pz-columnas${varios ? ' is-dos' : ''}`}>
-              {d.negocios[0] ? <Negocio n={d.negocios[0]} i={0} /> : null}
-              <Centro d={d} />
-              {d.negocios.slice(1).map((n, k) => <Negocio key={k} n={n} i={k + 1} />)}
+            <Franja d={d} />
+            <div className="pz-negocios">
+              {d.negocios.map((n, k) => <Negocio key={k} n={n} i={k} varios={varios} />)}
             </div>
           </div>
         </div>

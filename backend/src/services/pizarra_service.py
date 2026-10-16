@@ -29,7 +29,7 @@ from src.services.cerebro_onboarding import PREGUNTAS
 logger = logging.getLogger("pizarra")
 # Diagnosticar es juicio, no extracción: Haiku sirve para sacar datos pero acá erraba en la lectura.
 MODELO = config("PIZARRA_MODEL", default="claude-sonnet-5-5")
-VERSION = 2  # si cambia lo que se le pide a la IA, las pizarras viejas se rearman al abrirlas
+VERSION = 3  # si cambia lo que se le pide a la IA, las pizarras viejas se rearman al abrirlas
 
 _VACIAS = {"", "-", ".", "na", "n/a", "no aplica", "ninguno", "ninguna", "nada", "no"}
 # Cada medidor sale solo de sus preguntas; si están todas sin responder, se muestra como "no lo dijo".
@@ -72,6 +72,7 @@ Devolvé:
       "su_frase": {{"cita": "si el cliente nombró este problema con otras palabras y en realidad es un síntoma: su frase EXACTA", "p": "…"}} o null,
       "falta": "el dato que no está en el formulario y hace falta para confirmar este diagnóstico, para preguntar en la llamada" o null
    }}],
+   "embudo": [{{"etapa": "nombre corto de la etapa (leads, chats, agendas, asistieron, compraron…)", "valor": número tal como aparece en la respuesta, "p": "…"}}],
    "prioridad": {{"cuello": número del cuello que se ataca primero (1, 2…), "por_que": "por qué ese primero, en 2 líneas; si hay uno que bloquea a los demás, es ese"}},
    "decidir": ["3 a 5 preguntas concretas que Juan tiene que cerrar con el cliente en la llamada, escritas como preguntas accionables"],
    "freno": {{"cita": "fragmento EXACTO de su respuesta sobre su principal freno", "p": "30"}} o null,
@@ -86,6 +87,7 @@ Reglas:
 - cuellos: entre 2 y 4 por negocio. Cada síntoma necesita al menos una evidencia del formulario (cita exacta o dato con su "p"). Si no la hay, ese cuello no va.
 - La causa, el impacto y la solución son tu lectura de consultor: concretas, nada genérico ("mejorar el marketing" no sirve). No inventes números.
 - Las citas van copiadas tal cual, sin corregir ortografía. Una respuesta "NA" o vacía no es un dato.
+- embudo: solo si el formulario da los números de su proceso comercial (de 3 a 6 etapas, de la más grande a la más chica, del mismo período). Si no los da, lista vacía.
 - contexto: hasta 5. hoy: hasta 3. decidir: 3 a 5. alertas: 2 o 3 en total. termometro: uno por cada nombre, solo si el formulario lo dice.
 
 Formulario de {nombre} (programa {plan}):
@@ -146,6 +148,33 @@ def _dato(d, hechas: dict, n: int = 160) -> dict | None:
 
 def _lista(xs, hechas: dict, tope: int, n: int = 160) -> list[dict]:
     return [x for x in (_dato(d, hechas, n) for d in (xs or [])[: tope * 2] if isinstance(xs, list)) if x][:tope]
+
+
+def _num(v) -> float | None:
+    try:
+        return float(str(v).replace(".", "").replace(",", ".")) if isinstance(v, str) else float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _embudo(xs, hechas: dict) -> list[dict]:
+    """Las etapas de su proceso comercial con números. Cada número tiene que estar escrito en esa respuesta
+    y tienen que ir achicándose: un embudo que crece es un dato mal leído, y no se dibuja."""
+    etapas = []
+    for e in (xs or [])[:8] if isinstance(xs, list) else []:
+        if not isinstance(e, dict):
+            continue
+        p, valor, nombre = _p_valida(e.get("p"), hechas), _num(e.get("valor")), _corto(e.get("etapa"), 28)
+        if not (p and nombre and valor and valor > 0):
+            continue
+        cifra = str(int(valor)) if valor == int(valor) else str(valor)
+        texto = re.sub(r"(?<=\d)[.,](?=\d{3}\b)", "", hechas[p])  # 1.700 → 1700
+        if not re.search(rf"(?<!\d){re.escape(cifra)}(?!\d)", texto):
+            continue
+        etapas.append({"etapa": nombre, "valor": valor, "p": p})
+    if len(etapas) < 3 or any(b["valor"] > a["valor"] for a, b in zip(etapas, etapas[1:])):
+        return []
+    return etapas[:6]
 
 
 def _cuello(c, hechas: dict) -> dict | None:
@@ -212,6 +241,7 @@ def validar(crudo: dict | None, respuestas: dict) -> dict:
         preguntas = n.get("decidir") if isinstance(n.get("decidir"), list) else []
         decidir = [q for q in (_corto(x, 170) for x in preguntas[:6]) if q][:5]
         negocio = {
+            "embudo": _embudo(n.get("embudo"), hechas),
             "persona": _corto(n.get("persona"), 30) or "Cliente",
             "marca": _corto(n.get("marca"), 40),
             "rubro": _corto(n.get("rubro"), 50),

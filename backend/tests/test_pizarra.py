@@ -146,3 +146,15 @@ def test_sin_formulario_es_404():
     with pytest.raises(HTTPException) as e:
         ps.PizarraServices().ver({"usuario_id": 1, "rol": "coach"}, "00000000-0000-0000-0000-000000000000", llamar=lambda s, u: CRUDO)
     assert e.value.status_code == 404
+
+
+def test_embudo_solo_con_numeros_del_formulario_y_que_se_achiquen():
+    resp = {**RESP, "14": "Septiembre: 1.700 leads, 82 agendas, 53 asistieron y 23 compraron"}
+    bueno = [{"etapa": "Leads", "valor": 1700, "p": "14"}, {"etapa": "Agendas", "valor": 82, "p": "14"},
+             {"etapa": "Asistieron", "valor": 53, "p": "14"}, {"etapa": "Compraron", "valor": 23, "p": "14"}]
+    assert [e["valor"] for e in ps._embudo(bueno, ps.respondidas(resp))] == [1700, 82, 53, 23]
+    inventado = bueno[:3] + [{"etapa": "Compraron", "valor": 30, "p": "14"}]  # 30 no está escrito
+    assert [e["valor"] for e in ps._embudo(inventado, ps.respondidas(resp))] == [1700, 82, 53]
+    crece = [bueno[0], bueno[2], bueno[1]]
+    assert ps._embudo(crece, ps.respondidas(resp)) == []
+    assert ps._embudo(bueno[:2], ps.respondidas(resp)) == []  # con dos etapas no es un embudo
