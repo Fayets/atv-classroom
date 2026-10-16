@@ -103,12 +103,18 @@ export const ROLES_CANAL = [
 export const nombreRol = (id) => ROLES_CANAL.find((r) => r.id === id)?.nombre || id
 
 // Nombre de canal como en Discord: minúsculas, guiones, sin símbolos.
+// Igual que el servidor y que Discord hoy: minúsculas y guiones en vez de espacios, con emojis, tildes y
+// separadores ("🏠┊general"); solo se sacan los caracteres de control y # @ < > / \ ` (rompen menciones y links).
 export function slugCanal(nombre) {
-  return normal((nombre || '').trim())
+  const limpio = (nombre || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\u0000-\u001f\u007f]/g, '')
     .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9_-]+/g, '')
+    .replace(/[#@<>/\\`]+/g, '')
+    .replace(/-{2,}/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 60)
+  return Array.from(limpio).slice(0, 60).join('')
 }
 
 export const ES_EVERYONE = /@(everyone|todos)\b/i
