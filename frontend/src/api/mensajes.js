@@ -4,6 +4,11 @@ export function fetchHabilitada() {
   return request('/api/mensajes/habilitada')
 }
 
+/** El mensaje directo con otra persona del equipo (como un DM de Discord); se crea la primera vez. */
+export function abrirDirecto(adminId) {
+  return request('/api/mensajes/directos', { method: 'POST', body: JSON.stringify({ admin_id: adminId }) })
+}
+
 export function fetchCanales() {
   return request('/api/mensajes/canales')
 }

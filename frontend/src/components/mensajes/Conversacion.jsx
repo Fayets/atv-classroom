@@ -569,6 +569,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   const todos = [...mensajes, ...pendientes]
   const esPrivado = canal.tipo === 'cliente'
   const esGrupo = canal.tipo === 'grupo'
+  const esDirecto = canal.tipo === 'directo'
   // "Visto": hasta dónde leyó el otro lado, sobre mi último mensaje.
   const leidoPorElOtro = isEquipo ? datos.lecturas.cliente : datos.lecturas.equipo
   const miUltimo = [...mensajes].reverse().find((m) => claveAutor(m.autor) === yo)
@@ -602,13 +603,19 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
             ‹
           </button>
         ) : null}
-        <span className="msj-hash" aria-hidden="true">
-          #
-        </span>
+        {esDirecto ? (
+          <Avatar persona={{ tipo: 'equipo', nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={30} />
+        ) : (
+          <span className="msj-hash" aria-hidden="true">
+            #
+          </span>
+        )}
         <div className="msj-conv__titulo">
           <b>{canal.nombre}</b>
           <span>
-            {esPrivado
+            {esDirecto
+              ? 'Mensaje directo · solo lo ven ustedes dos'
+              : esPrivado
               ? isEquipo
                 ? `Canal privado de ${item?.cliente?.nombre || canal.nombre} con el equipo`
                 : 'Tu canal privado con el equipo de ATV'
@@ -626,10 +633,16 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
           </button>
         ) : (
           <div className="msj-inicio">
-            <span className="msj-inicio__hash">#</span>
-            <b>Este es el comienzo de #{canal.nombre}</b>
+            {esDirecto ? (
+              <Avatar persona={{ tipo: 'equipo', nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={56} />
+            ) : (
+              <span className="msj-inicio__hash">#</span>
+            )}
+            <b>{esDirecto ? `Este es el comienzo de tu conversación con ${canal.nombre}` : `Este es el comienzo de #${canal.nombre}`}</b>
             <span>
-              {esPrivado
+              {esDirecto
+                ? 'Solo lo ven ustedes dos: ni el resto del equipo ni los clientes.'
+                : esPrivado
                 ? isEquipo
                   ? 'Lo ven el cliente y todo el equipo de ATV.'
                   : 'Lo ven vos, tu equipo y el equipo de ATV. Escribí acá tus dudas, avances y entregables.'
@@ -881,7 +894,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                 onKeyDown={teclas}
                 onPaste={alPegar}
                 onClick={(e) => e.target.selectionStart !== texto.length && setFantasma(null)}
-                placeholder={fantasma ? '' : `Escribí en #${canal.nombre} · @ para etiquetar`}
+                placeholder={fantasma ? '' : esDirecto ? `Escribile a ${canal.nombre.split(' ')[0]}` : `Escribí en #${canal.nombre} · @ para etiquetar`}
                 maxLength={4000}
               />
             </div>

@@ -72,6 +72,16 @@ def roles(_sesion: dict = Depends(sesion_mensajes)):
     return [{"id": r["id"], "nombre": r["nombre"]} for r in ROLES]
 
 
+class Directo(BaseModel):
+    admin_id: int
+
+
+@router.post("/directos")
+def abrir_directo(body: Directo, sesion: dict = Depends(sesion_mensajes)):
+    """El mensaje directo con otra persona del equipo (se crea la primera vez)."""
+    return service.abrir_directo(sesion, body.admin_id)
+
+
 @router.post("/canales", status_code=201)
 async def crear_canal(body: CanalNuevo, sesion: dict = Depends(sesion_mensajes)):
     if body.tipo == "anuncios":

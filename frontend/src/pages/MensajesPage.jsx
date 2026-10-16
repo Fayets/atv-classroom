@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchSenas } from '../api/altas'
-import { fetchCanales, marcarInactivo } from '../api/mensajes'
+import { abrirDirecto, fetchCanales, fetchEquipoChat, marcarInactivo } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
@@ -427,6 +427,53 @@ export default function MensajesPage() {
   ) : null
   const sena = senas?.find((x) => x.id === senaActiva)
 
+  // Mensajes directos entre el equipo, como en Discord: cada persona con su punto de sin leer.
+  const [delEquipo, setDelEquipo] = useState([])
+  useEffect(() => {
+    if (isEquipo) fetchEquipoChat().then((l) => setDelEquipo(l || [])).catch(() => null)
+  }, [isEquipo])
+  const directos = (canales || []).filter((c) => c.tipo === 'directo')
+  const personas = delEquipo
+    .filter((m) => m.id !== user?.usuario_id)
+    .map((m) => ({ ...m, canal: directos.find((c) => c.con?.id === m.id) || null }))
+    .filter((m) => !buscar.trim() || m.nombre.toLowerCase().includes(buscar.trim().toLowerCase()))
+    .sort((x, y) => (y.canal?.ultimo?.creado_en || '').localeCompare(x.canal?.ultimo?.creado_en || '') || x.nombre.localeCompare(y.nombre))
+  async function abrirCon(persona) {
+    if (persona.canal) return abrir(persona.canal.id)
+    try {
+      const d = await abrirDirecto(persona.id)
+      cargar()
+      abrir(d.id)
+    } catch (err) {
+      setError(err.message || 'No se pudo abrir el mensaje directo.')
+    }
+  }
+  const seccionDirectos =
+    isEquipo && personas.length ? (
+      <section className="msj-grupo msj-directos" aria-label="Mensajes directos">
+        <div className="msj-grupo__titulo is-abierto is-fijo">
+          <span>Mensajes directos</span>
+        </div>
+        {personas.map((p) => {
+          const nuevo = p.canal && p.canal.no_leidos > 0 && p.canal.id !== activo
+          return (
+            <button
+              key={p.id}
+              type="button"
+              className={`msj-fila msj-fila--persona${p.canal && p.canal.id === activo ? ' is-activo' : ''}${nuevo ? ' is-nuevo' : ''}`}
+              onClick={() => abrirCon(p)}
+              title={p.canal?.ultimo ? `${p.canal.ultimo.autor_nombre}: ${p.canal.ultimo.texto}` : `Escribile a ${p.nombre}`}
+            >
+              {nuevo ? <i className="msj-fila__punto" aria-label="Mensajes sin leer" /> : null}
+              <Avatar persona={{ tipo: 'equipo', nombre: p.nombre, foto_url: p.foto_url }} size={20} />
+              <span className="msj-fila__nombre">{p.nombre}</span>
+              {p.canal && escriben[p.canal.id] ? <span className="msj-fila__escribe" aria-label={`${p.nombre} está escribiendo`}><i /><i /><i /></span> : null}
+            </button>
+          )
+        })}
+      </section>
+    ) : null
+
   // Canales grupales (y anuncios), arriba de todo como en Discord. El equipo los crea con el +.
   const seccionCanales =
     canales && (isEquipo || canalesGrupo.length) ? (
@@ -485,6 +532,7 @@ export default function MensajesPage() {
           {!canales ? <p className="msj-vacio">Cargando…</p> : null}
 
           {seccionCanales}
+          {seccionDirectos}
 
           {isEquipo
             ? grupos.flatMap((g) => (g.id === 'inactivos' ? [seccionSenas, grupoDe(g)] : [grupoDe(g)]))

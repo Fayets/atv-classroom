@@ -792,3 +792,7 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmi-nota p { margin: 0; }
 .rmi-nota__de { display: flex; align-items: center; gap: 8px; margin: 0 0 10px !important; font-weight: 600; color: #1f2328; }
 .rmi-nota__de i { width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, #8a63ff, #c0392b); }
+
+/* Mensajes directos entre el equipo (como en Discord): la persona con su foto chica */
+.msj-fila--persona { gap: 9px; }
+.msj-fila--persona .msj-av { flex: none; }

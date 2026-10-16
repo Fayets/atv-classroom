@@ -28,6 +28,9 @@ def puede_ver(sesion: dict, canal: dict) -> bool:
     chats de clientes (como el admin) y los grupos del equipo, los que creó él o donde lo etiquetaron;
     el cliente, su canal y los grupos de su rol. Los anuncios los ven todos."""
     rol = sesion.get("rol")
+    if canal["tipo"] == "directo":
+        # Un mensaje directo lo ven solo sus dos participantes: ni siquiera un admin.
+        return rol in ("admin", "coach") and not sesion.get("miembro_id") and sesion.get("usuario_id") in (canal.get("participantes") or [])
     if rol == "admin":
         return True
     if sesion.get("miembro_id"):

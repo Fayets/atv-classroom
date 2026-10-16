@@ -77,8 +77,18 @@ def _roles_de(canal: Canal) -> list[str]:
         return []
 
 
+def _participantes(canal: Canal) -> list[int]:
+    try:
+        return [int(x) for x in json.loads(canal.participantes_json or "[]")]
+    except (ValueError, TypeError):
+        return []
+
+
 def _info(canal: Canal) -> dict:
-    return {"id": canal.id, "tipo": canal.tipo, "cliente_id": canal.cliente_id, "roles": _roles_de(canal), "creado_por": canal.creado_por}
+    return {
+        "id": canal.id, "tipo": canal.tipo, "cliente_id": canal.cliente_id, "roles": _roles_de(canal), "creado_por": canal.creado_por,
+        "participantes": _participantes(canal) if canal.tipo == "directo" else None,
+    }
 
 
 _EVERYONE = re.compile(r"@(everyone|todos)\b", re.I)
@@ -91,7 +101,8 @@ def _equipo_que_ve(canal: Canal, autor_id: int) -> set[int]:
     for a in list(Admin.select()):
         if not a.activo or a.id == autor_id:
             continue
-        if a.rol == "admin" or _ve({"rol": "coach", "usuario_id": a.id}, info):
+        # Con la sesión de cada uno: en un mensaje directo, ni un admin que no participa lo recibe.
+        if _ve({"rol": a.rol or "admin", "usuario_id": a.id}, info):
             ids.add(a.id)
     return ids
 
@@ -386,10 +397,18 @@ class MensajeriaServices:
                 for c in ClienteExterno.select()[:]:
                     clientes[c.id] = c
 
+            # Con quién es cada mensaje directo (nombre y foto de la otra persona).
+            del_equipo = {m["id"]: m for m in equipo_para_mencionar()} if equipo else {}
             items = []
             for canal in Canal.select()[:]:
                 if not _ve(sesion, _info(canal)):
                     continue
+                otro = None
+                if canal.tipo == "directo":
+                    otro_id = next((i for i in _participantes(canal) if i != sesion["usuario_id"]), None)
+                    otro = del_equipo.get(otro_id)
+                    if otro is None:
+                        continue  # la otra persona ya no está en el equipo
                 cliente = clientes.get(canal.cliente_id) if canal.cliente_id else None
                 if equipo and canal.tipo == "cliente" and (cliente is None or not _tiene_acceso(cliente)):
                     continue  # clientes vencidos fuera de la bandeja
@@ -401,7 +420,8 @@ class MensajeriaServices:
                     {
                         "id": canal.id,
                         "tipo": canal.tipo,
-                        "nombre": canal.nombre,
+                        "nombre": otro["nombre"] if otro else canal.nombre,
+                        "con": otro,
                         "descripcion": canal.descripcion,
                         "cliente": {
                             "id": cliente.id,
@@ -439,7 +459,10 @@ class MensajeriaServices:
         # Sin novedades: lo más reciente arriba y, entre los que no tienen mensajes, por nombre.
         resto.sort(key=lambda c: c["nombre"].lower())
         resto.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
-        return anuncios + esperando + resto
+        # Mensajes directos: el último con movimiento arriba, como en Discord.
+        directos = [c for c in items if c["tipo"] == "directo"]
+        directos.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
+        return anuncios + directos + esperando + resto
 
     def mensajes(self, sesion: dict, canal_id: int, antes_de: int | None = None, despues_de: int | None = None) -> dict:
         # SQL directo: Pony no puede descompilar lambdas en Python 3.13.
@@ -615,6 +638,26 @@ class MensajeriaServices:
             if c["esperando_desde"]:
                 esperando += 1
         return {"no_leidos": total, "esperando": esperando if es_equipo(sesion) else 0}
+
+    def abrir_directo(self, sesion: dict, admin_id: int) -> dict:
+        """El mensaje directo con otra persona del equipo, como un DM de Discord: si no existe, se crea.
+        Lo ven solo ellos dos (ver puede_ver)."""
+        if not es_equipo(sesion) or sesion.get("miembro_id"):
+            raise HTTPException(status_code=403, detail="Los mensajes directos son entre el equipo.")
+        yo = sesion["usuario_id"]
+        if admin_id == yo:
+            raise HTTPException(status_code=422, detail="Elegí a otra persona del equipo.")
+        with db_session:
+            otro = Admin.get(id=admin_id)
+            if otro is None or not otro.activo or getattr(otro, "borrado", False):
+                raise HTTPException(status_code=404, detail="No existe esa persona en el equipo.")
+            a, b = sorted((yo, admin_id))
+            clave = f"dm:{a}:{b}"
+            canal = Canal.get(tipo="directo", nombre=clave)
+            if canal is None:
+                canal = Canal(tipo="directo", nombre=clave, participantes_json=json.dumps([a, b]), creado_por=yo)
+                canal.flush()
+            return {"id": canal.id, "tipo": "directo", "con": admin_id}
 
     def crear_canal_grupo(self, sesion: dict, nombre: str, descripcion: str | None, roles: list[str] | None) -> dict:
         """Cualquiera del equipo crea un canal grupal, como en Discord: nombre y roles que lo ven."""
