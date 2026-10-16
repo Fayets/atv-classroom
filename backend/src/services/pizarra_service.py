@@ -1,9 +1,12 @@
-"""Pizarra del onboarding: el formulario de 49 preguntas convertido en un tablero a lápiz para el coach
-que va a tener el 1 a 1 (qué vende, qué tiene a favor, su freno, a dónde quiere llegar, qué espera de ATV).
+"""Pizarra del onboarding: el formulario de 49 preguntas convertido en un diagnóstico a lápiz para el coach
+que va a tener el 1 a 1. No es un resumen: por cada cuello de botella del negocio muestra el síntoma (con
+la evidencia del formulario), la causa raíz, lo que le cuesta y cómo se resuelve; cuál se ataca primero y
+qué hay que decidir en la llamada. El framework lo propuso Jeremy (la IA de Juan) el 16-10-2026.
 
-La IA solo saca datos, cada uno con el número de la pregunta de donde sale. El código descarta lo que no
-se pueda comprobar (citas que no están tal cual, datos que apuntan a preguntas sin responder) y arma lo que
-se lee directo del formulario sin IA: las preguntas sin responder, los problemas marcados y cómo llegó.
+Hechos e interpretación van separados. Los hechos llevan el número de la pregunta de donde salen y el
+código descarta lo que no se puede comprobar (citas que no están tal cual, preguntas sin responder): un
+cuello de botella sin evidencia en el formulario no se dibuja. La causa, el impacto y la solución son la
+lectura del consultor y así se muestran. Lo que se lee directo del formulario sale sin IA.
 """
 
 import json
@@ -24,8 +27,9 @@ from src.services.auth_service import es_equipo
 from src.services.cerebro_onboarding import PREGUNTAS
 
 logger = logging.getLogger("pizarra")
-MODELO = config("PIZARRA_MODEL", default="claude-haiku-5-5")
-VERSION = 1  # si cambia lo que se le pide a la IA, las pizarras viejas se rearman al abrirlas
+# Diagnosticar es juicio, no extracción: Haiku sirve para sacar datos pero acá erraba en la lectura.
+MODELO = config("PIZARRA_MODEL", default="claude-sonnet-5-5")
+VERSION = 2  # si cambia lo que se le pide a la IA, las pizarras viejas se rearman al abrirlas
 
 _VACIAS = {"", "-", ".", "na", "n/a", "no aplica", "ninguno", "ninguna", "nada", "no"}
 # Cada medidor sale solo de sus preguntas; si están todas sin responder, se muestra como "no lo dijo".
@@ -40,10 +44,14 @@ TERMOMETRO = {
 PREGUNTAS_ESPERAN = {"41", "46", "49"}
 ESTADOS = ("nada", "algo", "listo")  # más "sin_dato", que lo pone el código
 
-_SISTEMA = """Leés el formulario de onboarding de un cliente de ATV (mentoría para creadores y expertos que venden
-infoproductos y servicios) para que el coach que lo atiende en la primera llamada entienda rápido su negocio.
-Respondés solo con JSON válido. No opinás ni aconsejás: solo ordenás lo que el cliente escribió.
-Cada dato lleva "p": el número de la pregunta de donde sale. Si algo no está en el formulario, no va."""
+_SISTEMA = """Sos consultor de ATV (mentoría high ticket para creadores, coaches, consultores y agencias que venden
+infoproductos y servicios). Leés el formulario de onboarding de un cliente antes de su llamada 1 a 1 con Juan.
+No resumís el formulario: lo diagnosticás. Buscás los cuellos de botella reales del negocio cruzando todas las
+respuestas, no solo lo que el cliente dice que le pasa. El cuello de botella casi nunca es lo que el cliente
+nombra: profundizá hasta la causa estructural.
+Respondés solo con JSON válido. Usás solo información del formulario: no inventás números. Todo dato o cita
+lleva "p": el número de la pregunta de donde sale; las citas van copiadas tal cual. Tono directo, de
+consultor, sin adornos."""
 
 _PEDIDO = """Si el formulario habla de más de un negocio (por ejemplo, una pareja que responde "Oscar / … Lina / …"),
 separalos: un elemento de "negocios" por cada uno. Si es uno solo, un único elemento.
@@ -52,24 +60,33 @@ Devolvé:
 {{"negocios": [{{
    "persona": "nombre de pila de quien lleva ese negocio",
    "marca": "nombre del negocio o de su método, si lo dio" o null,
-   "rubro": "a qué se dedica, en 2 a 5 palabras",
+   "rubro": "nicho, en 2 a 5 palabras",
    "que_vende": {{"texto": "qué vende, en una línea", "p": "5"}},
-   "activos": [{{"texto": "lo que ya tiene a favor: experiencia, audiencia, logros. Con el número si lo dio", "p": "…"}}],
-   "oferta": [{{"nombre": "nombre corto de cada producto o nivel", "precio": "el precio como lo escribió" o null, "definido": true o false, "para": "para quién es, corto" o null, "p": "8"}}],
-   "metodo": {{"nombre": "…", "etapas": ["2 a 3 palabras cada una"], "p": "…"}} o null,
+   "contexto": [{{"texto": "un dato duro por renglón: quién es, de dónde viene, en qué etapa está hoy, a dónde quiere llegar y en cuánto tiempo", "p": "…"}}],
+   "cuellos": [{{
+      "titulo": "el cuello de botella en 2 a 6 palabras",
+      "sintoma": {{"texto": "qué se está viendo, en una frase", "evidencia": [{{"cita": "fragmento EXACTO de una respuesta" o null, "dato": "un dato con número del formulario" o null, "p": "…"}}]}},
+      "causa": "por qué pasa realmente; puede ser distinto a lo que el cliente cree. 1 o 2 frases",
+      "impacto": "qué le está costando al negocio: plata, tiempo o dependencia. 1 frase",
+      "solucion": "cómo se resuelve, accionable. 1 o 2 frases",
+      "su_frase": {{"cita": "si el cliente nombró este problema con otras palabras y en realidad es un síntoma: su frase EXACTA", "p": "…"}} o null,
+      "falta": "el dato que no está en el formulario y hace falta para confirmar este diagnóstico, para preguntar en la llamada" o null
+   }}],
+   "prioridad": {{"cuello": número del cuello que se ataca primero (1, 2…), "por_que": "por qué ese primero, en 2 líneas; si hay uno que bloquea a los demás, es ese"}},
+   "decidir": ["3 a 5 preguntas concretas que Juan tiene que cerrar con el cliente en la llamada, escritas como preguntas accionables"],
    "freno": {{"cita": "fragmento EXACTO de su respuesta sobre su principal freno", "p": "30"}} o null,
-   "hoy": [{{"texto": "dónde está hoy, un dato por renglón", "p": "…"}}],
-   "meta": {{"titular": "lo más concreto de su objetivo a 4 meses en 2 a 5 palabras, con el número si lo dio", "detalle": ["hasta 4 renglones"], "p": "31"}} o null
+   "hoy": [{{"texto": "dónde está hoy, con números si los dio", "p": "…"}}],
+   "meta": {{"titular": "su objetivo a 4 meses en 2 a 5 palabras, con el número si lo dio", "detalle": ["hasta 3 renglones"], "p": "31"}} o null
  }}],
  "termometro": [{{"nombre": uno de {termometro}, "estado": "nada" | "algo" | "listo", "nota": "hasta 5 palabras", "p": "…"}}],
- "esperan": [{{"texto": "qué espera de ATV, con sus palabras (solo de las preguntas 41, 46 y 49)", "p": "…"}}],
- "citas": [{{"cita": "frase EXACTA y reveladora de lo que escribió, distinta de su freno (mejor si es de por qué compró o qué le costó entender)", "quien": "nombre", "contexto": "de qué hablaba, 2 a 5 palabras", "p": "…"}}]}}
+ "alertas": [{{"texto": "un riesgo que Juan no puede dejar pasar: dependencia de una sola persona o plataforma, métricas que no existen, promesas sin datos. Una frase corta", "p": "…" o null}}]}}
 
 Reglas:
 - Todo es sobre el CLIENTE de ATV (el dueño del negocio), NO sobre su avatar ni sus clientes.
-- Las citas van copiadas tal cual, sin corregir ortografía. Si no hay una frase exacta, no pongas la cita.
-- Una respuesta "NA" o vacía no es un dato: no la uses.
-- activos: hasta 4. oferta: hasta 4. hoy: hasta 3. esperan: hasta 3. citas: hasta 2. termometro: uno por cada nombre, solo si el formulario lo dice.
+- cuellos: entre 2 y 4 por negocio. Cada síntoma necesita al menos una evidencia del formulario (cita exacta o dato con su "p"). Si no la hay, ese cuello no va.
+- La causa, el impacto y la solución son tu lectura de consultor: concretas, nada genérico ("mejorar el marketing" no sirve). No inventes números.
+- Las citas van copiadas tal cual, sin corregir ortografía. Una respuesta "NA" o vacía no es un dato.
+- contexto: hasta 5. hoy: hasta 3. decidir: 3 a 5. alertas: 2 o 3 en total. termometro: uno por cada nombre, solo si el formulario lo dice.
 
 Formulario de {nombre} (programa {plan}):
 {respuestas}"""
@@ -131,6 +148,36 @@ def _lista(xs, hechas: dict, tope: int, n: int = 160) -> list[dict]:
     return [x for x in (_dato(d, hechas, n) for d in (xs or [])[: tope * 2] if isinstance(xs, list)) if x][:tope]
 
 
+def _cuello(c, hechas: dict) -> dict | None:
+    """Un cuello de botella entra solo si su síntoma tiene evidencia que se puede comprobar en el formulario."""
+    if not isinstance(c, dict):
+        return None
+    sintoma = c.get("sintoma") if isinstance(c.get("sintoma"), dict) else {}
+    evidencia = []
+    for e in (sintoma.get("evidencia") or [])[:5] if isinstance(sintoma.get("evidencia"), list) else []:
+        if not isinstance(e, dict):
+            continue
+        p = _p_valida(e.get("p"), hechas)
+        if not p:
+            continue
+        cita = _cita_valida(e.get("cita"), p, hechas) if e.get("cita") else None
+        dato = _corto(e.get("dato"), 120)
+        if cita or dato:
+            evidencia.append({"cita": cita, "dato": None if cita else dato, "p": p})
+    titulo, texto = _corto(c.get("titulo"), 60), _corto(sintoma.get("texto"), 180)
+    causa, solucion = _corto(c.get("causa"), 260), _corto(c.get("solucion"), 260)
+    if not (titulo and texto and causa and solucion and evidencia):
+        return None
+    su_frase = c.get("su_frase") if isinstance(c.get("su_frase"), dict) else None
+    if su_frase:
+        p = _p_valida(su_frase.get("p"), hechas)
+        cita = _cita_valida(su_frase.get("cita"), p, hechas)
+        su_frase = {"cita": cita, "p": p} if p and cita else None
+    return {"titulo": titulo, "sintoma": {"texto": texto, "evidencia": evidencia[:3]}, "causa": causa,
+            "impacto": _corto(c.get("impacto"), 200), "solucion": solucion, "su_frase": su_frase,
+            "falta": _corto(c.get("falta"), 140)}
+
+
 def validar(crudo: dict | None, respuestas: dict) -> dict:
     """Lo que dijo la IA pasa por el código: sin número de pregunta respondida o sin cita literal, no entra."""
     hechas = respondidas(respuestas)
@@ -139,17 +186,6 @@ def validar(crudo: dict | None, respuestas: dict) -> dict:
     for n in (crudo.get("negocios") or [])[:3]:
         if not isinstance(n, dict):
             continue
-        oferta = []
-        for o in (n.get("oferta") or [])[:4]:
-            p = _p_valida((o or {}).get("p"), hechas) if isinstance(o, dict) else None
-            if p and _corto(o.get("nombre"), 40):
-                oferta.append({"nombre": _corto(o["nombre"], 40), "precio": _corto(o.get("precio"), 40),
-                               "definido": bool(o.get("definido")), "para": _corto(o.get("para"), 90), "p": p})
-        metodo = n.get("metodo") if isinstance(n.get("metodo"), dict) else None
-        if metodo:
-            p = _p_valida(metodo.get("p"), hechas)
-            etapas = [e for e in (_corto(x, 30) for x in (metodo.get("etapas") or [])[:6]) if e]
-            metodo = {"nombre": _corto(metodo.get("nombre"), 40), "etapas": etapas, "p": p} if p and len(etapas) >= 2 else None
         freno = n.get("freno") if isinstance(n.get("freno"), dict) else None
         if freno:
             p = _p_valida(freno.get("p"), hechas)
@@ -160,19 +196,35 @@ def validar(crudo: dict | None, respuestas: dict) -> dict:
             p = _p_valida(meta.get("p"), hechas)
             detalle = [d for d in (_corto(x, 110) for x in (meta.get("detalle") or [])[:4]) if d]
             meta = {"titular": _corto(meta.get("titular"), 40), "detalle": detalle, "p": p} if p and _corto(meta.get("titular"), 40) else None
+        cuellos, mapa = [], {}
+        for k, c in enumerate((n.get("cuellos") or [])[:6] if isinstance(n.get("cuellos"), list) else []):
+            c = _cuello(c, hechas)
+            if c and len(cuellos) < 4:
+                mapa[k + 1] = len(cuellos) + 1
+                cuellos.append(c)
+        prioridad = n.get("prioridad") if isinstance(n.get("prioridad"), dict) else None
+        if prioridad:
+            try:
+                cual = mapa.get(int(prioridad.get("cuello")))
+            except (TypeError, ValueError):
+                cual = None
+            prioridad = {"cuello": cual, "por_que": _corto(prioridad.get("por_que"), 260)} if cual and _corto(prioridad.get("por_que"), 260) else None
+        preguntas = n.get("decidir") if isinstance(n.get("decidir"), list) else []
+        decidir = [q for q in (_corto(x, 170) for x in preguntas[:6]) if q][:5]
         negocio = {
             "persona": _corto(n.get("persona"), 30) or "Cliente",
             "marca": _corto(n.get("marca"), 40),
             "rubro": _corto(n.get("rubro"), 50),
             "que_vende": _dato(n.get("que_vende"), hechas, 200),
-            "activos": _lista(n.get("activos"), hechas, 4),
-            "oferta": oferta,
-            "metodo": metodo,
+            "contexto": _lista(n.get("contexto"), hechas, 5, 130),
+            "cuellos": cuellos,
+            "prioridad": prioridad,
+            "decidir": decidir,
             "freno": freno,
             "hoy": _lista(n.get("hoy"), hechas, 3, 90),
             "meta": meta,
         }
-        if negocio["que_vende"] or negocio["activos"] or negocio["oferta"]:
+        if negocio["que_vende"] or negocio["cuellos"] or negocio["contexto"]:
             negocios.append(negocio)
 
     termometro = {}
@@ -197,9 +249,20 @@ def validar(crudo: dict | None, respuestas: dict) -> dict:
         if p and cita and not repetida and all(_norm(cita) != _norm(x["cita"]) for x in citas):
             citas.append({"cita": cita, "quien": _corto(c.get("quien"), 30), "contexto": _corto(c.get("contexto"), 50), "p": p})
 
+    alertas = []
+    for a in (crudo.get("alertas") or [])[:5] if isinstance(crudo.get("alertas"), list) else []:
+        if not isinstance(a, dict) or not _corto(a.get("texto"), 150):
+            continue
+        # Con número de pregunta, tiene que ser una respondida; sin número, es algo que falta.
+        p = _p_valida(a.get("p"), hechas) if a.get("p") else None
+        if a.get("p") and not p:
+            continue
+        alertas.append({"texto": _corto(a.get("texto"), 150), "p": p})
+
     return {
         "negocios": negocios,
         "termometro": [termometro[n] for n in TERMOMETRO if n in termometro],
+        "alertas": alertas[:3],
         "esperan": [e for e in _lista(crudo.get("esperan"), hechas, 6) if e["p"] in PREGUNTAS_ESPERAN][:3],
         "citas": citas[:2],
     }
@@ -224,9 +287,14 @@ def del_formulario(respuestas: dict) -> dict:
 def _llamar(sistema: str, usuario: str) -> dict | None:
     from anthropic import Anthropic
 
-    r = Anthropic(api_key=config("ANTHROPIC_API_KEY", default=""), timeout=90).messages.create(
-        model=MODELO, max_tokens=4000, thinking={"type": "disabled"}, system=sistema, messages=[{"role": "user", "content": usuario}],
-    )
+    # Con pensamiento, el razonamiento sale del mismo tope de tokens: con 12.000 se lo comía entero y el JSON
+    # quedaba cortado. Se pide holgado y por streaming, que es lo que el SDK exige para respuestas largas.
+    with Anthropic(api_key=config("ANTHROPIC_API_KEY", default=""), timeout=600).messages.stream(
+        model=MODELO, max_tokens=32000, thinking={"type": "adaptive"}, system=sistema, messages=[{"role": "user", "content": usuario}],
+    ) as flujo:
+        r = flujo.get_final_message()
+    if r.stop_reason == "max_tokens":
+        logger.warning("Pizarra: la respuesta se cortó por largo (%s tokens)", getattr(r.usage, "output_tokens", "?"))
     try:
         gasto_ia.registrar("pizarra", r.usage)
     except Exception:
@@ -246,12 +314,18 @@ def armar(nombre: str, plan: str | None, respuestas: dict, llamar=_llamar) -> di
 
 _FORM = """SELECT s.client_name, s.plan, f.form_data, f.submitted_at FROM onboarding.sessions s
 JOIN onboarding.forms f ON f.session_id = s.id WHERE s.id::text = $sid ORDER BY f.submitted_at DESC NULLS LAST LIMIT 1"""
-_armando: dict[str, threading.Lock] = {}
 _candado = threading.Lock()
 
 
+_en_curso: dict[str, dict] = {}   # session_id -> {"desde": datetime, "error": str | None}
+
+
 class PizarraServices:
-    def ver(self, sesion: dict, session_id: str, rearmar: bool = False, llamar=_llamar) -> dict:
+    """El diagnóstico tarda alrededor de dos minutos (el modelo piensa antes de escribir), más de lo que
+    aguanta el proxy. Por eso se arma en segundo plano: el primer pedido lo lanza y contesta "armando", y la
+    pantalla vuelve a preguntar hasta que está."""
+
+    def ver(self, sesion: dict, session_id: str, rearmar: bool = False, llamar=_llamar, esperar: bool = False) -> dict:
         if not es_equipo(sesion):
             raise HTTPException(status_code=403, detail="Solo para el equipo.")
         if rearmar and sesion.get("rol") != "admin":
@@ -263,26 +337,55 @@ class PizarraServices:
         nombre, plan, respuestas, enviado = filas[0]
         if isinstance(respuestas, str):
             respuestas = json.loads(respuestas)
-        # Una sola armada a la vez por onboarding: si dos la abren juntos, el segundo espera y la lee.
         with _candado:
-            lock = _armando.setdefault(session_id, threading.Lock())
-        with lock:
+            curso = _en_curso.get(session_id)
+        if curso and not curso.get("error") and not esperar:
+            # Se está armando (o rearmando): hasta que termine no se muestra la vieja.
+            return {"estado": "armando", "desde": curso["desde"].isoformat() + "Z"}
+        if not rearmar:
             with db_session:
                 guardada = PizarraOnboarding.get(session_id=session_id)
-                if guardada and not rearmar and guardada.respondido_en == enviado:
+                if guardada and guardada.respondido_en == enviado:
                     datos = json.loads(guardada.datos_json)
                     if datos.get("version") == VERSION:
                         return {**datos, "armada_en": guardada.creado_en.isoformat() + "Z"}
-            try:
-                datos = armar(nombre or "Cliente", plan, respuestas or {}, llamar=llamar)
-            except Exception:
-                logger.exception("Pizarra: no se pudo armar la del onboarding %s", session_id)
-                raise HTTPException(status_code=502, detail="No se pudo dibujar la pizarra. Probá de nuevo en un rato.")
-            ahora = datetime.utcnow()
-            with db_session:
-                guardada = PizarraOnboarding.get(session_id=session_id)
-                if guardada is None:
-                    guardada = PizarraOnboarding(session_id=session_id, datos_json="{}")
-                guardada.datos_json = json.dumps(datos, ensure_ascii=False)
-                guardada.respondido_en, guardada.modelo, guardada.creado_en = enviado, MODELO, ahora
-            return {**datos, "armada_en": ahora.isoformat() + "Z"}
+        if esperar:
+            return self._armar(session_id, nombre, plan, respuestas, enviado, llamar)
+        with _candado:
+            curso = _en_curso.get(session_id)
+            if curso and curso.get("error") and not rearmar:
+                error = curso.pop("error")
+                _en_curso.pop(session_id, None)
+                raise HTTPException(status_code=502, detail=error)
+            if not curso:
+                _en_curso[session_id] = {"desde": datetime.utcnow(), "error": None}
+                threading.Thread(target=self._en_fondo, args=(session_id, nombre, plan, respuestas, enviado, llamar),
+                                 daemon=True, name=f"pizarra-{session_id[:8]}").start()
+            desde = _en_curso[session_id]["desde"]
+        return {"estado": "armando", "desde": desde.isoformat() + "Z"}
+
+    def _en_fondo(self, session_id, nombre, plan, respuestas, enviado, llamar):
+        try:
+            self._armar(session_id, nombre, plan, respuestas, enviado, llamar)
+            with _candado:
+                _en_curso.pop(session_id, None)
+        except HTTPException as e:
+            with _candado:
+                _en_curso[session_id] = {"desde": datetime.utcnow(), "error": e.detail}
+
+    def _armar(self, session_id, nombre, plan, respuestas, enviado, llamar) -> dict:
+        try:
+            datos = armar(nombre or "Cliente", plan, respuestas or {}, llamar=llamar)
+        except Exception:
+            logger.exception("Pizarra: no se pudo armar la del onboarding %s", session_id)
+            raise HTTPException(status_code=502, detail="No se pudo dibujar la pizarra. Probá de nuevo en un rato.")
+        if not datos.get("negocios"):
+            raise HTTPException(status_code=502, detail="La IA no devolvió un diagnóstico que se pueda comprobar. Probá «Volver a dibujar».")
+        ahora = datetime.utcnow()
+        with db_session:
+            guardada = PizarraOnboarding.get(session_id=session_id)
+            if guardada is None:
+                guardada = PizarraOnboarding(session_id=session_id, datos_json="{}")
+            guardada.datos_json = json.dumps(datos, ensure_ascii=False)
+            guardada.respondido_en, guardada.modelo, guardada.creado_en = enviado, MODELO, ahora
+        return {**datos, "armada_en": ahora.isoformat() + "Z"}

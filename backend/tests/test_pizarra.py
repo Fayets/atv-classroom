@@ -25,9 +25,18 @@ CRUDO = {
     "negocios": [{
         "persona": "Oscar", "marca": "ASSENSUS", "rubro": "closing",
         "que_vende": {"texto": "Entrenamiento de closers", "p": "5"},
-        "activos": [{"texto": "800 contactos en LinkedIn", "p": "9"}, {"texto": "inventado", "p": "10"}, {"texto": "sin pregunta"}],
-        "oferta": [{"nombre": "Low ticket", "precio": "200 o 300", "definido": False, "p": "8"}],
-        "metodo": {"nombre": "X", "etapas": ["una"], "p": "5"},
+        "contexto": [{"texto": "800 contactos en LinkedIn", "p": "9"}, {"texto": "inventado", "p": "10"}, {"texto": "sin pregunta"}],
+        "cuellos": [
+            {"titulo": "Sin evidencia", "sintoma": {"texto": "algo", "evidencia": [{"cita": "una frase que nunca escribió", "p": "9"}]},
+             "causa": "x", "solucion": "y"},
+            {"titulo": "Oferta sin precio", "sintoma": {"texto": "No tiene precio definido", "evidencia": [
+                {"cita": "200 o 300 (no definido)", "p": "8"}, {"dato": "de una pregunta NA", "p": "10"}]},
+             "causa": "No validó la oferta con clientes", "impacto": "No puede vender", "solucion": "Definir un precio y venderlo a 5",
+             "su_frase": {"cita": "Falta de saber por donde empezar", "p": "30"}, "falta": "¿Cuánto cobra hoy?"},
+            {"titulo": "Sin causa", "sintoma": {"texto": "z", "evidencia": [{"dato": "800 contactos", "p": "9"}]}, "solucion": "y"},
+        ],
+        "prioridad": {"cuello": 2, "por_que": "Sin precio no hay nada que vender"},
+        "decidir": ["¿Qué precio vas a cobrar?", "", "¿A quién le vendés primero?"],
         "freno": {"cita": "Falta de saber por donde empezar", "p": "30"},
         "hoy": [{"texto": "Sin contenido", "p": "P9"}],
         "meta": None,
@@ -37,6 +46,7 @@ CRUDO = {
         {"nombre": "Proceso de ventas", "estado": "algo", "nota": "de otra pregunta", "p": "5"},
         {"nombre": "Inventado", "estado": "listo", "p": "5"},
     ],
+    "alertas": [{"texto": "Depende solo de LinkedIn", "p": "9"}, {"texto": "No mide nada", "p": None}, {"texto": "Inventada", "p": "10"}],
     "esperan": [{"texto": "No frenaron", "p": "41"}, {"texto": "Su meta", "p": "31"}],
     "citas": [
         {"cita": "Que no frenaron cuando dije que estaba desde 0", "quien": "Oscar", "p": "41"},
@@ -49,8 +59,14 @@ CRUDO = {
 def test_validar_descarta_lo_que_no_se_puede_comprobar():
     d = ps.validar(CRUDO, RESP)
     n = d["negocios"][0]
-    assert [a["texto"] for a in n["activos"]] == ["800 contactos en LinkedIn"]  # la de una pregunta "NA" y la sin pregunta no
-    assert n["metodo"] is None  # una sola etapa no es un método
+    assert [a["texto"] for a in n["contexto"]] == ["800 contactos en LinkedIn"]  # la de una pregunta "NA" y la sin pregunta no
+    # Solo queda el cuello con evidencia comprobable y causa + solución; su evidencia de una pregunta NA se cae.
+    assert [c["titulo"] for c in n["cuellos"]] == ["Oferta sin precio"]
+    c = n["cuellos"][0]
+    assert c["sintoma"]["evidencia"] == [{"cita": "200 o 300 (no definido)", "dato": None, "p": "8"}]
+    assert c["su_frase"]["cita"] == "Falta de saber por donde empezar" and c["falta"] == "¿Cuánto cobra hoy?"
+    assert n["prioridad"] == {"cuello": 1, "por_que": "Sin precio no hay nada que vender"}  # el 2 de la IA es el 1 que quedó
+    assert n["decidir"] == ["¿Qué precio vas a cobrar?", "¿A quién le vendés primero?"]
     assert n["freno"]["cita"] == "Falta de saber por donde empezar"
     assert n["hoy"] == [{"texto": "Sin contenido", "p": "9"}]  # "P9" se normaliza
     termo = {t["nombre"]: t for t in d["termometro"]}
@@ -58,13 +74,21 @@ def test_validar_descarta_lo_que_no_se_puede_comprobar():
     assert termo["Proceso de ventas"]["estado"] == "sin_dato"  # la IA lo sacó de otra pregunta: no vale
     assert termo["Equipo"]["estado"] == "sin_dato"
     assert "Inventado" not in termo
-    assert [e["texto"] for e in d["esperan"]] == ["No frenaron"]  # la meta (P31) no es lo que espera de ATV
-    assert [c["cita"] for c in d["citas"]] == ["Que no frenaron cuando dije que estaba desde 0"]  # ni inventada ni el freno repetido
+    assert [a["texto"] for a in d["alertas"]] == ["Depende solo de LinkedIn", "No mide nada"]  # la de una pregunta NA no
+    assert [e["texto"] for e in d["esperan"]] == ["No frenaron"]
+    assert [c["cita"] for c in d["citas"]] == ["Que no frenaron cuando dije que estaba desde 0"]
+
+
+def test_prioridad_que_apunta_a_un_cuello_descartado_no_va():
+    crudo = {"negocios": [{**CRUDO["negocios"][0], "prioridad": {"cuello": 1, "por_que": "el que no tenía evidencia"}}]}
+    assert ps.validar(crudo, RESP)["negocios"][0]["prioridad"] is None
 
 
 def test_validar_aguanta_basura():
-    d = ps.validar({"negocios": "x", "termometro": [1, None], "citas": "y"}, RESP)
-    assert d["negocios"] == [] and d["citas"] == []
+    d = ps.validar({"negocios": "x", "termometro": [1, None], "citas": "y", "alertas": "z"}, RESP)
+    assert d["negocios"] == [] and d["citas"] == [] and d["alertas"] == []
+    d = ps.validar({"negocios": [{"cuellos": "x", "decidir": 3, "prioridad": {"cuello": "a"}}]}, RESP)
+    assert d["negocios"] == []
     assert ps.validar(None, {})["negocios"] == []
 
 
@@ -103,7 +127,7 @@ def test_ver_arma_una_vez_y_la_guarda():
         with pytest.raises(HTTPException) as e:
             ps.PizarraServices().ver(coach, sid, rearmar=True, llamar=falsa)
         assert e.value.status_code == 403
-        d1 = ps.PizarraServices().ver({"usuario_id": 1, "rol": "admin"}, sid, rearmar=True, llamar=falsa)
+        d1 = ps.PizarraServices().ver({"usuario_id": 1, "rol": "admin"}, sid, rearmar=True, llamar=falsa, esperar=True)
         d2 = ps.PizarraServices().ver(coach, sid, llamar=falsa)
         assert len(llamadas) == 1  # la segunda vez se lee guardada
         assert d1["negocios"] == d2["negocios"] and d2["version"] == ps.VERSION
