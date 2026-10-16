@@ -67,6 +67,17 @@ async def _aprender_siempre():
 # Las llamadas de Fathom de cada coach conectado entran solas cada FATHOM_CADA_MIN minutos.
 _FATHOM = config("FATHOM_SYNC", default=True, cast=bool)
 _FATHOM_CADA_MIN = config("FATHOM_CADA_MIN", default=15, cast=int)
+# De noche no hay llamadas nuevas: no se despierta la base (Neon cobra las horas encendida). Hora de
+# Argentina; la primera vuelta de la mañana trae lo de la noche (mira desde la última sincronización).
+_FATHOM_DESDE = config("FATHOM_DESDE_HORA", default=8, cast=int)
+_FATHOM_HASTA = config("FATHOM_HASTA_HORA", default=23, cast=int)
+
+
+def _hora_de_trabajo(desde: int, hasta: int) -> bool:
+    from datetime import datetime, timedelta, timezone
+
+    hora = datetime.now(timezone(timedelta(hours=-3))).hour
+    return desde <= hora < hasta
 
 
 async def _traer_llamadas_siempre():
@@ -76,6 +87,9 @@ async def _traer_llamadas_siempre():
 
     await asyncio.sleep(90)
     while True:
+        if not _hora_de_trabajo(_FATHOM_DESDE, _FATHOM_HASTA):
+            await asyncio.sleep(_FATHOM_CADA_MIN * 60)
+            continue
         try:
             nuevas = await run_in_threadpool(ciclo)
             if nuevas:
