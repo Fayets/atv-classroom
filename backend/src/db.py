@@ -96,6 +96,9 @@ def _apply_migrations() -> None:
                 # Los próximos pasos viven en el roadmap (ya no hace falta un Doc): el link pasa a ser opcional.
                 _agregar_columna(cur, "roadmap_docs", "pasos_json", "TEXT")
                 _agregar_columna(cur, "llamadas", "puntos_json", "TEXT")
+                _agregar_columna(cur, "fathom_conexiones", "webhook_id", "TEXT")
+                _agregar_columna(cur, "fathom_conexiones", "webhook_secreto_cifrado", "TEXT")
+                _agregar_columna(cur, "fathom_conexiones", "webhook_token", "TEXT UNIQUE")
                 if _columna(cur, "roadmap_docs", "url") == "NO":
                     cur.execute(f'ALTER TABLE "{DB_SCHEMA}"."roadmap_docs" ALTER COLUMN url DROP NOT NULL')
                 _agregar_columna(cur, "altas_clientes", "ficha_previa", "TEXT")

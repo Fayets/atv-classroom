@@ -88,7 +88,6 @@ export default function FathomCuenta() {
           <b>Fathom conectado ✓</b> · {estado.llamadas} {estado.llamadas === 1 ? 'llamada' : 'llamadas'} · última actualización {cuando(estado.ultima_sync)}
         </p>
         {estado.error ? <p className="cuenta-error" role="alert">{estado.error}</p> : null}
-        <p className="cuenta-equipo__ayuda">Tus llamadas nuevas entran solas a la carpeta <b>Llamadas</b> del escritorio cada 15 minutos.</p>
         {error ? <p className="cuenta-error" role="alert">{error}</p> : null}
         <div className="fathom-cuenta__botones">
           <button type="button" className="cuenta-boton is-suave" onClick={() => hacer('sync', sincronizarFathom)} disabled={Boolean(ocupado)}>{ocupado === 'sync' ? 'Trayendo…' : 'Traer llamadas ahora'}</button>

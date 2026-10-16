@@ -117,3 +117,6 @@
 @keyframes guiaFondo { from { opacity: 0; } }
 @keyframes guiaHoja { from { opacity: 0; transform: translateY(12px) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .fathom-guia, .fathom-guia__hoja { animation: none; } }
+/* "Cómo conectar" en la misma fila que los botones, centrado con ellos */
+.fathom-cuenta__botones { align-items: center; }
+.fathom-cuenta__botones .fathom-cuenta__guia { align-self: center; margin-top: 0; display: inline-flex; align-items: center; }

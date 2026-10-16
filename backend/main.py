@@ -22,6 +22,7 @@ from src.controllers.llamadas_controller import router as llamadas_router
 from src.controllers.sops_controller import router as sops_router
 from src.controllers.biblioteca_controller import router as biblioteca_router
 from src.controllers.contexto_controller import router as contexto_router
+from src.controllers.fathom_webhook_controller import router as fathom_webhook_router
 from src.controllers.chat_controller import router as chat_router
 from src.controllers.clase_controller import router as clase_router
 from src.controllers.equipo_controller import router as equipo_router
@@ -83,19 +84,34 @@ def _hora_de_trabajo(desde: int, hasta: int) -> bool:
 async def _traer_llamadas_siempre():
     from starlette.concurrency import run_in_threadpool
 
-    from src.services.fathom_service import ciclo
+    from datetime import date
+
+    from src.services.fathom_service import activar_webhooks_pendientes, ciclo, sin_webhook
 
     await asyncio.sleep(90)
+    # Las cuentas que se conectaron antes del webhook lo reciben solas (sin reconectar).
+    try:
+        await run_in_threadpool(activar_webhooks_pendientes)
+    except Exception:
+        logging.getLogger("fathom").exception("Fathom: no se pudieron activar los webhooks")
+    revisada = None
+    faltan = True  # hay coaches sin webhook: se sabe en cada revisión completa
     while True:
-        if not _hora_de_trabajo(_FATHOM_DESDE, _FATHOM_HASTA):
-            await asyncio.sleep(_FATHOM_CADA_MIN * 60)
-            continue
-        try:
-            nuevas = await run_in_threadpool(ciclo)
-            if nuevas:
-                logging.getLogger("fathom").info("Fathom: %s llamadas nuevas", nuevas)
-        except Exception:
-            logging.getLogger("fathom").exception("Fathom: falló la sincronización")
+        # Con webhook, Fathom avisa solo: no se busca cada 15 minutos. Se busca así únicamente para quien
+        # no lo tenga activo, y una vez por día para todos, por si algún aviso se perdió.
+        if _hora_de_trabajo(_FATHOM_DESDE, _FATHOM_HASTA):
+            try:
+                completa = revisada != date.today()
+                nuevas = 0
+                if completa or faltan:  # si todos tienen webhook, la base no se toca hasta mañana
+                    nuevas = await run_in_threadpool(ciclo, not completa)
+                if completa:
+                    revisada = date.today()
+                    faltan = await run_in_threadpool(sin_webhook) > 0
+                if nuevas:
+                    logging.getLogger("fathom").info("Fathom: %s llamadas nuevas", nuevas)
+            except Exception:
+                logging.getLogger("fathom").exception("Fathom: falló la sincronización")
         await asyncio.sleep(_FATHOM_CADA_MIN * 60)
 
 
@@ -173,6 +189,7 @@ app.include_router(llamadas_router)
 app.include_router(sops_router)
 app.include_router(biblioteca_router)
 app.include_router(contexto_router)
+app.include_router(fathom_webhook_router)
 app.include_router(sugerencias_router)
 app.include_router(programa_router)
 app.include_router(clase_router)

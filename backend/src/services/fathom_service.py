@@ -6,12 +6,18 @@ cursor). La primera vez se traen los últimos 90 días; después, desde la últi
 Cada llamada se ata al cliente que estaba invitado, por su mail.
 """
 
+import base64
+import hashlib
+import hmac
 import json
 import logging
 import re
+import secrets
+import time
 from datetime import datetime, timedelta, timezone
 
 import httpx
+from decouple import config
 from fastapi import HTTPException
 from pony.orm import db_session
 
@@ -23,6 +29,11 @@ from src.services.cifrado import cifrar, descifrar
 logger = logging.getLogger(__name__)
 
 API = "https://api.fathom.ai/external/v1"
+# Webhook: Fathom avisa apenas una llamada está lista. Se crea solo al conectar (FATHOM_WEBHOOK=0 en
+# local para no crear webhooks que apunten a producción desde una prueba).
+WEBHOOK = config("FATHOM_WEBHOOK", default=True, cast=bool)
+URL_PUBLICA = config("CLASSROOM_URL", default="https://classroom.atvos.io").rstrip("/")
+TOLERANCIA_FIRMA = 300  # segundos (lo que recomienda Fathom contra reenvíos viejos)
 DIAS_PRIMERA_VEZ = 90
 MAX_PAGINAS = 20
 
@@ -288,10 +299,106 @@ def buscar_por_link(sesion: dict, url: str, http=httpx.get, cliente_id: int | No
     raise HTTPException(status_code=404, detail="No encontramos esa llamada en el Fathom del equipo (de los últimos 90 días). Pegá la transcripción.")
 
 
-def ciclo() -> int:
-    """Para la tarea de fondo: sincroniza a todos los coaches conectados. Un error no frena al resto."""
+# ---------- webhook ----------
+def crear_webhook(admin_id: int, http=httpx.post) -> bool:
+    """Le pide a Fathom que avise a este classroom cuando una llamada de este coach está lista.
+    Si ya tiene uno, no hace nada. Si falla, queda el error a la vista y sigue la revisión diaria."""
+    if not WEBHOOK:
+        return False
     with db_session:
-        ids = [c.admin_id for c in list(FathomConexion.select())]
+        con = FathomConexion.get(admin_id=admin_id)
+        if con is None or con.webhook_id:
+            return False
+        clave = descifrar(con.clave_cifrada)
+    token = secrets.token_urlsafe(24)
+    cuerpo = {
+        "destination_url": f"{URL_PUBLICA}/api/fathom/webhook/{token}",
+        "triggered_for": ["my_recordings"],
+        "include_transcript": True,
+        "include_summary": True,
+    }
+    try:
+        r = http(f"{API}/webhooks", json=cuerpo, headers={"X-Api-Key": clave, "Accept": "application/json"}, timeout=30)
+        ok = r.status_code in (200, 201)
+        datos = r.json() if ok else {}
+    except (httpx.HTTPError, ValueError):
+        ok, datos = False, {}
+    with db_session:
+        con = FathomConexion.get(admin_id=admin_id)
+        if con is None:
+            return False
+        if not ok or not datos.get("id") or not datos.get("secret"):
+            con.error = "No se pudo activar el aviso instantáneo de Fathom: las llamadas entran en la revisión diaria."
+            return False
+        con.webhook_id, con.webhook_secreto_cifrado, con.webhook_token = str(datos["id"]), cifrar(datos["secret"]), token
+        con.error = None
+    return True
+
+
+def borrar_webhook(clave: str, webhook_id: str | None, http=httpx.delete) -> None:
+    if not webhook_id:
+        return
+    try:
+        http(f"{API}/webhooks/{webhook_id}", headers={"X-Api-Key": clave}, timeout=20)
+    except httpx.HTTPError:
+        logger.warning("Fathom: no se pudo borrar el webhook %s", webhook_id)
+
+
+def firma_valida(secreto: str, msg_id: str, marca: str, cuerpo: bytes, firmas: str, ahora: float | None = None) -> bool:
+    """Como indica Fathom: HMAC-SHA256 de "id.timestamp.cuerpo" con el secreto (sin "whsec_", en base64),
+    comparado contra cada firma del encabezado ("v1,<firma>" separadas por espacios)."""
+    try:
+        if abs((ahora or time.time()) - int(marca)) > TOLERANCIA_FIRMA:
+            return False
+        clave = base64.b64decode(secreto.split("_", 1)[1] if secreto.startswith("whsec_") else secreto)
+    except (ValueError, TypeError):
+        return False
+    firmado = f"{msg_id}.{marca}.".encode() + cuerpo
+    esperada = base64.b64encode(hmac.new(clave, firmado, hashlib.sha256).digest()).decode()
+    for f in (firmas or "").split():
+        valor = f.split(",", 1)[1] if "," in f else f
+        if hmac.compare_digest(valor, esperada):
+            return True
+    return False
+
+
+def recibir_webhook(token: str, encabezados: dict, cuerpo: bytes) -> bool:
+    """Un aviso de Fathom: se verifica la firma con el secreto de ese coach y se guarda la llamada."""
+    with db_session:
+        con = FathomConexion.get(webhook_token=token) if token else None
+        if con is None or not con.webhook_secreto_cifrado:
+            raise HTTPException(status_code=404, detail="No existe.")
+        secreto, admin_id = descifrar(con.webhook_secreto_cifrado), con.admin_id
+    if not firma_valida(secreto, encabezados.get("webhook-id", ""), encabezados.get("webhook-timestamp", "0"), cuerpo, encabezados.get("webhook-signature", "")):
+        raise HTTPException(status_code=401, detail="Firma inválida.")
+    try:
+        item = json.loads(cuerpo)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Cuerpo inválido.") from e
+    with db_session:
+        nueva = _guardar(admin_id, item, _clientes_por_mail())
+    if nueva:
+        logger.info("Fathom (webhook): llamada nueva de %s", admin_id)
+    return nueva
+
+
+def activar_webhooks_pendientes() -> int:
+    """Para las cuentas que se conectaron antes del webhook: se lo crea sin que tengan que reconectar."""
+    with db_session:
+        ids = [c.admin_id for c in list(FathomConexion.select()) if not c.webhook_id]
+    return sum(1 for i in ids if crear_webhook(i))
+
+
+def sin_webhook() -> int:
+    with db_session:
+        return sum(1 for c in list(FathomConexion.select()) if not c.webhook_id)
+
+
+def ciclo(solo_sin_webhook: bool = False) -> int:
+    """Para la tarea de fondo: sincroniza a los coaches conectados (o solo a los que no tienen webhook).
+    Un error no frena al resto."""
+    with db_session:
+        ids = [c.admin_id for c in list(FathomConexion.select()) if not (solo_sin_webhook and c.webhook_id)]
     total = 0
     for i in ids:
         try:
@@ -315,6 +422,7 @@ class FathomServices:
                 "ultima_sync": con.ultima_sync.isoformat() + "Z" if con.ultima_sync else None,
                 "error": con.error,
                 "llamadas": llamadas,
+                "al_instante": bool(con.webhook_id),
             }
 
     def conectar(self, sesion: dict, clave: str, http=httpx.get) -> dict:
@@ -334,14 +442,18 @@ class FathomServices:
             sincronizar(yo, http=http)
         except HTTPException:
             pass  # queda conectado; el error se ve en el estado
+        crear_webhook(yo)
         return self.estado(sesion)
 
     def desconectar(self, sesion: dict) -> dict:
         yo = _equipo(sesion)
         with db_session:
             con = FathomConexion.get(admin_id=yo)
-            if con is not None:
-                con.delete()
+            if con is None:
+                return {"conectado": False}
+            clave, webhook_id = descifrar(con.clave_cifrada), con.webhook_id
+            con.delete()
+        borrar_webhook(clave, webhook_id)  # que Fathom deje de avisar
         return {"conectado": False}
 
     def sincronizar_ahora(self, sesion: dict) -> dict:

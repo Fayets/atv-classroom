@@ -512,6 +512,10 @@ class FathomConexion(db.Entity):
     conectada_en = Required(datetime, default=datetime.utcnow)
     ultima_sync = Optional(datetime, nullable=True)
     error = Optional(str, nullable=True)  # lo último que respondió mal Fathom (clave vencida, etc.)
+    # Webhook de Fathom: avisa apenas una llamada está lista (sin buscar cada 15 minutos).
+    webhook_id = Optional(str, nullable=True)
+    webhook_secreto_cifrado = Optional(str, nullable=True)  # el que devuelve Fathom al crearlo, para verificar la firma
+    webhook_token = Optional(str, nullable=True, unique=True)  # parte de la URL: dice de qué coach es el aviso
 
 
 class Llamada(db.Entity):
