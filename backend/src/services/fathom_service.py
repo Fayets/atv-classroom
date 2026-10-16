@@ -459,4 +459,5 @@ class FathomServices:
     def sincronizar_ahora(self, sesion: dict) -> dict:
         yo = _equipo(sesion)
         sincronizar(yo)
+        crear_webhook(yo)  # si todavía no tiene el aviso instantáneo, se activa acá
         return self.estado(sesion)

@@ -81,19 +81,30 @@ def _hora_de_trabajo(desde: int, hasta: int) -> bool:
     return desde <= hora < hasta
 
 
+async def _activar_webhooks_fathom():
+    """Las cuentas que se conectaron antes del webhook lo reciben solas al arrancar (sin reconectar),
+    aunque la revisión periódica esté apagada."""
+    from starlette.concurrency import run_in_threadpool
+
+    from src.services.fathom_service import activar_webhooks_pendientes
+
+    await asyncio.sleep(20)
+    try:
+        n = await run_in_threadpool(activar_webhooks_pendientes)
+        if n:
+            logging.getLogger("fathom").info("Fathom: %s webhooks activados", n)
+    except Exception:
+        logging.getLogger("fathom").exception("Fathom: no se pudieron activar los webhooks")
+
+
 async def _traer_llamadas_siempre():
     from starlette.concurrency import run_in_threadpool
 
     from datetime import date
 
-    from src.services.fathom_service import activar_webhooks_pendientes, ciclo, sin_webhook
+    from src.services.fathom_service import ciclo, sin_webhook
 
     await asyncio.sleep(90)
-    # Las cuentas que se conectaron antes del webhook lo reciben solas (sin reconectar).
-    try:
-        await run_in_threadpool(activar_webhooks_pendientes)
-    except Exception:
-        logging.getLogger("fathom").exception("Fathom: no se pudieron activar los webhooks")
     revisada = None
     faltan = True  # hay coaches sin webhook: se sabe en cada revisión completa
     while True:
@@ -145,11 +156,12 @@ async def lifespan(_app: FastAPI):
     precalentar()
     tarea = asyncio.create_task(_aprender_siempre()) if _APRENDIZAJE and config("ANTHROPIC_API_KEY", default="") else None
     fathom = asyncio.create_task(_traer_llamadas_siempre()) if _FATHOM else None
+    webhooks = asyncio.create_task(_activar_webhooks_fathom())
     from src.services import avisos_service
 
     avisos = asyncio.create_task(_avisar_siempre()) if avisos_service.activo() else None
     yield
-    for t in (tarea, fathom, avisos):
+    for t in (tarea, fathom, avisos, webhooks):
         if t:
             t.cancel()
 
