@@ -250,9 +250,13 @@ def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[d
 
 
 def _nombre_de_canal(nombre: str) -> str:
-    """Como Discord: minúsculas, guiones en vez de espacios, sin símbolos raros."""
-    n = _normal((nombre or "").strip()).replace(" ", "-")
-    n = re.sub(r"[^a-z0-9_-]+", "", n).strip("-")[:60]
+    """Como Discord hoy: minúsculas y guiones en vez de espacios, pero con emojis, tildes y separadores
+    decorativos ("🏠┊general"). Solo se sacan los caracteres de control y los que rompen menciones y
+    links (# @ < > / \\ `)."""
+    n = "".join(c for c in (nombre or "").strip().lower() if unicodedata.category(c) != "Cc")
+    n = re.sub(r"\s+", "-", n)
+    n = re.sub(r"[#@<>/\\`]+", "", n)
+    n = re.sub(r"-{2,}", "-", n).strip("-")[:60]
     if not n:
         raise HTTPException(status_code=422, detail="Poné un nombre para el canal.")
     return n
