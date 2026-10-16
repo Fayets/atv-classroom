@@ -448,13 +448,28 @@ export default function MensajesPage() {
       setError(err.message || 'No se pudo abrir el mensaje directo.')
     }
   }
+  // Cerrada como los grupos de planes: cerrada muestra solo lo que tiene novedades (o el que tenés abierto).
+  const directosAbiertos = Boolean(buscar.trim()) || abiertos.includes('directos')
+  const personasVisibles = directosAbiertos
+    ? personas
+    : personas.filter((p) => p.canal && (p.canal.id === activo || p.canal.no_leidos > 0 || escriben[p.canal.id]))
+  const directosNuevos = personas.filter((p) => p.canal && p.canal.no_leidos > 0).length
   const seccionDirectos =
     isEquipo && personas.length ? (
       <section className="msj-grupo msj-directos" aria-label="Mensajes directos">
-        <div className="msj-grupo__titulo is-abierto is-fijo">
+        <button
+          type="button"
+          className={`msj-grupo__titulo${directosAbiertos ? ' is-abierto' : ''}${!directosAbiertos && directosNuevos ? ' con-novedades' : ''}`}
+          onClick={() => alternarGrupo('directos')}
+          aria-expanded={directosAbiertos}
+        >
+          <svg viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M3 2l4 3-4 3z" fill="currentColor" />
+          </svg>
           <span>Mensajes directos</span>
-        </div>
-        {personas.map((p) => {
+          <small>{directosNuevos || ''}</small>
+        </button>
+        {personasVisibles.map((p) => {
           const nuevo = p.canal && p.canal.no_leidos > 0 && p.canal.id !== activo
           return (
             <button
