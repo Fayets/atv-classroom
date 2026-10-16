@@ -252,6 +252,15 @@ function dibujar(svg, tablero, escala) {
   }
 }
 
+const ZOOM_MIN = 0.25
+const ZOOM_MAX = 2
+
+// Como abre un PDF: la hoja entera de ancho con aire a los costados, sin llegar a llenar
+// la pantalla. Antes se ajustaba al ancho exacto y la pizarra quedaba encima de la vista.
+function zoomInicial(c, ancho) {
+  return Math.min(0.75, Math.max(ZOOM_MIN, (c.clientWidth - 120) / ancho))
+}
+
 export default function PizarraOnboarding({ id }) {
   const { isAdmin } = useAuth()
   const [d, setD] = useState(null)
@@ -260,6 +269,7 @@ export default function PizarraOnboarding({ id }) {
   const [zoom, setZoom] = useState(1)
   const [alto, setAlto] = useState(1200)
   const lienzo = useRef(null)
+  const escala = useRef(null)
   const tablero = useRef(null)
   const svg = useRef(null)
   const ajustado = useRef(false)
@@ -289,8 +299,9 @@ export default function PizarraOnboarding({ id }) {
       const c = lienzo.current
       let z = zoom
       if (!ajustado.current && c) {
-        z = Math.min(1, Math.max(0.3, (c.clientWidth - 8) / ancho))
+        z = zoomInicial(c, ancho)
         ajustado.current = true
+        aplicar(z)
         setZoom(z)
       }
       dibujar(svg.current, tablero.current, tablero.current.getBoundingClientRect().width / ancho || z)
@@ -342,7 +353,61 @@ export default function PizarraOnboarding({ id }) {
     }
   }
 
-  const ajustar = () => setZoom(Math.min(1, Math.max(0.3, (lienzo.current.clientWidth - 8) / ancho)))
+  // El zoom se aplica directo al transform mientras dura el gesto (trackpad o ⌘ + rueda) y
+  // el número de abajo se actualiza al terminar: un setState por evento de rueda hacía que
+  // React re-renderizara la pizarra entera en cada cuadro y el gesto iba a los saltos.
+  const zoomVivo = useRef(1)
+  const pausa = useRef(null)
+  const aplicar = useCallback((z) => {
+    zoomVivo.current = z
+    if (tablero.current) tablero.current.style.transform = `scale(${z})`
+    if (escala.current) {
+      escala.current.style.width = `${ancho * z}px`
+      escala.current.style.height = `${(tablero.current?.offsetHeight || alto) * z}px`
+    }
+  }, [ancho, alto])
+
+  // Acerca o aleja dejando quieto el punto que está debajo del cursor, como un visor de PDF.
+  const zoomEn = useCallback((z, cx, cy) => {
+    const c = lienzo.current
+    if (!c) return
+    const nuevo = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z))
+    const viejo = zoomVivo.current
+    const r = c.getBoundingClientRect()
+    const px = (cx ?? r.left + c.clientWidth / 2) - r.left
+    const py = (cy ?? r.top + c.clientHeight / 2) - r.top
+    const ox = escala.current?.offsetLeft || 0
+    const oy = escala.current?.offsetTop || 0
+    const x = (c.scrollLeft + px - ox) / viejo
+    const y = (c.scrollTop + py - oy) / viejo
+    aplicar(nuevo)
+    c.scrollLeft = x * nuevo + (escala.current?.offsetLeft || 0) - px
+    c.scrollTop = y * nuevo + (escala.current?.offsetTop || 0) - py
+    clearTimeout(pausa.current)
+    pausa.current = setTimeout(() => setZoom(zoomVivo.current), 120)
+  }, [aplicar])
+
+  useEffect(() => {
+    const c = lienzo.current
+    if (!c) return undefined
+    const rueda = (e) => {
+      // El pellizco del trackpad llega como rueda con ctrlKey; ⌘ + rueda también hace zoom.
+      // La rueda sola sigue desplazando, como en un PDF.
+      if (!e.ctrlKey && !e.metaKey) return
+      e.preventDefault()
+      zoomEn(zoomVivo.current * Math.exp(-e.deltaY * 0.0045), e.clientX, e.clientY)
+    }
+    c.addEventListener('wheel', rueda, { passive: false })
+    return () => c.removeEventListener('wheel', rueda)
+  }, [zoomEn, d])
+
+  const paso = (factor) => zoomEn(zoomVivo.current * factor)
+  const ajustar = () => {
+    const c = lienzo.current
+    if (!c) return
+    zoomEn(zoomInicial(c, ancho))
+    c.scrollTo({ top: 0, left: 0 })
+  }
 
   if (error && !d) return <p className="fd-vacio">{error}</p>
   if (!d) {
@@ -359,7 +424,7 @@ export default function PizarraOnboarding({ id }) {
   return (
     <div className="pz-marco">
       <div className="pz-lienzo" ref={lienzo} onPointerDown={bajar}>
-        <div className="pz-escala" style={{ width: ancho * zoom, height: alto * zoom }}>
+        <div className="pz-escala" ref={escala} style={{ width: ancho * zoom, height: alto * zoom }}>
           <div className="pz-tablero" ref={tablero} style={{ width: ancho, transform: `scale(${zoom})` }}>
             <svg className="pz-trazos" ref={svg} width={ancho} aria-hidden="true" />
             <header className="pz-cabeza">
@@ -390,10 +455,10 @@ export default function PizarraOnboarding({ id }) {
         </div>
       </div>
       <div className="pz-zoom" role="group" aria-label="Zoom">
-        <button type="button" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))} aria-label="Alejar">−</button>
-        <span>{Math.round(zoom * 100)}%</span>
-        <button type="button" onClick={() => setZoom((z) => Math.min(1.6, z + 0.1))} aria-label="Acercar">+</button>
-        <button type="button" className="is-texto" onClick={ajustar}>Ver todo</button>
+        <button type="button" onClick={() => paso(1 / 1.2)} aria-label="Alejar">−</button>
+        <span title="Pellizcá el trackpad o usá ⌘ + rueda para hacer zoom">{Math.round(zoom * 100)}%</span>
+        <button type="button" onClick={() => paso(1.2)} aria-label="Acercar">+</button>
+        <button type="button" className="is-texto" onClick={ajustar}>Ajustar</button>
         {isAdmin ? <button type="button" className="is-texto" onClick={rearmar} disabled={rearmando} title="Vuelve a leer el formulario con la IA">{rearmando ? 'Dibujando…' : 'Volver a dibujar'}</button> : null}
       </div>
       {error ? <p className="pz-error">{error}</p> : null}

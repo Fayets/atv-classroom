@@ -3,7 +3,8 @@
 .pz-marco { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .pz-lienzo { flex: 1; min-height: 0; overflow: auto; background-color: #f6f3ec; background-image: radial-gradient(#d9d3c4 1.2px, transparent 1.3px); background-size: 22px 22px; cursor: grab; touch-action: none; }
 .pz-lienzo.is-arrastrando { cursor: grabbing; user-select: none; }
-.pz-escala { position: relative; }
+/* La hoja centrada con aire alrededor, como una página de PDF. */
+.pz-escala { position: relative; margin: 32px auto 80px; box-shadow: 0 1px 3px rgba(11, 15, 61, 0.08), 0 12px 32px -18px rgba(11, 15, 61, 0.25); border-radius: 6px; background: #fbfaf6; }
 .pz-tablero { position: absolute; top: 0; left: 0; transform-origin: 0 0; padding: 36px 40px 48px; font-family: 'Kalam', 'Comic Sans MS', 'Bradley Hand', cursive; color: #3b3a40; box-sizing: border-box; }
 .pz-trazos { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
 .pz-cabeza { position: relative; display: flex; align-items: flex-start; gap: 40px; margin-bottom: 34px; }
