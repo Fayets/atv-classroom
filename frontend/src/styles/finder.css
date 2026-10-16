@@ -232,3 +232,9 @@ a.fd-boton { text-decoration: none; display: inline-block; }
 .ll-charla__turno b { font-size: 12px; font-weight: 700; color: #1d1d1f; }
 .ll-charla__turno.is-equipo b { color: #5b4ef0; }
 .ll-charla__turno p { margin: 0; font-size: 13.5px; line-height: 1.55; color: #3a3a3c; }
+
+/* Llamadas: filtro y separadores por mes */
+.ll-mes-punto { --tag: #c7c7cc; }
+.fd-lado.is-activo .ll-mes-punto { --tag: #5b4ef0; }
+.ll-mes-titulo { grid-column: 1 / -1; margin: 10px 4px 2px; padding-bottom: 6px; border-bottom: 1px solid rgba(0, 0, 0, 0.07); font-size: 12px; font-weight: 700; color: #3a3a3c; }
+.ll-mes-titulo:first-child { margin-top: 0; }

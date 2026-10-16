@@ -27,6 +27,19 @@ export function IconoLlamada({ tamano = 64, hecha = false }) {
   )
 }
 
+// "2026-10" a partir de la fecha de la llamada (hora local), y su nombre: "Octubre 2026".
+const mesDe = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+const nombreMes = (k) => {
+  if (!k) return ''
+  const [a, m] = k.split('-').map(Number)
+  const n = new Date(a, m - 1, 1).toLocaleDateString('es-AR', { month: 'long' })
+  return `${n.charAt(0).toUpperCase()}${n.slice(1)} ${a}`
+}
+
 // La miniatura de la llamada: Fathom no da la imagen del video, así que va la foto del cliente
 // (o sus iniciales) con el play chico, la duración y el tilde si ya tiene roadmap.
 const TONOS = ['#5b4ef0', '#0a84ff', '#30b0c7', '#28a745', '#ff9f0a', '#ff375f', '#a2845e', '#8e5cd9']
@@ -226,6 +239,7 @@ export default function LlamadasCarpeta({ abierta, alCerrar, alEnfocar, alFrente
   const [dentro, setDentro] = useState(null) // una llamada abierta
   const [sel, setSel] = useState(null)
   const [filtro, setFiltro] = useState('todas')
+  const [mes, setMes] = useState('') // '2026-10'; vacío = todos los meses
   const [buscar, setBuscar] = useState('')
   const [grande, setGrande] = useState(false)
   const ventana = useRef(null)
@@ -244,15 +258,27 @@ export default function LlamadasCarpeta({ abierta, alCerrar, alEnfocar, alFrente
   const todas = useMemo(() => (datos ? (datos.admin ? datos.coaches.flatMap((c) => c.llamadas) : datos.llamadas) : []), [datos])
   const delCoach = datos?.admin ? datos.coaches.find((c) => c.id === coach) : null
   const enRaizAdmin = datos?.admin && !coach && !buscar.trim()
+  // Las llamadas de la carpeta en la que estás (la de un coach, o las tuyas), antes de filtrar.
+  const enCarpeta = useMemo(() => (datos?.admin ? delCoach?.llamadas || [] : todas), [datos, delCoach, todas])
+  // Meses con llamadas, del más nuevo al más viejo, para filtrar (Nick puede tener cientos).
+  const meses = useMemo(() => {
+    const cuenta = new Map()
+    enCarpeta.forEach((l) => {
+      const k = mesDe(l.inicio)
+      if (k) cuenta.set(k, (cuenta.get(k) || 0) + 1)
+    })
+    return [...cuenta.entries()].sort((a, b) => b[0].localeCompare(a[0]))
+  }, [enCarpeta])
   const visibles = useMemo(() => {
     const q = normal(buscar.trim())
-    const base = q ? todas : datos?.admin ? delCoach?.llamadas || [] : todas
+    const base = q ? todas : enCarpeta
     return base.filter((l) => {
       if (filtro === 'sin_roadmap' && l.con_roadmap) return false
       if (filtro === 'sin_cliente' && l.cliente) return false
+      if (mes && mesDe(l.inicio) !== mes) return false
       return !q || normal(l.titulo).includes(q) || normal(l.cliente?.nombre).includes(q)
     })
-  }, [todas, delCoach, datos, filtro, buscar])
+  }, [todas, enCarpeta, filtro, buscar, mes])
   const actual = todas.find((l) => l.id === dentro)
   const cuenta = (f) => (f === 'todas' ? todas.length : f === 'sin_roadmap' ? todas.filter((l) => !l.con_roadmap).length : todas.filter((l) => !l.cliente).length)
 
@@ -312,10 +338,27 @@ export default function LlamadasCarpeta({ abierta, alCerrar, alEnfocar, alFrente
           <>
             <h5>Coaches</h5>
             {datos.coaches.map((c) => (
-              <button key={c.id} type="button" className={`fd-lado${coach === c.id && !buscar.trim() ? ' is-activo' : ''}`} onClick={() => { setCoach(c.id); setDentro(null); setBuscar('') }}>
+              <button key={c.id} type="button" className={`fd-lado${coach === c.id && !buscar.trim() ? ' is-activo' : ''}`} onClick={() => { setCoach(c.id); setDentro(null); setBuscar(''); setMes('') }}>
                 <IconoCarpeta tamano={16} />
                 <span>{c.nombre.split(' ')[0]}</span>
                 <small>{c.llamadas.length || ''}</small>
+              </button>
+            ))}
+          </>
+        ) : null}
+        {meses.length > 1 && !enRaizAdmin ? (
+          <>
+            <h5>Meses</h5>
+            <button type="button" className={`fd-lado${!mes ? ' is-activo' : ''}`} onClick={() => { setMes(''); setDentro(null) }}>
+              <i className="fd-punto ll-mes-punto" />
+              <span>Todos los meses</span>
+              <small>{enCarpeta.length}</small>
+            </button>
+            {meses.map(([k, n]) => (
+              <button key={k} type="button" className={`fd-lado${mes === k ? ' is-activo' : ''}`} onClick={() => { setMes(k); setDentro(null) }}>
+                <i className="fd-punto ll-mes-punto" />
+                <span>{nombreMes(k)}</span>
+                <small>{n}</small>
               </button>
             ))}
           </>
@@ -362,13 +405,16 @@ export default function LlamadasCarpeta({ abierta, alCerrar, alEnfocar, alFrente
             </div>
           ) : datos ? (
             <div className="fd-grilla" onClick={(e) => e.target === e.currentTarget && setSel(null)}>
-              {visibles.map((l) => (
+              {visibles.map((l, i) => [
+                !mes && !buscar.trim() && mesDe(l.inicio) !== mesDe(visibles[i - 1]?.inicio) ? (
+                  <p key={`m-${mesDe(l.inicio)}`} className="ll-mes-titulo">{nombreMes(mesDe(l.inicio)) || 'Sin fecha'}</p>
+                ) : null,
                 <button key={l.id} type="button" className={`fd-item${sel === l.id ? ' is-sel' : ''}`} onClick={() => setSel(l.id)} onDoubleClick={() => setDentro(l.id)} title={`${l.titulo} · ${fecha(l.inicio)}`}>
                   <MiniaturaLlamada l={l} />
                   <span>{l.cliente?.nombre || l.titulo}</span>
                   <small className="fd-gris">{fecha(l.inicio)}{l.duracion_min ? ` · ${l.duracion_min} min` : ''}</small>
-                </button>
-              ))}
+                </button>,
+              ])}
               {!visibles.length ? <p className="fd-vacio">{buscar.trim() ? 'Ninguna llamada con ese nombre.' : 'No hay llamadas acá.'}</p> : null}
             </div>
           ) : null}
