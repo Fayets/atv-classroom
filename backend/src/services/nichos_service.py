@@ -28,6 +28,7 @@ from src.services.aprendizaje_service import (
     NICHOS,
     NICHOS_DE_ATV,
     REGLA_NICHO,
+    _llave_sub,
     _norm,
     leer_json,
     limpiar_subnicho,
@@ -71,18 +72,17 @@ _SISTEMA = (
 )
 
 
-def _pedido(datos: str, existentes: dict[str, list[str]]) -> str:
-    lista = "\n".join(f"- {n}: {', '.join(subs[:25])}" for n, subs in sorted(existentes.items()) if subs) or "(todavía ninguno)"
+def _pedido(datos: str) -> str:
+    # Sin la lista de subnichos que ya existen: con ella a mano, la IA copiaba el de otro cliente. Juntar los
+    # parecidos lo hace el código (unificar_subnicho), dentro del mismo nicho.
     return f"""{REGLA_NICHO}
+El subnicho describe el negocio de ESTE cliente con sus palabras; no a ATV ni a lo que aprende en ATV.
 
 Devolvé:
 {{"nicho": uno de {json.dumps(NICHOS)} o null,
  "subnicho": "a quién le vende y qué, de 2 a 6 palabras en minúscula" o null,
  "cita": "frase COPIADA letra por letra de lo que dijo el cliente que muestra a qué se dedica (de 3 a 30 palabras)"}}
 Si no alcanza para saber a qué se dedica, devolvé nicho null.
-
-Subnichos que ya existen (si uno describe lo mismo, usá ese tal cual):
-{lista}
 
 Lo que dijo el cliente sobre su negocio:
 {datos}"""
@@ -142,21 +142,80 @@ def _existentes() -> dict[str, list[str]]:
     return salida
 
 
+# El nicho se deduce en código del tema del subnicho (que ya está probado con las palabras del cliente).
+# Van primero los temas concretos; marketing y ventas al final, porque casi todos los nombran.
+TEMAS = [
+    ("finanzas-trading", r"cripto|trading|trader|bolsa|forex|finanz|inversion(es)? (en )?(acciones|bolsa|cripto)|educacion financiera"),
+    ("inmobiliaria", r"inmobiliari|bienes raices|propiedad|departament|depa\b|real estate|alquiler"),
+    ("nutricion", r"nutri|aliment|dieta|metabol"),
+    ("salud", r"hormon|salud|medic|fisio|dolor cronico|enfermedad"),
+    ("salud-mental", r"ansiedad|estres|psicolog|terapia|depresion"),
+    ("fitness", r"entrenamiento|entrenador|fitness|gym|gimnasio|muscul|grasa|calistenia"),
+    ("deportes", r"running|correr|futbol|tenis|padel|deport|atleta"),
+    ("idiomas", r"ingles|idioma|frances|portugues|aleman"),
+    ("tecnologia-programacion", r"\bia\b|inteligencia artificial|automatiz|software|programa(cion|dor)|desarroll(o|ador) (web|de software)|bots?\b|n8n|saas"),
+    ("belleza-estetica", r"estetic|belleza|maquillaj|unas\b|pestan|cabello|peluquer"),
+    ("moda", r"\bmoda\b|ropa|indumentaria|estilismo"),
+    ("gastronomia", r"cocina|gastronom|reposter|chef|restaurant"),
+    ("musica-arte", r"music|canto|guitarra|pintura|arte\b|fotograf"),
+    ("relaciones", r"pareja|relaciones|seduccion|citas\b"),
+    ("espiritualidad", r"espiritual|energ|meditacion|tarot|astrolog"),
+    ("desarrollo-personal", r"mentalidad|identidad|habitos|proposito|autoestima|liderazgo personal|transicion"),
+    ("ecommerce", r"ecommerce|e commerce|dropshipping|tienda online|amazon|mercado libre"),
+    ("ventas", r"closer|setter|prospecc|cierre de ventas|equipo comercial|ventas high ticket"),
+    ("marketing-digital", r"agencia|marketing|funnel|embudo|anuncios|\bads\b|trafico|youtube|contenido|marca personal|growth|community|posicionamiento"),
+    ("negocios-online", r"infoproduct|negocio digital|negocios online|escalar"),
+]
+_TEMAS = [(n, re.compile(rf"(?<![a-z])(?:{patron})")) for n, patron in TEMAS]
+
+
+def _tema_de(t: str) -> str | None:
+    return next((n for n, patron in _TEMAS if patron.search(t)), None)
+
+
+def nicho_por_tema(sub: str | None) -> str | None:
+    """El subnicho dice qué vende y para quién: el nicho sale del QUÉ ("marketing para psicólogos" es
+    marketing, no salud mental). Si el qué no alcanza, se mira entero."""
+    t = _norm(sub or "")
+    if not t:
+        return None
+    que = re.split(r"\b(?:para|dirigid[oa]s? a)\b", t, maxsplit=1)[0]
+    return _tema_de(que) or _tema_de(t)
+
+
+_DE_ATV = _llave_sub("creadores y expertos que venden infoproductos y servicios mentoria")
+
+
+def _raices(t: str) -> set[str]:
+    return {w[:5] for w in _llave_sub(t)}
+
+
+def subnicho_probado(sub: str | None, frases: list[str]) -> str | None:
+    """El subnicho tiene que salir de lo que dijo el cliente: al menos la mitad de sus palabras (por raíz,
+    "infoproductores" ~ "infoproductos") tienen que estar en sus respuestas o mensajes. Y no puede ser la
+    descripción de ATV."""
+    if not sub or _llave_sub(sub) <= _DE_ATV:
+        return None
+    raices = _raices(sub)
+    dichas = _raices(" ".join(frases))
+    return sub if raices and len(raices & dichas) / len(raices) >= 0.5 else None
+
+
 def decidir(respuesta: dict | None, frases: list[str], existentes: dict[str, list[str]]) -> dict:
     """Lo que propuso la IA, pasado por el código. Devuelve {} si no hay nada que se pueda probar."""
     r = respuesta or {}
-    nicho = r.get("nicho")
     cita = str(r.get("cita") or "").strip().strip('"“”')
-    if nicho not in NICHOS or len(_norm(cita).split()) < 3:
+    if len(_norm(cita).split()) < 3 or _norm(cita) not in _norm(" ".join(frases)):
         return {}
-    todo = _norm(" ".join(frases))
-    if _norm(cita) not in todo:
+    sub = subnicho_probado(limpiar_subnicho(r.get("subnicho")), frases)
+    # El nicho lo pone el código según el tema del subnicho; el de la IA es el respaldo si el tema no alcanza.
+    nicho = nicho_por_tema(sub) or (r.get("nicho") if r.get("nicho") in NICHOS else None)
+    if nicho is None:
         return {}
-    # Para los nichos de lo que se aprende en ATV hace falta que la frase muestre que lo vende.
-    if nicho in NICHOS_DE_ATV and not _vende_lo_de_atv(cita):
+    # Para los nichos de lo que se aprende en ATV hace falta que el cliente muestre que lo vende.
+    if nicho in NICHOS_DE_ATV and not (_vende_lo_de_atv(cita) or (sub and _vende_lo_de_atv(sub))):
         return {}
-    sub = unificar_subnicho(limpiar_subnicho(r.get("subnicho")), existentes.get(nicho, []))
-    return {"nicho": nicho, "subnicho": sub, "cita": cita[:400]}
+    return {"nicho": nicho, "subnicho": unificar_subnicho(sub, existentes.get(nicho, [])), "cita": cita[:400]}
 
 
 def revisar(cliente_id: int, llamar=_llamar) -> dict:
@@ -169,7 +228,7 @@ def revisar(cliente_id: int, llamar=_llamar) -> dict:
     if not frases:
         resultado = {}
     else:
-        respuesta = llamar(_SISTEMA, _pedido("\n".join(f"- {f}" for f in frases), existentes))
+        respuesta = llamar(_SISTEMA, _pedido("\n".join(f"- {f}" for f in frases)))
         if respuesta is None:
             return {"cliente": cliente_id, "error": "sin respuesta del modelo"}
         resultado = decidir(respuesta, frases, existentes)

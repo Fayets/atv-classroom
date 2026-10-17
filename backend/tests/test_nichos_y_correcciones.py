@@ -29,6 +29,34 @@ def test_el_nicho_necesita_la_frase_del_cliente():
     assert ns.decidir({"nicho": "negocios-online", "cita": "escalo infoproductores a 7 cifras anuales"}, frases, {})["nicho"] == "negocios-online"
 
 
+def test_el_subnicho_sale_de_lo_que_dijo_el_cliente():
+    frases = ["A qué se dedica: Ayuda a dueños de negocio e infoproductores a conseguir leads cualificados con YouTube"]
+    # Copiado de otro cliente: nada de eso lo dijo.
+    assert ns.subnicho_probado("agencia de prospección y cierre de creadores", frases) is None
+    assert ns.subnicho_probado("youtube para leads de infoproductores", frases) == "youtube para leads de infoproductores"
+    # La descripción de ATV no es el subnicho de nadie.
+    assert ns.subnicho_probado("creadores y expertos que venden infoproductos", frases + ["Mensaje: soy creador y experto, vendo infoproductos"]) is None
+    r = ns.decidir({"nicho": "marketing-digital", "subnicho": "agencia de prospección y cierre de creadores", "cita": "Ayuda a dueños de negocio e infoproductores a conseguir leads"}, frases, {})
+    assert r["nicho"] == "marketing-digital" and r["subnicho"] is None
+
+
+def test_el_nicho_sale_del_tema_del_subnicho():
+    assert ns.nicho_por_tema("inversión en bienes raíces en eeuu para profesionales") == "inmobiliaria"
+    assert ns.nicho_por_tema("regulacion hormonal para mujeres +35") == "salud"
+    assert ns.nicho_por_tema("agencia de automatización con ia para creadores") == "tecnologia-programacion"
+    assert ns.nicho_por_tema("agencia de youtube para infoproductores") == "marketing-digital"
+    assert ns.nicho_por_tema("criterio cripto para perfiles que ya perdieron dinero") == "finanzas-trading"
+    assert ns.nicho_por_tema("coaching de running para mujeres") == "deportes"
+    assert ns.nicho_por_tema("mentoria para mujeres") is None
+    assert ns.nicho_por_tema("marketing para psicólogos") == "marketing-digital"
+    assert ns.nicho_por_tema("agencia de ventas para coaches fitness") == "marketing-digital"
+    assert ns.nicho_por_tema("entrenamiento para mujeres postparto") == "fitness"
+    assert ns.nicho_por_tema("posicionamiento y venta de cursos para psicólogos") == "marketing-digital"
+    frases = ["Mensaje: invierto en propiedades en EEUU y enseño a profesionales a comprar su primera propiedad"]
+    r = ns.decidir({"nicho": "desarrollo-personal", "subnicho": "inversión en propiedades para profesionales", "cita": "enseño a profesionales a comprar su primera propiedad"}, frases, {})
+    assert r["nicho"] == "inmobiliaria"
+
+
 def test_correcciones_medidas_en_codigo():
     assert ap.cambio_pct("Hola! te cuento algo", "Hola! te cuento algo") == 0
     assert ap.cambio_pct("Hola, ¿cómo estás?", "hola como estas") == 100

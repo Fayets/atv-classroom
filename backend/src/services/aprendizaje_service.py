@@ -78,10 +78,12 @@ REGLA_NICHO = """El nicho es el mercado del NEGOCIO del cliente: a quién le ven
 conversa en ATV. Todos los clientes de ATV hablan de marketing, ventas, contenido, embudos, anuncios y redes porque
 es lo que trabajan con nosotros: eso NO los hace de "marketing-digital", "ventas", "contenido-creadores" ni
 "negocios-online". Esos cuatro son solo para quien VENDE eso (una agencia, un trafficker, un curso de ventas o de
-closers, un servicio de edición o de contenido para otros). Ej.: una coach de mujeres que habla de su embudo es
-"desarrollo-personal"; un programador que arma bots para pymes es "tecnologia-programacion".
-El nicho sale del TEMA de lo que vende, no del formato: coaching, mentoría, programa o curso es el formato. Una coach
-de running es "deportes"; una mentoría de nutrición, "nutricion"; un curso de inglés, "idiomas".
+closers, un servicio de edición o de contenido para otros).
+El nicho sale del TEMA de lo que vende, no del formato: coaching, mentoría, programa o curso es el formato.
+"desarrollo-personal" es solo para mentalidad, identidad, hábitos o propósito; si el tema es otro, va el nicho del tema.
+Ejemplos: coach de running → "deportes"; inversión en propiedades → "inmobiliaria"; regulación hormonal → "salud";
+bots y automatizaciones para pymes → "tecnologia-programacion"; agencia de funnels para creadores → "marketing-digital";
+curso de inglés → "idiomas"; mentoría de mentalidad para mujeres → "desarrollo-personal".
 El subnicho es a quién le vende y qué, en 2 a 6 palabras en minúscula (ej. "entrenamiento para mujeres postparto",
 "agencia de anuncios para infoproductores", "inglés para profesionales de IT")."""
 _IDS_CONCEPTO = {c["id"] for c in CONCEPTOS["conceptos"]}
