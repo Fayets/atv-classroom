@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto } from '../../api/mensajes'
+import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaEnviada, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto } from '../../api/mensajes'
 import { fetchVoz } from '../../api/cuenta'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
@@ -205,6 +205,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   const esperaIA = useRef(null)
   const vacioPedido = useRef(null) // último mensaje para el que ya se pidió una sugerencia con la caja vacía
   const descartadoIA = useRef(null) // id del último mensaje cuando apretaste Esc
+  // La última sugerencia aceptada con Tab: al mandar, lo que salió se compara con lo que propuso la IA.
+  const aceptadaIA = useRef(null)
   const campo = useRef(null)
   const iaActiva = Boolean(isEquipo && datos?.canal?.tipo === 'cliente')
 
@@ -256,6 +258,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     setFantasma(null)
     vacioPedido.current = null
     descartadoIA.current = null
+    aceptadaIA.current = null
     return cancelarIA
   }, [canalId, cancelarIA])
 
@@ -292,7 +295,10 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   function aceptarIA() {
     const nuevo = texto + restoIA
     setTexto(nuevo)
-    if (fantasma?.id) marcarSugerenciaUsada(fantasma.id)
+    if (fantasma?.id) {
+      marcarSugerenciaUsada(fantasma.id)
+      aceptadaIA.current = fantasma.id
+    }
     cancelarIA()
     setFantasma(null)
     requestAnimationFrame(() => {
@@ -393,7 +399,10 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     setRespondiendo(null)
     pegadoAbajo.current = true
     try {
+      const aceptada = aceptadaIA.current
+      aceptadaIA.current = null
       const real = await enviarMensaje(canalId, limpio, provisorio.respuesta_a?.id ?? null, ids, adjuntosIds)
+      if (aceptada && real?.id) marcarSugerenciaEnviada(aceptada, real.id)
       setMensajes((m) => agregarSinDuplicar(m, [real]))
       setPendientes((p) => p.filter((x) => x.id !== id))
     } catch (err) {
@@ -488,6 +497,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
       }
     }
     if (!e.target.value.trim()) {
+      aceptadaIA.current = null // borró todo: lo que mande después ya no es una corrección de la sugerencia
       if (ultimoAvisoEscribiendo.current) avisarEscribiendo(canalId, false)
       ultimoAvisoEscribiendo.current = 0
       return

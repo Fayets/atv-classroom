@@ -84,30 +84,46 @@ function Seccion({ titulo, sub, children }) {
 }
 
 function Nicho({ n, q, alAbrirChat }) {
+  // El subnicho elegido (a quién le venden y qué): la página muestra solo lo de esos clientes.
+  const [sub, setSub] = useState(null)
+  const v = (sub && n.subnichos?.find((s) => s.nombre === sub)) || n
+  const subnichos = n.subnichos || []
   const tiene = (...textos) => !q || textos.some((t) => normal(t).includes(q))
-  const dolores = n.dolores.filter((x) => tiene(x.que))
-  const recomendaciones = n.recomendaciones.filter((x) => tiene(x.que))
-  const objeciones = n.objeciones.filter((x) => tiene(x.que))
-  const funciono = n.funciono.filter((x) => tiene(x.texto, x.cita, x.cliente))
-  const noFunciono = n.no_funciono.filter((x) => tiene(x.texto, x.cita, x.cliente))
-  const ofertas = n.ofertas.filter((x) => tiene(x.cliente, x.oferta, x.precio))
-  const roadmaps = n.roadmaps.filter((x) => tiene(x.titulo, x.cliente, x.coach, ...(x.cumplidos || [])))
-  const clientes = n.clientes.filter((x) => tiene(x.nombre, x.que_vende))
-  const conOnb = n.clientes.filter((c) => c.onboarding).length
+  const dolores = v.dolores.filter((x) => tiene(x.que))
+  const recomendaciones = v.recomendaciones.filter((x) => tiene(x.que))
+  const objeciones = v.objeciones.filter((x) => tiene(x.que))
+  const funciono = v.funciono.filter((x) => tiene(x.texto, x.cita, x.cliente))
+  const noFunciono = v.no_funciono.filter((x) => tiene(x.texto, x.cita, x.cliente))
+  const ofertas = v.ofertas.filter((x) => tiene(x.cliente, x.oferta, x.precio))
+  const roadmaps = v.roadmaps.filter((x) => tiene(x.titulo, x.cliente, x.coach, ...(x.cumplidos || [])))
+  const clientes = v.clientes.filter((x) => tiene(x.nombre, x.que_vende))
+  const conOnb = v.clientes.filter((c) => c.onboarding).length
   const nada = q && ![dolores, recomendaciones, objeciones, funciono, noFunciono, ofertas, roadmaps, clientes].some((l) => l.length)
 
   return (
     <div className="bb-pagina">
       <header className="bb-cabeza">
-        <p className="bb-eti">Nicho</p>
-        <h2>{n.nombre}</h2>
+        <p className="bb-eti">{sub ? `Nicho · ${n.nombre}` : 'Nicho'}</p>
+        <h2>{sub ? capital(sub) : n.nombre}</h2>
         <div className="bb-numeros">
-          <span><b>{n.clientes.length}</b> clientes</span>
+          <span><b>{v.clientes.length}</b> clientes</span>
           <span><b>{conOnb}</b> con onboarding</span>
-          <span><b>{n.funciono.length}</b> funcionaron</span>
-          <span><b>{n.no_funciono.length}</b> no</span>
-          <span><b>{n.roadmaps.length}</b> roadmaps</span>
+          <span><b>{v.funciono.length}</b> funcionaron</span>
+          <span><b>{v.no_funciono.length}</b> no</span>
+          <span><b>{v.roadmaps.length}</b> roadmaps</span>
         </div>
+        {subnichos.length ? (
+          <div className="bb-subnichos" role="group" aria-label="Subnichos">
+            <button type="button" className={sub ? '' : 'is-on'} aria-pressed={!sub} onClick={() => setSub(null)}>
+              Todos <small>{n.clientes.length}</small>
+            </button>
+            {subnichos.map((s) => (
+              <button key={s.nombre} type="button" className={sub === s.nombre ? 'is-on' : ''} aria-pressed={sub === s.nombre} onClick={() => setSub(sub === s.nombre ? null : s.nombre)}>
+                {capital(s.nombre)} <small>{s.clientes.length}</small>
+              </button>
+            ))}
+          </div>
+        ) : null}
       </header>
 
       {nada ? <p className="bb-vacio">Nada con “{q}” en este nicho.</p> : null}
@@ -167,7 +183,7 @@ function Nicho({ n, q, alAbrirChat }) {
       ) : null}
 
       {!q || clientes.length ? (
-        <Seccion titulo="Quiénes son" sub={n.clientes.some((c) => c.canal_id) ? 'Doble clic para abrir su chat' : null}>
+        <Seccion titulo="Quiénes son" sub={v.clientes.some((c) => c.canal_id) ? 'Doble clic para abrir su chat' : null}>
           <div className="bb-clientes">
             {clientes.map((c) => (
               <button
@@ -182,6 +198,7 @@ function Nicho({ n, q, alAbrirChat }) {
                   <b>{c.nombre}</b>
                   {c.que_vende ? <small>{c.que_vende}</small> : null}
                   <span className="bb-chips">
+                    {c.subnicho && !sub ? <em className="is-sub">{capital(c.subnicho)}</em> : null}
                     {c.plan ? <em>{capital(c.plan)}</em> : null}
                     {c.etapa ? <em>{ETAPA[c.etapa] || c.etapa}</em> : null}
                     {c.onboarding ? <em className="is-verde">Onboarding</em> : null}

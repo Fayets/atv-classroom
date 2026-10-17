@@ -70,8 +70,8 @@ def _armar() -> dict:
         nombres = {i: (externos[i].nombre or externos[i].email) if i in externos else "Cliente" for i in ids}
         roadmaps = _roadmaps(nombres)
 
-    nichos = []
-    for g in grupos:
+    def armar(g: dict) -> dict:
+        """Una página de la Biblioteca: la de un nicho o la de uno de sus subnichos (misma forma)."""
         clientes, ofertas, rms = [], [], []
         for c in g["clientes"]:
             cid = c["id"]
@@ -81,6 +81,7 @@ def _armar() -> dict:
                 "id": cid,
                 "nombre": nombres.get(cid),
                 "que_vende": c.get("que_vende"),
+                "subnicho": c.get("subnicho"),
                 "etapa": c.get("etapa"),
                 "plan": ext.plan_actual if ext else None,
                 "onboarding": ficha is not None,
@@ -98,9 +99,7 @@ def _armar() -> dict:
         # Primero los que más avanzaron: son los que enseñan algo.
         rms.sort(key=lambda r: (r["hechos"] / r["total"], r["fecha"]), reverse=True)
         clientes.sort(key=lambda c: (not c["onboarding"], (c["nombre"] or "").lower()))
-        nichos.append({
-            "slug": g["nicho"],
-            "nombre": nombre_nicho(g["nicho"]),
+        return {
             "clientes": clientes,
             "dolores": g["dolores"],
             "recomendaciones": g["recomendaciones"],
@@ -109,6 +108,15 @@ def _armar() -> dict:
             "no_funciono": g["no_le_funciono"],
             "ofertas": ofertas,
             "roadmaps": rms[:12],
+        }
+
+    nichos = []
+    for g in grupos:
+        nichos.append({
+            "slug": g["nicho"],
+            "nombre": nombre_nicho(g["nicho"]),
+            **armar(g),
+            "subnichos": [{"nombre": sg["subnicho"], **armar(sg)} for sg in g.get("subnichos", [])],
         })
     return {"nichos": nichos, "armado_en": int(time.time())}
 

@@ -139,6 +139,11 @@ export async function pedirSugerencia(canalId, borrador, { signal, alPedazo } = 
   return { id, texto }
 }
 
+/** Lo que se mandó después de aceptar una sugerencia: la corrección le enseña la voz a la IA. */
+export function marcarSugerenciaEnviada(id, mensajeId) {
+  return request(`/api/mensajes/sugerencias/${id}/enviada`, { method: 'POST', body: JSON.stringify({ mensaje_id: mensajeId }) }).catch(() => {})
+}
+
 export function marcarSugerenciaUsada(id) {
   return request(`/api/mensajes/sugerencias/${id}/usada`, { method: 'POST' }).catch(() => {})
 }

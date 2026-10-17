@@ -16,7 +16,7 @@ from decouple import config
 from fastapi import HTTPException
 from pony.orm import db_session
 
-from src.models import Admin, Clase, SugerenciaIA
+from src.models import Admin, Clase, MensajeCanal, SugerenciaIA
 from src.services.cerebro_service import CONCEPTOS, _bonito
 from src.services import aprendizaje_service as ap
 from src.services import gasto_ia
@@ -125,7 +125,33 @@ def _describir_voz(r: dict) -> str:
         reglas.append("suele arrancar con: " + ", ".join(f'"{a}"' for a in r["aperturas_top"][:3]))
     if g("varios_seguidos_pct") >= 40:
         reglas.append("suele mandar mensajes cortos, de a uno")
+    reglas += _reglas_de_correcciones(r.get("correcciones") or {})
     return "; ".join(reglas) + "."
+
+
+def _reglas_de_correcciones(c: dict) -> list[str]:
+    """Lo que esta persona le corrige siempre a la IA, medido en código (ver rasgos_correcciones)."""
+    if not c or c.get("aceptadas", 0) < 3:
+        return []
+    reglas = []
+    largo = c.get("largo_vs_ia")
+    if largo and largo <= 0.8:
+        reglas.append(f"cuando la IA le propone algo, lo recorta (deja más o menos el {round(largo * 100)} %): escribí más corto")
+    elif largo and largo >= 1.25:
+        reglas.append("cuando la IA le propone algo, lo alarga: no te quedes corto")
+    if c.get("saca"):
+        reglas.append("nunca uses estas palabras (las saca cada vez que la IA las pone): " + ", ".join(f'"{w}"' for w in c["saca"][:8]))
+    if c.get("agrega"):
+        reglas.append("suele agregar: " + ", ".join(f'"{w}"' for w in c["agrega"][:8]))
+    if (c.get("saca_emojis_pct") or 0) >= 60:
+        reglas.append("saca los emojis que le propone la IA")
+    if (c.get("saca_signos_apertura_pct") or 0) >= 60:
+        reglas.append("saca los ¿ y ¡ de apertura")
+    if (c.get("saca_punto_final_pct") or 0) >= 60:
+        reglas.append("saca el punto final")
+    if (c.get("pasa_a_minuscula_pct") or 0) >= 60:
+        reglas.append("cambia la mayúscula del principio por minúscula")
+    return reglas
 
 
 def _nicho(slug: str | None) -> dict | None:
@@ -185,15 +211,25 @@ def _hace(cuando: str | None) -> str:
 def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> tuple[str, str]:
     voz = ctx.get("voz") or {}
     ejemplos = "\n".join(f"- {e[:400]}" for e in (voz.get("ejemplos") or [])[:16]) or "(sin ejemplos todavía)"
+    correcciones = voz.get("correcciones") or []
+    correcciones_txt = ""
+    if correcciones:
+        correcciones_txt = (
+            f"\nAsí corrigió sugerencias anteriores de la IA antes de mandarlas (es lo que más importa copiar):\n"
+            + "\n".join(f'- La IA propuso: "{c["propuesto"][:300]}"\n  Mandó: "{c["enviado"][:300]}"' for c in correcciones[:6])
+            + "\n"
+        )
     perfil = ctx.get("perfil") or {}
     perfil_txt = "; ".join(f"{k}: {v}" for k, v in perfil.items() if v) or "sin datos todavía"
     hechos = ctx.get("hechos") or []
     hechos_txt = "\n".join(f"- [{h['tipo']}] {h['texto']}" for h in hechos[:14]) or "(nada todavía)"
     nicho_txt = ""
     if nicho:
-        funciono = [f"- {h['texto']}" for h in nicho.get("le_funciono", [])[:5]]
+        # Si su subnicho ya tiene experiencias, van primero: son los más parecidos a este cliente.
+        sub = next((g for g in nicho.get("subnichos") or [] if g["subnicho"] == perfil.get("subnicho")), None)
+        funciono = [f"- {h['texto']}" for h in ((sub or {}).get("le_funciono", []) + nicho.get("le_funciono", []))[:5]]
         dolores = ", ".join(d["que"] for d in nicho.get("dolores", [])[:5])
-        nicho_txt = f"\nEn su nicho ({nicho['nicho']}) los dolores más comunes son: {dolores or 'sin datos'}.\n"
+        nicho_txt = f"\nEn su nicho ({nicho['nicho']}{', ' + sub['subnicho'] if sub else ''}) los dolores más comunes son: {dolores or 'sin datos'}.\n"
         if funciono:
             nicho_txt += "A otros clientes del mismo nicho les funcionó (no nombres a nadie):\n" + "\n".join(funciono) + "\n"
     ultimos = [m for m in (ctx.get("conversacion") or [])[-15:] if m.get("texto")]
@@ -245,7 +281,7 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
     usuario = f"""Cómo escribe {nombre}: {_describir_voz(voz.get('rasgos') or {})}
 Mensajes reales suyos:
 {ejemplos}
-
+{correcciones_txt}
 Lo que sabemos del cliente: {perfil_txt}
 Lo que aprendimos de sus conversaciones:
 {hechos_txt}
@@ -355,7 +391,7 @@ class SugerenciasServices:
         ctx = ap.contexto_para_responder(canal["id"], voz_id, incluir_nicho=False)
         nicho = _nicho((ctx.get("perfil") or {}).get("nicho"))
         with db_session:
-            s = SugerenciaIA(admin_id=admin_id, canal_id=canal["id"], borrador=borrador[-2000:] or None, sugerencia="…", modelo=MODELO)
+            s = SugerenciaIA(admin_id=admin_id, canal_id=canal["id"], borrador=borrador[-2000:] or None, sugerencia="…", modelo=MODELO, voz_id=voz_id)
             s.flush()
             sid = s.id
         sistema, usuario = armar_prompt(nombre.split()[0], ctx, borrador, nicho)
@@ -388,6 +424,22 @@ class SugerenciasServices:
                 if s is not None:
                     s.sugerencia = total.rstrip()[:2000] or "(vacía)"
                     s.ms = int((time.time() - a) * 1000)
+
+    def enviada(self, sesion: dict, sugerencia_id: int, mensaje_id: int) -> dict:
+        """El mensaje que se mandó después de aceptar la sugerencia. La diferencia entre lo que propuso la IA
+        y lo que salió es cómo escribe esa persona de verdad: alimenta su voz (ver rasgos_correcciones)."""
+        with db_session:
+            s = SugerenciaIA.get(id=sugerencia_id)
+            m = MensajeCanal.get(id=mensaje_id)
+            if s is None or m is None or not es_equipo(sesion) or s.admin_id != sesion["usuario_id"]:
+                raise HTTPException(status_code=404, detail="Sugerencia no encontrada.")
+            if (m.autor_tipo, m.autor_id) != ("admin", s.admin_id) or m.canal.id != s.canal_id:
+                raise HTTPException(status_code=422, detail="Ese mensaje no es de esta sugerencia.")
+            s.usada = True
+            s.enviado = (m.texto or "")[:4000]
+            s.mensaje_id = m.id
+            s.cambio_pct = ap.cambio_pct(((s.borrador or "") + s.sugerencia).strip(), s.enviado)
+            return {"ok": True, "cambio_pct": s.cambio_pct}
 
     def usada(self, sesion: dict, sugerencia_id: int) -> dict:
         with db_session:

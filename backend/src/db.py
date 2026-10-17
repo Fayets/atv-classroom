@@ -118,6 +118,14 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "canales", "inactivo", "BOOLEAN NOT NULL DEFAULT FALSE")
                 _agregar_columna(cur, "canales", "participantes_json", "TEXT")
                 _agregar_columna(cur, "canales", "orden", "INTEGER")
+                # Cerebro: subnicho y revisión del nicho con todo lo del cliente; correcciones del Tab.
+                _agregar_columna(cur, "cerebro_perfil_cliente", "subnicho", "VARCHAR")
+                _agregar_columna(cur, "cerebro_perfil_cliente", "nicho_cita", "TEXT")
+                _agregar_columna(cur, "cerebro_perfil_cliente", "nicho_revisado_en", "TIMESTAMP")
+                _agregar_columna(cur, "cerebro_sugerencias", "voz_id", "INTEGER")
+                _agregar_columna(cur, "cerebro_sugerencias", "enviado", "TEXT")
+                _agregar_columna(cur, "cerebro_sugerencias", "mensaje_id", "INTEGER")
+                _agregar_columna(cur, "cerebro_sugerencias", "cambio_pct", "INTEGER")
                 # Equipo del cliente (setters, closers, socios): quién escribió, sesión y progreso propios.
                 _agregar_columna(cur, "mensajes_canal", "miembro_id", "INTEGER")
                 _agregar_columna(cur, "sesiones", "miembro_id", "INTEGER")

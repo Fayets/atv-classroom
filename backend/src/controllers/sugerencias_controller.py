@@ -31,6 +31,16 @@ async def sugerir(canal_id: int, body: Borrador, sesion: dict = Depends(sesion_m
     )
 
 
+class Enviada(BaseModel):
+    mensaje_id: int
+
+
+@router.post("/sugerencias/{sugerencia_id}/enviada")
+async def enviada(sugerencia_id: int, body: Enviada, sesion: dict = Depends(sesion_mensajes)):
+    """Lo que se mandó después de aceptar la sugerencia (la corrección enseña la voz)."""
+    return await run_in_threadpool(service.enviada, sesion, sugerencia_id, body.mensaje_id)
+
+
 @router.post("/sugerencias/{sugerencia_id}/usada")
 async def usada(sugerencia_id: int, sesion: dict = Depends(sesion_mensajes)):
     return await run_in_threadpool(service.usada, sesion, sugerencia_id)

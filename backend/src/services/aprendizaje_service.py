@@ -20,6 +20,7 @@ import re
 import unicodedata
 from collections import Counter
 from datetime import datetime
+from difflib import SequenceMatcher
 
 from decouple import config
 from pony.orm import db_session
@@ -34,6 +35,7 @@ from src.models import (
     HechoCerebro,
     MensajeCanal,
     PerfilCliente,
+    SugerenciaIA,
     VozEquipo,
 )
 from src.services.cerebro_service import CONCEPTOS, conceptos_en
@@ -45,8 +47,10 @@ LOTE = 60  # mensajes nuevos por llamada
 CONTEXTO = 8  # mensajes ya aprendidos que se mandan para que entienda la charla
 MAX_CANALES_POR_CICLO = 30
 # Tope de gasto por día para el historial importado de Discord. Los chats con mensajes nuevos del
-# classroom se aprenden siempre; lo viejo avanza solo mientras no se pase el tope.
-TOPE_DIARIO_USD = config("APRENDIZAJE_TOPE_DIARIO_USD", default=0.5, cast=float)
+# classroom se aprenden siempre; lo viejo avanza solo mientras no se pase el tope. Con US$3 el
+# historial (~16 mil mensajes al 16-10-2026, ~US$4 en total) se termina en un día y medio; después
+# solo quedan los mensajes nuevos, que gastan bastante menos que el tope.
+TOPE_DIARIO_USD = config("APRENDIZAJE_TOPE_DIARIO_USD", default=3.0, cast=float)
 DESDE_EL_PRINCIPIO = -(2**31)  # el historial de Discord tiene ids negativos: también se aprende
 
 TIPOS = {
@@ -67,6 +71,19 @@ NICHOS = [
     "contenido-creadores", "musica-arte", "gastronomia", "deportes", "relaciones", "oficios", "otro",
 ]
 ETAPAS = ["arrancando", "validando", "vendiendo", "escalando"]
+# Los nichos de lo que se aprende EN ATV: casi todos los clientes hablan de esto con nosotros, así que
+# solo cuentan si es lo que el cliente vende.
+NICHOS_DE_ATV = {"marketing-digital", "ventas", "contenido-creadores", "negocios-online"}
+REGLA_NICHO = """El nicho es el mercado del NEGOCIO del cliente: a quién le vende y qué. No es lo que aprende ni lo que
+conversa en ATV. Todos los clientes de ATV hablan de marketing, ventas, contenido, embudos, anuncios y redes porque
+es lo que trabajan con nosotros: eso NO los hace de "marketing-digital", "ventas", "contenido-creadores" ni
+"negocios-online". Esos cuatro son solo para quien VENDE eso (una agencia, un trafficker, un curso de ventas o de
+closers, un servicio de edición o de contenido para otros). Ej.: una coach de mujeres que habla de su embudo es
+"desarrollo-personal"; un programador que arma bots para pymes es "tecnologia-programacion".
+El nicho sale del TEMA de lo que vende, no del formato: coaching, mentoría, programa o curso es el formato. Una coach
+de running es "deportes"; una mentoría de nutrición, "nutricion"; un curso de inglés, "idiomas".
+El subnicho es a quién le vende y qué, en 2 a 6 palabras en minúscula (ej. "entrenamiento para mujeres postparto",
+"agencia de anuncios para infoproductores", "inglés para profesionales de IT")."""
 _IDS_CONCEPTO = {c["id"] for c in CONCEPTOS["conceptos"]}
 _OBJETIVO = re.compile(r"\b(mi objetivo|mi meta|quiero llegar|quiero lograr|me gustaria llegar|me gustaria lograr)\b")
 
@@ -96,6 +113,7 @@ Devolvé este JSON:
   "perfil": {{
     "nicho": uno de {json.dumps(NICHOS)} o null,
     "nicho_texto": "cómo describe el cliente a qué se dedica, con sus palabras" o null,
+    "subnicho": "a quién le vende y qué, de 2 a 6 palabras en minúscula" o null,
     "que_vende": "qué producto o servicio vende" o null,
     "etapa": uno de {json.dumps(ETAPAS)} o null,
     "facturacion": "lo que dijo que factura, textual" o null,
@@ -119,6 +137,7 @@ Reglas:
 - "recomendacion" sale solo de mensajes del EQUIPO; todos los demás tipos, solo del CLIENTE.
 - "le_funciono" y "no_le_funciono" solo si el cliente lo dice explícitamente.
 - En el perfil, solo lo que el cliente dijo en esta conversación; si no lo dijo, null.
+- {REGLA_NICHO}
 - Saludos, agradecimientos y charla sin contenido no son hechos. Si no hay nada, "hechos": []."""
 
 
@@ -214,6 +233,9 @@ def validar(respuesta: dict, mensajes: list[dict], nuevos_desde: int) -> tuple[d
     del_cliente = " ".join(_norm(m["texto"]) for m in mensajes if m["autor_tipo"] == "cliente" and m["id"] >= nuevos_desde)
     if p.get("nicho") in NICHOS:
         perfil["nicho"] = p["nicho"]
+    sub = limpiar_subnicho(p.get("subnicho"))
+    if sub:
+        perfil["subnicho"] = sub
     for campo in ("nicho_texto", "que_vende", "objetivo", "tono_cliente"):
         if isinstance(p.get(campo), str) and p[campo].strip():
             perfil[campo] = p[campo].strip()[:200]
@@ -225,6 +247,51 @@ def validar(respuesta: dict, mensajes: list[dict], nuevos_desde: int) -> tuple[d
     if not del_cliente:
         perfil = {}  # sin mensajes nuevos del cliente no hay perfil que aprender
     return perfil, hechos
+
+
+def limpiar_subnicho(texto) -> str | None:
+    """El subnicho como etiqueta: minúscula, sin puntos ni comillas, de 2 a 10 palabras."""
+    if not isinstance(texto, str):
+        return None
+    t = re.sub(r"[\"“”'.;:!¡?¿()]", "", texto).strip().lower()
+    t = re.sub(r"\s+", " ", t)
+    return t[:80] if 2 <= len(t.split()) <= 10 else None
+
+
+_VACIAS_SUB = {"de", "para", "con", "y", "a", "en", "la", "el", "los", "las", "del", "que", "por", "e", "o", "u", "al", "su", "sus"}
+
+
+def _llave_sub(t: str) -> set[str]:
+    # Plurales simples afuera ("mujeres" y "mujer" son lo mismo para agrupar).
+    return {re.sub(r"(es|s)$", "", w) for w in _norm(t).split() if w not in _VACIAS_SUB}
+
+
+def unificar_subnicho(sub: str | None, existentes: list[str]) -> str | None:
+    """Si ya hay un subnicho que dice lo mismo (casi las mismas palabras), se usa ese: así los clientes
+    parecidos quedan juntos aunque cada uno lo haya dicho distinto."""
+    if not sub:
+        return None
+    llave = _llave_sub(sub)
+    mejor, puntaje = None, 0.0
+    for e in existentes:
+        otra = _llave_sub(e)
+        if not llave or not otra:
+            continue
+        j = len(llave & otra) / len(llave | otra)
+        if j > puntaje:
+            mejor, puntaje = e, j
+    return mejor if mejor and puntaje >= 0.75 else sub
+
+
+def subnichos_de(nicho: str | None, sin: int | None = None) -> list[str]:
+    """Los subnichos que ya existen en un nicho (sin contar al cliente `sin`). Va dentro de un db_session."""
+    if not nicho:
+        return []
+    filas = db.select(
+        f'SELECT DISTINCT subnicho FROM "{DB_SCHEMA}"."cerebro_perfil_cliente" WHERE nicho = $nicho AND subnicho IS NOT NULL AND cliente_id <> $sin',
+        {"nicho": nicho, "sin": sin or 0},
+    )
+    return [f for f in filas if f]
 
 
 def _del_canal(canal_id: int) -> list:
@@ -280,8 +347,19 @@ def aprender_canal(canal_id: int, llamar=_llamar) -> dict:
         if perfil:
             if perfil_obj is None:
                 perfil_obj = PerfilCliente(cliente_id=canal.cliente_id)
+            # El nicho de un lote es una pista (mira 60 mensajes). Si el nicho ya se decidió mirando todo lo
+            # del cliente, el lote no lo pisa: si propone otro, se vuelve a revisar con todo.
+            nicho, sub = perfil.get("nicho"), perfil.get("subnicho")
+            if perfil_obj.nicho_revisado_en is None:
+                if nicho:
+                    perfil_obj.nicho = nicho
+                if sub:
+                    perfil_obj.subnicho = unificar_subnicho(sub, subnichos_de(perfil_obj.nicho, sin=canal.cliente_id))
+            elif nicho and nicho != perfil_obj.nicho:
+                perfil_obj.nicho_revisado_en = None
             for campo, valor in perfil.items():
-                setattr(perfil_obj, campo, valor)
+                if campo not in ("nicho", "subnicho"):
+                    setattr(perfil_obj, campo, valor)
             perfil_obj.actualizado_en = datetime.utcnow()
         estado.ultimo_mensaje_id = nuevos[-1]["id"]
         estado.actualizado_en = datetime.utcnow()
@@ -401,6 +479,72 @@ def rasgos_de(textos: list[str], base: Counter | None = None, fechas: list | Non
     return rasgos
 
 
+# ---------- correcciones del Tab: lo que la IA propuso y lo que la persona terminó mandando ----------
+# Las palabras de función no dicen nada del estilo; los saludos sí ("siempre saca el hola").
+_FUNCION = _NO_SON_PROPIAS - {"hola", "gracias", "buen", "dia", "buenas", "tardes", "noches"}
+
+
+def cambio_pct(propuesto: str, enviado: str) -> int:
+    """Cuánto cambió el mensaje: 0 = lo mandó tal cual, 100 = lo reescribió entero. Palabra por palabra y
+    respetando mayúsculas y signos (cambiar "Hola," por "hola" también es corregir)."""
+    a, b = (propuesto or "").split(), (enviado or "").split()
+    if not a and not b:
+        return 0
+    return round(100 * (1 - SequenceMatcher(None, a, b, autojunk=False).ratio()))
+
+
+def rasgos_correcciones(pares: list[tuple[str, str]]) -> dict:
+    """Qué le cambia la persona a lo que le propone la IA, medido en código. pares: (propuesto, enviado)."""
+    if not pares:
+        return {}
+    editados = [(a, b) for a, b in pares if cambio_pct(a, b) > 2]
+    salida = {"aceptadas": len(pares), "tal_cual_pct": round(100 * (len(pares) - len(editados)) / len(pares))}
+    if not editados:
+        return salida
+    ratios = sorted(len(b.split()) / max(1, len(a.split())) for a, b in editados)
+    salida["largo_vs_ia"] = round(ratios[len(ratios) // 2], 2)
+    saca, agrega = Counter(), Counter()
+    for a, b in editados:
+        pa, pb = set(_palabras(a)), set(_palabras(b))
+        saca.update(w for w in pa - pb if len(w) >= 3 and w not in _FUNCION)
+        agrega.update(w for w in pb - pa if len(w) >= 2 and w not in _FUNCION)
+    minimo = max(2, round(len(editados) * 0.15))
+    salida["saca"] = [w for w, c in saca.most_common(10) if c >= minimo]
+    salida["agrega"] = [w for w, c in agrega.most_common(10) if c >= minimo]
+
+    def pct(aplica, cumple):
+        casos = [(a, b) for a, b in editados if aplica(a, b)]
+        return round(100 * sum(1 for a, b in casos if cumple(a, b)) / len(casos)) if len(casos) >= 2 else None
+
+    medidas = {
+        "saca_emojis_pct": pct(lambda a, b: _EMOJI.search(a), lambda a, b: len(_EMOJI.findall(b)) < len(_EMOJI.findall(a))),
+        "saca_signos_apertura_pct": pct(lambda a, b: re.search("[¿¡]", a), lambda a, b: not re.search("[¿¡]", b)),
+        "saca_punto_final_pct": pct(lambda a, b: a.rstrip().endswith("."), lambda a, b: not b.rstrip().endswith(".")),
+        "pasa_a_minuscula_pct": pct(lambda a, b: a[:1].isupper(), lambda a, b: b[:1].islower()),
+    }
+    salida.update({k: v for k, v in medidas.items() if v is not None})
+    return salida
+
+
+def _propuesto(s: SugerenciaIA) -> str:
+    return ((s.borrador or "") + s.sugerencia).strip()
+
+
+def _correcciones_sql(donde: str) -> list:
+    """Sugerencias aceptadas y mandadas, en la voz de la misma persona (si alguien escribe con la voz de
+    otro, lo que corrige es su gusto, no el estilo del dueño de la voz)."""
+    return list(SugerenciaIA.select_by_sql(
+        f'SELECT * FROM "{DB_SCHEMA}"."cerebro_sugerencias" WHERE usada AND enviado IS NOT NULL '
+        f"AND (voz_id IS NULL OR voz_id = admin_id) AND sugerencia NOT IN ('…', '(vacía)') {donde} ORDER BY id DESC"
+    ))
+
+
+def correcciones_de(admin_id: int, limite: int = 60) -> list[dict]:
+    with db_session:
+        filas = _correcciones_sql(f"AND admin_id = {int(admin_id)}")[:limite]
+        return [{"propuesto": _propuesto(f), "enviado": f.enviado, "cambio": f.cambio_pct or 0} for f in filas]
+
+
 def actualizar_voces() -> int:
     """Rasgos y mensajes de ejemplo de cada persona del equipo que escribió a clientes
     (incluye el historial traído de Discord de quienes tienen cuenta)."""
@@ -411,6 +555,10 @@ def actualizar_voces() -> int:
             if m.canal.id in canales_cliente and (m.texto or "").strip():
                 por_admin.setdefault(m.autor_id, []).append(m)
         base = Counter(w for ms in por_admin.values() for m in ms[-1500:] for w in _palabras(m.texto))
+        corregidas: dict[int, list] = {}
+        for f in _correcciones_sql(""):
+            if len(corregidas.setdefault(f.admin_id, [])) < 200:
+                corregidas[f.admin_id].append((_propuesto(f), f.enviado))
         for admin_id, ms in por_admin.items():
             ms.sort(key=lambda m: (m.creado_en, m.id))
             recientes = ms[-1500:]
@@ -421,7 +569,10 @@ def actualizar_voces() -> int:
             medios = [m.id for m in utiles if 12 < len(m.texto.split()) <= 40][:10]
             largos = [m.id for m in utiles if len(m.texto.split()) > 40][:6]
             v = VozEquipo.get(admin_id=admin_id) or VozEquipo(admin_id=admin_id)
-            v.rasgos_json = json.dumps(rasgos_de(textos, base, [m.creado_en for m in recientes]), ensure_ascii=False)
+            rasgos = rasgos_de(textos, base, [m.creado_en for m in recientes])
+            if len(corregidas.get(admin_id, [])) >= 3:
+                rasgos["correcciones"] = rasgos_correcciones(corregidas[admin_id])
+            v.rasgos_json = json.dumps(rasgos, ensure_ascii=False)
             v.muestras_json = json.dumps(cortos + medios + largos)
             v.mensajes_analizados = len(ms)
             v.actualizado_en = datetime.utcnow()
@@ -450,6 +601,12 @@ def ciclo(llamar=_llamar) -> dict:
         except Exception:
             logger.exception("Aprendizaje: falló el canal %s", canal_id)
             resultados.append({"canal": canal_id, "error": "excepción"})
+    # Los nichos que hay que decidir mirando todo lo del cliente (de a 10: cada uno cuesta menos de un centavo).
+    nichos = []
+    if llamar is _llamar and gasto_ia.gastado_hoy("nichos") < TOPE_DIARIO_USD:
+        from src.services.nichos_service import revisar_pendientes
+
+        nichos = revisar_pendientes(10)
     voces = actualizar_voces()
     # Los formularios de onboarding nuevos (de a pocos; cada uno cuesta centavos).
     onboardings = []
@@ -457,7 +614,7 @@ def ciclo(llamar=_llamar) -> dict:
         from src.services.cerebro_onboarding import importar_pendientes
 
         onboardings = importar_pendientes(5)
-    return {"canales": resultados, "voces": voces, "onboardings": onboardings, "pendientes": max(0, len(pendientes) - len(resultados)), "tope_alcanzado": frenado}
+    return {"canales": resultados, "voces": voces, "nichos": nichos, "onboardings": onboardings, "pendientes": max(0, len(pendientes) - len(resultados)), "tope_alcanzado": frenado}
 
 
 # ---------- lo que va a usar la IA (Tab, seguimientos) y la base por nicho ----------
@@ -470,7 +627,7 @@ def perfil_de(cliente_id: int) -> dict:
         p = PerfilCliente.get(cliente_id=cliente_id)
         hechos = list(HechoCerebro.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."cerebro_hechos" WHERE cliente_id = $cliente_id ORDER BY mensaje_id DESC LIMIT 200'))
         return {
-            "perfil": None if p is None else {k: getattr(p, k) for k in ("nicho", "nicho_texto", "que_vende", "etapa", "facturacion", "objetivo", "tono_cliente")},
+            "perfil": None if p is None else {k: getattr(p, k) for k in ("nicho", "subnicho", "nicho_texto", "que_vende", "etapa", "facturacion", "objetivo", "tono_cliente")},
             "hechos": [_hecho_dict(h) for h in hechos[:60]],
         }
 
@@ -481,45 +638,63 @@ def voz_de(admin_id: int) -> dict:
         if v is None:
             return {"rasgos": {}, "ejemplos": []}
         ids = [int(i) for i in json.loads(v.muestras_json or "[]")]
-        if not ids:
-            return {"rasgos": json.loads(v.rasgos_json or "{}"), "ejemplos": []}
-        lista = ",".join(str(i) for i in ids)
-        por_id = {m.id: m for m in MensajeCanal.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."mensajes_canal" WHERE id IN ({lista}) AND NOT borrado')}
-        ejemplos = [por_id[i].texto for i in ids if i in por_id]
-        return {"rasgos": json.loads(v.rasgos_json or "{}"), "ejemplos": ejemplos}
+        ejemplos = []
+        if ids:
+            lista = ",".join(str(i) for i in ids)
+            por_id = {m.id: m for m in MensajeCanal.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."mensajes_canal" WHERE id IN ({lista}) AND NOT borrado')}
+            ejemplos = [por_id[i].texto for i in ids if i in por_id]
+        rasgos = json.loads(v.rasgos_json or "{}")
+    # Las correcciones más recientes que cambiaron algo de verdad (ni tal cual ni reescritas enteras).
+    correcciones = [c for c in correcciones_de(admin_id, 40) if 5 <= c["cambio"] <= 90][:6]
+    return {"rasgos": rasgos, "ejemplos": ejemplos, "correcciones": correcciones}
+
+
+def _grupo(**datos) -> dict:
+    return {**datos, "clientes": [], "dolores": Counter(), "objeciones": Counter(), "le_funciono": [], "no_le_funciono": [], "recomendaciones": Counter()}
+
+
+def _sumar(g: dict, h: HechoCerebro, clave: str, nombre: str | None) -> None:
+    if h.tipo == "dolor":
+        g["dolores"][clave] += 1
+    elif h.tipo == "objecion":
+        g["objeciones"][clave] += 1
+    elif h.tipo == "recomendacion":
+        g["recomendaciones"][clave] += 1
+    elif h.tipo in ("le_funciono", "no_le_funciono"):
+        g[h.tipo].append({"cliente": nombre, "texto": h.texto, "cita": h.cita})
+
+
+def _cerrar(g: dict) -> dict:
+    for k in ("dolores", "objeciones", "recomendaciones"):
+        g[k] = [{"que": q, "veces": n} for q, n in g[k].most_common(10)]
+    return g
 
 
 def por_nicho(nicho: str | None = None) -> list[dict]:
-    """Base de conocimiento por nicho: quiénes son, qué les duele, qué objetan, qué les funcionó."""
+    """Base de conocimiento por nicho: quiénes son, qué les duele, qué objetan, qué les funcionó.
+    Cada nicho trae lo mismo abierto por subnicho (a quién le vende y qué)."""
     with db_session:
-        perfiles = {p.cliente_id: p for p in list(PerfilCliente.select()) if p.nicho}
+        perfiles = {p.cliente_id: p for p in list(PerfilCliente.select()) if p.nicho and (not nicho or p.nicho == nicho)}
         hechos = [h for h in list(HechoCerebro.select()) if h.cliente_id in perfiles]
         nombres = {c.id: (c.nombre or c.email) for c in list(ClienteExterno.select()) if c.id in perfiles}
     grupos: dict[str, dict] = {}
     for cid, p in perfiles.items():
-        if nicho and p.nicho != nicho:
-            continue
-        g = grupos.setdefault(p.nicho, {"nicho": p.nicho, "clientes": [], "dolores": Counter(), "objeciones": Counter(), "le_funciono": [], "no_le_funciono": [], "recomendaciones": Counter()})
-        g["clientes"].append({"id": cid, "nombre": nombres.get(cid), "que_vende": p.que_vende, "etapa": p.etapa})
+        g = grupos.setdefault(p.nicho, _grupo(nicho=p.nicho, subnichos={}))
+        cliente = {"id": cid, "nombre": nombres.get(cid), "que_vende": p.que_vende, "etapa": p.etapa, "subnicho": p.subnicho}
+        g["clientes"].append(cliente)
+        if p.subnicho:
+            g["subnichos"].setdefault(p.subnicho, _grupo(subnicho=p.subnicho))["clientes"].append(cliente)
     nombre_concepto = {c["id"]: c["nombre"] for c in CONCEPTOS["conceptos"]}
     for h in hechos:
-        g = grupos.get(perfiles[h.cliente_id].nicho)
-        if g is None:
-            continue
+        p = perfiles[h.cliente_id]
         clave = nombre_concepto.get(h.concepto) or h.texto
-        if h.tipo == "dolor":
-            g["dolores"][clave] += 1
-        elif h.tipo == "objecion":
-            g["objeciones"][clave] += 1
-        elif h.tipo == "recomendacion":
-            g["recomendaciones"][clave] += 1
-        elif h.tipo in ("le_funciono", "no_le_funciono"):
-            g[h.tipo].append({"cliente": nombres.get(h.cliente_id), "texto": h.texto, "cita": h.cita})
+        _sumar(grupos[p.nicho], h, clave, nombres.get(h.cliente_id))
+        if p.subnicho:
+            _sumar(grupos[p.nicho]["subnichos"][p.subnicho], h, clave, nombres.get(h.cliente_id))
     salida = []
     for g in sorted(grupos.values(), key=lambda g: -len(g["clientes"])):
-        for k in ("dolores", "objeciones", "recomendaciones"):
-            g[k] = [{"que": q, "veces": n} for q, n in g[k].most_common(10)]
-        salida.append(g)
+        g["subnichos"] = [_cerrar(sg) for sg in sorted(g["subnichos"].values(), key=lambda sg: (-len(sg["clientes"]), sg["subnicho"]))]
+        salida.append(_cerrar(g))
     return salida
 
 

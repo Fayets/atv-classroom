@@ -48,6 +48,8 @@ _PEDIDO = """Devolvé:
  "que_vende": "qué vende, en una línea" o null,
  "etapa": uno de {etapas} o null (solo si se desprende de lo que factura o de cuántos clientes tiene),
  "hechos": [{{"tipo": "dolor" | "objecion" | "logro" | "tema", "texto": "en tercera persona, corto", "cita": "fragmento EXACTO de una respuesta", "pregunta": "número de la pregunta"}}]}}
+- El nicho es el mercado del negocio del cliente (a quién le vende), no lo que viene a aprender a ATV:
+  "marketing-digital", "ventas", "contenido-creadores" y "negocios-online" solo si eso es lo que VENDE.
 - Todo es sobre el CLIENTE de ATV (el dueño del negocio), NO sobre su avatar ni sus clientes: lo que
   describe en la pregunta 7 (a quién le habla) no es un dolor suyo.
 - dolor: un problema que tiene hoy su negocio (preguntas 29 y 30 sobre todo). objecion: lo que le impedía comprar (47).
@@ -142,6 +144,8 @@ def importar(cliente_id: int, session_id: str, nombre: str, form_data, respondid
                              ("etapa", ficha.get("etapa")), ("facturacion", ficha.get("facturacion", "")[:120] or None), ("objetivo", ficha.get("objetivo", "")[:200] or None)):
             if valor and not getattr(p, campo):
                 setattr(p, campo, valor)
+        # Con el formulario hay mucho más para saber a qué se dedica: el nicho se vuelve a revisar con todo.
+        p.nicho_revisado_en = None
         db.execute(f'DELETE FROM "{DB_SCHEMA}"."cerebro_hechos" WHERE cliente_id = $c AND modelo = $m', {"c": cliente_id, "m": MARCA})
         for h in hechos:
             HechoCerebro(cliente_id=cliente_id, canal_id=canal.id if canal else 0, tipo=h["tipo"], texto=h["texto"], cita=h["cita"],

@@ -317,6 +317,12 @@ class PerfilCliente(db.Entity):
     cliente_id = PrimaryKey(int)
     nicho = Optional(str, nullable=True)  # slug normalizado: "fitness", "idiomas", "marketing-digital"
     nicho_texto = Optional(str, nullable=True)  # como lo dijo el cliente
+    # Segundo nivel: a quién le vende y qué ("entrenamiento para mujeres postparto"). Texto libre que el
+    # código unifica con los que ya existen, así los clientes parecidos caen en el mismo.
+    subnicho = Optional(str, nullable=True)
+    nicho_cita = Optional(str, nullable=True)  # la frase del cliente que justifica el nicho
+    # Cuándo se decidió el nicho mirando todo lo del cliente (ver nichos_service). Vacío = hay que revisarlo.
+    nicho_revisado_en = Optional(datetime, nullable=True)
     que_vende = Optional(str, nullable=True)
     etapa = Optional(str, nullable=True)  # arrancando | validando | vendiendo | escalando
     facturacion = Optional(str, nullable=True)  # textual, solo si lo dijo
@@ -383,6 +389,12 @@ class SugerenciaIA(db.Entity):
     ms = Optional(int, nullable=True)
     modelo = Optional(str, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
+    # Con la voz de quién se escribió (cada uno puede elegir otra en Mi cuenta).
+    voz_id = Optional(int, nullable=True)
+    # Lo que de verdad se mandó después de aceptar la sugerencia: la corrección es cómo escribe esa persona.
+    enviado = Optional(str, nullable=True)
+    mensaje_id = Optional(int, nullable=True)
+    cambio_pct = Optional(int, nullable=True)  # 0 = la mandó tal cual, 100 = la reescribió entera
 
 
 class FotoPerfil(db.Entity):
