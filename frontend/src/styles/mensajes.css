@@ -94,8 +94,13 @@
 .msj-inicio__hash { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: var(--m-panel); font-size: 28px; color: var(--m-t4); }
 .msj-inicio b { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: var(--m-t1); }
 .msj-inicio span:last-child { font-size: 13.5px; color: var(--m-t3); }
-.msj-anteriores { display: block; margin: 4px auto 16px; padding: 6px 14px; border: 0; border-radius: 999px; background: var(--m-campo); color: var(--m-t2); font: inherit; font-size: 12.5px; cursor: pointer; }
-.msj-anteriores:hover { background: rgba(0, 0, 0, 0.09); }
+/* Arriba de todo: la marca que dispara el scroll infinito. Ocupa alto para que se asome
+   antes de llegar al tope, y solo se ve el punto mientras se están trayendo los anteriores. */
+.msj-anteriores { display: flex; align-items: center; justify-content: center; height: 36px; }
+.msj-anteriores__punto { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--m-campo); border-top-color: var(--m-t3); opacity: 0; }
+.msj-anteriores__punto.is-cargando { opacity: 1; animation: msj-girar 0.7s linear infinite; }
+@keyframes msj-girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .msj-anteriores__punto.is-cargando { animation: none; } }
 
 .msj-dia { display: flex; align-items: center; gap: 12px; margin: 18px 22px 8px; font-size: 11.5px; font-weight: 600; color: var(--m-t4); }
 .msj-dia::before, .msj-dia::after { content: ''; flex: 1; height: 1px; background: var(--m-linea); }

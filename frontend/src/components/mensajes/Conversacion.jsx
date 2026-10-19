@@ -56,6 +56,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   const caja = useRef(null)
   const pegadoAbajo = useRef(true)
   const altoAntes = useRef(null)
+  const centinela = useRef(null)      // la marca de arriba de todo: al verse, se traen los anteriores
+  const cargandoRef = useRef(false)   // el mismo candado que cargandoAntes, pero sin esperar al render
+  const traerAnteriores = useRef(null)
   const leidoEnviado = useRef(0)
   const ultimoAvisoEscribiendo = useRef(0)
   const yo = isEquipo ? `equipo:${user?.usuario_id}` : `cliente:${user?.usuario_id}`
@@ -320,7 +323,10 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   }
 
   async function cargarAnteriores() {
-    if (!mensajes.length || cargandoAntes) return
+    // El candado va en un ref: el observador puede disparar dos veces antes de que React
+    // vuelva a dibujar, y con el estado solo se pedía dos veces el mismo tramo.
+    if (!mensajes.length || cargandoRef.current) return
+    cargandoRef.current = true
     setCargandoAntes(true)
     try {
       const r = await fetchMensajes(canalId, { antesDe: mensajes[0].id })
@@ -330,9 +336,32 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     } catch (err) {
       setError(err.message)
     } finally {
+      cargandoRef.current = false
       setCargandoAntes(false)
     }
   }
+
+  // Siempre la última versión de la función, para que el observador no haya que rearmarlo
+  // en cada mensaje nuevo (y no quede llamando a una versión vieja).
+  useEffect(() => {
+    traerAnteriores.current = cargarAnteriores
+  })
+
+  // Scroll infinito: cuando la marca de arriba se asoma, se traen los anteriores solos.
+  // Con IntersectionObserver y no mirando el scroll en cada cuadro, que a 240 Hz se nota.
+  // El margen de 400 px los pide un poco antes de llegar al tope: no se ve el salto.
+  useEffect(() => {
+    const marca = centinela.current
+    if (!marca || !lista.current) return undefined
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some((e) => e.isIntersecting)) traerAnteriores.current?.()
+      },
+      { root: lista.current, rootMargin: '400px 0px 0px 0px' },
+    )
+    observador.observe(marca)
+    return () => observador.disconnect()
+  }, [canalId, datos.hay_mas])
 
   function agregarArchivos(lista) {
     const nuevos = Array.from(lista || []).slice(0, 10)
@@ -639,9 +668,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
 
       <div className="msj-lista" ref={lista} onScroll={alScrollear} role="log" aria-live="polite">
         {datos.hay_mas ? (
-          <button type="button" className="msj-anteriores" onClick={cargarAnteriores} disabled={cargandoAntes}>
-            {cargandoAntes ? 'Cargando…' : 'Ver mensajes anteriores'}
-          </button>
+          <div className="msj-anteriores" ref={centinela}>
+            <span className={cargandoAntes ? 'msj-anteriores__punto is-cargando' : 'msj-anteriores__punto'} />
+          </div>
         ) : (
           <div className="msj-inicio">
             {esDirecto ? (
