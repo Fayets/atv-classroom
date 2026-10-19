@@ -436,7 +436,8 @@ class MensajeriaServices:
                         }
                         if cliente is not None
                         else None,
-                        "ultimo": {
+                        "bloqueado": bool(sesion.get("pausa")) and canal.tipo != "cliente",
+                        "ultimo": None if sesion.get("pausa") and canal.tipo != "cliente" else {
                             "texto": _recorte(ultimo["texto"], 90) if ultimo["texto"] else "📎 Archivo adjunto",
                             "autor_nombre": (ultimo.get("autor_nombre") if ultimo.get("autor_nombre") and (ultimo["autor_tipo"] == "cliente" or not ultimo["autor_id"]) else autores.de(ultimo["autor_tipo"], ultimo["autor_id"])["nombre"]),
                             "de": "cliente" if ultimo["autor_tipo"] == "cliente" else "equipo",
@@ -444,7 +445,7 @@ class MensajeriaServices:
                         }
                         if ultimo
                         else None,
-                        "no_leidos": datos.get("no_leidos", 0),
+                        "no_leidos": 0 if sesion.get("pausa") and canal.tipo != "cliente" else datos.get("no_leidos", 0),
                         "menciones": datos.get("menciones", 0),
                         "esperando_desde": _iso(datos.get("esperando_desde")),
                         # Quién ve el canal es cosa del equipo: al cliente no se le manda.
@@ -476,6 +477,11 @@ class MensajeriaServices:
         tabla = f'"{DB_SCHEMA}"."mensajes_canal"'
         with db_session:
             canal = _canal_visible(sesion, canal_id)
+            if sesion.get("pausa") and canal.tipo != "cliente":
+                # En pausa, de la comunidad solo ve el candado: los mensajes no salen del servidor.
+                from src.services.auth_service import mensaje_pausa
+
+                raise HTTPException(status_code=423, detail=mensaje_pausa())
             cid = canal.id
             hay_mas = False
             if despues_de is not None:

@@ -811,3 +811,13 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 /* Pausa e Inactivos: aunque estén vacíos tienen lugar para soltar, así no se confunden entre sí. */
 .msj-grupo.is-pausa, .msj-grupo.is-inactivos { min-height: 40px; }
 .msj-grupo.is-pausa.is-soltar { background: rgba(11, 15, 61, 0.07); border-radius: 8px; }
+
+/* Cliente en pausa: canales de la comunidad con candado */
+.msj-fila__hash.is-candado { display: inline-grid; place-items: center; }
+.msj-fila__hash.is-candado svg { width: 12px; height: 12px; fill: currentColor; opacity: 0.75; }
+.msj-bloqueado { flex: 1; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 40px 24px; text-align: center; color: #6e6e73; }
+.msj-bloqueado__icono { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: rgba(11, 15, 61, 0.07); color: #0b0f3d; }
+.msj-bloqueado__icono svg { width: 24px; height: 24px; fill: currentColor; }
+.msj-bloqueado b { color: #16182b; font-size: 17px; font-weight: 600; }
+.msj-bloqueado p { margin: 0; max-width: 36ch; font-size: 14px; line-height: 1.5; }
+.msj-bloqueado__boton { margin-top: 4px; border: 0; background: #1fa855; color: #fff; font: 600 13.5px inherit; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-family: inherit; }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchSenas } from '../api/altas'
+import { pedirCartelPausa } from '../components/Pausa'
 import { abrirDirecto, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, ordenarCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
@@ -45,6 +46,23 @@ function agrupar(lista) {
 
 // Fila como un canal de Discord: el nombre; en negrita con un punto si hay mensajes sin leer,
 // y un círculo rojo con la cantidad si te etiquetaron.
+// Cliente en pausa: los canales de la comunidad se ven con candado y sin un solo mensaje.
+function CanalBloqueado({ item }) {
+  useEffect(() => {
+    pedirCartelPausa()
+  }, [item.id])
+  return (
+    <div className="msj-bloqueado">
+      <span className="msj-bloqueado__icono" aria-hidden="true">
+        <svg viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="7" rx="1.6" /><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
+      </span>
+      <b>#{item.nombre} está bloqueado</b>
+      <p>Tu programa está en pausa: mientras tanto no podés ver lo que se habla en la comunidad.</p>
+      <button type="button" className="msj-bloqueado__boton" onClick={pedirCartelPausa}>Ver cómo reanudarlo</button>
+    </div>
+  )
+}
+
 function FilaCanal({ c, activo, onAbrir, escribe, hash = false, onEditar, arrastrable = false }) {
   const nuevo = c.no_leidos > 0 && !activo
   const ultimo = c.ultimo ? `${c.ultimo.autor_nombre}: ${c.ultimo.texto}` : 'Sin mensajes todavía'
@@ -64,7 +82,13 @@ function FilaCanal({ c, activo, onAbrir, escribe, hash = false, onEditar, arrast
     >
       {nuevo ? <i className="msj-fila__punto" aria-label="Mensajes sin leer" /> : null}
       <span className="msj-fila__nombre">
-        {hash ? <em className="msj-fila__hash">#</em> : null}
+        {hash ? (
+          c.bloqueado ? (
+            <em className="msj-fila__hash is-candado" aria-label="Bloqueado">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.6" /><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
+            </em>
+          ) : <em className="msj-fila__hash">#</em>
+        ) : null}
         {c.nombre}
       </span>
       {escribe ? <span className="msj-fila__escribe" aria-label={`${escribe} está escribiendo`}><i /><i /><i /></span> : null}
@@ -651,6 +675,8 @@ export default function MensajesPage() {
         <main className="msj-centro">
           {senaActiva && isEquipo ? (
             <PanelSena sena={sena} alHacerOnboarding={() => setOnboardingDe(sena)} />
+          ) : activo && item?.bloqueado ? (
+            <CanalBloqueado item={item} />
           ) : activo ? (
             <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} onVolver={() => setParams(vista === 'alertas' ? { v: 'alertas' } : {})} />
           ) : (

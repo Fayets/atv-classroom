@@ -105,3 +105,29 @@ def test_pausa_lo_saca_de_inactivos(equipo, cliente):
         c = Canal[cliente["canal_id"]]
         assert c.inactivo is False and c.pausa is True  # está en un solo grupo a la vez
     svc.marcar_pausa(equipo["ventas"], cliente["canal_id"], False)
+
+
+def test_en_pausa_la_comunidad_queda_con_candado(equipo, cliente):
+    from src.models import Canal
+    from src.services.tiempo_real import Hub
+
+    with db_session:
+        grupo = next((c for c in list(Canal.select()) if c.tipo in ("grupo", "anuncios")), None)
+        if grupo is None:
+            pytest.skip("No hay canales de comunidad")
+        grupo_id = grupo.id
+    svc.marcar_pausa(equipo["ventas"], cliente["canal_id"], True)
+    try:
+        sesion = auth.obtener_sesion_desde_request(_pedido("GET", "/api/mensajes/canales", cliente["token"]))
+        # El canal se lista (con candado), pero sin último mensaje ni no leídos…
+        fila = next((c for c in svc.listar_canales(sesion) if c["id"] == grupo_id), None)
+        if fila is not None:
+            assert fila["bloqueado"] is True and fila["ultimo"] is None and fila["no_leidos"] == 0
+        # …y los mensajes no salen del servidor.
+        with pytest.raises(HTTPException) as e:
+            svc.mensajes(sesion, grupo_id)
+        assert e.value.status_code in (404, 423)
+        # Su propio canal, sí.
+        assert "mensajes" in svc.mensajes(sesion, cliente["canal_id"])
+    finally:
+        svc.marcar_pausa(equipo["ventas"], cliente["canal_id"], False)

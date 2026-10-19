@@ -150,6 +150,10 @@ class Hub:
     async def emitir(self, evento: dict, canal: dict, excepto: WebSocket | None = None) -> None:
         for ws, sesion in list(self._conexiones.items()):
             if ws is not excepto and puede_ver(sesion, canal):
+                # Cliente en pausa: ve la comunidad con candado, pero en vivo no le llega nada de ahí
+                # (salvo que se le levante o ponga la pausa, para que la app se actualice).
+                if sesion.get("pausa") and canal["tipo"] != "cliente" and evento.get("tipo") != "pausa":
+                    continue
                 self.enviar(ws, evento)
 
 
