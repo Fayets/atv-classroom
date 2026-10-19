@@ -6,6 +6,7 @@ Es solo lectura: nada de acá modifica atv-clients.
 """
 
 import json
+import re
 from datetime import date, datetime
 
 from fastapi import HTTPException
@@ -38,6 +39,20 @@ def _filas(sql: str, params: dict) -> list[dict]:
     cursor = db.execute(sql, params)
     columnas = [c[0] for c in cursor.description]
     return [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
+
+
+# Marcas internas de cómo se cargó el pago (migración del sistema viejo, carga manual, el cierre automático
+# de una cuota): no dicen nada del cliente, así que no se muestran. Las notas que escribió alguien sí.
+_ORIGENES_INTERNOS = {"migracion", "manual"}
+_NOTAS_INTERNAS = re.compile(r"^\s*(migraci[oó]n desde cuota pagada legacy|cierre cuota #\d+)\s*$", re.I)
+
+
+def _pago_visible(p: dict) -> dict:
+    return {
+        **p,
+        "origen": None if (p.get("origen") or "").lower() in _ORIGENES_INTERNOS else p.get("origen"),
+        "notas": None if _NOTAS_INTERNAS.match(p.get("notas") or "") else p.get("notas"),
+    }
 
 
 class ClientesServices:
@@ -91,7 +106,7 @@ class ClientesServices:
 
         return {
             "cliente": c,
-            "pagos": f["pagos"] or [],
+            "pagos": [_pago_visible(x) for x in (f["pagos"] or [])],
             "cuotas": f["cuotas"] or [],
             "observaciones": f["observaciones"] or [],
             "proximos_pasos": f["proximos_pasos"] or [],
