@@ -80,6 +80,18 @@ def test_con_la_caja_vacia_y_el_equipo_ultimo_pide_un_seguimiento():
     assert "solo agradeció" not in usuario and "después de la última respuesta del equipo ---" in usuario
 
 
+def test_cada_uno_lleva_solo_sus_emojis():
+    """El modelo copiaba el emoji de quien hubiera escrito antes en el chat."""
+    assert sg.emojis_de({"emojis_pct": 4, "emojis_top": ["\U0001F600"]}) is None      # casi no usa: ninguno
+    assert sg.emojis_de({"emojis_pct": 60, "emojis_top": ["\U0001F525", "\U0001F4AA"]}) == {"\U0001F525", "\U0001F4AA"}
+    assert sg.emojis_de({"emojis_pct": 60, "emojis_top": []}) is None
+    suyos = {"\U0001F525"}
+    # Deja el suyo y saca el ajeno (el 🫡 de otra persona del equipo).
+    assert sg.filtrar_emojis("dale \U0001F525 vamos \U0001FAE1", suyos) == "dale \U0001F525 vamos "
+    assert sg.filtrar_emojis("dale \U0001F525 vamos", None) == "dale vamos"
+    assert sg.filtrar_emojis("sin nada", suyos) == "sin nada"
+
+
 def test_sin_emojis_y_cierres():
     from src.services import sugerencias_service as sg
 

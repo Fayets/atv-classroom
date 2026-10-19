@@ -28,8 +28,10 @@ MODELO = config("SUGERENCIAS_MODEL", default="claude-haiku-5-5")
 TOPE_POR_MINUTO = 40
 _pedidos: dict[int, deque] = defaultdict(deque)
 _nicho_cache: dict[str, tuple[float, dict | None]] = {}
-# Sugerencias en curso que salen sin emojis (la persona casi no los usa): lo decide el código, no la IA.
-_sin_emojis: set[int] = set()
+# Qué emojis puede llevar cada sugerencia en curso: los que esa persona usa de verdad.
+# None = ninguno (casi no usa). Lo decide el código, no la IA: el modelo copiaba los emojis
+# de quien hubiera escrito antes en el chat (el 🫡 de otro del equipo salía en la voz de Franco).
+_emojis_ok: dict[int, set[str] | None] = {}
 
 _EMOJI = re.compile(
     "[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF\U00002B00-\U00002BFF\u200d\ufe0f\u20e3]"
@@ -44,7 +46,20 @@ _CIERRE = re.compile(
 
 
 def sin_emojis(texto: str) -> str:
-    return re.sub(r"[ \t]{2,}", " ", _EMOJI.sub("", texto))
+    return filtrar_emojis(texto, None)
+
+
+def filtrar_emojis(texto: str, permitidos: set[str] | None) -> str:
+    """Saca los emojis que esta persona no usa. `permitidos` None saca todos."""
+    limpio = _EMOJI.sub(lambda m: m.group(0) if permitidos and m.group(0) in permitidos else "", texto)
+    return re.sub(r"[ \t]{2,}", " ", limpio)
+
+
+def emojis_de(rasgos: dict) -> set[str] | None:
+    """Los emojis propios: si casi no usa, ninguno; si usa, solo los suyos."""
+    if (rasgos or {}).get("emojis_pct", 0) < 15:
+        return None
+    return {e for e in (rasgos.get("emojis_top") or []) if e} or None
 
 
 def pendientes_del_cliente(conversacion: list[dict]) -> list[dict]:
@@ -248,7 +263,13 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
         "mensajes reales de ejemplo. Si los ejemplos y las reglas no coinciden, mandan los ejemplos. Devolvés SOLO el mensaje, sin comillas "
         "ni explicaciones. No inventes datos, precios, links, fechas ni promesas: si te falta algo, preguntá. "
         "Respondés solo a lo último que escribió el cliente: los mensajes viejos y lo aprendido son contexto, no temas "
-        "para retomar (eso ya se habló, muchas veces en audios o llamadas que no ves)."
+        "para retomar (eso ya se habló, muchas veces en audios o llamadas que no ves). "
+        # El modelo copiaba el saludo del cliente ("buenas kingg") y los emojis de otro del equipo.
+        # El tema sí se retoma; la forma de hablar de los demás, no.
+        f"Escribís como {nombre} y nada más: NO copies el saludo, los apodos, las muletillas ni los emojis que "
+        f"aparecen en la conversación, ni del cliente ni de otra persona del equipo. Esas palabras son de ellos, "
+        f"no de {nombre}. Si el cliente saluda con una palabra que {nombre} no usa, saludá como saluda {nombre}. "
+        "Del mensaje del cliente retomás el tema, nunca su forma de escribir."
     )
     largo = round((voz.get("rasgos") or {}).get("palabras_promedio") or 25)
     ultimo = next((m for m in reversed(ctx.get("conversacion") or []) if m.get("texto")), None)
@@ -401,22 +422,20 @@ class SugerenciasServices:
             s.flush()
             sid = s.id
         sistema, usuario = armar_prompt(nombre.split()[0], ctx, borrador, nicho)
-        if ((ctx.get("voz") or {}).get("rasgos") or {}).get("emojis_pct", 0) < 15:
-            _sin_emojis.add(sid)
+        _emojis_ok[sid] = emojis_de((ctx.get("voz") or {}).get("rasgos") or {})
         return sistema, usuario, sid
 
     def transmitir(self, sistema: str, usuario: str, borrador: str, sid: int, stream=_stream):
         """Generador de texto: lo que sigue después del borrador, a medida que la IA lo escribe."""
         a = time.time()
         recorte = _Recorte(borrador)
-        limpiar_emojis = sid in _sin_emojis
-        _sin_emojis.discard(sid)
+        permitidos = _emojis_ok.pop(sid, None)
         total = ""
         try:
             for pedazo in stream(sistema, usuario):
                 nuevo = recorte.agregar(pedazo)
-                if nuevo and limpiar_emojis:
-                    nuevo = sin_emojis(nuevo)
+                if nuevo:
+                    nuevo = filtrar_emojis(nuevo, permitidos)
                     if not total:
                         nuevo = nuevo.lstrip()
                 if nuevo:
