@@ -40,7 +40,6 @@
   aspect-ratio: 1;
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(176, 69, 69, 0.28), transparent);
-  filter: blur(40px);
   will-change: transform, opacity;
   animation: lg-respira 8s ease-in-out infinite;
 }

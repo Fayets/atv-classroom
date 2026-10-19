@@ -2,7 +2,7 @@
    un canal privado por cliente con todo el equipo. A todo el ancho, sin marco de ventana. */
 .msj-root {
   --m-bg: #ffffff;
-  --m-lateral: rgba(246, 246, 248, 0.92);
+  --m-lateral: #f6f6f8;
   --m-panel: #f5f5f7;
   --m-tarjeta: #ffffff;
   --m-linea: rgba(0, 0, 0, 0.08);
@@ -29,7 +29,7 @@
 .msj-root ::selection { background: var(--m-acento); color: #fff; }
 
 /* Barra superior en claro, como la barra de título de una app de Mac. */
-.msj-root .app-header { flex: none; background: #f6f6f8; border-bottom: 1px solid rgba(0, 0, 0, 0.1); box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.6); backdrop-filter: saturate(180%) blur(20px); }
+.msj-root .app-header { flex: none; background: #f6f6f8; border-bottom: 1px solid rgba(0, 0, 0, 0.1); box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.6); }
 .msj-root .app-header__avatar { color: var(--m-t1); background: linear-gradient(#e8e8ec, #d6d6dc); border-color: transparent; }
 .msj-root .app-header__menu { background: rgba(250, 250, 252, 0.96); border-color: transparent; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 16px 40px -8px rgba(0, 0, 0, 0.25); }
 .msj-root .app-header__menu-name { color: var(--m-t1); }
@@ -41,7 +41,7 @@
 .msj-layout.con-panel { grid-template-columns: 300px minmax(0, 1fr) 290px; }
 
 /* ---------- barra lateral (como el sidebar de Mensajes/Mail) ---------- */
-.msj-lateral { min-height: 0; overflow-y: auto; padding: 16px 10px 24px; background: var(--m-lateral); border-right: 1px solid var(--m-linea); backdrop-filter: saturate(180%) blur(30px); }
+.msj-lateral { min-height: 0; overflow-y: auto; padding: 16px 10px 24px; background: var(--m-lateral); border-right: 1px solid var(--m-linea); }
 .msj-lateral__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 8px 12px; }
 .msj-lateral__head h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: var(--m-t1); }
 .msj-estado { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--m-t3); }
@@ -82,7 +82,7 @@
 /* ---------- conversación ---------- */
 .msj-centro { min-width: 0; min-height: 0; display: flex; background: var(--m-bg); }
 .msj-conv { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.msj-conv__barra { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 22px; border-bottom: 1px solid var(--m-linea); background: rgba(255, 255, 255, 0.85); backdrop-filter: saturate(180%) blur(20px); }
+.msj-conv__barra { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 22px; border-bottom: 1px solid var(--m-linea); background: #fdfdfe; }
 .msj-hash { font-size: 20px; color: var(--m-t4); line-height: 1; }
 .msj-conv__titulo { min-width: 0; display: flex; flex-direction: column; }
 .msj-conv__titulo b { font-size: 14px; font-weight: 600; color: var(--m-t1); }
@@ -207,8 +207,7 @@
   width: min(280px, 100%);
   padding: 20px 16px 16px;
   border-radius: 14px;
-  background: rgba(246, 246, 248, 0.96);
-  backdrop-filter: saturate(180%) blur(30px);
+  background: #f6f6f8;
   box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.18), 0 22px 60px -10px rgba(0, 0, 0, 0.35);
   color: #1d1d1f;
   text-align: center;
@@ -233,7 +232,7 @@
 .msj-mencion.is-yo { background: rgba(192, 57, 43, 0.12); color: var(--m-acento); }
 .msj-m.is-mencion { background: rgba(255, 196, 0, 0.09); box-shadow: inset 3px 0 0 #f5b400; }
 .msj-redactar { position: relative; }
-.msj-sugerencias { position: absolute; left: 22px; width: min(360px, calc(100% - 44px)); bottom: calc(100% - 2px); margin: 0; padding: 6px; list-style: none; border-radius: 12px; background: rgba(250, 250, 252, 0.97); backdrop-filter: saturate(180%) blur(30px); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 14px 36px -10px rgba(0, 0, 0, 0.3); z-index: 5; }
+.msj-sugerencias { position: absolute; left: 22px; width: min(360px, calc(100% - 44px)); bottom: calc(100% - 2px); margin: 0; padding: 6px; list-style: none; border-radius: 12px; background: #fafafc; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 14px 36px -10px rgba(0, 0, 0, 0.3); z-index: 5; }
 .msj-sugerencias button { width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 7px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--m-t1); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
 .msj-sugerencias button > b { flex: none; }
 /* solo la descripción (área o "Etiqueta a todos") va a la derecha; el avatar queda pegado al nombre */
@@ -276,7 +275,7 @@
 .msj-alerta-item__ok:hover { color: var(--m-t1); }
 
 /* ---------- notificación al estilo macOS (se ve en todo el classroom) ---------- */
-.msj-noti { --m-acento: #c0392b; --m-t1: #1d1d1f; position: fixed; top: 16px; right: 16px; z-index: 60; width: min(360px, calc(100vw - 32px)); display: flex; align-items: flex-start; border-radius: 16px; background: rgba(246, 246, 248, 0.92); backdrop-filter: saturate(180%) blur(30px); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 18px 44px -12px rgba(0, 0, 0, 0.35); color: #1d1d1f; animation: msj-noti-entra 320ms cubic-bezier(0.16, 1, 0.3, 1); }
+.msj-noti { --m-acento: #c0392b; --m-t1: #1d1d1f; position: fixed; top: 16px; right: 16px; z-index: 60; width: min(360px, calc(100vw - 32px)); display: flex; align-items: flex-start; border-radius: 16px; background: #f6f6f8; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 18px 44px -12px rgba(0, 0, 0, 0.35); color: #1d1d1f; animation: msj-noti-entra 320ms cubic-bezier(0.16, 1, 0.3, 1); }
 .msj-noti__cuerpo { flex: 1; min-width: 0; display: flex; gap: 10px; padding: 12px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .msj-noti__txt { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .msj-noti__app { font-size: 11px; color: #6e6e73; }
@@ -321,7 +320,7 @@
 .msj-subidas li button { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.06); color: var(--m-t3); font-size: 9px; cursor: pointer; }
 
 .msj-conv { position: relative; }
-.msj-soltar { position: absolute; inset: 8px; z-index: 6; display: grid; place-items: center; border-radius: 16px; border: 2px dashed rgba(192, 57, 43, 0.55); background: rgba(255, 255, 255, 0.86); backdrop-filter: blur(6px); color: var(--m-acento); font-size: 15px; font-weight: 600; pointer-events: none; }
+.msj-soltar { position: absolute; inset: 8px; z-index: 6; display: grid; place-items: center; border-radius: 16px; border: 2px dashed rgba(192, 57, 43, 0.55); background: rgba(255, 255, 255, 0.92); color: var(--m-acento); font-size: 15px; font-weight: 600; pointer-events: none; }
 
 .msj-m__cita span.is-eliminado { font-style: italic; color: var(--m-t4); }
 
@@ -397,7 +396,7 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 .msj-root.is-mac button, .msj-root.is-mac input, .msj-root.is-mac textarea { font-family: inherit; }
 .msj-root.is-mac .msj-layout { grid-template-columns: 300px minmax(0, 1fr); }
 .msj-root.is-mac .msj-layout.con-panel { grid-template-columns: 300px minmax(0, 1fr) 280px; }
-.msj-root.is-mac .msj-lateral { padding: 12px 10px 20px; background: rgba(240, 240, 243, 0.86); backdrop-filter: saturate(180%) blur(30px); border-right: 1px solid rgba(0, 0, 0, 0.1); }
+.msj-root.is-mac .msj-lateral { padding: 12px 10px 20px; background: #f0f0f3; border-right: 1px solid rgba(0, 0, 0, 0.1); }
 .msj-root.is-mac .msj-lateral__head { padding: 2px 6px 10px; }
 .msj-root.is-mac .msj-lateral__head h1 { font-size: 13px; font-weight: 700; letter-spacing: 0; color: #6e6e73; text-transform: none; }
 .msj-root.is-mac .msj-buscar { height: 28px; padding: 0 10px 0 28px; border-radius: 7px; font-size: 13px; background-color: rgba(0, 0, 0, 0.06); }
