@@ -361,7 +361,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     )
     observador.observe(marca)
     return () => observador.disconnect()
-  }, [canalId, datos.hay_mas])
+    // datos arranca en null (hay un early return más abajo), pero los efectos corren igual:
+    // sin el ?. esto tiraba al montar y dejaba la pantalla en blanco.
+  }, [canalId, datos?.hay_mas])
 
   function agregarArchivos(lista) {
     const nuevos = Array.from(lista || []).slice(0, 10)
