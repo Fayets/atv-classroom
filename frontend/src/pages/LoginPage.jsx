@@ -46,7 +46,7 @@ export default function LoginPage() {
       setError('')
       setCargando(true)
       try {
-        const user = await loginGoogle(credencial)
+        await loginGoogle(credencial)
         navigate('/mensajes', { replace: true })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'No pudimos iniciar tu sesión con Google.')
@@ -85,67 +85,62 @@ export default function LoginPage() {
 
   return (
     <div className="lg-root">
-      <section className="lg-brand" aria-label="ATV · Aumenta Tu Valor">
-        <div className="lg-brand__panel">
-          <div className="lg-brand__light" aria-hidden="true" />
-          <div className="lg-brand__center">
-            <img src="/atv-logo.png" alt="ATV · Aumenta Tu Valor" className="lg-brand__logo" width={72} height={94} />
-            <p className="lg-ecuacion" aria-label="SOP más explicación más 1 a 1">
-              <span>SOP</span>
-              <i aria-hidden="true">+</i>
-              <span>Explicación</span>
-              <i aria-hidden="true">+</i>
-              <span>1 a 1</span>
-            </p>
-          </div>
-          <div className="lg-brand__grain" aria-hidden="true" />
+      <section className="lg-portada" aria-label="ATV · Aumenta Tu Valor">
+        <div className="lg-portada__arriba">
+          <span className="lg-meta">ATV — Aumenta tu valor</span>
+          <span className="lg-meta">{new Date().getFullYear()}</span>
+        </div>
+        <h1 className="lg-titulo">Ingresá a tu espacio</h1>
+        <div className="lg-portada__centro">
+          <img src="/atv-logo-negro.png" alt="ATV" className="lg-marca" width={373} height={488} />
+          <p className="lg-meta lg-lema">SOP + Implementación + 1 a 1</p>
         </div>
       </section>
 
-      <main className="lg-panel">
-        <form className="lg-form" onSubmit={handleSubmit} noValidate>
-          {error ? (
-            <p className="lg-error" role="alert">
-              {error}
-            </p>
-          ) : null}
-
-          <div className="lg-field">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              className={emailError ? 'is-invalid' : ''}
-              type="email"
-              name="email"
-              autoComplete="email"
-              inputMode="email"
-              placeholder="vos@tuempresa.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value)
-                if (emailError) setEmailError('')
-                if (error) setError('')
-              }}
-              onBlur={() => email.trim() && setEmailError(validarEmail(email))}
-              disabled={cargando}
-              aria-invalid={Boolean(emailError)}
-              aria-describedby={emailError ? 'email-error' : undefined}
-            />
-            {emailError ? (
-              <span id="email-error" className="lg-field__hint">
-                {emailError}
-              </span>
+      <main className="lg-lado">
+        <div className="lg-caja">
+          <h2>Iniciá sesión</h2>
+          <form className="lg-form" onSubmit={handleSubmit} noValidate>
+            {error ? (
+              <p className="lg-error" role="alert">
+                {error}
+              </p>
             ) : null}
-          </div>
-
-          <div className="lg-field">
-            <label htmlFor="contrasena">Contraseña</label>
-            <div className="lg-pass">
+            <div className="lg-campo">
+              <input
+                id="email"
+                className={emailError ? 'is-invalid' : ''}
+                type="email"
+                name="email"
+                autoComplete="email"
+                inputMode="email"
+                placeholder="Email"
+                aria-label="Email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  if (emailError) setEmailError('')
+                  if (error) setError('')
+                }}
+                onBlur={() => email.trim() && setEmailError(validarEmail(email))}
+                disabled={cargando}
+                aria-invalid={Boolean(emailError)}
+                aria-describedby={emailError ? 'email-error' : undefined}
+              />
+              {emailError ? (
+                <span id="email-error" className="lg-campo__aviso">
+                  {emailError}
+                </span>
+              ) : null}
+            </div>
+            <div className="lg-campo lg-pass">
               <input
                 id="contrasena"
                 type={verClave ? 'text' : 'password'}
                 name="contrasena"
                 autoComplete="current-password"
+                placeholder="Contraseña"
+                aria-label="Contraseña"
                 value={contrasena}
                 onChange={(e) => {
                   setContrasena(e.target.value)
@@ -153,26 +148,28 @@ export default function LoginPage() {
                 }}
                 disabled={cargando}
               />
-              <button type="button" className="lg-pass__toggle" onClick={() => setVerClave((v) => !v)} aria-pressed={verClave}>
+              <button type="button" className="lg-pass__ver" onClick={() => setVerClave((v) => !v)} aria-pressed={verClave}>
                 {verClave ? 'Ocultar' : 'Mostrar'}
               </button>
             </div>
+            <button type="submit" className="lg-entrar" disabled={cargando}>
+              <span>{cargando ? 'Entrando…' : 'Entrar'}</span>
+              {cargando ? (
+                <span className="lg-entrar__spin" aria-hidden="true" />
+              ) : (
+                <svg viewBox="0 0 22 10" aria-hidden="true"><path d="M1 5 H20 M16 1 L20 5 L16 9" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              )}
+            </button>
+          </form>
+          <div className="lg-pie">
+            {googleClientId ? (
+              <GoogleButton clientId={googleClientId} onCredential={handleGoogle} variante="texto">
+                Equipo de ATV: entrar con Google
+              </GoogleButton>
+            ) : null}
+            <p className="lg-ayuda">¿No te llega la clave? Escribinos por tu canal.</p>
           </div>
-
-          <button type="submit" className="lg-submit" disabled={cargando}>
-            {cargando ? <span className="lg-submit__spin" aria-hidden="true" /> : null}
-            {cargando ? 'Entrando…' : 'Entrar'}
-          </button>
-
-          {googleClientId ? (
-            <div className="lg-google">
-              <p className="lg-google__titulo">
-                <span>Equipo ATV</span>
-              </p>
-              <GoogleButton clientId={googleClientId} onCredential={handleGoogle} />
-            </div>
-          ) : null}
-        </form>
+        </div>
       </main>
     </div>
   )
