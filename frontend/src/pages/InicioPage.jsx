@@ -7,6 +7,7 @@ import AccesoRestante from '../components/AccesoRestante'
 import { Chevron } from '../components/frentes/piezas'
 import Pasos from '../components/frentes/Pasos'
 import SolicitudSop from '../components/frentes/SolicitudSop'
+import { pedirCartelPausa } from '../components/Pausa'
 import { useAuth } from '../context/AuthContext'
 import { proximoPaso, tipoRecurso, tituloLindo, urlRecurso } from '../utils/frentes'
 import '../styles/frentes.css'
@@ -18,7 +19,8 @@ const EJEMPLOS = ['Me dicen que lo van a pensar', 'No sé si estoy ganando plata
 
 export default function InicioPage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, isEquipo } = useAuth()
+  const enPausa = Boolean(user?.pausa) && !isEquipo
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
   const [texto, setTexto] = useState('')
@@ -37,6 +39,7 @@ export default function InicioPage() {
   }, [])
 
   async function preguntar(valor) {
+    if (enPausa) return pedirCartelPausa()
     const q = (valor ?? texto).trim()
     if (q.length < 3 || pensando) return
     setTexto('')
@@ -115,6 +118,9 @@ export default function InicioPage() {
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               placeholder="Ej: agendan llamadas pero la mitad no se presenta"
+              // En pausa no se usa la IA: apenas toca para escribir, el cartel de hablar con Lucas.
+              onMouseDown={enPausa ? (e) => { e.preventDefault(); pedirCartelPausa() } : undefined}
+              onFocus={enPausa ? (e) => { e.target.blur(); pedirCartelPausa() } : undefined}
               autoComplete="off"
               maxLength={1500}
             />
