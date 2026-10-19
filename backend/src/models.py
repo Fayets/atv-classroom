@@ -217,6 +217,8 @@ class Canal(db.Entity):
     orden = Optional(int, nullable=True)  # canales grupales y anuncios: el orden que les dio un admin (arrastrando)
     # Cliente archivado por el equipo (arrastrado a "Inactivos"): sale de su grupo, el chat sigue igual.
     inactivo = Required(bool, default=False)
+    # Cliente en pausa (arrastrado a "Pausa"): solo puede leer su canal; para reanudar habla con Ventas.
+    pausa = Required(bool, default=False)
     ultimo_mensaje_en = Optional(datetime, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
     mensajes = Set("MensajeCanal")

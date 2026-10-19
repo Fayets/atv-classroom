@@ -18,7 +18,7 @@ from pony.orm import db_session
 from src.db import DB_SCHEMA, db
 from src.models import Adjunto, Admin, Canal, ClienteExterno, LecturaCanal, Mencion, MensajeCanal
 from src.storage import adjuntos as almacen
-from src.services.auth_service import _emails_del_cliente, _tiene_acceso, es_equipo
+from src.services.auth_service import _emails_del_cliente, _tiene_acceso, es_equipo, ve_plata
 from src.services.cuenta_service import foto_de, fotos_de
 from src.services.roles_canal import validar_roles
 from src.services.tiempo_real import puede_ver
@@ -452,6 +452,7 @@ class MensajeriaServices:
                         "creado_por": canal.creado_por if equipo else None,
                         "orden": canal.orden,
                         "inactivo": bool(canal.inactivo) if equipo else False,
+                        "pausa": bool(canal.pausa) if equipo else False,
                         "puede_administrar": self._puede_administrar(sesion, canal),
                     }
                 )
@@ -734,6 +735,20 @@ class MensajeriaServices:
             if canal.tipo != "cliente":
                 raise HTTPException(status_code=422, detail="Solo los chats de clientes van a Inactivos.")
             canal.inactivo = bool(inactivo)
+            return _info(canal)
+
+    def marcar_pausa(self, sesion: dict, canal_id: int, pausa: bool) -> dict:
+        """Pone al cliente en pausa (o lo reanuda). A diferencia de Inactivos, esto SÍ toca su acceso: en
+        pausa solo puede leer su canal. Lo hacen los admins y Ventas/Sistemas (los que hablan de plata)."""
+        if not ve_plata(sesion):
+            raise HTTPException(status_code=403, detail="Solo admins, Ventas o Sistemas pausan a un cliente.")
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            if canal.tipo != "cliente":
+                raise HTTPException(status_code=422, detail="Solo los chats de clientes van a Pausa.")
+            canal.pausa = bool(pausa)
+            if pausa:
+                canal.inactivo = False  # está en un solo grupo a la vez
             return _info(canal)
 
     def borrar_canal(self, sesion: dict, canal_id: int) -> dict:

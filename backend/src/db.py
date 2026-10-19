@@ -116,6 +116,7 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "canales", "roles_json", "TEXT")
                 _agregar_columna(cur, "canales", "creado_por", "INTEGER")
                 _agregar_columna(cur, "canales", "inactivo", "BOOLEAN NOT NULL DEFAULT FALSE")
+                _agregar_columna(cur, "canales", "pausa", "BOOLEAN NOT NULL DEFAULT FALSE")
                 _agregar_columna(cur, "canales", "participantes_json", "TEXT")
                 _agregar_columna(cur, "canales", "orden", "INTEGER")
                 # Cerebro: subnicho y revisión del nicho con todo lo del cliente; correcciones del Tab.

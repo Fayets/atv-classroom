@@ -804,3 +804,7 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-orden.is-soltar-arriba::before, .msj-orden.is-soltar-abajo::after { content: ''; position: absolute; left: 10px; right: 6px; height: 2px; border-radius: 1px; background: #c0392b; pointer-events: none; }
 .msj-orden.is-soltar-arriba::before { top: -1px; }
 .msj-orden.is-soltar-abajo::after { bottom: -1px; }
+
+/* Pausa: el cliente solo lee su canal. Ícono de pausa al lado del nombre, sin color de alarma. */
+.msj-grupo.is-pausa { margin-top: 14px; padding-top: 6px; border-top: 1px solid rgba(0, 0, 0, 0.06); border-radius: 0; }
+.msj-grupo.is-pausa + .msj-grupo.is-senas, .msj-grupo.is-pausa + .msj-grupo.is-inactivos { margin-top: 2px; padding-top: 0; border-top: 0; }

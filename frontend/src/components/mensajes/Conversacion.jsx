@@ -3,6 +3,7 @@ import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMens
 import { fetchVoz } from '../../api/cuenta'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
+import { pedirCartelPausa } from '../Pausa'
 import { ACEPTA_ADJUNTOS, ES_EVERYONE, claveAutor, etiquetaDia, hora, mismoDia, nombreRol, normal, peso, primerNombre } from '../../utils/mensajes'
 import Adjuntos from './Adjuntos'
 import Alerta from './Alerta'
@@ -791,7 +792,12 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
         />
       ) : null}
 
-      {datos.puede_escribir ? (
+      {user?.pausa && !isEquipo ? (
+        <button type="button" className="msj-pausa" onClick={pedirCartelPausa}>
+          <span>Tu programa está en <b>pausa</b>: para escribir, comunicate con {user.contacto_pausa?.nombre || 'Lucas'}.</span>
+          <span>Ver cómo</span>
+        </button>
+      ) : datos.puede_escribir ? (
         <form className="msj-redactar" onSubmit={mandar}>
           {respondiendo ? (
             <div className="msj-redactar__resp">

@@ -69,6 +69,7 @@ export function MensajeriaProvider({ children }) {
           return
         }
         if (evento.tipo === 'pong' || evento.tipo === 'error') return
+        if (evento.tipo === 'pausa') window.dispatchEvent(new Event('atv-pausa'))
         if (evento.tipo === 'mencion') {
           setAviso(evento)
           refrescarResumen()

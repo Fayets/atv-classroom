@@ -128,6 +128,10 @@ class CanalInactivo(BaseModel):
     inactivo: bool
 
 
+class CanalPausa(BaseModel):
+    pausa: bool
+
+
 class OrdenCanales(BaseModel):
     ids: list[int] = Field(max_length=200)
 
@@ -146,6 +150,15 @@ async def marcar_inactivo(canal_id: int, body: CanalInactivo, sesion: dict = Dep
     # Todo el equipo ve el chat moverse de grupo al instante.
     await hub.emitir({"tipo": "canal", "canal_id": canal_id}, info)
     return {"ok": True, "inactivo": body.inactivo}
+
+
+@router.put("/canales/{canal_id}/pausa")
+async def marcar_pausa(canal_id: int, body: CanalPausa, sesion: dict = Depends(sesion_mensajes)):
+    info = await run_in_threadpool(service.marcar_pausa, sesion, canal_id, body.pausa)
+    # El equipo ve moverse el chat y el cliente, si está adentro, ve el cartel (o se le levanta) al instante.
+    await hub.emitir({"tipo": "canal", "canal_id": canal_id}, info)
+    await hub.emitir({"tipo": "pausa", "canal_id": canal_id, "pausa": body.pausa}, info)
+    return {"ok": True, "pausa": body.pausa}
 
 
 @router.delete("/canales/{canal_id}")

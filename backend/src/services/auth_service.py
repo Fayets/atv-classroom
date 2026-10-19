@@ -1,10 +1,12 @@
 import hashlib
 import json
+import re
 import secrets
 import time
 from datetime import date, datetime, timedelta
 
 import bcrypt
+from decouple import config
 from fastapi import HTTPException, Request
 from pony.orm import db_session
 
@@ -331,7 +333,40 @@ def obtener_sesion_desde_request(request: Request) -> dict:
     token = token_desde_request(request)
     if not token:
         raise HTTPException(status_code=401, detail="No autorizado.")
-    return _validar_token(token)
+    sesion = _validar_token(token)
+    # Cliente en pausa: solo puede leer su canal. Todo lo demás (módulos, IA, roadmaps, escribir) se corta
+    # acá, en el servidor, con 423 para que la app muestre el cartel de "hablá con Lucas".
+    if sesion.get("pausa") and not permitido_en_pausa(request.method, request.url.path):
+        raise HTTPException(status_code=423, detail=mensaje_pausa())
+    return sesion
+
+
+# Lo único que puede hacer un cliente en pausa: entrar, ver su perfil y leer su canal.
+_EN_PAUSA = (
+    ("GET", re.compile(r"^/api/auth/")),
+    ("POST", re.compile(r"^/api/auth/logout$")),
+    ("GET", re.compile(r"^/api/mensajes/(habilitada|canales|no-leidos|roles|equipo)$")),
+    ("GET", re.compile(r"^/api/mensajes/canales/\d+/(mensajes|participantes)$")),
+    ("GET", re.compile(r"^/api/mensajes/adjuntos/\d+$")),
+    ("POST", re.compile(r"^/api/mensajes/canales/\d+/leido$")),
+    ("GET", re.compile(r"^/api/cuenta(/|$)")),
+)
+PAUSA_CONTACTO = config("PAUSA_CONTACTO", default="Lucas")
+PAUSA_WHATSAPP = config("PAUSA_WHATSAPP", default="")
+
+
+def permitido_en_pausa(metodo: str, ruta: str) -> bool:
+    return any(metodo == m and r.match(ruta) for m, r in _EN_PAUSA)
+
+
+def contacto_pausa() -> dict:
+    numero = "".join(ch for ch in PAUSA_WHATSAPP if ch.isdigit())
+    return {"nombre": PAUSA_CONTACTO, "whatsapp": PAUSA_WHATSAPP or None, "link": f"https://wa.me/{numero}" if numero else None}
+
+
+def mensaje_pausa() -> str:
+    c = contacto_pausa()
+    return f"Tu programa está en pausa. Para reanudarlo, escribile a {c['nombre']}" + (f" al {c['whatsapp']}." if c["whatsapp"] else ".")
 
 
 def _validar_token(token: str) -> dict:
@@ -354,6 +389,12 @@ def _validar_token(token: str) -> dict:
                     cerrar_sesion(token)
                     raise HTTPException(status_code=401, detail="Ya no estás en el equipo de este cliente.")
                 sesion["miembro_rol"] = m.rol
+            from src.models import Canal
+
+            canal = Canal.get(cliente_id=cliente.id)
+            en_pausa = bool(canal and canal.pausa)
+    else:
+        en_pausa = False
 
     return {
         "usuario_id": sesion["usuario_id"],
@@ -362,6 +403,7 @@ def _validar_token(token: str) -> dict:
         "rol": sesion["rol"],
         "miembro_id": sesion.get("miembro_id"),
         "miembro_rol": sesion.get("miembro_rol"),
+        "pausa": en_pausa,
     }
 
 
@@ -414,6 +456,8 @@ def obtener_perfil_sesion(sesion: dict) -> dict:
             "nombre": sesion["nombre"],
             "email": sesion["email"],
             "rol": sesion["rol"],
+            "pausa": bool(sesion.get("pausa")),
+            "contacto_pausa": contacto_pausa() if sesion.get("pausa") else None,
             "dias_restantes": _calcular_dias_restantes(fecha_vencimiento),
             "fecha_vencimiento": fecha_vencimiento.isoformat() if fecha_vencimiento else None,
             "foto_url": _foto_persona(sesion),

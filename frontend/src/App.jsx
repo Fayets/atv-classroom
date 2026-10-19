@@ -12,6 +12,7 @@ import { setUnauthorizedHandler } from './api/client'
 import Escritorio from './components/mac/Escritorio'
 import AdminRoute from './components/AdminRoute'
 import ProtectedRoute from './components/ProtectedRoute'
+import { PausaSync } from './components/Pausa'
 import CuentaPage from './pages/CuentaPage'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { EscritorioProvider, useEscritorio } from './context/EscritorioContext'
@@ -77,6 +78,7 @@ function AppRoutes() {
   return (
     <>
       <UnauthorizedSync />
+      <PausaSync />
       <MarcoEquipo>
       <Routes>
         <Route path="/login" element={<LoginPage />} />

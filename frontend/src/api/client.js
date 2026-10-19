@@ -52,6 +52,8 @@ async function parseResponse(res, url) {
   if (cortaSesion(res, url)) {
     unauthorizedHandler?.()
   }
+  // 423: el cliente está en pausa y el servidor cortó esto. La app muestra el cartel (components/Pausa).
+  if (res.status === 423) window.dispatchEvent(new Event('atv-pausa'))
 
   if (res.status === 204) {
     if (!res.ok) {

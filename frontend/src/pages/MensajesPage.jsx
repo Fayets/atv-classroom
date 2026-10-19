@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchSenas } from '../api/altas'
-import { abrirDirecto, fetchCanales, fetchEquipoChat, marcarInactivo, ordenarCanales } from '../api/mensajes'
+import { abrirDirecto, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, ordenarCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
@@ -32,12 +32,15 @@ function agrupar(lista) {
   // Los que el equipo arrastró a Inactivos van ahí, sea cual sea su plan. El grupo está siempre
   // (aunque vacío) para poder soltar chats encima.
   const inactivos = { id: 'inactivos', nombre: 'Inactivos', canales: [], fijo: true }
+  // Pausa: como Inactivos, pero corta el acceso del cliente (solo lee su canal) hasta que lo reanuden.
+  const pausa = { id: 'pausa', nombre: 'Pausa', canales: [], fijo: true }
   for (const c of lista) {
     const plan = (c.cliente?.plan || '').toLowerCase()
-    if (c.inactivo) inactivos.canales.push(c)
+    if (c.pausa) pausa.canales.push(c)
+    else if (c.inactivo) inactivos.canales.push(c)
     else (grupos.find((g) => g.planes.includes(plan)) || sinPlan).canales.push(c)
   }
-  return [...grupos, sinPlan].filter((g) => g.canales.length).concat(inactivos)
+  return [...grupos, sinPlan].filter((g) => g.canales.length).concat(pausa, inactivos)
 }
 
 // Fila como un canal de Discord: el nombre; en negrita con un punto si hay mensajes sin leer,
@@ -368,20 +371,25 @@ export default function MensajesPage() {
     [suscribir, params, setParams],
   )
   const alternarGrupo = (id) => setAbiertos((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]))
-  // Arrastrar un chat a "Inactivos" lo archiva; soltarlo en cualquier otro grupo lo devuelve.
+  // Arrastrar un chat a "Inactivos" lo archiva; a "Pausa" le corta el acceso al cliente (solo lee su
+  // canal); soltarlo en cualquier otro grupo lo devuelve a la normalidad.
   const [soltandoEn, setSoltandoEn] = useState(null)
   async function soltar(e, grupoId) {
     e.preventDefault()
     setSoltandoEn(null)
     const id = Number(e.dataTransfer.getData('application/x-atv-canal'))
     const canal = canales?.find((c) => c.id === id)
+    if (!canal) return
+    const pausa = grupoId === 'pausa'
     const inactivo = grupoId === 'inactivos'
-    if (!canal || Boolean(canal.inactivo) === inactivo) return
-    setCanales((l) => l.map((c) => (c.id === id ? { ...c, inactivo } : c)))
+    if (Boolean(canal.pausa) === pausa && Boolean(canal.inactivo) === inactivo) return
+    const antes = { pausa: Boolean(canal.pausa), inactivo: Boolean(canal.inactivo) }
+    setCanales((l) => l.map((c) => (c.id === id ? { ...c, pausa, inactivo } : c)))
     try {
-      await marcarInactivo(id, inactivo)
+      if (antes.pausa !== pausa) await marcarPausa(id, pausa)
+      if (antes.inactivo !== inactivo) await marcarInactivo(id, inactivo)
     } catch (err) {
-      setCanales((l) => l.map((c) => (c.id === id ? { ...c, inactivo: !inactivo } : c)))
+      setCanales((l) => l.map((c) => (c.id === id ? { ...c, ...antes } : c)))
       setError(err.message || 'No se pudo mover el chat.')
     }
   }
@@ -405,7 +413,7 @@ export default function MensajesPage() {
     const visibles = abierto ? g.canales : g.canales.filter((c) => c.id === activo || c.no_leidos > 0 || c.menciones > 0 || escriben[c.id])
     const novedades = g.canales.filter((c) => c.no_leidos > 0).length
     return (
-      <section key={g.id} className={`msj-grupo${g.id === 'inactivos' ? ' is-inactivos' : ''}${soltandoEn === g.id ? ' is-soltar' : ''}`} aria-label={g.nombre} {...zonaDeSoltar(g.id)}>
+      <section key={g.id} className={`msj-grupo${g.id === 'inactivos' ? ' is-inactivos' : ''}${g.id === 'pausa' ? ' is-pausa' : ''}${soltandoEn === g.id ? ' is-soltar' : ''}`} aria-label={g.nombre} {...zonaDeSoltar(g.id)}>
         <button type="button" className={`msj-grupo__titulo${abierto ? ' is-abierto' : ''}${!abierto && novedades ? ' con-novedades' : ''}`} onClick={() => alternarGrupo(g.id)} aria-expanded={abierto}>
           <svg viewBox="0 0 10 10" aria-hidden="true">
             <path d="M3 2l4 3-4 3z" fill="currentColor" />
@@ -417,6 +425,7 @@ export default function MensajesPage() {
           <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} arrastrable />
         ))}
         {g.id === 'inactivos' && !g.canales.length && soltandoEn === g.id ? <p className="msj-grupo__vacio">Soltalo acá para archivarlo</p> : null}
+        {g.id === 'pausa' && !g.canales.length && soltandoEn === g.id ? <p className="msj-grupo__vacio">Soltalo acá: solo va a poder leer su canal</p> : null}
       </section>
     )
   }

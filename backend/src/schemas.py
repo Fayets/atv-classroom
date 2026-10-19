@@ -40,6 +40,8 @@ class SessionProfileResponse(BaseModel):
     fecha_vencimiento: str | None = None
     foto_url: str | None = None
     miembro: dict | None = None
+    pausa: bool = False
+    contacto_pausa: dict | None = None
 
 
 class MiembroEquipo(BaseModel):

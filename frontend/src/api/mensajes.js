@@ -77,6 +77,11 @@ export function ordenarCanales(ids) {
   return request('/api/mensajes/canales-orden', { method: 'PUT', body: JSON.stringify({ ids }) })
 }
 
+// Pausa: el cliente solo puede leer su canal hasta que Ventas lo reanude. Admins, Ventas y Sistemas.
+export function marcarPausa(canalId, pausa) {
+  return request(`/api/mensajes/canales/${canalId}/pausa`, { method: 'PUT', body: JSON.stringify({ pausa }) })
+}
+
 export function borrarCanal(canalId) {
   return request(`/api/mensajes/canales/${canalId}`, { method: 'DELETE' })
 }
