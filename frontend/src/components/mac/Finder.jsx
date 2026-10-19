@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchCarpetaClientes, fetchFicha } from '../../api/clientes'
 
+// Cada cuota pagada "usa" un pago con el mismo monto y la misma fecha; lo que sobra son pagos sueltos.
+function pagosSinCuota(pagos, cuotas) {
+  const dia = (f) => String(f || '').slice(0, 10)
+  const pagadas = cuotas.filter((q) => q.fecha_pago).map((q) => `${Number(q.monto_usd)}|${dia(q.fecha_pago)}`)
+  return pagos.filter((p) => {
+    const i = pagadas.indexOf(`${Number(p.monto_usd)}|${dia(p.fecha)}`)
+    if (i < 0) return true
+    pagadas.splice(i, 1)
+    return false
+  })
+}
+
 // Carpeta "Clientes" como una ventana del Finder: una carpeta por cliente y, al entrar, su ficha.
 
 const TAGS = {
@@ -104,6 +116,7 @@ function Ficha({ id, alAbrirChat }) {
   const c = ficha.cliente
   const cl = ficha.classroom
   const adeudado = Number(c.total_adeudado_usd || 0)
+  const sueltos = pagosSinCuota(ficha.pagos, ficha.cuotas)
   const archivos = [...(ficha.chat ? [{ tipo: 'chat', titulo: 'Chat del classroom', chat: ficha.chat }] : []), ...ficha.archivos]
 
   return (
@@ -153,6 +166,7 @@ function Ficha({ id, alAbrirChat }) {
         </dl>
       </Seccion>
 
+      {/* Abajo de la tabla, solo los pagos que no son una cuota pagada (mismo monto y fecha): pagos parciales o a cuenta. */}
       <Seccion titulo="Plata">
         <div className="fd-cifras">
           <div><small>Pagado</small><b>{usd(c.total_pagado_usd)}</b></div>
@@ -175,13 +189,14 @@ function Ficha({ id, alAbrirChat }) {
             </tbody>
           </table>
         ) : null}
-        {ficha.pagos.length ? (
+        {sueltos.length && ficha.cuotas.length ? <p className="fd-subtitulo">Pagos a cuenta</p> : null}
+        {sueltos.length ? (
           <ul className="fd-lista">
-            {ficha.pagos.map((p, i) => (
+            {sueltos.map((p, i) => (
               <li key={i}><b>{usd(p.monto_usd)}</b> <span className="fd-gris">{fecha(p.fecha)}{p.origen ? ` · ${p.origen}` : ''}</span>{p.notas ? <p>{p.notas}</p> : null}</li>
             ))}
           </ul>
-        ) : <p className="fd-gris">Sin pagos cargados.</p>}
+        ) : !ficha.cuotas.length ? <p className="fd-gris">Sin pagos cargados.</p> : null}
       </Seccion>
 
       {c.observaciones || ficha.observaciones.length || c.acciones_revisar || c.dudas || c.arreglo_closer ? (

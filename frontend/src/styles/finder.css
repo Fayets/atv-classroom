@@ -238,3 +238,4 @@ a.fd-boton { text-decoration: none; display: inline-block; }
 .fd-lado.is-activo .ll-mes-punto { --tag: #5b4ef0; }
 .ll-mes-titulo { grid-column: 1 / -1; margin: 10px 4px 2px; padding-bottom: 6px; border-bottom: 1px solid rgba(0, 0, 0, 0.07); font-size: 12px; font-weight: 700; color: #3a3a3c; }
 .ll-mes-titulo:first-child { margin-top: 0; }
+.fd-subtitulo { margin: 14px 0 2px; font-size: 12px; font-weight: 600; color: #6e6e73; text-transform: uppercase; letter-spacing: 0.04em; }
