@@ -11,10 +11,14 @@ Así los clientes siguen el hilo donde lo dejaron y el cerebro aprende de toda l
 - Las imágenes que atv-clients guardó se copian como adjuntos; audios y otros archivos de Discord
   (cuyos links ya vencieron) quedan como una nota en el mensaje.
 - Se puede correr varias veces: cada corrida reemplaza todo el historial importado antes.
+- Con --nuevos solo agrega lo que se escribió en Discord después de la última importación: no borra
+  nada y el cerebro conserva lo aprendido (solo aprende lo nuevo). Para eso corre los ids negativos ya
+  importados hacia abajo (y todo lo que apunta a ellos) y deja los nuevos al final del historial.
 
 Uso (dentro del contenedor del backend):
     python -m scripts.migrar_discord /tmp/discord            # solo muestra qué haría
     python -m scripts.migrar_discord /tmp/discord --aplicar  # importa
+    python -m scripts.migrar_discord /tmp/discord --nuevos --aplicar  # solo lo nuevo, sin borrar
 Opciones: --mapa=canal=cliente_id,...  (ata canales sin cliente)  ·  --alias="Viejo=Nuevo,..." (misma persona)
 """
 
@@ -97,12 +101,67 @@ def nota_de_adjunto(nombre: str) -> str:
     return f"📎 {nombre} (archivo de Discord que no quedó guardado)"
 
 
+# Todo lo que guarda un id de mensaje: al correr los ids negativos, se corren también acá.
+_APUNTAN_A_MENSAJES = (
+    ("adjuntos", "mensaje_id"), ("cerebro_hechos", "mensaje_id"), ("cerebro_estado", "ultimo_mensaje_id"),
+    ("cerebro_sugerencias", "mensaje_id"), ("mensajes_canal", "respuesta_a"), ("lecturas_canal", "ultimo_leido_id"),
+    ("menciones", "mensaje_id"), ("avisos_mail", "ultimo_mensaje_id"),
+)
+
+
+def _clave(cliente_id, fecha, autor, texto) -> tuple:
+    return (cliente_id, fecha, autor, " ".join((texto or "").split()))
+
+
+def _solo_lo_nuevo(todos: list[dict]) -> list[dict]:
+    """Lo que no se importó todavía: por chat, lo posterior al último mensaje traído de Discord (y del mismo
+    minuto, lo que no está). Un chat sin nada importado trae todo. Quedan con ids -n..-1, en orden de fecha."""
+    with db_session:
+        ultimo = dict(db.select(
+            f'SELECT c.cliente_id, max(m.creado_en) FROM "{DB_SCHEMA}"."mensajes_canal" m '
+            f'JOIN "{DB_SCHEMA}"."canales" c ON c.id = m.canal WHERE m.id < 0 AND c.cliente_id IS NOT NULL GROUP BY c.cliente_id'
+        ))
+        del_borde = {
+            _clave(cid, f, a, t) for cid, f, a, t in db.select(
+                f'SELECT c.cliente_id, m.creado_en, m.autor_nombre, m.texto FROM "{DB_SCHEMA}"."mensajes_canal" m '
+                f'JOIN "{DB_SCHEMA}"."canales" c ON c.id = m.canal WHERE m.id < 0 AND m.creado_en = '
+                f'(SELECT max(x.creado_en) FROM "{DB_SCHEMA}"."mensajes_canal" x WHERE x.canal = m.canal AND x.id < 0)'
+            )
+        }
+    nuevos = []
+    for x in todos:
+        u = ultimo.get(x["cliente_id"])
+        if u is None or x["fecha"] > u or (x["fecha"] == u and _clave(x["cliente_id"], x["fecha"], x["autor_nombre"], x["texto"]) not in del_borde):
+            nuevos.append(x)
+    for i, x in enumerate(nuevos):
+        x["id"] = -(len(nuevos) - i)
+    return nuevos
+
+
+def _hacer_lugar(n: int) -> None:
+    """Corre n lugares hacia abajo todos los ids negativos (lo importado antes) y lo que apunta a ellos,
+    para que los n mensajes nuevos entren en -n..-1. En dos pasos, para no chocar con la clave primaria."""
+    fks = db.select(
+        "SELECT conname FROM pg_constraint WHERE contype = 'f' AND confrelid = "
+        f"'\"{DB_SCHEMA}\".\"mensajes_canal\"'::regclass"
+    )
+    if fks:
+        raise SystemExit(f"Hay claves foráneas hacia mensajes_canal ({fks}): revisar antes de correr ids.")
+    lejos = 1_000_000_000
+    db.execute(f'UPDATE "{DB_SCHEMA}"."mensajes_canal" SET id = id - {lejos} WHERE id < 0')
+    db.execute(f'UPDATE "{DB_SCHEMA}"."mensajes_canal" SET id = id + {lejos - n} WHERE id <= -{lejos}')
+    for tabla, columna in _APUNTAN_A_MENSAJES:
+        db.execute(f'UPDATE "{DB_SCHEMA}"."{tabla}" SET "{columna}" = "{columna}" - {n} WHERE "{columna}" < 0')
+    print(f"\nLugar hecho: lo importado antes se corrió {n} posiciones")
+
+
 def main() -> None:
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
     carpeta = Path(sys.argv[1])
     aplicar = "--aplicar" in sys.argv
+    solo_nuevos = "--nuevos" in sys.argv
     # --mapa canal=cliente_id: ata un canal a un cliente a mano (para probar o corregir uno suelto).
     mapa_manual, alias = {}, {}
     for arg in sys.argv[2:]:
@@ -222,6 +281,17 @@ def main() -> None:
     for cid, n in por_cliente.most_common(10):
         print(f"  {nombres_cliente.get(cid, cid)}: {n}")
 
+    if solo_nuevos:
+        todos = _solo_lo_nuevo(todos)
+        print(f"\nModo --nuevos: {len(todos)} mensajes nuevos desde la última importación")
+        por_canal = Counter(x["cliente_id"] for x in todos)
+        for cid, n in por_canal.most_common(15):
+            print(f"  {nombres_cliente.get(cid, cid)}: {n}")
+        if not todos:
+            print("No hay nada nuevo para traer.")
+            return
+        por_cliente = Counter(x["cliente_id"] for x in todos)
+
     if not aplicar:
         print("\nNo se escribió nada. Para importar: agregá --aplicar")
         return
@@ -237,26 +307,29 @@ def main() -> None:
                 c.flush()
             canal_de[cid] = c.id
 
-        # Lo importado antes se reemplaza entero (adjuntos, mensajes) y lo aprendido de esos canales se rehace.
-        borrados_adj = 0
-        for a in Adjunto.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."adjuntos" WHERE mensaje_id < 0'):
-            ruta = almacen.ruta_de(a.archivo)
-            if ruta and ruta.exists():
-                ruta.unlink()
-            a.delete()
-            borrados_adj += 1
-        previos = db.execute(f'DELETE FROM "{DB_SCHEMA}"."mensajes_canal" WHERE id < 0').rowcount
-        canales_afectados = set(canal_de.values())
-        for h in list(HechoCerebro.select()):
-            if h.canal_id in canales_afectados:
-                h.delete()
-        for e in list(EstadoAprendizaje.select()):
-            if e.canal_id in canales_afectados:
-                e.delete()
-        for p in list(PerfilCliente.select()):
-            if p.cliente_id in por_cliente:
-                p.delete()
-        print(f"\nReemplazo: {previos} mensajes y {borrados_adj} adjuntos importados antes")
+        if solo_nuevos:
+            _hacer_lugar(len(todos))
+        else:
+            # Lo importado antes se reemplaza entero (adjuntos, mensajes) y lo aprendido de esos canales se rehace.
+            borrados_adj = 0
+            for a in Adjunto.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."adjuntos" WHERE mensaje_id < 0'):
+                ruta = almacen.ruta_de(a.archivo)
+                if ruta and ruta.exists():
+                    ruta.unlink()
+                a.delete()
+                borrados_adj += 1
+            previos = db.execute(f'DELETE FROM "{DB_SCHEMA}"."mensajes_canal" WHERE id < 0').rowcount
+            canales_afectados = set(canal_de.values())
+            for h in list(HechoCerebro.select()):
+                if h.canal_id in canales_afectados:
+                    h.delete()
+            for e in list(EstadoAprendizaje.select()):
+                if e.canal_id in canales_afectados:
+                    e.delete()
+            for p in list(PerfilCliente.select()):
+                if p.cliente_id in por_cliente:
+                    p.delete()
+            print(f"\nReemplazo: {previos} mensajes y {borrados_adj} adjuntos importados antes")
 
         cur = db.get_connection().cursor()
         from psycopg2.extras import execute_values
