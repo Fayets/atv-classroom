@@ -181,6 +181,9 @@ def _corregir_persona(borrador: dict, coach: str, llamar) -> dict:
 
 
 def armar_prompt(coach: str, cliente: str, voz: dict, perfil: dict | None, transcripcion: str, aprendido: str = "", anterior: dict | None = None) -> tuple[str, str]:
+    from src.services.aprendizaje_service import voz_para_ia
+
+    voz = voz_para_ia(voz)  # sin nombres de otros clientes: la IA los copiaba
     ejemplos = "\n".join(f"- {e[:400]}" for e in (voz.get("ejemplos") or [])[:16]) or "(sin ejemplos todavía)"
     perfil_txt = "; ".join(f"{k}: {v}" for k, v in (perfil or {}).items() if v) or "sin datos todavía"
     sistema = _INSTRUCCIONES.format(

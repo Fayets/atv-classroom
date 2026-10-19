@@ -723,3 +723,73 @@ def contexto_para_responder(canal_id: int, admin_id: int, incluir_nicho: bool = 
         "voz": voz_de(admin_id),
         "conversacion": conversacion,
     }
+
+
+# --- Ejemplos de voz sin nombres ajenos -------------------------------------------------------------
+# Los ejemplos de cómo escribe alguien son mensajes a OTROS clientes ("buenas sebas, genial"). Si van con
+# los nombres, la IA los copia en la respuesta a este cliente. Antes de mandarlos se tapan: menciones y
+# nombres de pila de clientes (y sus diminutivos: "sebas" de Sebastián) pasan a [nombre].
+_PALABRAS_QUE_SON_NOMBRES = {
+    "luz", "sol", "paz", "rosa", "flor", "mar", "angel", "alma", "rey", "leon", "cruz", "santos", "luna", "pilar",
+    "cielo", "gracia", "gloria", "esperanza", "victoria", "buen", "bueno", "hola", "dia", "mes", "pro", "team",
+    # palabras comunes que también son (o empiezan) nombres en alguna ficha
+    "del", "las", "los", "una", "uno", "con", "por", "para", "que", "como", "pero", "mas", "muy", "eso", "esto", "esta",
+    "este", "ese", "esa", "sus", "mis", "tus", "nos", "les", "todo", "toda", "bien", "dale", "vamos", "hay", "ser", "son",
+    "van", "voy", "vos", "ella", "aca", "ahi", "solo", "san", "santa", "sin", "sobre", "desde", "hasta", "entre", "cuando",
+    "donde", "otro", "otra", "dos", "tres", "mil", "imperio", "scale", "program", "digital", "momentum", "agencia",
+}
+_cache_nombres: dict = {"en": 0.0, "nombres": frozenset(), "equipo": frozenset()}
+
+
+def _sin_tildes(t: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", t.lower()) if unicodedata.category(c) != "Mn")
+
+
+def _nombres_ajenos() -> tuple[frozenset, frozenset]:
+    import time
+
+    if time.time() - _cache_nombres["en"] < 3600 and _cache_nombres["nombres"]:
+        return _cache_nombres["nombres"], _cache_nombres["equipo"]
+    with db_session:
+        # (una sola columna: Pony devuelve los valores sueltos, no tuplas)
+        crudos = list(db.select("SELECT nombre FROM clients.clientes WHERE nombre IS NOT NULL"))
+        crudos += list(db.select(f'SELECT DISTINCT autor_nombre FROM "{DB_SCHEMA}"."mensajes_canal" WHERE autor_tipo = \'cliente\' AND autor_nombre IS NOT NULL'))
+        equipo = {_sin_tildes(p) for n in db.select(f'SELECT nombre FROM "{DB_SCHEMA}"."admins" WHERE nombre IS NOT NULL') for p in n.split()}
+    nombres = set()
+    for n in crudos:
+        # Solo el nombre de pila (la primera palabra): las fichas con nombre de marca no tapan palabras comunes.
+        partes = [p for p in re.split(r"[\s_.\-]+", n or "") if p]
+        p = _sin_tildes(partes[0]) if partes else ""
+        if len(p) >= 3 and p.isalpha() and p not in _PALABRAS_QUE_SON_NOMBRES and p not in equipo:
+            nombres.add(p)
+    _cache_nombres.update(en=time.time(), nombres=frozenset(nombres), equipo=frozenset(equipo))
+    return _cache_nombres["nombres"], _cache_nombres["equipo"]
+
+
+def ocultar_nombres(texto: str, nombres: frozenset | None = None) -> str:
+    if not texto:
+        return texto
+    todos, equipo = _nombres_ajenos()
+    nombres = todos if nombres is None else nombres
+    texto = re.sub(r"@[\wÁÉÍÓÚÜÑáéíóúüñ.]+(?: [A-ZÁÉÍÓÚÑ][\wáéíóúñ]+)?", "@[nombre]", texto)
+
+    def cambiar(m):
+        p = _sin_tildes(m.group(0))
+        # Los del equipo (y sus diminutivos: "cris" de Cristian) se nombran tal cual: "lo vemos con Juan".
+        if p in _PALABRAS_QUE_SON_NOMBRES or any(e.startswith(p) for e in equipo if len(p) >= 3):
+            return m.group(0)
+        if p in nombres or (len(p) >= 4 and any(len(n) >= 5 and n.startswith(p) and len(n) - len(p) <= 4 for n in nombres)):
+            return "[nombre]"
+        return m.group(0)
+
+    return re.sub(r"[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]{3,}", cambiar, texto)
+
+
+def voz_para_ia(voz: dict) -> dict:
+    """La voz lista para el pedido a la IA: ejemplos y correcciones sin nombres de otros clientes."""
+    nombres, _ = _nombres_ajenos()
+    return {
+        **voz,
+        "ejemplos": [ocultar_nombres(e, nombres) for e in voz.get("ejemplos") or []],
+        "correcciones": [{**c, "propuesto": ocultar_nombres(c.get("propuesto") or "", nombres), "enviado": ocultar_nombres(c.get("enviado") or "", nombres)} for c in voz.get("correcciones") or []],
+    }

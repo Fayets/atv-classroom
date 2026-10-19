@@ -209,7 +209,7 @@ def _hace(cuando: str | None) -> str:
 
 
 def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> tuple[str, str]:
-    voz = ctx.get("voz") or {}
+    voz = ap.voz_para_ia(ctx.get("voz") or {})
     ejemplos = "\n".join(f"- {e[:400]}" for e in (voz.get("ejemplos") or [])[:16]) or "(sin ejemplos todavía)"
     correcciones = voz.get("correcciones") or []
     correcciones_txt = ""
@@ -276,6 +276,11 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
             f"de la última respuesta del equipo, de hasta {largo} palabras (menos si alcanza)."
         )
     tarea += f"\nEscribís vos, {nombre}, del lado del EQUIPO y para el cliente: nunca escribas como el cliente ni le hables a otra persona del equipo."
+    cliente = (ctx.get("cliente_nombre") or "").split()
+    tarea += (
+        "\nLos ejemplos son mensajes a OTROS clientes: donde dice [nombre] iba el nombre de otra persona. Nunca uses "
+        "nombres que no aparezcan en esta conversación" + (f"; a este cliente, si lo nombrás, es {cliente[0].lower()}." if cliente else ".")
+    )
     clases = clases_relacionadas(ctx)
     clases_txt = ("Si recomendás una clase del classroom, solo puede ser una de estas (con este nombre): " + "; ".join(clases)) if clases else "No recomiendes clases por nombre."
     usuario = f"""Cómo escribe {nombre}: {_describir_voz(voz.get('rasgos') or {})}
@@ -389,6 +394,7 @@ class SugerenciasServices:
             voz_id = voz.id if voz else admin_id
             nombre = (voz.nombre or "el coach") if voz else "el coach"
         ctx = ap.contexto_para_responder(canal["id"], voz_id, incluir_nicho=False)
+        ctx["cliente_nombre"] = canal.get("nombre")
         nicho = _nicho((ctx.get("perfil") or {}).get("nicho"))
         with db_session:
             s = SugerenciaIA(admin_id=admin_id, canal_id=canal["id"], borrador=borrador[-2000:] or None, sugerencia="…", modelo=MODELO, voz_id=voz_id)

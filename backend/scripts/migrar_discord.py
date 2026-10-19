@@ -167,6 +167,12 @@ def _hacer_lugar(n: int) -> None:
     db.execute(f'UPDATE "{DB_SCHEMA}"."mensajes_canal" SET id = id + {lejos - n} WHERE id <= -{lejos}')
     for tabla, columna in _APUNTAN_A_MENSAJES:
         db.execute(f'UPDATE "{DB_SCHEMA}"."{tabla}" SET "{columna}" = "{columna}" - {n} WHERE "{columna}" < 0')
+    # Los ejemplos de voz guardan ids de mensajes dentro de un JSON: se corren igual.
+    for admin_id, muestras in db.select(f'SELECT admin_id, muestras_json FROM "{DB_SCHEMA}"."cerebro_voz"'):
+        ids = json.loads(muestras or "[]")
+        if any(int(i) < 0 for i in ids):
+            nuevos = [int(i) - n if int(i) < 0 else int(i) for i in ids]
+            db.execute(f'UPDATE "{DB_SCHEMA}"."cerebro_voz" SET muestras_json = $m WHERE admin_id = $a', {"m": json.dumps(nuevos), "a": admin_id})
     print(f"\nLugar hecho: lo importado antes se corrió {n} posiciones")
 
 
