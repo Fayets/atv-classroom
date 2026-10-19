@@ -21,7 +21,7 @@ function Contacto({ contacto, onCanal }) {
         <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2" /><rect x="14" y="5" width="4" height="14" rx="1.2" /></svg>
       </span>
       <h2 id="pausa-titulo">Tu programa está en pausa</h2>
-      <p>Para reanudarlo, comunicate con <b>{nombre}</b>. Mientras tanto podés recorrer el classroom, pero no entrar a los módulos, la IA ni los roadmaps.</p>
+      <p>Para reanudarlo, comunicate con <b>{nombre}</b>.</p>
       {contacto?.whatsapp ? <p className="pausa-numero">{contacto.whatsapp}</p> : null}
       <div className="pausa-acciones">
         {contacto?.link ? (
