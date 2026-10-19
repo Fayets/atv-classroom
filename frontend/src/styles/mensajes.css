@@ -808,3 +808,6 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 /* Pausa: el cliente solo lee su canal. Ícono de pausa al lado del nombre, sin color de alarma. */
 .msj-grupo.is-pausa { margin-top: 14px; padding-top: 6px; border-top: 1px solid rgba(0, 0, 0, 0.06); border-radius: 0; }
 .msj-grupo.is-pausa + .msj-grupo.is-senas, .msj-grupo.is-pausa + .msj-grupo.is-inactivos { margin-top: 2px; padding-top: 0; border-top: 0; }
+/* Pausa e Inactivos: aunque estén vacíos tienen lugar para soltar, así no se confunden entre sí. */
+.msj-grupo.is-pausa, .msj-grupo.is-inactivos { min-height: 40px; }
+.msj-grupo.is-pausa.is-soltar { background: rgba(11, 15, 61, 0.07); border-radius: 8px; }

@@ -58,8 +58,11 @@ _CABECERA = re.compile(r"^\[(\d{4}-\d\d-\d\d \d\d:\d\d)\] (.+)$")
 
 def parsear(ruta: Path) -> list[dict]:
     """Mensajes de un transcript: fecha (UTC), autor, texto y links de adjuntos."""
-    mensajes, actual, en_cuerpo = [], None, False
-    for linea in ruta.read_text(encoding="utf-8", errors="replace").splitlines():
+    lineas = ruta.read_text(encoding="utf-8", errors="replace").splitlines()
+    # Cuando un cliente cambia de programa, el bot sigue en un .txt nuevo SIN encabezado ("Canal: … =====")
+    # en la carpeta del programa nuevo: ese archivo se lee desde la primera línea.
+    mensajes, actual, en_cuerpo = [], None, not any(l.startswith("=====") for l in lineas)
+    for linea in lineas:
         if not en_cuerpo:
             en_cuerpo = linea.startswith("=====")
             continue
@@ -128,11 +131,23 @@ def _solo_lo_nuevo(todos: list[dict]) -> list[dict]:
                 f'(SELECT max(x.creado_en) FROM "{DB_SCHEMA}"."mensajes_canal" x WHERE x.canal = m.canal AND x.id < 0)'
             )
         }
-    nuevos = []
+        importados = {
+            _clave(cid, f, a, t) for cid, f, a, t in db.select(
+                f'SELECT c.cliente_id, m.creado_en, m.autor_nombre, m.texto FROM "{DB_SCHEMA}"."mensajes_canal" m '
+                f'JOIN "{DB_SCHEMA}"."canales" c ON c.id = m.canal WHERE m.id < 0'
+            )
+        }
+    nuevos, huecos = [], Counter()
     for x in todos:
         u = ultimo.get(x["cliente_id"])
         if u is None or x["fecha"] > u or (x["fecha"] == u and _clave(x["cliente_id"], x["fecha"], x["autor_nombre"], x["texto"]) not in del_borde):
             nuevos.append(x)
+        elif _clave(x["cliente_id"], x["fecha"], x["autor_nombre"], x["texto"]) not in importados:
+            huecos[x["cliente_id"]] += 1  # falta, pero es anterior a lo último importado de ese chat
+    if huecos:
+        print(f"\nOJO: {sum(huecos.values())} mensajes faltan en medio del historial (anteriores a lo último importado) y --nuevos no los trae:")
+        for cid, n in huecos.most_common():
+            print(f"  cliente {cid}: {n}")
     for i, x in enumerate(nuevos):
         x["id"] = -(len(nuevos) - i)
     return nuevos
@@ -285,8 +300,11 @@ def main() -> None:
         todos = _solo_lo_nuevo(todos)
         print(f"\nModo --nuevos: {len(todos)} mensajes nuevos desde la última importación")
         por_canal = Counter(x["cliente_id"] for x in todos)
-        for cid, n in por_canal.most_common(15):
-            print(f"  {nombres_cliente.get(cid, cid)}: {n}")
+        desde = {}
+        for x in todos:
+            desde.setdefault(x["cliente_id"], [x["fecha"], x["fecha"]])[1] = x["fecha"]
+        for cid, n in por_canal.most_common(40):
+            print(f"  {nombres_cliente.get(cid, cid)}: {n}  ({desde[cid][0]:%d/%m} → {desde[cid][1]:%d/%m})")
         if not todos:
             print("No hay nada nuevo para traer.")
             return

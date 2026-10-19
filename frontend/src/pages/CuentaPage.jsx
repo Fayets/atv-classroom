@@ -9,6 +9,13 @@ import { useAuth } from '../context/AuthContext'
 import '../styles/cuenta.css'
 import { getUserInitials } from '../utils/user'
 
+// 120 → "4 meses", 45 → "45 días": en meses cuando cae cerca de un número redondo.
+function duracion(dias) {
+  const meses = Math.round(dias / 30.4)
+  if (meses >= 1 && Math.abs(dias - meses * 30.4) <= 4) return `${meses} ${meses === 1 ? 'mes' : 'meses'}`
+  return `${dias} días`
+}
+
 const fecha = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—')
 
 // Mi cuenta: una tarjeta por sección. Para sumar algo nuevo, se agrega otra <Seccion>.
@@ -131,6 +138,8 @@ export default function CuentaPage() {
                   </div>
                 ) : null}
                 <dl className="cuenta-datos">
+                  {c.estado_texto ? <Dato nombre="Estado"><span className={`cuenta-estado is-${c.estado || 'vigente'}`}>{c.estado_texto}</span></Dato> : null}
+                  {c.duracion_dias ? <Dato nombre="Duración del programa">{duracion(c.duracion_dias)}</Dato> : null}
                   {c.fecha_inicio ? <Dato nombre="Empezaste">{fecha(c.fecha_inicio)}</Dato> : null}
                   {c.fecha_vencimiento ? <Dato nombre="Vence">{fecha(c.fecha_vencimiento)}</Dato> : null}
                   {c.responsable ? <Dato nombre="Tu coach">{c.responsable}</Dato> : null}

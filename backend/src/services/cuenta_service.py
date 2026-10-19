@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
-from src.models import Admin, ClienteExterno, FotoPerfil
+from src.models import Admin, Canal, ClienteExterno, FotoPerfil
 from src.services.auth_service import es_equipo, persona, tipo_de_sesion
 from src.services.roles_canal import nombre_rol, rol_de_plan
 from src.storage.adjuntos import ADJUNTOS_DIR
@@ -44,6 +44,13 @@ def _tipo_imagen(datos: bytes) -> str | None:
     return None
 
 
+# Cómo ve el cliente su estado (en sus palabras, no las del equipo).
+_ESTADO_CLIENTE = {
+    "vigente": "Activo", "proximo_a_vencer": "Por vencer", "vencido": "Vencido", "pausa": "Activo",
+    "no_va_a_renovar": "Activo", "llamada_recompra": "Activo", "estan_bien": "Activo", "inactivo": "Inactivo",
+}
+
+
 class CuentaServices:
     def mi_cuenta(self, sesion: dict) -> dict:
         tipo = tipo_de_sesion(sesion)
@@ -63,8 +70,13 @@ class CuentaServices:
             c = ClienteExterno.get(id=sesion["usuario_id"])
             if c is None:
                 raise HTTPException(status_code=404, detail="Cliente no encontrado.")
-            extra = db.select("SELECT fecha_inicio, duracion_dias FROM clients.clientes WHERE id = $id", {"id": c.id})
-            inicio, duracion = extra[0] if extra else (None, None)
+            extra = db.select(
+                "SELECT k.fecha_inicio, k.duracion_dias, e.estado_efectivo FROM clients.clientes k "
+                "LEFT JOIN clients.clientes_con_estado e ON e.id = k.id WHERE k.id = $id", {"id": c.id})
+            inicio, duracion, estado = extra[0] if extra else (None, None, None)
+            canal = Canal.get(cliente_id=c.id)
+            # "En pausa" solo si está en el grupo Pausa (ahí se le corta el acceso); la ficha sola no alcanza.
+            en_pausa = bool(canal and canal.pausa)
             hoy = date.today()
             vence = c.fecha_vencimiento
             ptipo, pid = persona(sesion)
@@ -85,7 +97,9 @@ class CuentaServices:
                 "fecha_inicio": inicio.isoformat() if inicio else None,
                 "fecha_vencimiento": vence.isoformat() if vence else None,
                 "dias_restantes": (vence - hoy).days if vence else None,
-                "duracion_dias": duracion,
+                "duracion_dias": duracion or ((vence - inicio).days if vence and inicio else None),
+                "estado": "pausa" if en_pausa else estado,
+                "estado_texto": "En pausa" if en_pausa else _ESTADO_CLIENTE.get(estado, (estado or "").replace("_", " ").capitalize() or None),
                 "responsable": c.responsable,
                 "foto_url": foto_de(ptipo, pid),
                 "foto_propia": bool(fotos_de(ptipo, [pid])),
