@@ -80,12 +80,13 @@ def test_en_pausa_solo_lee_su_canal(equipo, cliente):
     svc.marcar_pausa(equipo["ventas"], cid, True)
     perfil = auth.obtener_perfil_sesion(auth.obtener_sesion_desde_request(_pedido("GET", "/api/auth/me", token)))
     assert perfil["pausa"] is True and perfil["contacto_pausa"]["nombre"]
-    # Leer su canal, sí.
-    for metodo, ruta in (("GET", "/api/mensajes/canales"), ("GET", f"/api/mensajes/canales/{cid}/mensajes"), ("POST", f"/api/mensajes/canales/{cid}/leido")):
+    # Recorrer el classroom y leer su canal, sí.
+    for metodo, ruta in (("GET", "/api/mensajes/canales"), ("GET", f"/api/mensajes/canales/{cid}/mensajes"), ("POST", f"/api/mensajes/canales/{cid}/leido"),
+                         ("GET", "/api/programas"), ("GET", "/api/frentes")):
         assert auth.obtener_sesion_desde_request(_pedido(metodo, ruta, token))["pausa"] is True
-    # Escribir, módulos, IA y roadmaps, no.
+    # Entrar a un programa o clase, escribir, la IA y el roadmap, no.
     for metodo, ruta in (("POST", f"/api/mensajes/canales/{cid}/mensajes"), ("POST", f"/api/mensajes/canales/{cid}/adjuntos"),
-                         ("GET", "/api/programas"), ("POST", "/api/chat"), ("GET", "/api/roadmap"), ("GET", "/api/frentes")):
+                         ("GET", "/api/programas/3"), ("GET", "/api/clases/10"), ("POST", "/api/chat"), ("GET", "/api/roadmap"), ("GET", "/api/frentes/oferta")):
         with pytest.raises(HTTPException) as e:
             auth.obtener_sesion_desde_request(_pedido(metodo, ruta, token))
         assert e.value.status_code == 423 and "pausa" in e.value.detail

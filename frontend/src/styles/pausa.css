@@ -1,6 +1,5 @@
 /* Cartel de programa en pausa: hueso y azul ATV, un solo botón fuerte (WhatsApp con Lucas). */
-.pausa-fondo { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: 16px; background: rgba(11, 15, 61, 0.42); backdrop-filter: blur(6px); animation: pausa-entra 0.2s ease-out; }
-.pausa-pagina { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: #f2efe8; }
+.pausa-fondo { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: 16px; background: rgba(11, 15, 61, 0.55); animation: pausa-entra 0.18s ease-out; }
 .pausa-tarjeta { width: 100%; max-width: 420px; background: #fbfaf7; border: 1px solid rgba(11, 15, 61, 0.12); border-radius: 18px; padding: 30px 28px 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; font-family: 'Poppins', system-ui, sans-serif; color: #16182b; box-shadow: 0 30px 60px -30px rgba(11, 15, 61, 0.45); }
 .pausa-icono { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: rgba(11, 15, 61, 0.07); }
 .pausa-icono svg { width: 26px; height: 26px; fill: #0b0f3d; }
@@ -21,4 +20,6 @@
 .msj-pausa b { color: #0b0f3d; }
 .msj-pausa span:last-child { flex: none; font-weight: 600; color: #1fa855; }
 @keyframes pausa-entra { from { opacity: 0; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .pausa-fondo { animation: none; } }
+.pausa-fondo .pausa-tarjeta { animation: pausa-sube 0.22s ease-out; }
+@keyframes pausa-sube { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .pausa-fondo, .pausa-fondo .pausa-tarjeta { animation: none; } }

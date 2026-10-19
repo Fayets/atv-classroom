@@ -341,8 +341,10 @@ def obtener_sesion_desde_request(request: Request) -> dict:
     return sesion
 
 
-# Lo único que puede hacer un cliente en pausa: entrar, ver su perfil y leer su canal.
+# Lo que puede hacer un cliente en pausa: recorrer el classroom (las listas de programas y frentes, su
+# perfil) y leer su canal. Entrar a un programa o clase, la IA, el roadmap o escribir: no.
 _EN_PAUSA = (
+    ("GET", re.compile(r"^/api/(programas|frentes)$")),
     ("GET", re.compile(r"^/api/auth/")),
     ("POST", re.compile(r"^/api/auth/logout$")),
     ("GET", re.compile(r"^/api/mensajes/(habilitada|canales|no-leidos|roles|equipo)$")),

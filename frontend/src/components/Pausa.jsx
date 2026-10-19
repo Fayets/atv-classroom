@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { fetchSessionProfile } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useMensajeria } from '../context/MensajeriaContext'
 import '../styles/pausa.css'
 
 // Cliente en pausa: el equipo lo arrastró a "Pausa". Solo puede leer su canal; para todo lo demás (y para
@@ -20,7 +21,7 @@ function Contacto({ contacto, onCanal }) {
         <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2" /><rect x="14" y="5" width="4" height="14" rx="1.2" /></svg>
       </span>
       <h2 id="pausa-titulo">Tu programa está en pausa</h2>
-      <p>Para reanudarlo, comunicate con <b>{nombre}</b>. Mientras tanto podés leer tu canal, pero no usar los módulos, la IA ni los roadmaps.</p>
+      <p>Para reanudarlo, comunicate con <b>{nombre}</b>. Mientras tanto podés recorrer el classroom, pero no entrar a los módulos, la IA ni los roadmaps.</p>
       {contacto?.whatsapp ? <p className="pausa-numero">{contacto.whatsapp}</p> : null}
       <div className="pausa-acciones">
         {contacto?.link ? (
@@ -34,6 +35,7 @@ function Contacto({ contacto, onCanal }) {
 
 export function CartelPausa({ abierto, alCerrar }) {
   const { user } = useAuth()
+  const { habilitada } = useMensajeria()
   const navigate = useNavigate()
   useEffect(() => {
     if (!abierto) return undefined
@@ -45,24 +47,11 @@ export function CartelPausa({ abierto, alCerrar }) {
   return createPortal(
     <div className="pausa-fondo" onClick={(e) => e.target === e.currentTarget && alCerrar()}>
       <div className="pausa-tarjeta" role="dialog" aria-modal="true" aria-labelledby="pausa-titulo">
-        <Contacto contacto={user?.contacto_pausa} onCanal={() => { alCerrar(); navigate('/mensajes') }} />
+        <Contacto contacto={user?.contacto_pausa} onCanal={habilitada ? () => { alCerrar(); navigate('/mensajes') } : null} />
         <button type="button" className="pausa-cerrar" onClick={alCerrar}>Entendido</button>
       </div>
     </div>,
     document.body,
-  )
-}
-
-// En lugar de módulos, IA, roadmaps…: la misma tarjeta, de página.
-export function PantallaPausa() {
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  return (
-    <main className="pausa-pagina">
-      <div className="pausa-tarjeta">
-        <Contacto contacto={user?.contacto_pausa} onCanal={() => navigate('/mensajes')} />
-      </div>
-    </main>
   )
 }
 
