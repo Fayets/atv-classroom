@@ -20,6 +20,7 @@ from pony.orm import db_session
 
 from src.models import Admin, Canal, ClienteExterno, Llamada
 from src.services import aprendizaje_service as ap
+from src.services import sops_service as sops
 from src.services import gasto_ia
 from src.services import roadmaps_aprendidos as aprendidos
 from src.services.auth_service import es_equipo
@@ -52,16 +53,23 @@ Con la transcripción armás tres cosas, en tu voz (cómo escribís vos, abajo):
    SOLO algo que ATV le manda o le comparte (plantilla, documento, guion, grabación, link de una
    reunión); nunca algo que tiene que hacer o mandar el cliente, ni la grabación de esta llamada
    (ya la ve en su roadmap). Si no hay, no pongas esas líneas.
-3. PARA EL COACH (no va en el mensaje): los títulos exactos de los entregables que hay que
-   adjuntar (para saber qué documento poner en cada [LINK]) y un resumen de la llamada en 3 a 5
-   frases, para corroborar que se entendió bien.
+3. PARA EL COACH (no va en el mensaje): los entregables que hay que adjuntar (para saber qué
+   documento poner en cada [LINK]) y un resumen de la llamada en 3 a 5 frases, para corroborar que
+   se entendió bien.
+   SOPs DEL CLASSROOM: el material de ATV (los SOPs que antes se mandaban por Skool) está en el
+   classroom, en la lista numerada de más abajo. Si un entregable es una de esas clases, poné su
+   número en "sop" y usá como título el de la clase, corto y como lo nombrarías vos (por ejemplo
+   "Optimización de perfil"). Si un paso del cliente se hace con una de esas clases aunque no se haya
+   nombrado en la llamada, sumala como entregable, solo si es justo lo que necesita para ese paso
+   (hasta 4 SOPs en total). Si el material que se prometió no está en la lista, "sop": null: no lo
+   fuerces con una clase parecida.
 
 También proponé un título corto para el roadmap (el tema que se trabajó, por ejemplo "Ventas" o
 "Contenido") y en pocas palabras qué se trabaja con el cliente (por ejemplo "Setting y closing").
 
 Respondé SOLO con un JSON válido, sin texto antes ni después:
 {{"titulo": "...", "area": "...", "pasos": [{{"texto": "...", "quien": "cliente"}}],
-"mensaje": "...", "entregables": ["..."], "resumen": "..."{seguimiento}}}"""
+"mensaje": "...", "entregables": [{{"titulo": "...", "sop": 33}}], "resumen": "..."{seguimiento}}}"""
 
 _SEGUIMIENTO = """
 
@@ -111,11 +119,18 @@ def _limpiar(datos: dict, anterior: dict | None = None) -> dict:
     mensaje = str(datos.get("mensaje") or "").strip()
     if ENLACE_ROADMAP not in mensaje:
         mensaje = (mensaje + f"\n\nTus próximos pasos: {ENLACE_ROADMAP}").strip()
-    entregables = [" ".join(str(e).split())[:120] for e in (datos.get("entregables") or []) if str(e).strip()][:10]
-    # Las líneas "Entregable: [LINK]" las pone el código: el modelo a veces las nombra y no las escribe.
-    faltan = [e for e in entregables if f"{e}: [LINK]".lower() not in mensaje.lower()]
-    if faltan and "[LINK]" not in mensaje:
-        mensaje += "\n\n" + "\n".join(f"{e}: [LINK]" for e in faltan)
+    # Cada entregable, con su SOP del classroom si lo hay: el número que eligió la IA (si existe) o, si
+    # no dio número, una clase con el título casi igual. El link a la clase va armado.
+    entregables, vistos = [], set()
+    for e in (datos.get("entregables") or [])[:12]:
+        titulo = " ".join(str(e.get("titulo") if isinstance(e, dict) else e or "").split())[:120]
+        if not titulo or titulo.lower() in vistos:
+            continue
+        vistos.add(titulo.lower())
+        clase = (sops.por_id(e.get("sop")) if isinstance(e, dict) else None) or sops.por_titulo(titulo)
+        entregables.append({"titulo": titulo, "url": clase["url"] if clase else None, "clase": clase["titulo"] if clase else None})
+    entregables = entregables[:10]
+    mensaje = _con_lineas(mensaje, entregables)
     return {
         "titulo": " ".join(str(datos.get("titulo") or "").split())[:80] or "Próximos pasos",
         "area": " ".join(str(datos.get("area") or "").split())[:60] or None,
@@ -125,6 +140,62 @@ def _limpiar(datos: dict, anterior: dict | None = None) -> dict:
         "resumen": str(datos.get("resumen") or "").strip()[:1500],
         "seguimiento": _seguimiento(datos, anterior),
     }
+
+
+def _con_lineas(mensaje: str, entregables: list[dict]) -> str:
+    """Las líneas "Entregable: [LINK]" las pone siempre el código, desde la lista: el modelo a veces las
+    nombra y no las escribe, o las escribe con otro título y quedaban repetidas."""
+    mensaje = "\n".join(l for l in mensaje.split("\n") if not re.match(r"^\s*.+?:\s*\[LINK\]\s*$", l)).strip()
+    mensaje = re.sub(r"\n*\s*Entregables:\s*$", "", mensaje).strip()
+    if entregables:
+        mensaje += "\n\n" + "\n".join(f"{e['titulo']}: [LINK]" for e in entregables)
+    return mensaje
+
+
+_ELEGIR_SOPS = """Elegís qué SOPs del classroom de ATV le sirven a un cliente para los pasos de su roadmap.
+Respondés SOLO con JSON válido. Un número va solo si esa clase enseña EXACTAMENTE cómo hacer ese paso
+o ES el material que se le prometió. Si dudás, null: es mejor null que una clase parecida. Un material
+a medida (un script para su closer, un diagnóstico de su caso, una reunión) no es una clase: null."""
+
+MAX_SOPS = 5  # en total: los prometidos que son clases + los que se suman por los pasos
+
+
+def _sumar_sops(borrador: dict, llamar) -> dict:
+    """Segunda pasada, chica: con los pasos ya armados, qué clase del classroom corresponde a cada paso y a
+    cada entregable (lista cerrada, por número). El código valida los números y arma los links."""
+    pasos = borrador.get("pasos") or []
+    entregables = borrador.get("entregables") or []
+    if not pasos and not entregables:
+        return borrador
+    usuario = (
+        "Clases del classroom (número, clase y módulo):\n" + sops.para_prompt()
+        + "\n\nPasos del roadmap:\n" + "\n".join(f"{i}. {p['texto']}" for i, p in enumerate(pasos, 1))
+        + "\n\nEntregables que se le prometieron:\n" + ("\n".join(f"{i}. {e['titulo']}" for i, e in enumerate(entregables, 1)) or "(ninguno)")
+        + '\n\nDevolvé: {"pasos": [{"n": 1, "sop": 33}], "entregables": [{"n": 1, "sop": null}]}'
+    )
+    try:
+        r = _json_de(llamar(_ELEGIR_SOPS, usuario))
+    except Exception:
+        logger.warning("No se pudieron elegir los SOPs del roadmap", exc_info=True)
+        return borrador
+    for x in r.get("entregables") or []:
+        try:
+            e = entregables[int(x.get("n")) - 1]
+        except (TypeError, ValueError, IndexError, AttributeError):
+            continue
+        clase = sops.por_id(x.get("sop"))
+        e["url"], e["clase"] = (clase["url"], clase["titulo"]) if clase else (None, None)
+    ya = {e["clase"] for e in entregables if e.get("clase")}
+    for x in r.get("pasos") or []:
+        clase = sops.por_id((x or {}).get("sop")) if isinstance(x, dict) else None
+        if not clase or clase["titulo"] in ya or len(ya) >= MAX_SOPS:
+            continue
+        ya.add(clase["titulo"])
+        titulo = clase["titulo"].capitalize()
+        entregables.append({"titulo": titulo, "url": clase["url"], "clase": clase["titulo"]})
+    borrador["entregables"] = entregables[:10]
+    borrador["mensaje"] = _con_lineas(borrador.get("mensaje") or "", borrador["entregables"])
+    return borrador
 
 
 def _llamar(sistema: str, usuario: str) -> str:
@@ -200,6 +271,9 @@ Mensajes reales de {coach} (copiá el tono, no el contenido):
 {(chr(10) + "Lo que aprendimos de los roadmaps anteriores:" + chr(10) + aprendido + chr(10)) if aprendido else ""}
 Lo que sabemos de {cliente}: {perfil_txt}{previo}
 
+SOPs del classroom (número, clase y módulo):
+{sops.para_prompt()}
+
 Transcripción de la llamada:
 {_recortar(transcripcion)}"""
     return sistema, usuario
@@ -239,6 +313,7 @@ class RoadmapIAServices:
         sistema, usuario = armar_prompt(coach, cliente, ap.voz_de(voz_id), perfil, transcripcion, aprendido, anterior)
         try:
             borrador = _corregir_persona(_limpiar(_json_de(llamar(sistema, usuario)), anterior), coach, llamar)
+            borrador = _sumar_sops(borrador, llamar)
         except HTTPException:
             raise
         except Exception:

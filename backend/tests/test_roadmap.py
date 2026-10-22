@@ -79,7 +79,8 @@ def test_el_borrador_con_ia_trae_pasos_mensaje_con_link_y_entregables(monkeypatc
     vistos = {}
 
     def falso(sistema, usuario):
-        vistos["prompt"] = sistema + usuario
+        if "Transcripción de la llamada" in usuario:  # el pedido principal (no la pasada de SOPs)
+            vistos["prompt"] = sistema + usuario
         return '{"titulo": "Contenido", "area": "Historias", "pasos": [{"texto": "Grabá el CTA nuevo", "quien": "cliente"}, {"texto": "", "quien": "x"}], "mensaje": "buenas, te dejé todo", "entregables": ["Plantilla de guion"], "resumen": "Hablamos de historias."}'
 
     monkeypatch.setattr(ria.ClienteExterno, "get", staticmethod(lambda **kw: type("C", (), {"nombre": "Ana Scheffer", "email": "a@x.com", "plan_actual": "mentoria"})()))
@@ -87,7 +88,7 @@ def test_el_borrador_con_ia_trae_pasos_mensaje_con_link_y_entregables(monkeypatc
         ria.RoadmapIAServices().generar(TITULAR, CLIENTE, "x" * 300, llamar=falso)  # el cliente no
     b = ria.RoadmapIAServices().generar(EQUIPO, CLIENTE, "Coach: hola Ana. " * 30, llamar=falso)
     assert b["pasos"] == [{"texto": "Grabá el CTA nuevo", "quien": "cliente"}]
-    assert ria.ENLACE_ROADMAP in b["mensaje"] and b["entregables"] == ["Plantilla de guion"]
+    assert ria.ENLACE_ROADMAP in b["mensaje"] and [e["titulo"] for e in b["entregables"]] == ["Plantilla de guion"]
     assert b["mensaje"].endswith("Plantilla de guion: [LINK]")  # la línea del entregable la pone el código
     assert "Ana" in vistos["prompt"] and "Transcripción" in vistos["prompt"]
 
@@ -126,8 +127,10 @@ def test_el_cerebro_aprende_de_las_correcciones_y_de_los_resultados(monkeypatch)
     # Llamada siguiente: la IA revisa los pasos del roadmap anterior y cuenta el resultado.
     segunda = '{"titulo": "Ventas", "pasos": [{"texto": "Pasá las conversaciones a llamada", "quien": "cliente"}], "mensaje": "[ROADMAP]", "seguimiento": [{"id": 1, "estado": "hecho", "resultado": "le entraron 14 conversaciones en la semana"}, {"id": 2, "estado": "no_se_hablo"}]}'
     b2 = gen.generar(coach, CLIENTE, "Coach: ¿cómo te fue Ana? " * 30, llamar=ia(segunda))
-    assert "SACÓ" in prompts[-1] and "Leé un libro de marketing" in prompts[-1]  # aprendió la corrección
-    assert "Roadmap anterior" in prompts[-1] and "[el cliente lo tildó como hecho]" in prompts[-1]
+    # el pedido principal (después va una segunda pasada chica que elige los SOPs)
+    principal = [p for p in prompts if "Transcripción de la llamada" in p][-1]
+    assert "SACÓ" in principal and "Leé un libro de marketing" in principal  # aprendió la corrección
+    assert "Roadmap anterior" in principal and "[el cliente lo tildó como hecho]" in principal
     assert b2["seguimiento"]["pasos"][0]["resultado"] == "le entraron 14 conversaciones en la semana"
     svc.crear(coach, CLIENTE, {"titulo": "Ventas", "borrador_id": b2["borrador_id"], "pasos": b2["pasos"]})
     hist = apr.de_cliente(CLIENTE)

@@ -19,14 +19,20 @@ let siguiente = 1
 const nuevoId = () => siguiente++
 
 // Lo que dice el mensaje, sin las líneas "Entregable: [LINK]" (esas se completan aparte, en la hoja).
-function separarMensaje(mensaje, fathom = '') {
+// Se completan solas la grabación (ya la tenemos) y los SOPs que están en el classroom.
+function separarMensaje(mensaje, fathom = '', entregables = []) {
   const huecos = []
   const cuerpo = []
+  const sop = (titulo) => entregables.find((e) => e?.url && e.titulo?.toLowerCase() === titulo.toLowerCase())
   for (const linea of (mensaje || '').split('\n')) {
     const m = linea.match(/^\s*(.+?):\s*\[LINK\]\s*$/)
-    // La grabación de la llamada ya la tenemos: ese link se completa solo.
-    if (m) huecos.push({ id: nuevoId(), titulo: m[1], url: fathom && /grabaci|llamada|fathom/i.test(m[1]) ? fathom : '' })
-    else cuerpo.push(linea)
+    if (!m) {
+      cuerpo.push(linea)
+      continue
+    }
+    const deClassroom = sop(m[1])
+    const url = deClassroom ? deClassroom.url : fathom && /grabaci|llamada|fathom/i.test(m[1]) ? fathom : ''
+    huecos.push({ id: nuevoId(), titulo: m[1], url, clase: deClassroom ? deClassroom.clase : null })
   }
   return { cuerpo: cuerpo.join('\n').trim(), huecos }
 }
@@ -57,7 +63,7 @@ const pegarPlano = (e) => {
 function Documento({ b, cliente, llamada, fathom, error, guardando, onVolver, onGuardar }) {
   const [pasos, setPasos] = useState(() => b.pasos.map((p) => ({ id: nuevoId(), quien: p.quien, inicial: p.texto })))
   const textos = useRef(Object.fromEntries(pasos.map((p) => [p.id, p.inicial])))
-  const [huecos, setHuecos] = useState(() => separarMensaje(b.mensaje, fathom).huecos)
+  const [huecos, setHuecos] = useState(() => separarMensaje(b.mensaje, fathom, b.entregables).huecos)
   const titulo = useRef(null)
   const cuerpo = useRef(null)
   const [area, setArea] = useState(b.area || '')
@@ -183,9 +189,10 @@ function Documento({ b, cliente, llamada, fathom, error, guardando, onVolver, on
                   <input
                     className={h.url.trim() ? 'is-lleno' : ''}
                     value={h.url}
-                    onChange={(e) => setHuecos((hs) => hs.map((x) => (x.id === h.id ? { ...x, url: e.target.value } : x)))}
+                    onChange={(e) => setHuecos((hs) => hs.map((x) => (x.id === h.id ? { ...x, url: e.target.value, clase: null } : x)))}
                     placeholder="pegá el link"
                   />
+                  {h.clase ? <em className="rmi-hoja__sop" title={`Clase del classroom: ${h.clase}`}>del classroom</em> : null}
                   <button type="button" onClick={() => setHuecos((hs) => hs.filter((x) => x.id !== h.id))} aria-label={`Sacar ${h.titulo}`}>✕</button>
                 </label>
               ))}
@@ -206,7 +213,19 @@ function Documento({ b, cliente, llamada, fathom, error, guardando, onVolver, on
           <div className="rmi-nota">
             <p className="rmi-nota__de"><i />Solo para vos</p>
             <span>Entregables para adjuntar</span>
-            {b.entregables.length ? <ul>{b.entregables.map((e) => <li key={e}>{e}</li>)}</ul> : <p>No hay entregables aparte.</p>}
+            {b.entregables.length ? (
+              <ul>
+                {b.entregables.map((e) => {
+                  const t = typeof e === 'string' ? e : e.titulo
+                  return (
+                    <li key={t}>
+                      {t}
+                      {e?.clase ? <small className="rmi-nota__sop">→ clase «{e.clase.charAt(0) + e.clase.slice(1).toLowerCase()}»</small> : typeof e === 'string' ? null : <small className="rmi-nota__falta">no está en el classroom: pegá el link</small>}
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : <p>No hay entregables aparte.</p>}
           </div>
           {b.resumen ? (
             <div className="rmi-nota">
