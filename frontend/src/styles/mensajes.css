@@ -835,3 +835,4 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmi-nota__sop, .rmi-nota__falta { display: block; font-size: 11.5px; margin-top: 2px; }
 .rmi-nota__sop { color: #2f7d4f; }
 .rmi-nota__falta { color: #9a6400; }
+.rmi-hoja__sop.is-skool { color: #4a5190; background: rgba(27, 36, 112, 0.08); }

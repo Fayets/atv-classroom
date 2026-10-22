@@ -44,7 +44,9 @@ Con la transcripción armás tres cosas, en tu voz (cómo escribís vos, abajo):
    - "atv": lo hace o lo manda el equipo de ATV (vos u otro coach): una reunión, una plantilla, una
      revisión, un seguimiento. En primera persona desde vos ("Te paso…", "Te hago seguimiento…",
      "Te agendo una reunión con Nick…"), NUNCA como orden al cliente ni en infinitivo
-     ("Hacer seguimiento…", "Recibir de Franco…").
+     ("Hacer seguimiento…", "Recibir de Franco…"). Una reunión o un seguimiento de ATV es con vos o
+     con otra persona de ATV (nombrala si se dijo en la llamada): nunca "con {cliente}" ni con alguien
+     de su equipo, porque es a ellos a quienes les escribís.
 2. EL MENSAJE para mandarle por el chat. Es el mensaje previo a que vea los pasos en su roadmap:
    NO repitas los pasos. Breve, con tu tono, sin palabras cliché ni frases de manual. Tiene que
    incluir el link a su roadmap escribiendo exactamente {enlace}. Después, una línea por cada
@@ -78,6 +80,41 @@ _SEGUIMIENTO = """
    habló ("no_se_hablo"), y el resultado concreto que contó el cliente (números, hechos), con sus
    palabras. Si no contó un resultado, dejalo vacío: no lo inventes. No vuelvas a proponer pasos que
    ya están hechos."""
+
+
+# Lo que Fathom transcribe mal del rubro: se corrige en la transcripción (y en lo que vuelve, por las dudas).
+_GLOSARIO = [
+    (re.compile(r"\bB\.?\s?S\.?\s?L\b(s?)", re.I), r"VSL\1"),  # "VSL" suena "BSL"
+    (re.compile(r"\bWhit(?:ey|e) Profit\b", re.I), "YT Profit"),
+]
+
+
+def corregir_rubro(texto: str) -> str:
+    for patron, cambio in _GLOSARIO:
+        texto = patron.sub(cambio, texto or "")
+    return texto
+
+
+def _sin_cliente_en_atv(borrador: dict, cliente: str) -> dict:
+    """Los pasos de ATV y los entregables no pueden ser "con {cliente}" (ni con su apodo: "Cris" de
+    Cristopher): una reunión de ATV es con alguien de ATV. Si la IA igual lo escribe, se saca."""
+    nombre = (cliente or "").split()[0].lower() if cliente else ""
+    if len(nombre) < 3:
+        return borrador
+
+    def limpiar(t: str) -> str:
+        return re.sub(r"\s+con\s+([A-Za-zÁÉÍÓÚÑáéíóúñ]+)\b",
+                      lambda m: "" if len(m.group(1)) >= 3 and nombre.startswith(m.group(1).lower()) else m.group(0), t)
+
+    for p in borrador.get("pasos") or []:
+        if p.get("quien") == "atv":
+            p["texto"] = limpiar(p["texto"])
+    viejo = {e["titulo"]: limpiar(e["titulo"]) for e in borrador.get("entregables") or []}
+    for e in borrador.get("entregables") or []:
+        e["titulo"] = viejo[e["titulo"]]
+    if any(a != b for a, b in viejo.items()):
+        borrador["mensaje"] = _con_lineas(borrador.get("mensaje") or "", borrador.get("entregables") or [])
+    return borrador
 
 
 def _recortar(texto: str) -> str:
@@ -128,7 +165,8 @@ def _limpiar(datos: dict, anterior: dict | None = None) -> dict:
             continue
         vistos.add(titulo.lower())
         clase = (sops.por_id(e.get("sop")) if isinstance(e, dict) else None) or sops.por_titulo(titulo)
-        entregables.append({"titulo": titulo, "url": clase["url"] if clase else None, "clase": clase["titulo"] if clase else None})
+        entregables.append({"titulo": titulo, "url": clase["url"] if clase else None, "clase": clase["titulo"] if clase else None,
+                            "fuente": clase["fuente"] if clase else None})
     entregables = entregables[:10]
     mensaje = _con_lineas(mensaje, entregables)
     return {
@@ -184,15 +222,15 @@ def _sumar_sops(borrador: dict, llamar) -> dict:
         except (TypeError, ValueError, IndexError, AttributeError):
             continue
         clase = sops.por_id(x.get("sop"))
-        e["url"], e["clase"] = (clase["url"], clase["titulo"]) if clase else (None, None)
+        e["url"], e["clase"], e["fuente"] = (clase["url"], clase["titulo"], clase["fuente"]) if clase else (None, None, None)
     ya = {e["clase"] for e in entregables if e.get("clase")}
     for x in r.get("pasos") or []:
         clase = sops.por_id((x or {}).get("sop")) if isinstance(x, dict) else None
         if not clase or clase["titulo"] in ya or len(ya) >= MAX_SOPS:
             continue
         ya.add(clase["titulo"])
-        titulo = clase["titulo"].capitalize()
-        entregables.append({"titulo": titulo, "url": clase["url"], "clase": clase["titulo"]})
+        titulo = clase["titulo"] if clase["fuente"] == "skool" else clase["titulo"].capitalize()
+        entregables.append({"titulo": titulo, "url": clase["url"], "clase": clase["titulo"], "fuente": clase["fuente"]})
     borrador["entregables"] = entregables[:10]
     borrador["mensaje"] = _con_lineas(borrador.get("mensaje") or "", borrador["entregables"])
     return borrador
@@ -275,7 +313,7 @@ SOPs del classroom (número, clase y módulo):
 {sops.para_prompt()}
 
 Transcripción de la llamada:
-{_recortar(transcripcion)}"""
+{_recortar(corregir_rubro(transcripcion))}"""
     return sistema, usuario
 
 
@@ -313,7 +351,12 @@ class RoadmapIAServices:
         sistema, usuario = armar_prompt(coach, cliente, ap.voz_de(voz_id), perfil, transcripcion, aprendido, anterior)
         try:
             borrador = _corregir_persona(_limpiar(_json_de(llamar(sistema, usuario)), anterior), coach, llamar)
-            borrador = _sumar_sops(borrador, llamar)
+            borrador = _sin_cliente_en_atv(_sumar_sops(borrador, llamar), cliente)
+            for p in borrador["pasos"]:
+                p["texto"] = corregir_rubro(p["texto"])
+            borrador["mensaje"] = corregir_rubro(borrador["mensaje"])
+            for e in borrador["entregables"]:
+                e["titulo"] = corregir_rubro(e["titulo"])
         except HTTPException:
             raise
         except Exception:

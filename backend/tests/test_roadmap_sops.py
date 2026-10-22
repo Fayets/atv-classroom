@@ -62,3 +62,27 @@ def test_si_la_ia_falla_queda_el_borrador():
 def test_por_titulo_no_fuerza_parecidos():
     assert sops.por_titulo("Plantilla de avatar") is None
     assert sops.por_titulo("Grabación de la llamada") is None
+
+
+def test_las_lecciones_que_solo_estan_en_skool_van_con_su_link():
+    vsl = sops.por_titulo("VSL de chat")
+    assert vsl and vsl["fuente"] == "skool" and "skool.com" in vsl["url"]
+    assert sops.por_id(vsl["id"])["url"] == vsl["url"]
+    # el catálogo no repite: lo que está en el classroom va con link del classroom
+    assert all(c["fuente"] == "classroom" for c in sops.catalogo() if c["id"] < sops._ID_SKOOL)
+
+
+def test_glosario_del_rubro():
+    assert ri.corregir_rubro("Grabá dos BSL chats y el B.S.L de YT") == "Grabá dos VSL chats y el VSL de YT"
+    assert ri.corregir_rubro("Whitey Profit Scaling") == "YT Profit Scaling"
+    assert ri.corregir_rubro("ABSLX") == "ABSLX"
+
+
+def test_una_reunion_de_atv_no_es_con_el_cliente():
+    b = {"pasos": [{"texto": "Te agendo una reunión con Cris para pulir la oferta", "quien": "atv"},
+                   {"texto": "Te agendo una reunión con Juan para revisar", "quien": "atv"},
+                   {"texto": "Coordiná con Cris del equipo", "quien": "cliente"}],
+         "entregables": [{"titulo": "Reunión de seguimiento con Cris", "url": None}], "mensaje": "hola"}
+    r = ri._sin_cliente_en_atv(b, "Cristopher")
+    assert [p["texto"] for p in r["pasos"]] == ["Te agendo una reunión para pulir la oferta", "Te agendo una reunión con Juan para revisar", "Coordiná con Cris del equipo"]
+    assert r["entregables"][0]["titulo"] == "Reunión de seguimiento" and "Reunión de seguimiento: [LINK]" in r["mensaje"]

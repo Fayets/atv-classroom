@@ -32,7 +32,7 @@ function separarMensaje(mensaje, fathom = '', entregables = []) {
     }
     const deClassroom = sop(m[1])
     const url = deClassroom ? deClassroom.url : fathom && /grabaci|llamada|fathom/i.test(m[1]) ? fathom : ''
-    huecos.push({ id: nuevoId(), titulo: m[1], url, clase: deClassroom ? deClassroom.clase : null })
+    huecos.push({ id: nuevoId(), titulo: m[1], url, clase: deClassroom ? deClassroom.clase : null, fuente: deClassroom ? deClassroom.fuente : null })
   }
   return { cuerpo: cuerpo.join('\n').trim(), huecos }
 }
@@ -192,7 +192,11 @@ function Documento({ b, cliente, llamada, fathom, error, guardando, onVolver, on
                     onChange={(e) => setHuecos((hs) => hs.map((x) => (x.id === h.id ? { ...x, url: e.target.value, clase: null } : x)))}
                     placeholder="pegá el link"
                   />
-                  {h.clase ? <em className="rmi-hoja__sop" title={`Clase del classroom: ${h.clase}`}>del classroom</em> : null}
+                  {h.clase ? (
+                    <em className={`rmi-hoja__sop${h.fuente === 'skool' ? ' is-skool' : ''}`} title={h.fuente === 'skool' ? `Lección de Skool (todavía no está en el classroom): ${h.clase}` : `Clase del classroom: ${h.clase}`}>
+                      {h.fuente === 'skool' ? 'de Skool' : 'del classroom'}
+                    </em>
+                  ) : null}
                   <button type="button" onClick={() => setHuecos((hs) => hs.filter((x) => x.id !== h.id))} aria-label={`Sacar ${h.titulo}`}>✕</button>
                 </label>
               ))}
@@ -220,7 +224,9 @@ function Documento({ b, cliente, llamada, fathom, error, guardando, onVolver, on
                   return (
                     <li key={t}>
                       {t}
-                      {e?.clase ? <small className="rmi-nota__sop">→ clase «{e.clase.charAt(0) + e.clase.slice(1).toLowerCase()}»</small> : typeof e === 'string' ? null : <small className="rmi-nota__falta">no está en el classroom: pegá el link</small>}
+                      {e?.clase ? (
+                        <small className="rmi-nota__sop">{e.fuente === 'skool' ? `→ Skool «${e.clase}» (falta subirla al classroom)` : `→ clase «${e.clase.charAt(0) + e.clase.slice(1).toLowerCase()}»`}</small>
+                      ) : typeof e === 'string' ? null : <small className="rmi-nota__falta">no está en el classroom: pegá el link</small>}
                     </li>
                   )
                 })}

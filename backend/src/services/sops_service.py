@@ -5,8 +5,10 @@ Ese material ya está en el classroom: cada clase, con sus documentos. Acá se a
 IA al armar el roadmap (una lista cerrada, por número) y el link directo a cada clase.
 """
 
+import json
 import re
 import time
+from pathlib import Path
 import unicodedata
 from difflib import SequenceMatcher
 
@@ -16,6 +18,10 @@ from pony.orm import db_session
 from src.db import DB_SCHEMA, db
 
 CLASSROOM_URL = config("CLASSROOM_URL", default="https://classroom.atvos.io").rstrip("/")
+# Lecciones que el equipo manda seguido y todavía están solo en Skool (no se pasaron al classroom): van con
+# su link de Skool hasta que las suban. Si una está en los dos lados, gana la del classroom.
+_SKOOL = Path(__file__).resolve().parent.parent / "data" / "sops_skool.json"
+_ID_SKOOL = 900000  # sus números en la lista, para que no choquen con los de las clases
 _cache: dict = {"en": 0.0, "clases": []}
 
 
@@ -43,15 +49,23 @@ def catalogo() -> list[dict]:
         )
     clases = [
         {"id": cid, "titulo": " ".join(titulo.split()), "modulo": modulo, "documentos": docs or "",
-         "url": f"{CLASSROOM_URL}/classroom/{pid}?clase={cid}"}
+         "url": f"{CLASSROOM_URL}/classroom/{pid}?clase={cid}", "fuente": "classroom"}
         for cid, titulo, pid, modulo, docs in filas
     ]
+    try:
+        skool = json.loads(_SKOOL.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        skool = []
+    for i, x in enumerate(skool, 1):
+        clases.append({"id": _ID_SKOOL + i, "titulo": x["titulo"], "modulo": "Skool", "documentos": "", "url": x["url"], "fuente": "skool"})
     _cache.update(en=time.time(), clases=clases)
     return clases
 
 
 def para_prompt() -> str:
-    return "\n".join(f"[{c['id']}] {c['titulo'].capitalize()} ({c['modulo']})" for c in catalogo())
+    return "\n".join(
+        f"[{c['id']}] {c['titulo'] if c['fuente'] == 'skool' else c['titulo'].capitalize()} ({c['modulo']})" for c in catalogo()
+    )
 
 
 def por_id(clase_id) -> dict | None:
