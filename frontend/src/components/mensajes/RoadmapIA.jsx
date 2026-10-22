@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { enviarMensaje } from '../../api/mensajes'
-import { fetchLlamada, fetchLlamadas, llamadaPorLink } from '../../api/llamadas'
+import { fetchLlamada, fetchLlamadas, llamadaPorLink, borrarLlamada } from '../../api/llamadas'
 import { crearDoc, generarRoadmap } from '../../api/roadmap'
 import { useAuth } from '../../context/AuthContext'
 
@@ -264,6 +264,33 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState('')
   const [recientes, setRecientes] = useState([]) // las llamadas que tuvo hoy (su Fathom), las de este cliente primero
+  // Borrar una llamada de la lista: se va al toque y hay 4 s para deshacer antes de borrarla de verdad.
+  const [borrando, setBorrando] = useState(null)
+  const reloj = useRef(null)
+  function borrarDeLista(l) {
+    if (borrando) confirmarBorrado(borrando)
+    if (llamada?.id === l.id) {
+      setLlamada(null)
+      setFathom('')
+    }
+    setBorrando(l)
+    clearTimeout(reloj.current)
+    reloj.current = setTimeout(() => confirmarBorrado(l), 4000)
+  }
+  function confirmarBorrado(l) {
+    clearTimeout(reloj.current)
+    setBorrando(null)
+    setRecientes((rs) => rs.filter((x) => x.id !== l.id))
+    borrarLlamada(l.id).catch((e) => {
+      setRecientes((rs) => (rs.some((x) => x.id === l.id) ? rs : [...rs, l]))
+      setError(e.message || 'No se pudo borrar la llamada.')
+    })
+  }
+  function deshacerBorrado() {
+    clearTimeout(reloj.current)
+    setBorrando(null)
+  }
+  useEffect(() => () => clearTimeout(reloj.current), [])
   const { user } = useAuth()
   const [llamada, setLlamada] = useState(null)
   const [buscando, setBuscando] = useState(false)
@@ -392,12 +419,20 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
               <div className="rmi-llamadas">
                 <span>Tus llamadas de hoy</span>
                 <div>
-                  {recientes.map((l) => (
-                    <button key={l.id} type="button" className={`rmi-llamada${llamada?.id === l.id ? ' is-on' : ''}`} onClick={() => usarLlamada(l.id)} disabled={paso === 'armando'}>
-                      <b>{l.cliente?.nombre || l.titulo}</b>
-                      <small>{l.inicio ? new Date(l.inicio).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : ''}{l.cliente?.id === clienteId ? ' · este cliente' : ''}</small>
-                    </button>
+                  {recientes.filter((l) => l.id !== borrando?.id).map((l) => (
+                    <div key={l.id} className={`rmi-llamada${llamada?.id === l.id ? ' is-on' : ''}`}>
+                      <button type="button" className="rmi-llamada__usar" onClick={() => usarLlamada(l.id)} disabled={paso === 'armando'}>
+                        <b>{l.cliente?.nombre || l.titulo}</b>
+                        <small>{l.inicio ? new Date(l.inicio).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : ''}{l.cliente?.id === clienteId ? ' · este cliente' : ''}</small>
+                      </button>
+                      <button type="button" className="rmi-llamada__borrar" onClick={() => borrarDeLista(l)} disabled={paso === 'armando'} aria-label={`Borrar la llamada de ${l.cliente?.nombre || l.titulo}`} title="Borrar esta llamada">✕</button>
+                    </div>
                   ))}
+                  {borrando ? (
+                    <span className="rmi-llamada__deshacer">
+                      Llamada borrada <button type="button" onClick={deshacerBorrado}>Deshacer</button>
+                    </span>
+                  ) : null}
                 </div>
               </div>
             ) : null}

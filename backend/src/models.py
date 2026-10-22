@@ -620,3 +620,14 @@ class PizarraOnboarding(db.Entity):
     datos_json = Required(str)
     modelo = Optional(str, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class LlamadaBorrada(db.Entity):
+    """Una llamada que alguien del equipo borró: la sincronización con Fathom no la vuelve a traer.
+    Si después pegan su link a mano, vuelve (lo pidieron explícitamente)."""
+
+    _table_ = (DB_SCHEMA, "llamadas_borradas")
+
+    fathom_id = PrimaryKey(str)
+    admin_id = Required(int)
+    borrada_en = Required(datetime, default=datetime.utcnow)

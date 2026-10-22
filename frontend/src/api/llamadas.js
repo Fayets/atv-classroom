@@ -9,3 +9,4 @@ export const conectarFathom = (clave) => request('/api/cuenta/fathom', { method:
 export const desconectarFathom = () => request('/api/cuenta/fathom', { method: 'DELETE' })
 export const sincronizarFathom = () => request('/api/cuenta/fathom/sincronizar', { method: 'POST' })
 export const llamadaPorLink = (url, clienteId) => request('/api/llamadas/por-link', { method: 'POST', body: JSON.stringify({ url, cliente_id: clienteId }) })
+export const borrarLlamada = (id) => request(`/api/llamadas/${id}`, { method: 'DELETE' })

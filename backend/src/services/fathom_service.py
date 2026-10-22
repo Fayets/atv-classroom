@@ -22,7 +22,7 @@ from fastapi import HTTPException
 from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
-from src.models import ClienteExterno, FathomConexion, Llamada
+from src.models import ClienteExterno, FathomConexion, Llamada, LlamadaBorrada
 from src.services.auth_service import _emails_del_cliente, es_equipo
 from src.services.cifrado import cifrar, descifrar
 
@@ -97,11 +97,17 @@ def _clientes_por_mail() -> dict[str, int]:
     return mapa
 
 
-def _guardar(admin_id: int, item: dict, por_mail: dict[str, int]) -> bool:
-    """Crea o actualiza la llamada. Devuelve True si era nueva."""
+def _guardar(admin_id: int, item: dict, por_mail: dict[str, int], aunque_borrada: bool = False) -> bool:
+    """Crea o actualiza la llamada. Devuelve True si era nueva. Las que alguien borró no vuelven por la
+    sincronización; sí si pegan su link a mano (aunque_borrada)."""
     fid = str(_primero(item, "recording_id", "id", default="") or "")
     if not fid:
         return False
+    borrada = LlamadaBorrada.get(fathom_id=fid)
+    if borrada is not None:
+        if not aunque_borrada:
+            return False
+        borrada.delete()
     invitados = []
     for i in _primero(item, "calendar_invitees", "invitees", "attendees", default=[]) or []:
         if isinstance(i, dict):
@@ -257,7 +263,7 @@ def buscar_por_link(sesion: dict, url: str, http=httpx.get, cliente_id: int | No
             with db_session:
                 ll = Llamada.get(fathom_id=item["recording_id"])
                 if ll is None:
-                    _guardar(yo, item, {})
+                    _guardar(yo, item, {}, aunque_borrada=True)
                     db.flush()  # para que la llamada nueva ya tenga id
                     ll = Llamada.get(fathom_id=item["recording_id"])
                 elif not ll.transcripcion:
@@ -288,7 +294,7 @@ def buscar_por_link(sesion: dict, url: str, http=httpx.get, cliente_id: int | No
             for item in data.get("items") or []:
                 if ident in (str(item.get("recording_id") or ""), ) or ident in str(item.get("share_url") or "") or ident in str(item.get("url") or ""):
                     with db_session:
-                        _guardar(admin_id, item, por_mail)
+                        _guardar(admin_id, item, por_mail, aunque_borrada=True)
                         ll = _guardada_por_link(ident)
                         if ll.cliente_id is None and cliente_id:
                             ll.cliente_id = cliente_id

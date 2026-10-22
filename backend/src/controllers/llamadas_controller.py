@@ -40,6 +40,11 @@ async def detalle(llamada_id: int, sesion: dict = Depends(obtener_sesion_desde_r
     return await run_in_threadpool(llamadas.detalle, sesion, llamada_id)
 
 
+@router.delete("/llamadas/{llamada_id}")
+async def borrar(llamada_id: int, sesion: dict = Depends(obtener_sesion_desde_request)):
+    return await run_in_threadpool(llamadas.borrar, sesion, llamada_id)
+
+
 @router.put("/llamadas/{llamada_id}/cliente")
 async def asignar_cliente(llamada_id: int, datos: Cliente, sesion: dict = Depends(obtener_sesion_desde_request)):
     return await run_in_threadpool(llamadas.asignar_cliente, sesion, llamada_id, datos.cliente_id)

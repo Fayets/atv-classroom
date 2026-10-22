@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
-from src.models import Admin, Canal, ClienteExterno, FathomConexion, Llamada
+from src.models import Admin, Canal, ClienteExterno, FathomConexion, Llamada, LlamadaBorrada
 from src.services.auth_service import es_equipo
 from src.services.cuenta_service import foto_de, fotos_de
 
@@ -102,6 +102,22 @@ class LlamadasServices:
                 raise HTTPException(status_code=404, detail="No existe ese cliente.")
             ll.cliente_id = cliente_id
         return self.detalle(sesion, llamada_id)
+
+    def borrar(self, sesion: dict, llamada_id: int) -> dict:
+        """Saca la llamada del classroom (no la toca en Fathom). Cada uno las suyas; un admin, cualquiera.
+        Queda anotada para que la sincronización no la vuelva a traer."""
+        if not es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Solo el equipo.")
+        with db_session:
+            ll = Llamada.get(id=llamada_id)
+            if ll is None:
+                raise HTTPException(status_code=404, detail="No existe esa llamada.")
+            if sesion.get("rol") != "admin" and ll.admin_id != sesion["usuario_id"]:
+                raise HTTPException(status_code=403, detail="Solo podés borrar tus llamadas.")
+            if LlamadaBorrada.get(fathom_id=ll.fathom_id) is None:
+                LlamadaBorrada(fathom_id=ll.fathom_id, admin_id=sesion["usuario_id"])
+            ll.delete()
+        return {"ok": True}
 
     def por_link(self, sesion: dict, url: str, cliente_id: int | None = None) -> dict:
         from src.services.fathom_service import buscar_por_link

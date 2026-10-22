@@ -730,7 +730,12 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmi-llamadas { display: grid; gap: 6px; margin-bottom: 12px; }
 .rmi-llamadas > span { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #6e6e73; }
 .rmi-llamadas > div { display: flex; flex-wrap: wrap; gap: 6px; }
-.rmi-llamada { display: grid; gap: 1px; padding: 6px 10px; border: 1px solid #d2d2d7; border-radius: 9px; background: #fff; font: inherit; text-align: left; cursor: pointer; }
+.rmi-llamada { display: flex; align-items: stretch; border: 1px solid #d2d2d7; border-radius: 9px; background: #fff; overflow: hidden; }
+.rmi-llamada__usar { display: grid; gap: 1px; padding: 6px 4px 6px 10px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.rmi-llamada__borrar { border: 0; background: none; padding: 0 9px; font-size: 11px; color: #aeaeb2; cursor: pointer; }
+.rmi-llamada__borrar:hover:not(:disabled) { color: #c0392b; background: rgba(192, 57, 43, 0.06); }
+.rmi-llamada__deshacer { align-self: center; font-size: 12px; color: #6e6e73; }
+.rmi-llamada__deshacer button { border: 0; background: none; padding: 0 0 0 4px; font: inherit; font-weight: 600; color: #c0392b; cursor: pointer; }
 .rmi-llamada b { font-size: 12.5px; }
 .rmi-llamada small { font-size: 11px; color: #8e8e93; }
 .rmi-llamada.is-on { border-color: #c0392b; box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.15); }
