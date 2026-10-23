@@ -1040,3 +1040,9 @@ html .app-header--cliente .app-header__avatar { background: #242321; color: #f3f
   .cliente-nav { justify-content: space-between; gap: 2px; }
   .cliente-nav a { padding: 7px 12px; font-size: 13px; }
 }
+
+/* iPhone: un campo con letra menor a 16px hace zoom al tocarlo; en la app anclada eso desarma la pantalla. */
+@media (hover: none) and (pointer: coarse) {
+  input, textarea, select { font-size: 16px !important; }
+}
+html { -webkit-text-size-adjust: 100%; }

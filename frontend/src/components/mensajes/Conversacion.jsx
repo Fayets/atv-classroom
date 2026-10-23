@@ -37,6 +37,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   const { user, isEquipo, isAdmin } = useAuth()
   const { suscribir, avisarEscribiendo, conectado } = useMensajeria()
   const [datos, setDatos] = useState(null)
+  // En el celular la ayuda del @ no entra en una línea: queda solo el nombre del canal.
+  const [angosto] = useState(() => window.matchMedia('(max-width: 600px)').matches)
   const [mensajes, setMensajes] = useState([])
   const [pendientes, setPendientes] = useState([])
   const [error, setError] = useState('')
@@ -941,7 +943,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                 onKeyDown={teclas}
                 onPaste={alPegar}
                 onClick={(e) => e.target.selectionStart !== texto.length && setFantasma(null)}
-                placeholder={fantasma ? '' : esDirecto ? `Escribile a ${canal.nombre.split(' ')[0]}` : `Escribí en #${canal.nombre} · @ para etiquetar`}
+                placeholder={fantasma ? '' : esDirecto ? `Escribile a ${canal.nombre.split(' ')[0]}` : angosto ? `Escribí en #${canal.nombre}` : `Escribí en #${canal.nombre} · @ para etiquetar`}
                 maxLength={4000}
               />
             </div>

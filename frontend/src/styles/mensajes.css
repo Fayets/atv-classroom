@@ -387,11 +387,14 @@ html .app-header--mac .app-header__right { justify-content: flex-end; }
 html .app-header--mac .app-header__avatar { width: 26px; height: 26px; font-size: 10px; }
 html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-radius: 10px; }
 @media (max-width: 760px) {
-  html .app-header.app-header--mac { grid-template-columns: auto 1fr auto; padding-left: 12px; }
-  .app-header--mac .mac-semaforo { display: none; }
-  .mac-nav { justify-self: center; overflow-x: auto; max-width: 100%; }
-  .mac-nav a { padding: 4px 9px; }
+  /* En el celular: sin semáforo y el menú ocupa todo el ancho; si no entra, se desliza (nunca se corta). */
+  html .app-header.app-header--mac { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 0 12px; }
+  html .app-header--mac .app-header__left { display: none; }
+  .mac-nav { justify-self: start; min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .mac-nav::-webkit-scrollbar { display: none; }
+  .mac-nav a { flex: none; padding: 5px 8px; font-size: 12.5px; }
 }
+@media (max-width: 400px) { .mac-nav a { padding: 5px 6px; font-size: 12px; } }
 
 /* Mensajes del equipo: densidad y tipografía de una app de Mac (Mail / Mensajes). */
 .msj-root.is-mac {
@@ -401,6 +404,12 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 .msj-root.is-mac button, .msj-root.is-mac input, .msj-root.is-mac textarea { font-family: inherit; }
 .msj-root.is-mac .msj-layout { grid-template-columns: 300px minmax(0, 1fr); }
 .msj-root.is-mac .msj-layout.con-panel { grid-template-columns: 300px minmax(0, 1fr) 280px; }
+@media (max-width: 1180px) { .msj-root.is-mac .msj-layout.con-panel { grid-template-columns: 300px minmax(0, 1fr); } }
+/* En el celular, como Mensajes del iPhone: o la lista o la conversación, nunca las dos. */
+@media (max-width: 900px) {
+  .msj-root.is-mac .msj-layout, .msj-root.is-mac .msj-layout.con-panel { grid-template-columns: minmax(0, 1fr); }
+  .msj-root.is-mac .msj-lateral { border-right: 0; }
+}
 .msj-root.is-mac .msj-lateral { padding: 12px 10px 20px; background: #f0f0f3; border-right: 1px solid rgba(0, 0, 0, 0.1); }
 .msj-root.is-mac .msj-lateral__head { padding: 2px 6px 10px; }
 .msj-root.is-mac .msj-lateral__head h1 { font-size: 13px; font-weight: 700; letter-spacing: 0; color: #6e6e73; text-transform: none; }
