@@ -17,6 +17,7 @@ import CuentaPage from './pages/CuentaPage'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { EscritorioProvider, useEscritorio } from './context/EscritorioContext'
 import { MensajeriaProvider } from './context/MensajeriaContext'
+import Actualizaciones from './components/Actualizaciones'
 import AdminPage from './pages/AdminPage'
 import CerebroPage from './pages/CerebroPage'
 import EquipoPage from './pages/EquipoPage'
@@ -202,6 +203,7 @@ export default function App() {
         <MensajeriaProvider>
           <AppRoutes />
         </MensajeriaProvider>
+        <Actualizaciones />
       </AuthProvider>
     </BrowserRouter>
   )

@@ -241,3 +241,9 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 @app.get("/health", response_model=HealthResponse)
 def health():
     return HealthResponse()
+
+
+# Lo consulta el front para saber si el servidor volvió (en producción solo /api llega al backend).
+@app.get("/api/salud", response_model=HealthResponse)
+def salud():
+    return HealthResponse()

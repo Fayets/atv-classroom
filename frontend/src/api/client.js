@@ -78,8 +78,26 @@ async function parseResponse(res, url) {
   return data
 }
 
+// Si el servidor no contesta (un deploy, unos segundos), se avisa para mostrar "Estamos mejorando"
+// en vez de un error en cada pantalla.
+function avisarCaida() {
+  window.dispatchEvent(new Event('atv-caida'))
+}
+
+async function pedir(url, opciones) {
+  let res
+  try {
+    res = await fetch(url, opciones)
+  } catch (err) {
+    avisarCaida()
+    throw err
+  }
+  if (res.status === 502 || res.status === 503 || res.status === 504) avisarCaida()
+  return res
+}
+
 export async function request(url, options = {}, includeAuth = true) {
-  const res = await fetch(url, {
+  const res = await pedir(url, {
     ...options,
     headers: {
       ...buildHeaders(includeAuth),
@@ -100,7 +118,7 @@ export async function requestForm(url, options = {}, includeAuth = true) {
     }
   }
 
-  const res = await fetch(url, {
+  const res = await pedir(url, {
     ...options,
     headers: {
       ...headers,
