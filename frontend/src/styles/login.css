@@ -1,9 +1,10 @@
 /* Login: dos paneles piedra (el de la marca un tono más oscuro), tinta casi negra, rótulos en mono
    espaciado y un formulario de líneas, sin cajas. Sin blur ni animaciones caras (pantallas de 240 Hz). */
 .lg-root {
-  --lg-portada: #d9d7d2;
-  --lg-lado: #e4e2dc;
-  --lg-tinta: #1f1e1c;
+  /* Brand System ATV: hueso #F3F0E9, carbón #242321, rojo vivo #FF2518 */
+  --lg-portada: #e7e3db;
+  --lg-lado: #f3f0e9;
+  --lg-tinta: #242321;
   --lg-tinta-2: #5c5953;
   --lg-tinta-3: #96928a;
   --lg-linea: rgba(31, 30, 28, 0.14);
@@ -19,12 +20,14 @@
 .lg-meta { font-family: var(--lg-mono); font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--lg-tinta-2); }
 
 /* Portada */
-.lg-portada { position: relative; display: flex; flex-direction: column; padding: 44px 56px; background: var(--lg-portada); border-right: 1px solid var(--lg-linea); }
-.lg-portada__arriba { display: flex; justify-content: space-between; gap: 12px; }
-.lg-titulo { margin: 14px 0 0; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
-.lg-portada__centro { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 36px; padding-bottom: 60px; }
-.lg-marca { width: 52px; height: auto; display: block; }
-.lg-lema { margin: 0; color: var(--lg-tinta-2); text-align: center; }
+.lg-portada { position: relative; display: flex; flex-direction: column; padding: 44px 56px; background: var(--lg-portada); border-right: 1px solid var(--lg-linea); overflow: hidden; }
+/* grano del brandbook: estático, sin blur (no cuesta nada al animar) */
+.lg-portada::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.14; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.lg-portada__arriba { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.lg-wordmark { margin: 0; display: grid; font-family: 'Inter Tight', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 600; font-size: 30px; letter-spacing: -0.035em; line-height: 0.86; text-transform: uppercase; color: var(--lg-tinta); }
+.lg-wordmark sup { font-size: 0.32em; font-weight: 500; vertical-align: top; margin-left: 0.08em; }
+.lg-portada__centro { flex: 1; display: flex; align-items: center; justify-content: center; padding-bottom: 40px; }
+.lg-marca { width: 63px; height: auto; display: block; fill: var(--lg-tinta); }
 
 /* Formulario */
 .lg-lado { display: flex; align-items: center; justify-content: center; padding: 44px 40px; min-width: 0; }
@@ -42,13 +45,13 @@
 .lg-pass__ver { position: absolute; right: 0; top: 25px; transform: translateY(-50%); border: 0; background: none; padding: 8px 0 8px 8px; font-family: var(--lg-mono); font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--lg-tinta-2); cursor: pointer; }
 .lg-pass__ver:hover { color: var(--lg-tinta); }
 .lg-entrar { margin-top: 14px; height: 52px; border: 0; border-radius: 2px; background: var(--lg-tinta); color: #f2efe8; font: 600 15px var(--lg-sans); letter-spacing: 0.02em; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; cursor: pointer; transition: background-color 0.15s; }
-.lg-entrar:hover:not(:disabled) { background: #0b0f3d; }
+.lg-entrar:hover:not(:disabled) { background: #3a3835; }
 .lg-entrar:disabled { cursor: default; opacity: 0.8; }
-.lg-entrar svg { width: 24px; height: 11px; }
+.lg-entrar svg { width: 24px; height: 11px; color: #ff2518; }
 .lg-entrar__spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(242, 239, 232, 0.35); border-top-color: #f2efe8; animation: lg-gira 0.7s linear infinite; }
 @keyframes lg-gira { to { transform: rotate(360deg); } }
 .lg-error { margin: 0 0 4px; padding: 10px 12px; border-left: 2px solid #b3261e; background: rgba(179, 38, 30, 0.06); font-size: 13px; color: #8c1d16; }
-.lg-entrar:focus-visible, .lg-pass__ver:focus-visible { outline: 2px solid #0b0f3d; outline-offset: 3px; }
+.lg-entrar:focus-visible, .lg-pass__ver:focus-visible { outline: 2px solid #ff2518; outline-offset: 3px; }
 
 /* Pie: Google (texto) y ayuda */
 .lg-pie { display: flex; flex-direction: column; gap: 14px; padding-top: 26px; border-top: 1px solid var(--lg-linea); }
