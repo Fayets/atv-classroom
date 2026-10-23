@@ -47,6 +47,10 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   const [editando, setEditando] = useState(null)
   const [escriben, setEscriben] = useState({})
   const [cargandoAntes, setCargandoAntes] = useState(false)
+  // Lejos del último mensaje: aparece el botón para volver abajo (con los nuevos que llegaron mientras tanto).
+  const [lejos, setLejos] = useState(false)
+  const [nuevosAbajo, setNuevosAbajo] = useState(0)
+  const lejosRef = useRef(false)
   const [aBorrar, setABorrar] = useState(null)
   const [equipo, setEquipo] = useState([])
   const [sugerencias, setSugerencias] = useState(null) // { lista, indice, desde }
@@ -82,6 +86,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     pegadoAbajo.current = true
     ultimoVisto.current = null
     altoPrevio.current = null
+    lejosRef.current = false
+    setLejos(false)
+    setNuevosAbajo(0)
     fetchMensajes(canalId)
       .then((r) => {
         if (!vivo) return
@@ -193,6 +200,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     } else if (llegoAbajo) {
       // Entró un mensaje nuevo mientras leías más arriba: lo que estabas leyendo no se mueve.
       el.scrollTop -= el.scrollHeight - altoPrevio.current
+      if (lejosRef.current) setNuevosAbajo((n) => n + 1)
     }
     ultimoVisto.current = ultimo
     altoPrevio.current = el.scrollHeight
@@ -355,6 +363,23 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     const el = lista.current
     pegadoAbajo.current = -el.scrollTop < 80
     altoPrevio.current = el.scrollHeight
+    // Solo cambia el estado al cruzar el umbral, no en cada cuadro del scroll.
+    const ahora = -el.scrollTop > el.clientHeight * 1.2
+    if (ahora !== lejosRef.current) {
+      lejosRef.current = ahora
+      setLejos(ahora)
+    }
+    if (pegadoAbajo.current) setNuevosAbajo((n) => (n ? 0 : n))
+  }
+
+  function irAlFinal() {
+    const el = lista.current
+    if (!el) return
+    pegadoAbajo.current = true
+    setNuevosAbajo(0)
+    // Desde muy arriba, primero un salto cerca del final: si no, la animación se hace eterna.
+    if (-el.scrollTop > el.clientHeight * 6) el.scrollTop = -el.clientHeight * 2
+    el.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   }
 
   async function cargarAnteriores() {
@@ -702,7 +727,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
         </div>
       </header>
 
-      <div className="msj-lista" ref={lista} onScroll={alScrollear} role="log" aria-live="polite">
+      <div className="msj-lista-marco">
+        <div className="msj-lista" ref={lista} onScroll={alScrollear} role="log" aria-live="polite">
         <div className="msj-lista__contenido">
         {datos.hay_mas ? (
           <div className="msj-anteriores" ref={centinela}>
@@ -824,6 +850,13 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
           )
         })}
         </div>
+        </div>
+        {lejos ? (
+          <button type="button" className="msj-al-final" onClick={irAlFinal} aria-label={nuevosAbajo ? `${nuevosAbajo} mensajes nuevos: ir al último` : 'Ir al último mensaje'}>
+            {nuevosAbajo ? <span className="msj-al-final__n">{nuevosAbajo > 99 ? '99+' : nuevosAbajo}</span> : null}
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
+          </button>
+        ) : null}
       </div>
 
       <div className="msj-escribiendo" aria-live="polite">

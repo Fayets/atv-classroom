@@ -859,3 +859,18 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-avisos button { flex: none; border: 0; border-radius: 8px; padding: 6px 12px; background: var(--m-t1); color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .msj-avisos button:disabled { opacity: 0.6; }
 .msj-avisos .msj-avisos__x { padding: 2px 8px; background: none; color: var(--m-t3); font-size: 20px; font-weight: 400; line-height: 1; }
+
+/* Botón para volver al último mensaje (como en Discord): aparece al subir bastante. */
+.msj-lista-marco { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.msj-al-final {
+  position: absolute; right: 16px; bottom: 12px; z-index: 5;
+  width: 42px; height: 42px; border: 0; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  background: #fff; color: var(--m-t1); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.14), 0 6px 18px -6px rgba(0, 0, 0, 0.3);
+  animation: msj-al-final-entra 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.msj-al-final svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.msj-al-final:active { transform: scale(0.94); }
+.msj-al-final__n { position: absolute; top: -6px; left: -6px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--m-acento); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+@keyframes msj-al-final-entra { from { opacity: 0; transform: translateY(8px) scale(0.9); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .msj-al-final { animation: none; } }
