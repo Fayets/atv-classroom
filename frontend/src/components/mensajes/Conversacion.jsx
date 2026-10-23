@@ -35,7 +35,7 @@ function agregarSinDuplicar(lista, nuevos) {
 
 export default function Conversacion({ canalId, item, onVolver, oculta = false }) {
   const { user, isEquipo, isAdmin } = useAuth()
-  const { suscribir, avisarEscribiendo, conectado } = useMensajeria()
+  const { suscribir, avisarEscribiendo, conectado, avisarLeido, canalAbierto } = useMensajeria()
   const [datos, setDatos] = useState(null)
   // En el celular la ayuda del @ no entra en una línea: queda solo el nombre del canal.
   const [angosto] = useState(() => window.matchMedia('(max-width: 600px)').matches)
@@ -189,15 +189,38 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     }
   }, [mensajes, pendientes, datos])
 
-  // Marca como leído lo último que ves, si la pestaña está a la vista.
+  // Lo que llega a este canal mientras está a la vista no suma al contador de no leídos.
+  useEffect(() => {
+    if (oculta) return undefined
+    canalAbierto.current = canalId
+    return () => {
+      if (canalAbierto.current === canalId) canalAbierto.current = null
+    }
+  }, [canalId, oculta, canalAbierto])
+
+  // Marca como leído lo último que ves, si la pestaña está a la vista. La primera vez (lo que ya
+  // estaba sin leer al abrir) y al volver a la pestaña avisa para que bajen el contador y la fila;
+  // lo que llega mirando el canal nunca se contó como no leído.
+  const estuvoOculta = useRef(false)
+  useEffect(() => {
+    const anotar = () => {
+      if (document.hidden) estuvoOculta.current = true
+    }
+    document.addEventListener('visibilitychange', anotar)
+    return () => document.removeEventListener('visibilitychange', anotar)
+  }, [])
   const marcar = useCallback(() => {
     const ultimo = mensajes[mensajes.length - 1]
     if (!ultimo || oculta || document.hidden || ultimo.id <= leidoEnviado.current) return
+    const avisar = leidoEnviado.current === 0 || estuvoOculta.current
+    estuvoOculta.current = false
     leidoEnviado.current = ultimo.id
-    marcarLeido(canalId, ultimo.id).catch(() => {
-      leidoEnviado.current = 0
-    })
-  }, [mensajes, canalId, oculta])
+    marcarLeido(canalId, ultimo.id)
+      .then(() => avisar && avisarLeido(canalId))
+      .catch(() => {
+        leidoEnviado.current = 0
+      })
+  }, [mensajes, canalId, oculta, avisarLeido])
 
   useEffect(() => {
     marcar()

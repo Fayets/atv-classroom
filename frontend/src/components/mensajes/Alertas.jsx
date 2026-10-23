@@ -6,7 +6,7 @@ import Avatar from './Avatar'
 
 // Lo que ve el coach: solo los mensajes donde lo etiquetaron, como alertas con la demora en responder.
 export default function Alertas({ activo, onAbrir }) {
-  const { suscribir, refrescarResumen } = useMensajeria()
+  const { suscribir, refrescarResumen, esMio } = useMensajeria()
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
   const [, setReloj] = useState(0)
@@ -23,14 +23,15 @@ export default function Alertas({ activo, onAbrir }) {
   }, [cargar])
 
   // Una etiqueta nueva o una respuesta propia cambian las alertas: se recargan agrupando ráfagas.
+  // Los mensajes de los demás no (antes cada uno recargaba las alertas de todo el equipo).
   useEffect(
     () =>
       suscribir((ev) => {
-        if (!['mencion', 'mensaje', 'borrado', 'reconectado'].includes(ev.tipo)) return
+        if (ev.tipo === 'mensaje' ? !esMio(ev.mensaje) : !['mencion', 'borrado', 'reconectado'].includes(ev.tipo)) return
         clearTimeout(recarga.current)
         recarga.current = setTimeout(cargar, 500)
       }),
-    [suscribir, cargar],
+    [suscribir, cargar, esMio],
   )
 
   // Las demoras corren aunque no llegue nada nuevo.

@@ -44,6 +44,49 @@ function agrupar(lista) {
   return [...grupos, sinPlan].filter((g) => g.canales.length).concat(pausa, inactivos)
 }
 
+const comparar = (x, y) => (x < y ? -1 : x > y ? 1 : 0)
+const fechaUltimo = (c) => c.ultimo?.creado_en || ''
+
+function recorte(texto, largo) {
+  const t = texto.split(/\s+/).filter(Boolean).join(' ')
+  return t.length <= largo ? t : `${t.slice(0, largo - 1)}…`
+}
+
+// El mismo orden que arma el servidor (listar_canales): anuncios y grupos como estén, los directos
+// con movimiento arriba, quien espera respuesta (el que más espera primero) y después lo más reciente.
+function ordenarBandeja(lista) {
+  const anuncios = lista.filter((c) => c.tipo === 'anuncios' || c.tipo === 'grupo')
+  const directos = lista.filter((c) => c.tipo === 'directo').sort((a, b) => comparar(fechaUltimo(b), fechaUltimo(a)))
+  const esperando = lista
+    .filter((c) => c.tipo === 'cliente' && c.esperando_desde)
+    .sort((a, b) => comparar(a.esperando_desde, b.esperando_desde))
+  const resto = lista
+    .filter((c) => c.tipo === 'cliente' && !c.esperando_desde)
+    .sort((a, b) => comparar(fechaUltimo(b), fechaUltimo(a)) || comparar(a.nombre.toLowerCase(), b.nombre.toLowerCase()))
+  return [...anuncios, ...directos, ...esperando, ...resto]
+}
+
+// Un mensaje nuevo cambia su fila (último mensaje, sin leer, si espera respuesta) y el orden: se
+// arma acá con lo que trae el aviso, sin volver a pedir la bandeja entera al servidor.
+function conMensaje(lista, m, { mio, aLaVista }) {
+  const i = lista.findIndex((c) => c.id === m.canal_id)
+  if (i < 0) return lista
+  const c = lista[i]
+  const deCliente = m.autor?.tipo === 'cliente'
+  const copia = [...lista]
+  copia[i] = {
+    ...c,
+    ultimo: c.bloqueado
+      ? c.ultimo
+      : { texto: m.texto ? recorte(m.texto, 90) : '📎 Archivo adjunto', autor_nombre: m.autor?.nombre, de: deCliente ? 'cliente' : 'equipo', creado_en: m.creado_en },
+    // Al escribir, el servidor da por leído el canal hasta ese mensaje.
+    no_leidos: mio ? 0 : aLaVista || c.bloqueado ? c.no_leidos : c.no_leidos + 1,
+    menciones: mio ? 0 : c.menciones,
+    esperando_desde: deCliente ? c.esperando_desde || m.creado_en : null,
+  }
+  return ordenarBandeja(copia)
+}
+
 // Fila como un canal de Discord: el nombre; en negrita con un punto si hay mensajes sin leer,
 // y un círculo rojo con la cantidad si te etiquetaron.
 // Cliente en pausa: los canales de la comunidad se ven con candado y sin un solo mensaje.
@@ -272,7 +315,7 @@ function PanelCliente({ item, alVerFicha, llamadaId = null, onLlamadaUsada }) {
 export default function MensajesPage() {
   const { isEquipo, isAdmin } = useAuth()
   const escritorio = useEscritorio()
-  const { suscribir, conectado } = useMensajeria()
+  const { suscribir, conectado, canalAbierto, esMio } = useMensajeria()
   const [params, setParams] = useSearchParams()
   const [canales, setCanales] = useState(null)
   const [error, setError] = useState('')
@@ -295,27 +338,67 @@ export default function MensajesPage() {
   const [senasAbiertas, setSenasAbiertas] = useState(false)
   const [onboardingDe, setOnboardingDe] = useState(null)
   const senaActiva = enMensajes ? Number(params.get('s')) || null : null
+  // Nunca dos cargas a la vez: si piden otra mientras tanto, se hace una más al terminar.
+  const cargando = useRef(false)
+  const otraCarga = useRef(false)
+  const cargarRef = useRef(null)
   const cargar = useCallback(() => {
-    fetchCanales()
-      .then(setCanales)
-      .catch((err) => setError(err.message || 'No se pudieron cargar los canales.'))
-    if (isEquipo) fetchSenas().then(setSenas).catch(() => null)
+    if (cargando.current) {
+      otraCarga.current = true
+      return
+    }
+    cargando.current = true
+    const pedidos = [
+      fetchCanales()
+        .then(setCanales)
+        .catch((err) => setError(err.message || 'No se pudieron cargar los canales.')),
+    ]
+    if (isEquipo) pedidos.push(fetchSenas().then(setSenas).catch(() => null))
+    Promise.all(pedidos).finally(() => {
+      cargando.current = false
+      if (otraCarga.current) {
+        otraCarga.current = false
+        cargarRef.current()
+      }
+    })
   }, [isEquipo])
+  cargarRef.current = cargar
+  const canalesRef = useRef(canales)
+  canalesRef.current = canales
 
   useEffect(() => {
     cargar()
   }, [cargar])
 
-  // La lista se reordena con cada novedad, agrupando ráfagas en una sola recarga.
+  // Un mensaje se suma a su fila acá mismo. Antes cada aviso (y cada "leído" de cualquiera)
+  // hacía que todas las pestañas pidieran la bandeja entera: con todos conectados, el servidor
+  // no daba abasto. Solo lo que no se puede armar acá recarga, agrupando ráfagas.
   useEffect(
     () =>
       suscribir((ev) => {
-        if (!['mensaje', 'leido', 'borrado', 'reconectado', 'mencion', 'canal'].includes(ev.tipo)) return
+        if (ev.tipo === 'mensaje' && canalesRef.current?.some((c) => c.id === ev.mensaje.canal_id)) {
+          const m = ev.mensaje
+          const opciones = { mio: esMio(m), aLaVista: canalAbierto.current === m.canal_id && !document.hidden }
+          setCanales((l) => (l ? conMensaje(l, m, opciones) : l))
+          return
+        }
+        if (ev.tipo === 'leido-propio') {
+          setCanales((l) => l && l.map((c) => (c.id === ev.canal_id ? { ...c, no_leidos: 0, menciones: 0 } : c)))
+          return
+        }
+        if (!['mensaje', 'borrado', 'reconectado', 'mencion', 'canal'].includes(ev.tipo)) return
         clearTimeout(recarga.current)
-        recarga.current = setTimeout(cargar, 600)
+        recarga.current = setTimeout(cargar, 600 + Math.random() * 1500)
       }),
-    [suscribir, cargar],
+    [suscribir, cargar, esMio, canalAbierto],
   )
+
+  // Por las dudas, la bandeja se confirma con el servidor cada tanto aunque no pase nada raro.
+  useEffect(() => {
+    if (!conectado) return undefined
+    const t = setInterval(cargar, 180000 + Math.random() * 60000)
+    return () => clearInterval(t)
+  }, [conectado, cargar])
 
   // "escribiendo…" en la lista de chats, como en WhatsApp: se apaga a los 5 s o cuando llega el mensaje.
   useEffect(

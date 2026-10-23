@@ -17,19 +17,57 @@ export function MensajeriaProvider({ children }) {
   const [aviso, setAviso] = useState(null)
   const cerrarAviso = useCallback(() => setAviso(null), [])
   const ultimoRefresco = useRef(0)
-  const refrescoPendiente = useRef(null)
+  const refrescoPendiente = useRef(null) // { reloj, cuando }
+  const enCurso = useRef(false)
+  const otraVez = useRef(false)
+  const refrescarRef = useRef(null)
+  // El canal que está a la vista (lo fija Conversacion): lo que llega ahí se lee al instante.
+  const canalAbierto = useRef(null)
+  const yo = isEquipo ? `equipo:${user?.usuario_id}` : `cliente:${user?.usuario_id}`
+  const esMio = useCallback((m) => `${m?.autor?.tipo}:${m?.autor?.id}` === yo, [yo])
+  const esMioRef = useRef(esMio)
+  esMioRef.current = esMio
 
-  const refrescarResumen = useCallback(() => {
-    // Como mucho una consulta cada 3 segundos aunque lleguen muchos mensajes juntos.
-    const espera = Math.max(0, 3000 - (Date.now() - ultimoRefresco.current))
-    if (refrescoPendiente.current) return
-    refrescoPendiente.current = setTimeout(() => {
-      refrescoPendiente.current = null
-      ultimoRefresco.current = Date.now()
-      fetchNoLeidos()
-        .then(setResumen)
-        .catch(() => null)
-    }, espera)
+  // Pide los totales al servidor: como mucho uno cada `cada` ms y nunca dos a la vez. Con cada
+  // mensaje que llegaba, cada pestaña abierta los volvía a pedir, y con todos conectados el
+  // servidor no daba abasto: ahora el contador se suma acá y el servidor solo lo confirma.
+  // `demora` reparte en el tiempo las consultas de todas las pestañas que recibieron el mismo aviso.
+  const refrescarResumen = useCallback((cada = 3000, demora = 0) => {
+    const cuando = Math.max(Date.now() + demora, ultimoRefresco.current + (typeof cada === 'number' ? cada : 3000))
+    const pendiente = refrescoPendiente.current
+    if (pendiente && pendiente.cuando <= cuando) return
+    if (pendiente) clearTimeout(pendiente.reloj)
+    refrescoPendiente.current = {
+      cuando,
+      reloj: setTimeout(() => {
+        refrescoPendiente.current = null
+        if (enCurso.current) {
+          otraVez.current = true
+          return
+        }
+        enCurso.current = true
+        ultimoRefresco.current = Date.now()
+        fetchNoLeidos()
+          .then(setResumen)
+          .catch(() => null)
+          .finally(() => {
+            enCurso.current = false
+            if (otraVez.current) {
+              otraVez.current = false
+              refrescarRef.current()
+            }
+          })
+      }, cuando - Date.now()),
+    }
+  }, [])
+  refrescarRef.current = refrescarResumen
+
+  const aLaVista = (canalId) => canalId === canalAbierto.current && !document.hidden
+
+  // Lo llama Conversacion cuando marca leído lo que ya estaba sin leer al abrir el canal.
+  const avisarLeido = useCallback((canalId) => {
+    suscriptores.current.forEach((fn) => fn({ tipo: 'leido-propio', canal_id: canalId }))
+    refrescarRef.current(1000)
   }, [])
 
   // Hasta el lanzamiento la usan el equipo y los mails de prueba (MENSAJES_CLIENTES / MENSAJES_PRUEBA en el backend).
@@ -87,7 +125,13 @@ export function MensajeriaProvider({ children }) {
           setAviso(evento)
           refrescarResumen()
         }
-        if (evento.tipo === 'mensaje' || evento.tipo === 'leido' || evento.tipo === 'borrado') refrescarResumen()
+        if (evento.tipo === 'mensaje') {
+          if (!esMioRef.current(evento.mensaje) && !aLaVista(evento.mensaje.canal_id)) {
+            setResumen((r) => ({ ...r, no_leidos: r.no_leidos + 1 }))
+          }
+          refrescarResumen(15000, 2000 + Math.random() * 8000) // "esperando" y lo que no se puede saber acá
+        }
+        if (evento.tipo === 'borrado') refrescarResumen(15000, 2000 + Math.random() * 8000)
         suscriptores.current.forEach((fn) => fn(evento))
       }
       ws.onclose = (e) => {
@@ -102,7 +146,7 @@ export function MensajeriaProvider({ children }) {
     conectar()
     refrescarResumen()
     // Respaldo por si el proxy no deja pasar el WebSocket: el contador igual se actualiza.
-    const respaldo = setInterval(refrescarResumen, 60000)
+    const respaldo = setInterval(() => refrescarResumen(), 60000)
     return () => {
       vivo = false
       clearTimeout(reintento)
@@ -124,8 +168,8 @@ export function MensajeriaProvider({ children }) {
   }, [])
 
   const valor = useMemo(
-    () => ({ habilitada, conectado, resumen, suscribir, avisarEscribiendo, refrescarResumen }),
-    [habilitada, conectado, resumen, suscribir, avisarEscribiendo, refrescarResumen],
+    () => ({ habilitada, conectado, resumen, suscribir, avisarEscribiendo, refrescarResumen, avisarLeido, canalAbierto, esMio }),
+    [habilitada, conectado, resumen, suscribir, avisarEscribiendo, refrescarResumen, avisarLeido, esMio],
   )
   return (
     <MensajeriaContext.Provider value={valor}>

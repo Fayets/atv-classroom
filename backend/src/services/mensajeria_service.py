@@ -400,9 +400,9 @@ def _mencion_dict(men: Mencion, autores: "_Autores", ahora: datetime) -> dict | 
 
 def _canales_visibles(sesion: dict, equipo: bool, del_equipo: dict[int, dict]) -> list[tuple]:
     """Los canales que van en la bandeja de esta sesión, con la otra persona (directos) y el cliente."""
-    clientes = {c.id: c for c in ClienteExterno.select()[:]} if equipo else {}
+    clientes = {c.id: c for c in list(ClienteExterno.select())} if equipo else {}
     visibles = []
-    for canal in Canal.select()[:]:
+    for canal in list(Canal.select()):
         if not _ve(sesion, _info(canal)):
             continue
         otro = None
@@ -645,20 +645,25 @@ class MensajeriaServices:
 
     @staticmethod
     def _marcar(canal_id: int, lector: tuple[str, int], ultimo_id: int) -> None:
-        lectura = LecturaCanal.get(canal_id=canal_id, lector_tipo=lector[0], lector_id=lector[1])
-        if lectura is None:
-            LecturaCanal(canal_id=canal_id, lector_tipo=lector[0], lector_id=lector[1], ultimo_leido_id=ultimo_id)
-        elif ultimo_id > lectura.ultimo_leido_id:
-            lectura.ultimo_leido_id = ultimo_id
+        # Directo en la base y solo hacia adelante: con dos pestañas de la misma persona marcando
+        # a la vez, el chequeo optimista de Pony hacía fallar a una con un 500.
+        lector_tipo, lector_id = lector
+        cursor = db.execute(
+            f'UPDATE "{DB_SCHEMA}"."lecturas_canal" SET ultimo_leido_id = GREATEST(ultimo_leido_id, $ultimo_id) '
+            "WHERE canal_id = $canal_id AND lector_tipo = $lector_tipo AND lector_id = $lector_id"
+        )
+        if cursor.rowcount == 0:
+            LecturaCanal(canal_id=canal_id, lector_tipo=lector_tipo, lector_id=lector_id, ultimo_leido_id=ultimo_id)
 
+    # Si las dos pestañas crean la lectura a la vez, una choca con la clave única: se reintenta.
+    @db_session(retry=2)
     def marcar_leido(self, sesion: dict, canal_id: int, ultimo_id: int) -> tuple[dict, dict]:
-        with db_session:
-            canal = _canal_visible(sesion, canal_id)
-            cid = canal.id
-            tope = db.select(f'SELECT COALESCE(max(id), 0) FROM "{DB_SCHEMA}"."mensajes_canal" WHERE canal = $cid')[0] or 0
-            self._marcar(canal.id, _yo(sesion), min(ultimo_id, tope))
-            evento = {"canal_id": canal.id, "lector": "cliente" if _yo(sesion)[0] == "cliente" else "equipo", "ultimo_id": min(ultimo_id, tope)}
-            return evento, _info(canal)
+        canal = _canal_visible(sesion, canal_id)
+        cid = canal.id
+        tope = db.select(f'SELECT COALESCE(max(id), 0) FROM "{DB_SCHEMA}"."mensajes_canal" WHERE canal = $cid')[0] or 0
+        self._marcar(canal.id, _yo(sesion), min(ultimo_id, tope))
+        evento = {"canal_id": canal.id, "lector": "cliente" if _yo(sesion)[0] == "cliente" else "equipo", "ultimo_id": min(ultimo_id, tope)}
+        return evento, _info(canal)
 
     def no_leidos(self, sesion: dict) -> dict:
         """Los mismos totales que suma la bandeja, sin armarla: es lo que más se consulta."""
