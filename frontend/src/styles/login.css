@@ -27,7 +27,7 @@
 .lg-wordmark { margin: 0; display: grid; font-family: 'Inter Tight', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 600; font-size: 30px; letter-spacing: -0.035em; line-height: 0.86; text-transform: uppercase; color: var(--lg-tinta); }
 .lg-wordmark sup { font-size: 0.32em; font-weight: 500; vertical-align: top; margin-left: 0.08em; }
 .lg-portada__centro { flex: 1; display: flex; align-items: center; justify-content: center; padding-bottom: 40px; }
-.lg-marca { width: 63px; height: auto; display: block; fill: var(--lg-tinta); }
+.lg-marca { width: 63px; height: auto; display: block; color: var(--lg-tinta); }
 
 /* Formulario */
 .lg-lado { display: flex; align-items: center; justify-content: center; padding: 44px 40px; min-width: 0; }

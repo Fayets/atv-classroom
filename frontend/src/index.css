@@ -108,9 +108,9 @@ input {
 
 .app-header__logo-img {
   display: block;
-  width: 28px;
+  width: 20px;
   height: auto;
-  object-fit: contain;
+  color: #242321; /* carbón del Brand System */
 }
 
 .app-header__avatar {
@@ -988,7 +988,7 @@ input {
   }
 
   .app-header__logo-img {
-    width: 26px;
+    width: 18px;
   }
 
   .main-nav__divider {

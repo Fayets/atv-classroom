@@ -5,6 +5,8 @@ import { useEscritorio } from '../context/EscritorioContext'
 import { useMensajeria } from '../context/MensajeriaContext'
 import '../styles/mensajes.css'
 import { getUserInitials } from '../utils/user'
+import Isotipo from './marca/Isotipo'
+
 
 const PLANES = { advantage: 'High Level', high: 'High Level', boost: 'Boost', mid: 'Mid level', entry: 'Entry level', mentoria: 'Mentoria' }
 
@@ -105,7 +107,7 @@ export default function AppHeader() {
           </span>
         ) : (
           <Link to="/" className="app-header__logo" aria-label="Inicio ATV">
-            <img src="/atv-logo.png" alt="" className="app-header__logo-img" />
+            <Isotipo className="app-header__logo-img" />
           </Link>
         )}
       </div>
