@@ -57,7 +57,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   const lista = useRef(null)
   const caja = useRef(null)
   const pegadoAbajo = useRef(true)
-  const altoAntes = useRef(null)
+  const ultimoVisto = useRef(null)   // el último mensaje que ya estaba en la lista
+  const altoPrevio = useRef(null)    // alto de la lista en el dibujo anterior
   const centinela = useRef(null)      // la marca de arriba de todo: al verse, se traen los anteriores
   const cargandoRef = useRef(false)   // el mismo candado que cargandoAntes, pero sin esperar al render
   const traerAnteriores = useRef(null)
@@ -79,6 +80,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     setError('')
     leidoEnviado.current = 0
     pegadoAbajo.current = true
+    ultimoVisto.current = null
+    altoPrevio.current = null
     fetchMensajes(canalId)
       .then((r) => {
         if (!vivo) return
@@ -177,16 +180,22 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     return () => clearInterval(t)
   }, [escriben])
 
-  // Scroll: abajo al abrir y cuando llega algo si ya estabas abajo; quieto al cargar anteriores.
+  // La lista está anclada abajo (column-reverse): scrollTop 0 es abajo de todo y subir es negativo.
+  // Así los anteriores se suman arriba sin tocar el scroll; antes se corregía a mano y en el iPhone
+  // eso cortaba la inercia del dedo y la lista pegaba un salto.
   useLayoutEffect(() => {
     const el = lista.current
     if (!el) return
-    if (altoAntes.current !== null) {
-      el.scrollTop = el.scrollHeight - altoAntes.current
-      altoAntes.current = null
-    } else if (pegadoAbajo.current) {
-      el.scrollTop = el.scrollHeight
+    const ultimo = mensajes[mensajes.length - 1]?.id ?? null
+    const llegoAbajo = ultimo !== ultimoVisto.current && altoPrevio.current !== null
+    if (pegadoAbajo.current) {
+      el.scrollTop = 0
+    } else if (llegoAbajo) {
+      // Entró un mensaje nuevo mientras leías más arriba: lo que estabas leyendo no se mueve.
+      el.scrollTop -= el.scrollHeight - altoPrevio.current
     }
+    ultimoVisto.current = ultimo
+    altoPrevio.current = el.scrollHeight
   }, [mensajes, pendientes, datos])
 
   // Lo que llega a este canal mientras está a la vista no suma al contador de no leídos.
@@ -339,12 +348,13 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
 
   // Las imágenes cambian de alto al cargar: si estabas abajo de todo, se sigue abajo.
   function bajarSiEstabaAbajo() {
-    if (pegadoAbajo.current && lista.current) lista.current.scrollTop = lista.current.scrollHeight
+    if (pegadoAbajo.current && lista.current) lista.current.scrollTop = 0
   }
 
   function alScrollear() {
     const el = lista.current
-    pegadoAbajo.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+    pegadoAbajo.current = -el.scrollTop < 80
+    altoPrevio.current = el.scrollHeight
   }
 
   async function cargarAnteriores() {
@@ -355,7 +365,6 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     setCargandoAntes(true)
     try {
       const r = await fetchMensajes(canalId, { antesDe: mensajes[0].id })
-      altoAntes.current = lista.current.scrollHeight - lista.current.scrollTop
       setMensajes((m) => [...r.mensajes, ...m])
       setDatos((d) => ({ ...d, hay_mas: r.hay_mas }))
     } catch (err) {
@@ -694,6 +703,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
       </header>
 
       <div className="msj-lista" ref={lista} onScroll={alScrollear} role="log" aria-live="polite">
+        <div className="msj-lista__contenido">
         {datos.hay_mas ? (
           <div className="msj-anteriores" ref={centinela}>
             <span className={cargandoAntes ? 'msj-anteriores__punto is-cargando' : 'msj-anteriores__punto'} />
@@ -813,6 +823,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
             </Fragment>
           )
         })}
+        </div>
       </div>
 
       <div className="msj-escribiendo" aria-live="polite">
