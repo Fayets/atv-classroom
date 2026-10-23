@@ -126,3 +126,13 @@
 .cuenta-estado.is-pausa { background: rgba(11, 15, 61, 0.08); color: #0b0f3d; }
 .cuenta-estado.is-proximo_a_vencer { background: #fff3d6; color: #9a6400; }
 .cuenta-estado.is-vencido, .cuenta-estado.is-inactivo { background: #fdeaea; color: #b3261e; }
+
+/* Notificaciones */
+.cuenta-avisos { display: flex; flex-direction: column; gap: 12px; }
+.cuenta-avisos__estado { display: flex; gap: 10px; align-items: flex-start; margin: 0; font-size: 14px; line-height: 1.45; color: #3a3a3c; }
+.cuenta-avisos__estado span { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: #c7c7cc; }
+.cuenta-avisos__estado.is-activas span { background: #34c759; }
+.cuenta-avisos__estado.is-bloqueadas span { background: #ff3b30; }
+.cuenta-avisos__botones { display: flex; flex-wrap: wrap; gap: 8px; }
+.cuenta-avisos__botones:empty { display: none; }
+.cuenta-avisos__nota { margin: 0; font-size: 13px; color: #6e6e73; }

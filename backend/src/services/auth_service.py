@@ -352,6 +352,8 @@ _EN_PAUSA = (
     ("GET", re.compile(r"^/api/mensajes/adjuntos/\d+$")),
     ("POST", re.compile(r"^/api/mensajes/canales/\d+/leido$")),
     ("GET", re.compile(r"^/api/cuenta(/|$)")),
+    ("GET", re.compile(r"^/api/push/clave$")),
+    ("POST", re.compile(r"^/api/push/(suscripcion|baja|prueba)$")),
 )
 PAUSA_CONTACTO = config("PAUSA_CONTACTO", default="Lucas")
 PAUSA_WHATSAPP = config("PAUSA_WHATSAPP", default="")

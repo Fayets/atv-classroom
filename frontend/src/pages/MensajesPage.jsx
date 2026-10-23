@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchSenas } from '../api/altas'
 import { pedirCartelPausa } from '../components/Pausa'
+import { NotificacionesCartel } from '../components/Notificaciones'
 import { abrirDirecto, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, ordenarCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
@@ -678,6 +679,7 @@ export default function MensajesPage() {
   return (
     <div className={`app-shell msj-root${isEquipo ? ' is-mac' : ''}`}>
       <AppHeader />
+      <NotificacionesCartel />
       <div className={`msj-layout${activo || senaActiva ? ' ver-conv' : ' ver-lista'}${isEquipo && item?.cliente ? ' con-panel' : ''}`}>
         <aside className="msj-lateral" aria-label="Canales">
           <div className="msj-lateral__head">

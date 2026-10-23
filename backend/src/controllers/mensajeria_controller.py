@@ -19,10 +19,12 @@ from src.services.mensajeria_service import (
     equipo_para_mencionar,
     habilitada_para,
 )
+from src.services import push_service
 from src.services.tiempo_real import hub
 from src.storage import adjuntos as almacen
 
 router = APIRouter(prefix="/api/mensajes", tags=["mensajes"])
+_avisos_en_curso: set = set()
 ws_router = APIRouter(tags=["mensajes"])
 service = MensajeriaServices()
 
@@ -204,6 +206,10 @@ async def enviar(canal_id: int, body: MensajeNuevo, sesion: dict = Depends(sesio
     await hub.emitir({"tipo": "mensaje", "mensaje": mensaje}, canal)
     for admin_id in mensaje.get("menciones", []):
         await hub.emitir_a_equipo(admin_id, {"tipo": "mencion", "canal_id": canal["id"], "mensaje": mensaje})
+    # La notificación al celular sale aparte: el que escribe no espera a que se manden.
+    tarea = asyncio.create_task(run_in_threadpool(push_service.avisar_mensaje, mensaje, canal["id"]))
+    _avisos_en_curso.add(tarea)
+    tarea.add_done_callback(_avisos_en_curso.discard)
     return mensaje
 
 

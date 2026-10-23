@@ -4,6 +4,7 @@ import AppHeader from '../components/AppHeader'
 import CuposEquipo from '../components/cuenta/CuposEquipo'
 import TuEquipo from '../components/cuenta/TuEquipo'
 import VozTab from '../components/cuenta/VozTab'
+import { NotificacionesCuenta } from '../components/Notificaciones'
 import FathomCuenta from '../components/cuenta/FathomCuenta'
 import { useAuth } from '../context/AuthContext'
 import '../styles/cuenta.css'
@@ -154,6 +155,9 @@ export default function CuentaPage() {
               </Seccion>
             )}
 
+            <Seccion titulo="Notificaciones">
+              <NotificacionesCuenta />
+            </Seccion>
             {c.tipo === 'cliente' && !c.miembro ? (
               <Seccion titulo="Tu equipo">
                 <TuEquipo />

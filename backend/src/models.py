@@ -631,3 +631,39 @@ class LlamadaBorrada(db.Entity):
     fathom_id = PrimaryKey(str)
     admin_id = Required(int)
     borrada_en = Required(datetime, default=datetime.utcnow)
+
+
+class PushSuscripcion(db.Entity):
+    """Un celular o navegador que aceptó notificaciones. Se guarda de quién es (equipo o cliente, y si es
+    alguien del equipo del cliente) y lo que el navegador entrega para poder mandarle avisos."""
+
+    _table_ = (DB_SCHEMA, "push_suscripciones")
+
+    id = PrimaryKey(int, auto=True)
+    tipo = Required(str)  # "admin" | "cliente"
+    usuario_id = Required(int)
+    miembro_id = Optional(int, nullable=True)
+    endpoint = Required(str, unique=True)
+    p256dh = Required(str)
+    auth = Required(str)
+    dispositivo = Optional(str, nullable=True)
+    creada_en = Required(datetime, default=datetime.utcnow)
+
+
+class PushClaves(db.Entity):
+    """Las claves VAPID con las que el servidor firma las notificaciones. Se crean solas la primera vez."""
+
+    _table_ = (DB_SCHEMA, "push_claves")
+
+    id = PrimaryKey(int)
+    privada = Required(str)
+    publica = Required(str)
+
+
+class PushAlertaEspera(db.Entity):
+    """El último mensaje de un cliente sin respuesta del que ya se avisó a los admins (para no repetir)."""
+
+    _table_ = (DB_SCHEMA, "push_alertas_espera")
+
+    canal_id = PrimaryKey(int)
+    mensaje_id = Required(int)

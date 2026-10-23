@@ -845,3 +845,11 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmi-nota__sop { color: #2f7d4f; }
 .rmi-nota__falta { color: #9a6400; }
 .rmi-hoja__sop.is-skool { color: #4a5190; background: rgba(27, 36, 112, 0.08); }
+
+/* Cartel para activar las notificaciones, arriba de la bandeja. */
+.msj-avisos { flex: none; display: flex; align-items: center; gap: 10px; padding: 9px 12px 9px 16px; background: #fff4e5; border-bottom: 1px solid rgba(183, 121, 31, 0.25); color: var(--m-t1); font-size: 13.5px; }
+.msj-avisos svg { flex: none; width: 18px; height: 18px; fill: none; stroke: #b7791f; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.msj-avisos p { flex: 1; min-width: 0; margin: 0; line-height: 1.4; }
+.msj-avisos button { flex: none; border: 0; border-radius: 8px; padding: 6px 12px; background: var(--m-t1); color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.msj-avisos button:disabled { opacity: 0.6; }
+.msj-avisos .msj-avisos__x { padding: 2px 8px; background: none; color: var(--m-t3); font-size: 20px; font-weight: 400; line-height: 1; }

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchHabilitada, fetchNoLeidos } from '../api/mensajes'
 import AvisoMencion from '../components/mensajes/AvisoMencion'
+import { resincronizarAvisos } from '../utils/push'
 import { useAuth } from './AuthContext'
 
 // Una sola conexión en vivo por pestaña, compartida por el contador del encabezado y la página de mensajes.
@@ -195,6 +196,18 @@ export function MensajeriaProvider({ children }) {
       socket.current = null
     }
   }, [habilitada, token, refrescarResumen])
+
+  // El número de sin leer sobre el ícono de la app anclada (iPhone y Android lo muestran).
+  useEffect(() => {
+    if (!('setAppBadge' in navigator)) return
+    const n = resumen.no_leidos || 0
+    ;(n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => null)
+  }, [resumen.no_leidos])
+
+  // Si este dispositivo ya tenía notificaciones, quedan a nombre de quien entró.
+  useEffect(() => {
+    if (habilitada) resincronizarAvisos()
+  }, [habilitada, token])
 
   const suscribir = useCallback((fn) => {
     suscriptores.current.add(fn)
