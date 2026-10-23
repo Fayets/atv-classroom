@@ -313,6 +313,34 @@ function PanelCliente({ item, alVerFicha, llamadaId = null, onLlamadaUsada }) {
   )
 }
 
+// "En vivo" con la conexión andando. Si se corta (casi siempre un deploy), un recuadro amarillo de
+// mantenimiento; se espera unos segundos para no mostrarlo en cada arranque mientras se conecta.
+function EstadoConexion({ conectado }) {
+  const [caido, setCaido] = useState(false)
+  const [sinInternet, setSinInternet] = useState(!navigator.onLine)
+  useEffect(() => {
+    if (conectado) {
+      setCaido(false)
+      return undefined
+    }
+    const t = setTimeout(() => setCaido(true), 4000)
+    return () => clearTimeout(t)
+  }, [conectado])
+  useEffect(() => {
+    const cambio = () => setSinInternet(!navigator.onLine)
+    window.addEventListener('online', cambio)
+    window.addEventListener('offline', cambio)
+    return () => {
+      window.removeEventListener('online', cambio)
+      window.removeEventListener('offline', cambio)
+    }
+  }, [])
+  if (conectado) return <span className="msj-estado is-on">En vivo</span>
+  if (sinInternet) return <span className="msj-estado is-caido">Sin internet</span>
+  if (caido) return <span className="msj-estado is-caido">Mantenimiento</span>
+  return <span className="msj-estado">Conectando…</span>
+}
+
 export default function MensajesPage() {
   const { isEquipo, isAdmin } = useAuth()
   const escritorio = useEscritorio()
@@ -684,9 +712,7 @@ export default function MensajesPage() {
         <aside className="msj-lateral" aria-label="Canales">
           <div className="msj-lateral__head">
             <h1>Mensajes</h1>
-            <span className={`msj-estado${conectado ? ' is-on' : ''}`} title={conectado ? 'En vivo' : 'Reconectando…'}>
-              {conectado ? 'En vivo' : 'Reconectando…'}
-            </span>
+            <EstadoConexion conectado={conectado} />
           </div>
 
           {isEquipo ? (

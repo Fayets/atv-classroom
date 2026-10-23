@@ -874,3 +874,7 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-al-final__n { position: absolute; top: -6px; left: -6px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--m-acento); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
 @keyframes msj-al-final-entra { from { opacity: 0; transform: translateY(8px) scale(0.9); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .msj-al-final { animation: none; } }
+
+/* Conexión cortada (deploy): recuadro amarillo con texto negro. */
+.msj-estado.is-caido { padding: 3px 8px; border-radius: 6px; background: #ffd60a; color: #1d1d1f; font-weight: 600; }
+.msj-estado.is-caido::before { display: none; }
