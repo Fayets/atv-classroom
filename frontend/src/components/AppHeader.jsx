@@ -69,7 +69,7 @@ export default function AppHeader() {
 
   return (
     <header
-      className={`app-header${isEquipo ? ' app-header--mac' : ''}`}
+      className={`app-header${isEquipo ? ' app-header--mac' : ' app-header--cliente'}`}
       onDoubleClick={(e) => {
         // Como en macOS: doble clic en la barra de título agranda o achica la ventana.
         if (escritorio && e.target === e.currentTarget) escritorio.alternarTamano()
@@ -108,6 +108,7 @@ export default function AppHeader() {
         ) : (
           <Link to="/" className="app-header__logo" aria-label="Inicio ATV">
             <Isotipo className="app-header__logo-img" />
+            <span className="app-header__rotulo">Classroom</span>
           </Link>
         )}
       </div>
@@ -123,24 +124,26 @@ export default function AppHeader() {
         </nav>
       ) : isEquipo ? (
         <span aria-hidden="true" />
-      ) : null}
+      ) : (
+        // Cliente: el menú al centro, en píldoras (Brand System, maqueta A).
+        <nav className="cliente-nav" aria-label="Secciones">
+          <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-on' : '')}>Inicio</NavLink>
+          <NavLink to="/classroom" className={({ isActive }) => (isActive ? 'is-on' : '')}>Material</NavLink>
+          <NavLink to="/roadmap" className={({ isActive }) => (isActive ? 'is-on' : '')}>Roadmap</NavLink>
+          {habilitada ? (
+            <NavLink to="/mensajes" className={({ isActive }) => (isActive ? 'is-on' : '')}>
+              Mensajes
+              {contador ? (
+                <span className="msj-cuenta" aria-label={`${contador} sin leer`}>
+                  {contador > 99 ? '99+' : contador}
+                </span>
+              ) : null}
+            </NavLink>
+          ) : null}
+        </nav>
+      )}
 
       <div className="app-header__right">
-      {!isEquipo ? (
-        <NavLink to="/roadmap" className={({ isActive }) => `app-header__mensajes${isActive ? ' is-on' : ''}`}>
-          Roadmap
-        </NavLink>
-      ) : null}
-      {habilitada && !isEquipo ? (
-        <NavLink to="/mensajes" className={({ isActive }) => `app-header__mensajes${isActive ? ' is-on' : ''}`}>
-          Mensajes
-          {contador ? (
-            <span className="msj-cuenta" aria-label={isEquipo && !isAdmin ? `${contador} alertas sin responder` : `${contador} sin leer`}>
-              {contador > 99 ? '99+' : contador}
-            </span>
-          ) : null}
-        </NavLink>
-      ) : null}
       <div className="app-header__user" ref={menuRef}>
         <button
           type="button"
