@@ -145,6 +145,10 @@ export async function fetchProgramas() {
   return request('/api/programas')
 }
 
+export async function fetchSopsClassroom() {
+  return request('/api/programas/sops')
+}
+
 export async function fetchPrograma(programaId) {
   return request(`/api/programas/${programaId}`)
 }

@@ -21,6 +21,11 @@ def listar_programas(sesion: dict = Depends(obtener_sesion_desde_request)):
         raise HTTPException(status_code=500, detail="Error inesperado al listar programas.")
 
 
+@router.get("/sops")
+def listar_sops(sesion: dict = Depends(obtener_sesion_desde_request)):
+    return service.listar_sops()
+
+
 @router.get("/{programa_id}", response_model=schemas.ProgramaDetalleResponse)
 def obtener_programa(
     programa_id: int,

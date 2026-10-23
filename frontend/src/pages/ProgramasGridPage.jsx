@@ -1,14 +1,17 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ApiError, fetchProgramas } from '../api/client'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ApiError, fetchProgramas, fetchSopsClassroom } from '../api/client'
 import AppHeader from '../components/AppHeader'
 import { Chevron } from '../components/frentes/piezas'
+import { tipoRecurso, tituloLindo, urlRecurso } from '../utils/frentes'
 import { getModuloCoverUrl } from '../utils/modules'
 import '../styles/frentes.css'
 import '../styles/material.css'
 
 // Todo el material, módulo por módulo. Al día a día se entra por la guía del inicio.
 export default function ProgramasGridPage() {
+  const [params, setParams] = useSearchParams()
+  const vista = params.get('vista') === 'sops' ? 'sops' : 'modulos'
   const [programas, setProgramas] = useState(null)
   const [error, setError] = useState('')
 
@@ -36,9 +39,17 @@ export default function ProgramasGridPage() {
             <Chevron dir="left" /> Inicio
           </Link>
           <h1>Todo el material</h1>
+          <div className="mt-vistas" role="tablist" aria-label="Ver por">
+            {[['modulos', 'Módulos'], ['sops', 'SOPs']].map(([v, label]) => (
+              <button key={v} type="button" role="tab" aria-selected={vista === v} className={vista === v ? 'is-on' : ''}
+                onClick={() => setParams(v === 'sops' ? { vista: 'sops' } : {}, { replace: true })}>
+                {label}
+              </button>
+            ))}
+          </div>
         </header>
 
-        {error ? (
+        {vista === 'sops' ? <VistaSops /> : error ? (
           <p className="im-error">{error}</p>
         ) : !programas ? (
           <p className="pc-loading">Cargando módulos…</p>
@@ -90,6 +101,88 @@ export default function ProgramasGridPage() {
           </div>
         )}
       </main>
+    </div>
+  )
+}
+
+const normal = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
+// Todos los SOPs de los videos en una lista: cada clase con sus documentos, por módulo, con buscador.
+function VistaSops() {
+  const [modulos, setModulos] = useState(null)
+  const [error, setError] = useState('')
+  const [q, setQ] = useState('')
+
+  useEffect(() => {
+    let cancelado = false
+    fetchSopsClassroom()
+      .then((d) => !cancelado && setModulos(Array.isArray(d) ? d : []))
+      .catch((err) => {
+        if (cancelado || (err instanceof ApiError && (err.status === 401 || err.status === 423))) return
+        setError('No se pudieron cargar los SOPs.')
+      })
+    return () => {
+      cancelado = true
+    }
+  }, [])
+
+  const filtrados = useMemo(() => {
+    if (!modulos) return null
+    const palabras = normal(q).split(/\s+/).filter(Boolean)
+    if (!palabras.length) return modulos
+    return modulos
+      .map((m) => ({
+        ...m,
+        sops: m.sops.filter((s) => {
+          const texto = normal(`${s.titulo} ${s.seccion} ${m.modulo} ${s.documentos.map((d) => d.titulo).join(' ')}`)
+          return palabras.every((p) => texto.includes(p))
+        }),
+      }))
+      .filter((m) => m.sops.length)
+  }, [modulos, q])
+
+  if (error) return <p className="im-error">{error}</p>
+  if (!filtrados) return <p className="pc-loading">Cargando SOPs…</p>
+  const total = modulos.reduce((n, m) => n + m.sops.length, 0)
+
+  return (
+    <div className="mt-sops">
+      <input className="mt-sops__buscar" type="search" value={q} onChange={(e) => setQ(e.target.value)}
+        placeholder={`Buscar entre los ${total} SOPs`} aria-label="Buscar SOP" autoComplete="off" />
+      {filtrados.length ? (
+        filtrados.map((m) => (
+          <section key={m.programa_id} className="mt-sops__mod">
+            <h2>
+              {m.modulo} <span className="num">{m.sops.length}</span>
+            </h2>
+            <ul>
+              {m.sops.map((s) => (
+                <li key={s.clase_id} className="mt-sop">
+                  <div className="mt-sop__txt">
+                    <b>{tituloLindo(s.titulo)}</b>
+                    <span>{tituloLindo(s.seccion)}</span>
+                  </div>
+                  <div className="mt-sop__docs">
+                    {s.documentos.map((d) => (
+                      <a key={d.id} href={urlRecurso(d.url)} target="_blank" rel="noopener noreferrer" className="im-sopchip">
+                        <span>{tipoRecurso(d).tag}</span>
+                        {/^(documento|planilla|formulario) google/i.test(d.titulo) ? tipoRecurso(d).label : d.titulo}
+                      </a>
+                    ))}
+                  </div>
+                  <Link to={`/classroom/${m.programa_id}?clase=${s.clase_id}`} className="mt-sop__video">
+                    Ver video <Chevron />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      ) : (
+        <p className="mt-sops__vacio">
+          No hay un SOP con eso. <Link to="/">Pedilo desde el inicio</Link> y te lo armamos.
+        </p>
+      )}
     </div>
   )
 }

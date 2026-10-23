@@ -254,7 +254,10 @@ async def borrar(mensaje_id: int, sesion: dict = Depends(sesion_mensajes)):
 @router.post("/canales/{canal_id}/leido")
 async def leido(canal_id: int, body: Leido, sesion: dict = Depends(sesion_mensajes)):
     evento, canal = await run_in_threadpool(service.marcar_leido, sesion, canal_id, body.ultimo_id)
-    await hub.emitir({"tipo": "leido", **evento}, canal)
+    # El "visto" solo existe en los chats de a dos; en un grupo, avisar cada lectura a todos
+    # los que lo ven era una tormenta de eventos (cada uno recargaba su bandeja).
+    if canal["tipo"] in ("cliente", "directo"):
+        await hub.emitir({"tipo": "leido", **evento}, canal)
     return evento
 
 

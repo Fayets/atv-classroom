@@ -19,9 +19,10 @@ function fecha(iso) {
 }
 
 // Cuando no hay material: el cliente pide el SOP y el pedido cae en Discord.
-export default function SolicitudSop({ consulta, coach }) {
-  const [abierto, setAbierto] = useState(false)
-  const [nombre, setNombre] = useState('')
+// Desde el buscador llega con el nombre de lo que buscó y, si no hubo nada, ya abierta.
+export default function SolicitudSop({ consulta, coach, nombreInicial = '', abiertoInicial = false, titulo = '¿Lo necesitás documentado?' }) {
+  const [abierto, setAbierto] = useState(abiertoInicial)
+  const [nombre, setNombre] = useState(nombreInicial)
   const [area, setArea] = useState(AREA_DE_COACH[coach?.clave] ?? '')
   const [problema, setProblema] = useState('')
   const [estado, setEstado] = useState('idle')
@@ -64,7 +65,7 @@ export default function SolicitudSop({ consulta, coach }) {
     <div className="im-sol">
       <div className="im-sol__head">
         <div>
-          <b>¿Lo necesitás documentado?</b>
+          <b>{titulo}</b>
           <span>Pedinos el SOP: si no lo tenemos, te lo entregamos en 5 a 7 días o lo resolvemos con un Loom.</span>
         </div>
         {abierto ? null : (

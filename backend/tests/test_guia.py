@@ -63,3 +63,49 @@ def test_sin_clases_deriva_al_coach_del_area(monkeypatch):
     monkeypatch.setattr(guia_service, "_por_ia", _con_ia({"recomendaciones": [], "frente": "ninguno", "area": "juan-cruz"}))
     r = asyncio.run(guia_service.recomendar("no tengo clara la visión de mi empresa"))
     assert r["recomendaciones"] == [] and r["coach"]["nombre"] == "Juan Cruz" and "agenda_url" not in r["coach"]
+
+
+# ---------- buscador de SOPs ----------
+from src.services import buscador_sops_service as buscador
+
+
+@pytest.mark.parametrize("texto", ["SOP de onboarding", "guion de cierre", "VSL de chat", "busco la plantilla de seguimiento", "onboarding de clientes"])
+def test_detecta_busquedas_de_sop(texto):
+    assert buscador.parece_busqueda(texto)
+
+
+@pytest.mark.parametrize("texto", ["Me dicen que lo van a pensar", "Todo depende de mí", "No sé si estoy ganando plata", "agendan y no vienen a la llamada"])
+def test_un_problema_no_es_busqueda(texto):
+    assert not buscador.parece_busqueda(texto)
+
+
+def test_busqueda_lista_sops_validados(monkeypatch):
+    vsl = next(c for c in buscador.sops_service.catalogo() if c["titulo"] == "VSL de chat")
+
+    async def falsa(_texto):
+        return [vsl["id"], 999999999, vsl["id"]]
+
+    monkeypatch.setattr(buscador, "_por_ia", falsa)
+    r = asyncio.run(guia_service.recomendar("SOP de VSL de chat ya"))
+    assert r["modo"] == "sops"
+    assert [s["titulo"] for s in r["sops"]] == ["VSL de chat"]
+    assert r["sops"][0]["fuente"] == "skool" and r["sops"][0]["url"].startswith("https://www.skool.com/")
+
+
+def test_busqueda_sin_ia_por_palabras(monkeypatch):
+    async def sin_ia(_texto):
+        return None
+
+    monkeypatch.setattr(buscador, "_por_ia", sin_ia)
+    r = asyncio.run(guia_service.recomendar("plantilla de VSL de chat"))
+    assert r["modo"] == "sops" and r["fuente"] == "palabras"
+    assert r["sops"] and r["sops"][0]["titulo"] == "VSL de chat"
+
+
+def test_busqueda_sin_resultados(monkeypatch):
+    async def nada(_texto):
+        return []
+
+    monkeypatch.setattr(buscador, "_por_ia", nada)
+    r = asyncio.run(guia_service.recomendar("SOP de rutina de gimnasio"))
+    assert r["modo"] == "sops" and r["sops"] == []

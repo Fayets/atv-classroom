@@ -15,7 +15,10 @@ import '../styles/frentes.css'
 // El cliente no entra a una biblioteca: entra con un problema de su negocio.
 // La guía no responde la duda, arma el camino (resolver → SOP → automatizar) o deriva al coach.
 
-const EJEMPLOS = ['Me dicen que lo van a pensar', 'No sé si estoy ganando plata', 'Todo depende de mí']
+const EJEMPLOS = ['Me dicen que lo van a pensar', 'No sé si estoy ganando plata', 'Todo depende de mí', 'SOP de onboarding']
+
+// Lo que buscó, sin el "SOP de" de adelante: es el nombre con el que pide el que falta.
+const nombreBuscado = (q) => q.replace(/^\s*(busco|necesito|quiero)?\s*(el|la|un|una)?\s*(sop|plantilla|guion|guión)\s+(de|del|para)\s+/i, '').replace(/^./, (c) => c.toUpperCase())
 
 export default function InicioPage() {
   const navigate = useNavigate()
@@ -79,6 +82,7 @@ export default function InicioPage() {
 
   const problemas = datos?.problemas ?? []
   const recomendaciones = resultado?.recomendaciones ?? []
+  const sops = resultado?.modo === 'sops' ? resultado.sops ?? [] : null
   const frenteSugerido = resultado?.frente ? problemas.find((p) => p.slug === resultado.frente.slug) : null
   const abiertos = problemas.filter((p) => p.frente)
   const nombre = user?.nombre?.split(' ')[0]
@@ -117,7 +121,7 @@ export default function InicioPage() {
               id="im-q"
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
-              placeholder="Ej: agendan llamadas pero la mitad no se presenta"
+              placeholder="Contá qué te traba o buscá un SOP"
               // En pausa no se usa la IA: apenas toca para escribir, el cartel de hablar con Lucas.
               onMouseDown={enPausa ? (e) => { e.preventDefault(); pedirCartelPausa() } : undefined}
               onFocus={enPausa ? (e) => { e.target.blur(); pedirCartelPausa() } : undefined}
@@ -154,7 +158,55 @@ export default function InicioPage() {
                   ) : (
                     <>
                       {resultado?.error ? <p className="im-error">{resultado.error}</p> : null}
-                      {recomendaciones.length ? (
+                      {sops ? (
+                        <div className="im-route" key={resultado.texto}>
+                          <p className="im-route__lead">
+                            {sops.length
+                              ? sops.length === 1 ? 'Este es el SOP que tenemos de eso.' : 'Estos son los SOPs que tenemos de eso, el más exacto primero.'
+                              : 'Todavía no tenemos un SOP de eso. Pedilo y te lo armamos.'}
+                          </p>
+                          {sops.length ? (
+                            <ol className="im-recs">
+                              {sops.map((r, i) => (
+                                <li key={r.clase_id ?? r.url} className="im-rec" style={{ '--i': i }}>
+                                  <span className="num im-rec__n">{i + 1}</span>
+                                  <div className="im-rec__body">
+                                    <span className="im-rec__where">{r.seccion ? `${r.modulo} › ${tituloLindo(r.seccion)}` : r.modulo}</span>
+                                    <b>{r.fuente === 'skool' ? r.titulo : tituloLindo(r.titulo)}</b>
+                                    {r.recursos.length ? (
+                                      <div className="im-rec__sops">
+                                        {r.recursos.map((rec) => (
+                                          <a key={rec.id ?? rec.url} href={urlRecurso(rec.url)} target="_blank" rel="noopener noreferrer" className="im-sopchip">
+                                            <span>{tipoRecurso(rec).tag}</span>
+                                            {/^(documento|planilla|formulario) google/i.test(rec.titulo) ? tipoRecurso(rec).label : rec.titulo}
+                                          </a>
+                                        ))}
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                  {r.fuente === 'skool' ? (
+                                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="pc-btn pc-btn--light im-rec__ver">
+                                      Abrir en Skool <Chevron />
+                                    </a>
+                                  ) : (
+                                    <Link to={`/classroom/${r.programa_id}?clase=${r.clase_id}`} className="pc-btn pc-btn--light im-rec__ver">
+                                      Ver el SOP <Chevron />
+                                    </Link>
+                                  )}
+                                </li>
+                              ))}
+                            </ol>
+                          ) : null}
+                          <SolicitudSop
+                            key={resultado.texto}
+                            consulta={resultado.texto}
+                            coach={resultado.coach}
+                            nombreInicial={nombreBuscado(resultado.texto)}
+                            abiertoInicial={!sops.length}
+                            titulo={sops.length ? '¿No es lo que buscabas?' : 'Solicitá el SOP'}
+                          />
+                        </div>
+                      ) : recomendaciones.length ? (
                         <div className="im-route" key={resultado.texto}>
                           <p className="im-route__lead">Para esto te sirven estas clases. Miralas y usá su plantilla como tu SOP.</p>
                           <ol className="im-recs">

@@ -147,11 +147,11 @@ def test_bandeja_del_equipo_marca_quien_espera(coach):
     # Los canales de ids ficticios no salen en la bandeja (no son clientes con acceso),
     # así que se mira el resumen crudo que la arma.
     with db_session:
-        resumen = ms._resumen_canales(("admin", coach["usuario_id"]))
+        resumen = ms._resumen_canales(("admin", coach["usuario_id"]), [canal])
     assert resumen[canal]["esperando_desde"] is not None
     svc.enviar(coach, canal, "Dale, lo vemos", None)
     with db_session:
-        resumen = ms._resumen_canales(("admin", coach["usuario_id"]))
+        resumen = ms._resumen_canales(("admin", coach["usuario_id"]), [canal])
     assert resumen[canal]["esperando_desde"] is None
 
 

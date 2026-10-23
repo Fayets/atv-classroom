@@ -26,8 +26,9 @@ def url_foto(archivo: str) -> str:
 def fotos_de(tipo: str, ids: list[int] | None = None) -> dict[int, str]:
     """Fotos subidas, por id, para un tipo de usuario (una sola consulta)."""
     with db_session:
-        filas = [f for f in list(FotoPerfil.select()) if f.tipo == tipo and (ids is None or f.usuario_id in ids)]
-        return {f.usuario_id: url_foto(f.archivo) for f in filas}
+        # Filtrada en la base: se llama una vez por autor en cada pedido y la tabla crece.
+        filas = FotoPerfil.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."fotos_perfil" WHERE tipo = $tipo ORDER BY id')
+        return {f.usuario_id: url_foto(f.archivo) for f in filas if ids is None or f.usuario_id in ids}
 
 
 def foto_de(tipo: str, usuario_id: int, google: str | None = None) -> str | None:

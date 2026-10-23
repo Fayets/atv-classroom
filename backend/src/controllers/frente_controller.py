@@ -105,7 +105,7 @@ def _guardar_consulta(sesion: dict, texto: str, respuesta: dict) -> None:
                 usuario_id=sesion["usuario_id"],
                 tipo_usuario=_tipo(sesion),
                 texto=texto.strip()[:1500],
-                clases_json=json.dumps([r["clase_id"] for r in respuesta.get("recomendaciones", [])]),
+                clases_json=json.dumps([r["clase_id"] for r in respuesta.get("recomendaciones") or respuesta.get("sops") or [] if r.get("clase_id")]),
                 frente=(respuesta.get("frente") or {}).get("slug"),
             )
     except Exception:

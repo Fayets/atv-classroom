@@ -1,8 +1,11 @@
+import re
+
 from fastapi import HTTPException
 from pony.orm import db_session
 
 from src.models import Clase, Programa, Progreso, Seccion
 from src.services.bloqueos import exigir_desbloqueado, programa_bloqueado
+from src.utils.clase_content import serializar_recursos
 
 
 def _cover_url(programa: Programa) -> str | None:
@@ -97,6 +100,27 @@ class ProgramaServices:
                 }
                 for programa in programas_ordenados
             ]
+
+    def listar_sops(self) -> list[dict]:
+        """Las clases que traen documentos (los SOPs), por módulo y en el orden del classroom.
+        Sin los módulos bloqueados ni las clases "Próximamente"."""
+        with db_session:
+            modulos = []
+            for programa in sorted(Programa.select()[:], key=lambda p: p.orden):
+                if programa_bloqueado(programa):
+                    continue
+                sops = []
+                for seccion in sorted(programa.secciones, key=lambda s: s.orden):
+                    for clase in sorted(seccion.clases, key=lambda c: c.orden):
+                        if not clase.titulo or clase.titulo.strip().lower().startswith("próximamente"):
+                            continue
+                        # Los links a grupos de WhatsApp no son SOPs; cada clase es un SOP con sus documentos.
+                        docs = [r for r in serializar_recursos(clase) if not re.search(r"whatsapp\.com|wa\.me", r["url"])]
+                        if docs:
+                            sops.append({"clase_id": clase.id, "titulo": clase.titulo, "seccion": seccion.titulo, "documentos": docs})
+                if sops:
+                    modulos.append({"programa_id": programa.id, "modulo": programa.titulo, "sops": sops})
+            return modulos
 
     def obtener_detalle_programa(
         self,

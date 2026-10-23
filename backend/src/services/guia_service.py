@@ -16,6 +16,7 @@ from decouple import config
 from pony.orm import db_session
 
 from src.models import Clase
+from src.services import buscador_sops_service
 from src.services.bloqueos import programa_bloqueado
 from src.services.frente_service import BRIEFS, CATALOGO, COACHES, PROBLEMAS, coach_de_clase
 from src.utils.clase_content import serializar_recursos
@@ -226,17 +227,22 @@ def _clave(texto: str) -> str:
 
 async def recomendar(texto: str) -> dict:
     texto = texto.strip()
-    clave = _clave(texto)
+    # Si busca un SOP ("guion de cierre") se le listan los que hay; si cuenta un problema, el camino de siempre.
+    busca = buscador_sops_service.parece_busqueda(texto)
+    clave = ("sop:" if busca else "") + _clave(texto)
     guardada = _RESPUESTAS.get(clave)
     if guardada and time.time() - guardada[0] < _RESPUESTAS_TTL:
         _RESPUESTAS.move_to_end(clave)
         return {**guardada[1], "fuente": "guardada"}
-    ia = await _por_ia(texto)
-    try:
-        resultado = _armar(texto, ia)
-    except Exception:
-        logger.exception("Guía ATV: no se pudo armar la respuesta de la IA; uso palabras clave")
-        return _armar(texto, None)
+    if busca:
+        resultado = await buscador_sops_service.buscar(texto, _tarjeta)
+    else:
+        ia = await _por_ia(texto)
+        try:
+            resultado = {"modo": "guia", **_armar(texto, ia)}
+        except Exception:
+            logger.exception("Guía ATV: no se pudo armar la respuesta de la IA; uso palabras clave")
+            return {"modo": "guia", **_armar(texto, None)}
     if resultado["fuente"] == "ia":
         _RESPUESTAS[clave] = (time.time(), resultado)
         while len(_RESPUESTAS) > _RESPUESTAS_MAX:
