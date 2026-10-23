@@ -131,7 +131,9 @@
 .msj-m__codo { width: 24px; height: 10px; margin-left: -32px; margin-top: 8px; flex: none; border-left: 2px solid #d1d1d6; border-top: 2px solid #d1d1d6; border-top-left-radius: 6px; }
 
 .msj-m__acciones { position: absolute; top: -12px; right: 22px; display: none; gap: 2px; padding: 3px; border-radius: 8px; background: rgba(255, 255, 255, 0.96); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.14), 0 6px 16px -6px rgba(0, 0, 0, 0.25); }
-.msj-m:hover .msj-m__acciones, .msj-m:focus-within .msj-m__acciones { display: flex; }
+/* Solo con mouse: en el celular, algo que aparece al "pasar por encima" se come el primer toque (doble tap). */
+@media (hover: hover) { .msj-m:hover .msj-m__acciones { display: flex; } }
+.msj-m:focus-within .msj-m__acciones { display: flex; }
 .msj-m__acciones button { padding: 4px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--m-t2); font: inherit; font-size: 12px; cursor: pointer; }
 .msj-m__acciones button:hover { background: rgba(0, 0, 0, 0.06); color: var(--m-t1); }
 
@@ -518,7 +520,8 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 /* editar canal: engranaje al pasar el mouse, como en Discord */
 .msj-fila__editar { display: none; place-items: center; width: 20px; height: 20px; margin-right: -4px; border-radius: 5px; color: inherit; opacity: 0.7; cursor: pointer; }
 .msj-fila__editar svg { width: 13px; height: 13px; }
-.msj-fila:hover .msj-fila__editar, .msj-fila.is-activo .msj-fila__editar, .msj-fila__editar:focus-visible { display: grid; }
+@media (hover: hover) { .msj-fila:hover .msj-fila__editar { display: grid; } }
+.msj-fila.is-activo .msj-fila__editar, .msj-fila__editar:focus-visible { display: grid; }
 .msj-fila__editar:hover { opacity: 1; background: rgba(0, 0, 0, 0.08); }
 .msj-fila.is-activo .msj-fila__editar:hover { background: rgba(255, 255, 255, 0.2); }
 .msj-modal__botones button.is-peligro { margin-right: auto; background: none; color: #d70015; }
@@ -788,7 +791,8 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmi-paso:empty::before { content: 'Escribí el paso…'; color: #a7adb5; }
 .rmi-hoja .rmi-quien { margin-top: 2px; }
 .rmi-hoja .rmi-x { visibility: hidden; margin-top: 3px; }
-.rmi-hoja__pasos li:hover .rmi-x, .rmi-hoja__pasos li:focus-within .rmi-x { visibility: visible; }
+@media (hover: hover) { .rmi-hoja__pasos li:hover .rmi-x { visibility: visible; } }
+.rmi-hoja__pasos li:focus-within .rmi-x { visibility: visible; }
 .rmi-hoja__mas { border: 0; background: none; padding: 6px 0; font: inherit; font-size: 14px; color: #8b929b; cursor: text; }
 .rmi-hoja__mensaje { outline: none; padding: 12px 16px; border-left: 3px solid #e3e6ea; white-space: pre-wrap; overflow-wrap: anywhere; }
 .rmi-hoja__mensaje:focus { border-left-color: #c0392b; }
