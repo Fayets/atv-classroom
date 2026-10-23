@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -143,8 +144,9 @@ export default function AppHeader() {
         </nav>
       )}
 
-      {!isEquipo && !secciones ? (
-        // En el celular el menú del cliente va abajo, al alcance del pulgar (como una app).
+      {!isEquipo && !secciones ? createPortal(
+        // En el celular el menú del cliente va abajo, al alcance del pulgar (como una app). Va directo en
+        // <body>: adentro de Mensajes (que recorta lo que sobresale) el iPhone no la mostraba.
         <nav className="cliente-tabs" aria-label="Secciones">
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-on' : '')}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" /></svg>
@@ -165,7 +167,8 @@ export default function AppHeader() {
               Mensajes
             </NavLink>
           ) : null}
-        </nav>
+        </nav>,
+        document.body,
       ) : null}
 
       <div className="app-header__right">

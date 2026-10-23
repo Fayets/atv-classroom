@@ -1052,6 +1052,11 @@ html .app-header--cliente .app-header__avatar { background: #242321; color: #f3f
   .cliente-tabs__cuenta { position: absolute; top: -2px; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 5px; border-radius: 9px; background: #ff2518; color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; }
   /* que nada quede tapado por la barra */
   body:has(.cliente-tabs) { padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
+  /* el alto mínimo de la página ya descuenta la barra: si no, se desplazaba de más con poco contenido */
+  body:has(.cliente-tabs) .app-shell { min-height: calc(100dvh - 66px - env(safe-area-inset-bottom, 0px)); }
+  body:has(.cliente-tabs) #root { min-height: 0; }
+  body:has(.cliente-tabs) .im-root, body:has(.cliente-tabs) .cuenta-root { min-height: calc(100dvh - 66px - env(safe-area-inset-bottom, 0px)); }
+  body:has(.cliente-tabs) .rm-root { height: calc(100dvh - 66px - env(safe-area-inset-bottom, 0px)); }
   body:has(.cliente-tabs) .msj-root { height: calc(100dvh - 66px - env(safe-area-inset-bottom, 0px)); min-height: 0; }
 }
 
