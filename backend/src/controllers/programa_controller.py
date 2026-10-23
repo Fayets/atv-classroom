@@ -21,6 +21,12 @@ def listar_programas(sesion: dict = Depends(obtener_sesion_desde_request)):
         raise HTTPException(status_code=500, detail="Error inesperado al listar programas.")
 
 
+@router.get("/continuar")
+def continuar(sesion: dict = Depends(obtener_sesion_desde_request)):
+    tipo, pid = persona(sesion)
+    return service.continuar(pid, tipo)
+
+
 @router.get("/sops")
 def listar_sops(sesion: dict = Depends(obtener_sesion_desde_request)):
     return service.listar_sops()

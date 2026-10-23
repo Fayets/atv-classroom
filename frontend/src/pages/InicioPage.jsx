@@ -7,6 +7,7 @@ import AccesoRestante from '../components/AccesoRestante'
 import { Chevron } from '../components/frentes/piezas'
 import Pasos from '../components/frentes/Pasos'
 import SolicitudSop from '../components/frentes/SolicitudSop'
+import { Hoy, Programa } from '../components/inicio/Hoy'
 import { pedirCartelPausa } from '../components/Pausa'
 import { useAuth } from '../context/AuthContext'
 import { proximoPaso, tipoRecurso, tituloLindo, urlRecurso } from '../utils/frentes'
@@ -128,8 +129,12 @@ export default function InicioPage() {
               autoComplete="off"
               maxLength={1500}
             />
-            <button type="submit" className="pc-btn pc-btn--light" disabled={pensando || texto.trim().length < 3}>
-              {pensando ? 'Armando tu camino…' : 'Armar mi camino'}
+            <button type="submit" className="im-ask__ir" disabled={pensando || texto.trim().length < 3} aria-label={pensando ? 'Armando tu camino' : 'Armar mi camino'}>
+              {pensando ? (
+                <span className="im-ask__girando" aria-hidden="true" />
+              ) : (
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              )}
             </button>
           </form>
           <div className="im-ask__hints" aria-hidden={Boolean(pregunta)}>
@@ -289,6 +294,8 @@ export default function InicioPage() {
 
         {error ? <p className="im-error">{error}</p> : null}
 
+        {isEquipo ? null : <Hoy />}
+
         {abiertos.length ? (
           <section className="im-sec">
             <h2>Tus frentes abiertos</h2>
@@ -333,10 +340,14 @@ export default function InicioPage() {
 
         {!datos && !error ? <p className="pc-loading">Cargando tus frentes…</p> : null}
 
-        <footer className="im-foot">
-          <AccesoRestante />
-          <Link to="/classroom">Ver todo el material, módulo por módulo</Link>
-        </footer>
+        {isEquipo ? (
+          <footer className="im-foot">
+            <AccesoRestante />
+            <Link to="/classroom">Ver todo el material, módulo por módulo</Link>
+          </footer>
+        ) : (
+          <Programa />
+        )}
       </main>
     </div>
   )

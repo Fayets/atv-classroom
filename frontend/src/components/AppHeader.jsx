@@ -143,6 +143,31 @@ export default function AppHeader() {
         </nav>
       )}
 
+      {!isEquipo && !secciones ? (
+        // En el celular el menú del cliente va abajo, al alcance del pulgar (como una app).
+        <nav className="cliente-tabs" aria-label="Secciones">
+          <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-on' : '')}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" /></svg>
+            Inicio
+          </NavLink>
+          <NavLink to="/classroom" className={({ isActive }) => (isActive ? 'is-on' : '')}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M10 9.5v5l4-2.5z" /></svg>
+            Material
+          </NavLink>
+          <NavLink to="/roadmap" className={({ isActive }) => (isActive ? 'is-on' : '')}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-1 3-6 7-7s4-6 7-7" /><circle cx="5" cy="19" r="1.6" /><circle cx="19" cy="5" r="1.6" /></svg>
+            Roadmap
+          </NavLink>
+          {habilitada ? (
+            <NavLink to="/mensajes" className={({ isActive }) => (isActive ? 'is-on' : '')}>
+              {contador ? <span className="cliente-tabs__cuenta">{contador > 99 ? '99+' : contador}</span> : null}
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10H9l-4 3z" /></svg>
+              Mensajes
+            </NavLink>
+          ) : null}
+        </nav>
+      ) : null}
+
       <div className="app-header__right">
       <div className="app-header__user" ref={menuRef}>
         <button

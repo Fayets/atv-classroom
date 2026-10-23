@@ -101,6 +101,49 @@ class ProgramaServices:
                 for programa in programas_ordenados
             ]
 
+    def continuar(self, usuario_id: int, tipo: str) -> dict | None:
+        """"Seguí donde quedaste": la clase que sigue a la última que completó (en su módulo, y si lo terminó,
+        en el próximo). Si todavía no completó ninguna, la primera del classroom."""
+        campo = _campo_id(tipo)
+        with db_session:
+            mios = [p for p in list(Progreso.select()) if getattr(p, campo) == usuario_id]
+            hechas = {p.clase_id for p in mios if p.completado}
+            ultima = max((p for p in mios if p.completado and p.completado_en), key=lambda p: p.completado_en, default=None)
+            modulos = []
+            for programa in sorted(list(Programa.select()), key=lambda p: p.orden):
+                if programa_bloqueado(programa):
+                    continue
+                clases = [
+                    c for s in sorted(programa.secciones, key=lambda s: s.orden) for c in sorted(s.clases, key=lambda c: c.orden)
+                    if c.titulo and not c.titulo.strip().lower().startswith("próximamente")
+                ]
+                if clases:
+                    modulos.append((programa, clases))
+            if not modulos:
+                return None
+            inicio = 0
+            if ultima is not None:
+                inicio = next((i for i, (_, clases) in enumerate(modulos) if any(c.id == ultima.clase_id for c in clases)), 0)
+            # Desde el módulo de la última que completó, la primera que le falta; si no queda ninguna, desde el principio.
+            for programa, clases in modulos[inicio:] + modulos[:inicio]:
+                desde = 0
+                if ultima is not None and programa is modulos[inicio][0]:
+                    desde = next((i + 1 for i, c in enumerate(clases) if c.id == ultima.clase_id), 0)
+                pendiente = next((c for c in clases[desde:] + clases[:desde] if c.id not in hechas), None)
+                if pendiente is not None:
+                    hechas_aca = sum(1 for c in clases if c.id in hechas)
+                    return {
+                        "programa_id": programa.id,
+                        "modulo": programa.titulo,
+                        "clase_id": pendiente.id,
+                        "titulo": pendiente.titulo,
+                        "numero": clases.index(pendiente) + 1,
+                        "total": len(clases),
+                        "porcentaje": round(hechas_aca / len(clases) * 100),
+                        "empezada": ultima is not None,
+                    }
+            return None
+
     def listar_sops(self) -> list[dict]:
         """Las clases que traen documentos (los SOPs), por módulo y en el orden del classroom.
         Sin los módulos bloqueados ni las clases "Próximamente"."""
