@@ -7,7 +7,7 @@ import { useAuth } from './AuthContext'
 const MensajeriaContext = createContext(null)
 
 export function MensajeriaProvider({ children }) {
-  const { token, isEquipo } = useAuth()
+  const { token, isEquipo, user } = useAuth()
   const [clientesHabilitados, setClientesHabilitados] = useState(false)
   const habilitada = Boolean(token) && (isEquipo || clientesHabilitados)
   const suscriptores = useRef(new Set())
@@ -33,12 +33,25 @@ export function MensajeriaProvider({ children }) {
   }, [])
 
   // Hasta el lanzamiento la usan el equipo y los mails de prueba (MENSAJES_CLIENTES / MENSAJES_PRUEBA en el backend).
+  // Se vuelve a preguntar si cambia la pausa del cliente, y si la consulta falla (un corte, un 423 mientras
+  // estaba en pausa) se reintenta: antes quedaba sin "Mensajes" hasta recargar la página.
+  const pausa = Boolean(user?.pausa)
   useEffect(() => {
-    if (!token || isEquipo) return
-    fetchHabilitada()
-      .then((r) => setClientesHabilitados(Boolean(r?.habilitada)))
-      .catch(() => null)
-  }, [token, isEquipo])
+    if (!token || isEquipo) return undefined
+    let vivo = true
+    let reloj = null
+    const preguntar = (intento) =>
+      fetchHabilitada()
+        .then((r) => vivo && setClientesHabilitados(Boolean(r?.habilitada)))
+        .catch(() => {
+          if (vivo && intento < 4) reloj = setTimeout(() => preguntar(intento + 1), 2000 * (intento + 1))
+        })
+    preguntar(0)
+    return () => {
+      vivo = false
+      clearTimeout(reloj)
+    }
+  }, [token, isEquipo, pausa])
 
   useEffect(() => {
     if (!habilitada) return undefined
