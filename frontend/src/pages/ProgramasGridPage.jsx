@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError, fetchProgramas, fetchSopsClassroom } from '../api/client'
 import AppHeader from '../components/AppHeader'
 import { Chevron } from '../components/frentes/piezas'
+import Isotipo from '../components/marca/Isotipo'
 import { tipoRecurso, tituloLindo, urlRecurso } from '../utils/frentes'
 import { getModuloCoverUrl } from '../utils/modules'
 import '../styles/frentes.css'
@@ -107,11 +108,15 @@ export default function ProgramasGridPage() {
 
 const normal = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
-// Todos los SOPs de los videos en una lista: cada clase con sus documentos, por módulo, con buscador.
+// Todos los SOPs de los videos: un estante por módulo y cada SOP como una tapa con el isotipo de ATV.
+// Al tocar una tapa se abren abajo sus documentos y el video.
+const TONOS = ['oscura', 'piedra', 'blanca', 'oscura', 'piedra', 'roja', 'blanca', 'piedra']
+
 function VistaSops() {
   const [modulos, setModulos] = useState(null)
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
+  const [abierta, setAbierta] = useState(null)
 
   useEffect(() => {
     let cancelado = false
@@ -150,33 +155,8 @@ function VistaSops() {
       <input className="mt-sops__buscar" type="search" value={q} onChange={(e) => setQ(e.target.value)}
         placeholder={`Buscar entre los ${total} SOPs`} aria-label="Buscar SOP" autoComplete="off" />
       {filtrados.length ? (
-        filtrados.map((m) => (
-          <section key={m.programa_id} className="mt-sops__mod">
-            <h2>
-              {m.modulo} <span className="num">{m.sops.length}</span>
-            </h2>
-            <ul>
-              {m.sops.map((s) => (
-                <li key={s.clase_id} className="mt-sop">
-                  <div className="mt-sop__txt">
-                    <b>{tituloLindo(s.titulo)}</b>
-                    <span>{tituloLindo(s.seccion)}</span>
-                  </div>
-                  <div className="mt-sop__docs">
-                    {s.documentos.map((d) => (
-                      <a key={d.id} href={urlRecurso(d.url)} target="_blank" rel="noopener noreferrer" className="im-sopchip">
-                        <span>{tipoRecurso(d).tag}</span>
-                        {/^(documento|planilla|formulario) google/i.test(d.titulo) ? tipoRecurso(d).label : d.titulo}
-                      </a>
-                    ))}
-                  </div>
-                  <Link to={`/classroom/${m.programa_id}?clase=${s.clase_id}`} className="mt-sop__video">
-                    Ver video <Chevron />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
+        filtrados.map((m, mi) => (
+          <Estante key={m.programa_id} modulo={m} indice={mi} abierta={abierta} onAbrir={setAbierta} />
         ))
       ) : (
         <p className="mt-sops__vacio">
@@ -184,5 +164,74 @@ function VistaSops() {
         </p>
       )}
     </div>
+  )
+}
+
+function Estante({ modulo: m, indice, abierta, onAbrir }) {
+  const filaRef = useRef(null)
+  const sop = m.sops.find((s) => s.clase_id === abierta)
+  const correr = (dir) => filaRef.current?.scrollBy({ left: dir * filaRef.current.clientWidth * 0.8, behavior: 'smooth' })
+
+  return (
+    <section className="mt-estante">
+      <div className="mt-estante__cab">
+        <h2>
+          {m.modulo} <span className="num">{m.sops.length}</span>
+        </h2>
+        <div className="mt-estante__flechas">
+          <button type="button" onClick={() => correr(-1)} aria-label={`Anteriores de ${m.modulo}`}>
+            <Chevron dir="left" />
+          </button>
+          <button type="button" onClick={() => correr(1)} aria-label={`Siguientes de ${m.modulo}`}>
+            <Chevron />
+          </button>
+        </div>
+      </div>
+      <div className="mt-estante__fila" ref={filaRef}>
+        {m.sops.map((s, i) => (
+          <button
+            key={s.clase_id}
+            type="button"
+            className={`mt-tapa is-${TONOS[(i + indice) % TONOS.length]}${abierta === s.clase_id ? ' is-on' : ''}`}
+            onClick={() => onAbrir(abierta === s.clase_id ? null : s.clase_id)}
+            aria-expanded={abierta === s.clase_id}
+          >
+            <span className="mt-tapa__cab">
+              <span className="num">SOP {String(i + 1).padStart(2, '0')}</span>
+              <Isotipo className="mt-tapa__logo" titulo="ATV" />
+            </span>
+            <b>{tituloLindo(s.titulo)}</b>
+            <small>{tituloLindo(s.seccion)}</small>
+            <span className="mt-tapa__pie">
+              {[...new Set(s.documentos.map((d) => tipoRecurso(d).tag))].map((t) => (
+                <span key={t}>{t}</span>
+              ))}
+            </span>
+            <Isotipo className="mt-tapa__marca" />
+          </button>
+        ))}
+      </div>
+      {sop ? (
+        <div className="mt-estante__det">
+          <div className="mt-estante__det-txt">
+            <h3>{tituloLindo(sop.titulo)}</h3>
+            <span>
+              {m.modulo} › {tituloLindo(sop.seccion)}
+            </span>
+          </div>
+          <Link to={`/classroom/${m.programa_id}?clase=${sop.clase_id}`} className="pc-btn pc-btn--light">
+            Ver video <Chevron />
+          </Link>
+          <div className="mt-estante__docs">
+            {sop.documentos.map((d) => (
+              <a key={d.id} href={urlRecurso(d.url)} target="_blank" rel="noopener noreferrer" className="im-sopchip">
+                <span>{tipoRecurso(d).tag}</span>
+                {/^(documento|planilla|formulario) google/i.test(d.titulo) ? tipoRecurso(d).label : d.titulo}
+              </a>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
   )
 }
