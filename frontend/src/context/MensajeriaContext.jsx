@@ -97,6 +97,7 @@ export function MensajeriaProvider({ children }) {
     let intentos = 0
     let ping = null
     let reintento = null
+    let ultimaSenal = Date.now()
 
     function conectar() {
       const protocolo = window.location.protocol === 'https:' ? 'wss' : 'ws'
@@ -104,6 +105,7 @@ export function MensajeriaProvider({ children }) {
       socket.current = ws
       ws.onopen = () => ws.send(JSON.stringify({ tipo: 'auth', token }))
       ws.onmessage = (e) => {
+        ultimaSenal = Date.now()
         let evento
         try {
           evento = JSON.parse(e.data)
@@ -114,7 +116,11 @@ export function MensajeriaProvider({ children }) {
           intentos = 0
           setConectado(true)
           clearInterval(ping)
-          ping = setInterval(() => ws.readyState === 1 && ws.send('{"tipo":"ping"}'), 25000)
+          ping = setInterval(() => {
+            // Sin respuesta en un minuto la conexión está muerta aunque figure abierta: se rehace.
+            if (Date.now() - ultimaSenal > 60000) return reconectarYa()
+            if (ws.readyState === 1) ws.send('{"tipo":"ping"}')
+          }, 25000)
           suscriptores.current.forEach((fn) => fn({ tipo: 'reconectado' }))
           refrescarResumen()
           return
@@ -143,12 +149,45 @@ export function MensajeriaProvider({ children }) {
       }
     }
 
+    // Rehace la conexión ya, sin la espera de los reintentos.
+    function reconectarYa() {
+      clearTimeout(reintento)
+      clearInterval(ping)
+      const viejo = socket.current
+      if (viejo) {
+        viejo.onclose = null
+        viejo.close()
+      }
+      setConectado(false)
+      intentos = 0
+      ultimaSenal = Date.now()
+      conectar()
+    }
+
+    // En el iPhone, con la app en segundo plano el sistema corta la conexión sin avisar: seguía "En vivo"
+    // pero no llegaba nada (ni los chats nuevos). Al volver se reconecta y, con eso, todo se recarga.
+    function alVolver() {
+      if (document.hidden) return
+      // En compu la conexión sigue viva en segundo plano (los pings responden): no se toca.
+      if (socket.current?.readyState !== 1 || Date.now() - ultimaSenal > 30000) {
+        reconectarYa()
+        refrescarResumen()
+      }
+    }
+    const alMostrarse = (e) => e.persisted && reconectarYa()
+    document.addEventListener('visibilitychange', alVolver)
+    window.addEventListener('pageshow', alMostrarse)
+    window.addEventListener('online', reconectarYa)
+
     conectar()
     refrescarResumen()
     // Respaldo por si el proxy no deja pasar el WebSocket: el contador igual se actualiza.
     const respaldo = setInterval(() => refrescarResumen(), 60000)
     return () => {
       vivo = false
+      document.removeEventListener('visibilitychange', alVolver)
+      window.removeEventListener('pageshow', alMostrarse)
+      window.removeEventListener('online', reconectarYa)
       clearTimeout(reintento)
       clearInterval(ping)
       clearInterval(respaldo)
