@@ -9,7 +9,8 @@ AQUI="$(cd "$(dirname "$0")" && pwd)"
 WEB="/var/www/atv-mantenimiento"
 SNIPPET="/etc/nginx/snippets/atv-mantenimiento.conf"
 
-CONF="$(grep -rlE "server_name[^;]*\b${DOMINIO//./\\.}\b" /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null | head -n1 || true)"
+# -R y no -r: en sites-enabled las configuraciones son enlaces a sites-available.
+CONF="$(grep -RlE "server_name[^;]*\b${DOMINIO//./\\.}\b" /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null | head -n1 || true)"
 if [ -z "$CONF" ]; then echo "No encontré la configuración de nginx de $DOMINIO." >&2; exit 1; fi
 CONF="$(readlink -f "$CONF")"
 echo "Configuración: $CONF"
