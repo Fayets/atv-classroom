@@ -470,10 +470,15 @@ export default function MensajesPage() {
     return () => clearInterval(t)
   }, [conectado, cargar])
 
-  // El cliente entra directo a su canal; en escritorio el equipo abre el primero de la bandeja.
+  // El cliente entra directo a su canal (una sola vez: si después vuelve a la lista con la flecha, se queda
+  // en la lista); en escritorio el equipo abre el primero de la bandeja.
+  const yaEntro = useRef(false)
   useEffect(() => {
+    if (activo) yaEntro.current = true // entró a un chat (también desde una notificación): ya no se lo lleva solo
     if (!enMensajes || activo || senaActiva || !canales?.length) return
     if (!isEquipo) {
+      if (yaEntro.current) return
+      yaEntro.current = true
       const propio = canales.find((c) => c.tipo === 'cliente')
       if (propio) setParams({ c: String(propio.id) }, { replace: true })
     } else if (vista === 'bandeja' && window.matchMedia('(min-width: 900px)').matches) {

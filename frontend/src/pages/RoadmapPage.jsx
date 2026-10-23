@@ -202,13 +202,21 @@ export default function RoadmapPage() {
       const py = e.clientY - caja.top
       if (e.ctrlKey || e.metaKey) {
         setVista((v) => {
-          const z = Math.min(2, Math.max(0.3, v.z * Math.exp(-e.deltaY * 0.01)))
+          const z = Math.min(3, Math.max(0.25, v.z * Math.exp(-e.deltaY * 0.01)))
           return { z, x: px - ((px - v.x) * z) / v.z, y: py - ((py - v.y) * z) / v.z }
         })
       } else setVista((v) => ({ ...v, x: v.x - e.deltaX, y: v.y - e.deltaY }))
     }
+    // Safari del iPhone: sin esto, el pellizco agranda toda la página en vez del tablero.
+    const sinZoomDePagina = (e) => e.preventDefault()
     el.addEventListener('wheel', rueda, { passive: false })
-    return () => el.removeEventListener('wheel', rueda)
+    el.addEventListener('gesturestart', sinZoomDePagina)
+    el.addEventListener('gesturechange', sinZoomDePagina)
+    return () => {
+      el.removeEventListener('wheel', rueda)
+      el.removeEventListener('gesturestart', sinZoomDePagina)
+      el.removeEventListener('gesturechange', sinZoomDePagina)
+    }
   }, [datos, setVista])
 
   const zoom = (f) => {
@@ -216,19 +224,59 @@ export default function RoadmapPage() {
     const px = caja.width / 2
     const py = caja.height / 2
     setVista((v) => {
-      const z = Math.min(2, Math.max(0.3, v.z * f))
+      const z = Math.min(3, Math.max(0.25, v.z * f))
       return { z, x: px - ((px - v.x) * z) / v.z, y: py - ((py - v.y) * z) / v.z }
     }, true)
   }
 
+  // Un dedo (o el mouse) arrastra; dos dedos pellizcan para acercar/alejar y mueven a la vez, como una foto.
+  const dedos = useRef(new Map())
+  const pellizco = useRef(null)
+
+  function empezarPellizco() {
+    const [a, b] = [...dedos.current.values()]
+    const caja = lienzo.current.getBoundingClientRect()
+    pellizco.current = {
+      dist: Math.hypot(b.x - a.x, b.y - a.y) || 1,
+      mx: (a.x + b.x) / 2 - caja.left,
+      my: (a.y + b.y) / 2 - caja.top,
+      v: { ...vista.current },
+    }
+    arrastre.current = null
+  }
+
   function bajar(e) {
     if (e.button !== 0 || e.target.closest('button, a')) return
-    arrastre.current = { x: e.clientX, y: e.clientY, vx: vista.current.x, vy: vista.current.y }
+    dedos.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     e.currentTarget.setPointerCapture(e.pointerId)
+    if (dedos.current.size === 2) empezarPellizco()
+    else if (dedos.current.size === 1) arrastre.current = { x: e.clientX, y: e.clientY, vx: vista.current.x, vy: vista.current.y }
   }
   function mover(e) {
-    const a = arrastre.current
-    if (a) setVista((v) => ({ ...v, x: a.vx + e.clientX - a.x, y: a.vy + e.clientY - a.y }))
+    if (!dedos.current.has(e.pointerId)) return
+    dedos.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    const p = pellizco.current
+    if (p && dedos.current.size >= 2) {
+      const [a, b] = [...dedos.current.values()]
+      const caja = lienzo.current.getBoundingClientRect()
+      const mx = (a.x + b.x) / 2 - caja.left
+      const my = (a.y + b.y) / 2 - caja.top
+      const z = Math.min(3, Math.max(0.25, p.v.z * (Math.hypot(b.x - a.x, b.y - a.y) / p.dist)))
+      // El punto del tablero que estaba entre los dedos queda entre los dedos.
+      const wx = (p.mx - p.v.x) / p.v.z
+      const wy = (p.my - p.v.y) / p.v.z
+      setVista({ z, x: mx - wx * z, y: my - wy * z })
+      return
+    }
+    const g = arrastre.current
+    if (g) setVista((v) => ({ ...v, x: g.vx + e.clientX - g.x, y: g.vy + e.clientY - g.y }))
+  }
+  function soltar(e) {
+    dedos.current.delete(e.pointerId)
+    pellizco.current = null
+    // Si queda un dedo apoyado, sigue arrastrando desde donde está.
+    const queda = [...dedos.current.values()][0]
+    arrastre.current = queda ? { x: queda.x, y: queda.y, vx: vista.current.x, vy: vista.current.y } : null
   }
 
   function irA(grupo) {
@@ -285,7 +333,7 @@ export default function RoadmapPage() {
               </div>
             ) : null}
 
-            <div className="rm-lienzo" ref={lienzo} onPointerDown={bajar} onPointerMove={mover} onPointerUp={() => (arrastre.current = null)} onPointerCancel={() => (arrastre.current = null)}>
+            <div className="rm-lienzo" ref={lienzo} onPointerDown={bajar} onPointerMove={mover} onPointerUp={soltar} onPointerCancel={soltar}>
               {!ubicadas.length ? (
                 <div className="rm-vacio-lienzo">
                   <b>Todavía no hay documentos en tu roadmap</b>
