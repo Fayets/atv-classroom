@@ -238,6 +238,10 @@ async def recomendar(texto: str) -> dict:
         resultado = await buscador_sops_service.buscar(texto, _tarjeta)
     else:
         ia = await _por_ia(texto)
+        # Haiku a veces devuelve la lista vacía para algo que sí tiene clase (2 de 12 en una prueba): antes de
+        # decirle al cliente que no hay material, se le pregunta una vez más.
+        if ia is not None and not ia.get("recomendaciones"):
+            ia = await _por_ia(texto) or ia
         try:
             resultado = {"modo": "guia", **_armar(texto, ia)}
         except Exception:
