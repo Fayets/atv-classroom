@@ -26,15 +26,6 @@ function proximoPaso(datos) {
 }
 
 // "Hoy" en el inicio del cliente: su próximo paso del roadmap y la clase en la que quedó.
-function haceCuanto(iso) {
-  const min = Math.round((Date.now() - new Date(iso.endsWith('Z') || iso.includes('+') ? iso : `${iso}Z`).getTime()) / 60000)
-  if (min < 1) return 'recién'
-  if (min < 60) return `hace ${min} min`
-  if (min < 24 * 60) return `hace ${Math.round(min / 60)} h`
-  const d = Math.round(min / 1440)
-  return d === 1 ? 'ayer' : `hace ${d} días`
-}
-
 export function Hoy() {
   const { habilitada } = useMensajeria()
   const [roadmap, setRoadmap] = useState(undefined)
@@ -99,21 +90,9 @@ export function Hoy() {
       {chat ? (
         <section className="im-hoy__bloque">
           <h2 className="im-hoy__etq">Tu chat con ATV</h2>
-          {!chat.no_leidos || !chat.ultimo ? (
-            <Link to={`/mensajes?c=${chat.id}`} className="im-chat-ult im-chat-ult--vacio">Sin mensajes nuevos</Link>
-          ) : (
-          <Link to={`/mensajes?c=${chat.id}`} className="im-chat-ult">
-            <span className="im-chat-ult__av" aria-hidden="true">{iniciales(chat.ultimo.autor_nombre || 'ATV')}</span>
-            <span className="im-chat-ult__tx">
-              <span className="im-chat-ult__cab">
-                <b>{(chat.ultimo.autor_nombre || 'ATV').split(' ')[0]}</b>
-                <small>{chat.ultimo.creado_en ? haceCuanto(chat.ultimo.creado_en) : ''}</small>
-              </span>
-              <span className="im-chat-ult__msj">{chat.ultimo.texto || '📎 Archivo'}</span>
-            </span>
-            <span className="im-chat-ult__nuevos">{chat.no_leidos}</span>
+          <Link to={`/mensajes?c=${chat.id}`} className={`im-chat-ult im-chat-ult--estado${chat.no_leidos ? ' is-nuevos' : ''}`}>
+            {chat.no_leidos ? `Tenés ${chat.no_leidos} ${chat.no_leidos === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}` : 'Sin mensajes nuevos'}
           </Link>
-          )}
         </section>
       ) : null}
 
