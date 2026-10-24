@@ -25,7 +25,9 @@ from src.services.auth_service import es_equipo, ve_plata
 
 logger = logging.getLogger(__name__)
 
-MODELO = config("CEREBRO_CHAT_MODEL", default="claude-opus-5-5")
+# Haiku 5.5: con las cuentas hechas por la base responde igual de bien que Opus y cuesta ~US$ 0,003 por
+# pregunta (Opus 5.5 rondaba los US$ 0,30). Medido el 24-10-2026 con la misma pregunta.
+MODELO = config("CEREBRO_CHAT_MODEL", default="claude-haiku-5-5")
 MAX_VUELTAS = 12
 MAX_FILAS = 200
 MAX_CELDA = 600
@@ -256,6 +258,13 @@ TOOLS = [
 ]
 
 
+def _extras() -> dict:
+    cuerpo = {"output_config": {"effort": "medium"}}
+    if not MODELO.startswith("claude-haiku"):  # Haiku no tiene respaldo del lado del servidor
+        return {"extra_headers": {"anthropic-beta": "server-side-fallback-2026-07-01"}, "extra_body": {**cuerpo, "fallbacks": "default"}}
+    return {"extra_body": cuerpo}
+
+
 def preguntar(sesion: dict, pregunta: str, historial: list[dict], al_consultar=None) -> dict:
     if not es_equipo(sesion):
         raise HTTPException(status_code=403, detail="Solo el equipo puede consultar el cerebro.")
@@ -291,9 +300,8 @@ def preguntar(sesion: dict, pregunta: str, historial: list[dict], al_consultar=N
                 tools=TOOLS,
                 messages=mensajes,
                 # Campos nuevos de la API que la versión instalada del SDK no conoce todavía: esfuerzo medio
-                # (alcanza para armar consultas) y modelo de respaldo si alguna respuesta se rechaza.
-                extra_headers={"anthropic-beta": "server-side-fallback-2026-07-01"},
-                extra_body={"output_config": {"effort": "medium"}, "fallbacks": "default"},
+                # (alcanza para armar consultas) y, en los modelos que lo tienen, respaldo si se rechaza una respuesta.
+                **_extras(),
             )
             gasto_ia.registrar("cerebro_chat", r.usage)
             if r.stop_reason == "refusal":
