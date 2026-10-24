@@ -21,6 +21,7 @@ from src.controllers.contratos_controller import router as contratos_router
 from src.controllers.llamadas_controller import router as llamadas_router
 from src.controllers.sops_controller import router as sops_router
 from src.controllers.push_controller import router as push_router
+from src.controllers.consultas_controller import router as consultas_router
 from src.controllers.biblioteca_controller import router as biblioteca_router
 from src.controllers.contexto_controller import router as contexto_router
 from src.controllers.fathom_webhook_controller import router as fathom_webhook_router
@@ -221,6 +222,7 @@ app.include_router(contratos_router)
 app.include_router(llamadas_router)
 app.include_router(sops_router)
 app.include_router(push_router)
+app.include_router(consultas_router)
 app.include_router(biblioteca_router)
 app.include_router(contexto_router)
 app.include_router(fathom_webhook_router)

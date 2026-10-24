@@ -11,6 +11,8 @@ import {
 import { setUnauthorizedHandler } from './api/client'
 import Escritorio from './components/mac/Escritorio'
 import AdminRoute from './components/AdminRoute'
+import EquipoRoute from './components/EquipoRoute'
+import ConsultasPage from './pages/ConsultasPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import { PausaSync } from './components/Pausa'
 import CuentaPage from './pages/CuentaPage'
@@ -105,6 +107,14 @@ function AppRoutes() {
             <ProtectedRoute>
               <RutaMensajes />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/consultas"
+          element={
+            <EquipoRoute>
+              <ConsultasPage />
+            </EquipoRoute>
           }
         />
         <Route

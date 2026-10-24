@@ -45,6 +45,14 @@ const ICONOS = {
       <path d="M7.7 8.2l2.6 2.4M15.6 6.6l-2.4 3.6M7 16.4l3.2-3M16.3 15.8l-2.6-2.4" />
     </svg>
   ),
+  consultas: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="M15 15l5 5" />
+      <path d="M8.5 9a2 2 0 1 1 2.6 1.9c-.5.2-.6.5-.6 1" />
+      <circle cx="10.5" cy="13.6" r="0.4" fill="#fff" />
+    </svg>
+  ),
   modulos: (
     <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="4" y="4" width="7" height="7" rx="1.5" />
@@ -58,6 +66,7 @@ const ICONOS = {
 function seccionDe(ruta) {
   if (ruta.startsWith('/mensajes')) return 'mensajes'
   if (ruta.startsWith('/admin/cerebro')) return 'cerebro'
+  if (ruta.startsWith('/consultas')) return 'consultas'
   if (ruta.startsWith('/admin/equipo')) return 'equipo'
   if (ruta.startsWith('/admin')) return 'modulos'
   return 'classroom'
@@ -93,6 +102,7 @@ export default function Escritorio({ children }) {
   const apps = [
     { id: 'mensajes', nombre: 'Mensajes', ruta: '/mensajes', cuenta: resumen.esperando && !isAdmin ? resumen.esperando : resumen.no_leidos },
     { id: 'classroom', nombre: 'Classroom', ruta: '/classroom' },
+    { id: 'consultas', nombre: 'Consultas', ruta: '/consultas' },
     ...(isAdmin
       ? [
           { id: 'cerebro', nombre: 'Cerebro', ruta: '/admin/cerebro' },
