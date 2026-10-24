@@ -108,6 +108,34 @@
   {
    "modulo": "Systems",
    "coach": "franco"
+  },
+  {
+   "modulo": "Marketing 100k",
+   "coach": "juan-cruz"
+  },
+  {
+   "modulo": "Guía 50k",
+   "seccion": "Proceso de venta",
+   "coach": "lucas"
+  },
+  {
+   "modulo": "Guía 50k",
+   "seccion": "Llamadas de venta",
+   "coach": "nick"
+  },
+  {
+   "modulo": "Guía 50k",
+   "seccion": "Lanzamiento",
+   "coach": "juampi"
+  },
+  {
+   "modulo": "Guía 50k",
+   "seccion": "Herramientas",
+   "coach": "franco"
+  },
+  {
+   "modulo": "Guía 50k",
+   "coach": "juan-cruz"
   }
  ]
 }

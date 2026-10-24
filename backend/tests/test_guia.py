@@ -80,16 +80,22 @@ def test_un_problema_no_es_busqueda(texto):
 
 
 def test_busqueda_lista_sops_validados(monkeypatch):
-    vsl = next(c for c in buscador.sops_service.catalogo() if c["titulo"] == "VSL de chat")
+    # Una lección que sigue solo en Skool: va con su link de Skool.
+    skool = next(c for c in buscador.sops_service.catalogo() if c["fuente"] == "skool")
 
     async def falsa(_texto):
-        return [vsl["id"], 999999999, vsl["id"]]
+        return [skool["id"], 999999999, skool["id"]]
 
     monkeypatch.setattr(buscador, "_por_ia", falsa)
     r = asyncio.run(guia_service.recomendar("SOP de VSL de chat ya"))
     assert r["modo"] == "sops"
-    assert [s["titulo"] for s in r["sops"]] == ["VSL de chat"]
+    assert [s["titulo"] for s in r["sops"]] == [skool["titulo"]]
     assert r["sops"][0]["fuente"] == "skool" and r["sops"][0]["url"].startswith("https://www.skool.com/")
+
+
+def test_vsl_de_chat_ya_esta_en_el_classroom():
+    # Desde la Guía 50k (24-10-2026) la VSL de chat es una clase del classroom, no solo un link de Skool.
+    assert any(c["titulo"].lower() == "vsl de chat" and c["fuente"] == "classroom" for c in buscador.sops_service.catalogo())
 
 
 def test_busqueda_sin_ia_por_palabras(monkeypatch):
