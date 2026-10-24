@@ -509,6 +509,7 @@ html .im-root .im-sec h2 { margin: 0 0 10px; font-size: 11px; font-weight: 600; 
 .im-chat-ult__cab b { font-size: 14px; font-weight: 600; }
 .im-chat-ult__cab small { font-size: 11.5px; color: var(--pc-t3); }
 .im-chat-ult__msj { font-size: 13.5px; line-height: 1.4; color: var(--pc-t2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.im-chat-ult--vacio { justify-content: center; font-size: 13.5px; color: var(--pc-t3); }
 .im-chat-ult__nuevos { flex: none; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; background: #ff2518; color: #fff; font-size: 11.5px; font-weight: 700; display: grid; place-items: center; }
 .im-accesos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-self: end; }
 .im-acceso { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 18px; background: #fff; box-shadow: 0 0 0 1px var(--pc-line); color: var(--pc-t1); text-decoration: none; transition: box-shadow 180ms ease, transform 160ms var(--pc-ease); }

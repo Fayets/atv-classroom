@@ -96,9 +96,12 @@ export function Hoy() {
         </section>
       ) : null}
 
-      {chat?.ultimo ? (
+      {chat ? (
         <section className="im-hoy__bloque">
           <h2 className="im-hoy__etq">Tu chat con ATV</h2>
+          {!chat.no_leidos || !chat.ultimo ? (
+            <Link to={`/mensajes?c=${chat.id}`} className="im-chat-ult im-chat-ult--vacio">Sin mensajes nuevos</Link>
+          ) : (
           <Link to={`/mensajes?c=${chat.id}`} className="im-chat-ult">
             <span className="im-chat-ult__av" aria-hidden="true">{iniciales(chat.ultimo.autor_nombre || 'ATV')}</span>
             <span className="im-chat-ult__tx">
@@ -108,8 +111,9 @@ export function Hoy() {
               </span>
               <span className="im-chat-ult__msj">{chat.ultimo.texto || '📎 Archivo'}</span>
             </span>
-            {chat.no_leidos ? <span className="im-chat-ult__nuevos">{chat.no_leidos}</span> : null}
+            <span className="im-chat-ult__nuevos">{chat.no_leidos}</span>
           </Link>
+          )}
         </section>
       ) : null}
 
