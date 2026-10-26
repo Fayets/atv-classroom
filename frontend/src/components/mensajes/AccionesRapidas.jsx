@@ -5,6 +5,31 @@ import { enviarMensaje } from '../../api/mensajes'
 
 const ESPERA = 4 // segundos para deshacer antes de que salga el mensaje
 
+// El primer mensaje del canal privado (lo que antes se pegaba a mano en Discord). Fija para todo el equipo.
+const BIENVENIDA = `{nombre}, ¡bienvenido/a a ATV! 🙌 Este es tu canal privado con el equipo: acá vas a tener el seguimiento durante todo el programa.
+
+✅ ONBOARDING — hacelo hoy
+1. Revisá tu mail: te llegó el link al onboarding y tu contraseña.
+2. Recorré todos los pasos hasta el final: firmá tu contrato, mirá el video de bienvenida completo y completá tu perfil.
+3. En "Tus recursos" están tus datos para entrar al classroom y la invitación al Discord de la comunidad.
+
+📅 DESPUÉS
+Presentate en este canal (quién sos y qué querés lograr) y avisanos cuando termines: te pasamos el link para agendar tu primera sesión.
+
+Si no te llegó el mail o algo no anda, escribinos acá y lo resolvemos.`
+// 2K: sin Discord ni comunidad, y el chat es solo para pedir las sesiones 1 a 1.
+const BIENVENIDA_2K = `{nombre}, ¡bienvenido/a a ATV! 🙌 Este es tu canal privado: por acá pedís tus sesiones 1 a 1 con el equipo.
+
+✅ ONBOARDING — hacelo hoy
+1. Revisá tu mail: te llegó el link al onboarding y tu contraseña.
+2. Recorré todos los pasos hasta el final: firmá tu contrato, mirá el video de bienvenida completo y completá tu perfil.
+3. En "Tus recursos" están tus datos para entrar al classroom.
+
+📅 DESPUÉS
+Avisanos por acá cuando termines y agendamos tu sesión de diagnóstico.
+
+Si no te llegó el mail o algo no anda, escribinos acá y lo resolvemos.`
+
 export const conNombre = (texto, cliente) => texto.replaceAll('{nombre}', (cliente || '').trim().split(/\s+/)[0] || '').replace(/^,\s*/, '')
 
 function EditarAccion({ accion, onCerrar, onGuardada, onBorrada }) {
@@ -87,7 +112,7 @@ function IconoLapiz() {
 
 // Acciones rápidas del coach en el panel derecho: un clic manda el mensaje armado al chat abierto.
 // alCrearRoadmap: la primera acción, fija, abre el formulario del roadmap (empieza por el Fathom).
-export default function AccionesRapidas({ canalId, cliente, alCrearRoadmap = null, alVerContexto = null }) {
+export default function AccionesRapidas({ canalId, cliente, plan = null, alCrearRoadmap = null, alVerContexto = null }) {
   const [datos, setDatos] = useState(null)
   const [editando, setEditando] = useState(null) // {} = nueva
   const [pendiente, setPendiente] = useState(null) // { clave, nombre, texto, canalId, queda }
@@ -173,8 +198,19 @@ export default function AccionesRapidas({ canalId, cliente, alCrearRoadmap = nul
       ) : null}
       {error ? <p className="msj-acciones__error" role="alert">{error}</p> : null}
 
-      {alVerContexto || alCrearRoadmap || acciones.length || sugeridas.length ? (
-        <ul className="msj-acciones__lista">
+      <ul className="msj-acciones__lista">
+          <li className="msj-accion is-fija">
+            <button
+              type="button"
+              className="msj-accion__boton"
+              onClick={() => disparar('bienvenida', { nombre: 'Bienvenida', texto: String(plan || '').toLowerCase() === '2k' ? BIENVENIDA_2K : BIENVENIDA })}
+              disabled={Boolean(pendiente)}
+              title="El primer mensaje del canal: cómo hacer el onboarding y qué sigue"
+            >
+              <span>Bienvenida</span>
+              {hecho === 'bienvenida' ? <em className="is-ok">Enviado</em> : <em>Onboarding</em>}
+            </button>
+          </li>
           {alVerContexto ? (
             <li className="msj-accion is-fija is-contexto">
               <button type="button" className="msj-accion__boton" onClick={alVerContexto} title="Qué pasó con este cliente: llamadas, roadmaps y chat, antes de tu llamada">
@@ -193,8 +229,7 @@ export default function AccionesRapidas({ canalId, cliente, alCrearRoadmap = nul
           ) : null}
           {acciones.map((a) => fila(`a${a.id}`, a))}
           {sugeridas.map((s, i) => fila(`s${i}`, s, { sugerida: true }))}
-        </ul>
-      ) : null}
+      </ul>
       {!acciones.length && !sugeridas.length ? (
         <button type="button" className="msj-acciones__vacio" onClick={() => setEditando({ nombre: 'Enviar mi agenda', texto: '{nombre}, te dejo mi link para agendar: ' })}>
           Creá tu primera acción, por ejemplo tu link de agenda.

@@ -307,7 +307,7 @@ function PanelCliente({ item, alVerFicha, llamadaId = null, onLlamadaUsada }) {
           </div>
         ) : null}
       </dl>
-      <AccionesRapidas canalId={item.id} cliente={cliente.nombre} alCrearRoadmap={() => setPedidoRoadmap((n) => n + 1)} alVerContexto={() => setContexto(true)} />
+      <AccionesRapidas canalId={item.id} cliente={cliente.nombre} plan={cliente.plan} alCrearRoadmap={() => setPedidoRoadmap((n) => n + 1)} alVerContexto={() => setContexto(true)} />
       <ContextoCliente clienteId={cliente.id} abierto={contexto} alCerrar={cerrarContexto} />
       <RoadmapCliente key={cliente.id} clienteId={cliente.id} canalId={item.id} cliente={cliente.nombre.split(' ')[0]} pedido={pedidoRoadmap} llamadaId={llamadaId} onLlamadaUsada={onLlamadaUsada} />
     </aside>
