@@ -25,10 +25,9 @@ from src.services.auth_service import _buscar_admin_por_email, _buscar_clientes_
 # Las ofertas como las vende ATV hoy (Mentoría y Entry Level son lo mismo con otro nombre; Boost y High
 # Level también): nombre del onboarding → plan en atv-clients.
 PLANES = {"Entry Level": "entry", "Mid Level": "mid", "High Level": "high", "Boost": "boost", "Mentoría": "mentoria", "2K": "2k"}
-# 2K (backend offer): sin Discord ni chat. Su contrato trae las cuotas fijas y suma tres datos que carga
-# quien da el alta: el link de la llamada de venta, cuánto factura hoy y la meta que habilita la 2ª cuota.
+# 2K (backend offer): sin Discord ni chat. Su contrato es fijo y trae las tres cuotas en el texto.
 SIN_DISCORD = {"2K"}
-CON_DATOS_DE_CONTRATO = {"2K"}
+SIN_MODALIDAD = {"2K"}
 # Modalidad de pago que va al contrato de ZapSign (como el "pago" de /add-client). High Level y Boost
 # firman el contrato de High Level, que es siempre de pago único.
 PAGOS = ("Pago único", "Dos cuotas", "Tres cuotas")
@@ -193,8 +192,7 @@ class AltaServices:
         ]
 
     def crear(
-        self, sesion: dict, nombre: str, email: str, plan: str, ficha_id: int | None = None, sin_ficha: bool = False, pago: str | None = None,
-        contrato: dict | None = None,
+        self, sesion: dict, nombre: str, email: str, plan: str, ficha_id: int | None = None, sin_ficha: bool = False, pago: str | None = None
     ) -> dict:
         yo = _equipo(sesion)
         nombre = " ".join((nombre or "").split())
@@ -205,15 +203,8 @@ class AltaServices:
             raise HTTPException(status_code=422, detail="Revisá el mail.")
         if plan not in PLANES:
             raise HTTPException(status_code=422, detail="Elegí el plan.")
-        extra = {}
-        if plan in CON_DATOS_DE_CONTRATO:
+        if plan in SIN_MODALIDAD:
             pago = None
-            contrato = {k: " ".join(str(v or "").split()) for k, v in (contrato or {}).items()}
-            if not contrato.get("link_llamada", "").startswith("http"):
-                raise HTTPException(status_code=422, detail="Pegá el link de la grabación de la llamada.")
-            if not contrato.get("ingresos_actuales") or not contrato.get("meta_ingresos"):
-                raise HTTPException(status_code=422, detail="Completá cuánto factura hoy y la meta a 30 días.")
-            extra = {"call_link": contrato["link_llamada"], "current_income": contrato["ingresos_actuales"], "target_income": contrato["meta_ingresos"]}
         elif plan in PAGO_UNICO:
             pago = "Pago único"
         elif pago not in PAGOS:
@@ -242,7 +233,7 @@ class AltaServices:
                 raise HTTPException(status_code=409, detail=f"Ya hay un cliente con el canal #{canal}. Agregá el apellido o una inicial al nombre.")
 
         # 1. Sesión de onboarding, sin mail.
-        s = _llamar("POST", "/api/admin/add-client", json={"name": nombre, "email": email, "plan": plan, "payment_mode": pago, "send_email": False, **extra})
+        s = _llamar("POST", "/api/admin/add-client", json={"name": nombre, "email": email, "plan": plan, "payment_mode": pago, "send_email": False})
         session_id = s["session_id"]
         canal = canal_previo or s.get("channel_slug") or canal
 
