@@ -244,6 +244,21 @@ class MensajeCanal(db.Entity):
     creado_en = Required(datetime, default=datetime.utcnow)
 
 
+class Reaccion(db.Entity):
+    """Un emoji que alguien puso en un mensaje, como en Discord. quien: "equipo:5", "cliente:12" o "miembro:3"
+    (las personas del equipo del cliente comparten cuenta pero reaccionan cada una por su lado)."""
+
+    _table_ = (DB_SCHEMA, "reacciones")
+
+    id = PrimaryKey(int, auto=True)
+    mensaje_id = Required(int, index=True)
+    canal_id = Required(int)
+    quien = Required(str)
+    emoji = Required(str)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    composite_key(mensaje_id, quien, emoji)
+
+
 class LecturaCanal(db.Entity):
     """Hasta qué mensaje leyó cada persona en cada canal (para los no leídos)."""
 

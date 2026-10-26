@@ -106,6 +106,10 @@ export function editarMensaje(mensajeId, texto) {
   return request(`/api/mensajes/${mensajeId}`, { method: 'PATCH', body: JSON.stringify({ texto }) })
 }
 
+export function reaccionar(mensajeId, emoji) {
+  return request(`/api/mensajes/${mensajeId}/reacciones`, { method: 'PUT', body: JSON.stringify({ emoji }) })
+}
+
 export function borrarMensaje(mensajeId) {
   return request(`/api/mensajes/${mensajeId}`, { method: 'DELETE' })
 }

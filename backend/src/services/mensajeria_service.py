@@ -16,7 +16,7 @@ from fastapi import HTTPException
 from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
-from src.models import Adjunto, Admin, Canal, ClienteExterno, LecturaCanal, Mencion, MensajeCanal
+from src.models import Adjunto, Admin, Canal, ClienteExterno, LecturaCanal, Mencion, MensajeCanal, Reaccion
 from src.storage import adjuntos as almacen
 from src.services.auth_service import _emails_del_cliente, _tiene_acceso, es_equipo, ve_plata
 from src.services.cuenta_service import foto_de, fotos_de
@@ -214,6 +214,38 @@ def _adjuntos_de(mensaje_ids: list[int]) -> dict[int, list[dict]]:
     return por_mensaje
 
 
+_MAX_EMOJIS_POR_MENSAJE = 20
+
+
+def _quien(sesion: dict) -> str:
+    """Quién reacciona: cada persona del equipo del cliente por su lado, aunque compartan cuenta."""
+    if es_equipo(sesion):
+        return f"equipo:{sesion['usuario_id']}"
+    if sesion.get("miembro_id"):
+        return f"miembro:{sesion['miembro_id']}"
+    return f"cliente:{sesion['usuario_id']}"
+
+
+def _nombre_de_quien(quien: str, autores: _Autores) -> str:
+    tipo, _, ident = quien.partition(":")
+    if tipo == "miembro":
+        return autores.miembro(int(ident), None)["nombre"]
+    return autores.de("admin" if tipo == "equipo" else "cliente", int(ident))["nombre"]
+
+
+def _reacciones_de(mensaje_ids: list[int], autores: _Autores) -> dict[int, list[dict]]:
+    """Las reacciones de varios mensajes en una sola consulta, agrupadas por emoji en el orden en que aparecieron."""
+    if not mensaje_ids:
+        return {}
+    ids = ",".join(str(int(i)) for i in mensaje_ids)
+    por_mensaje: dict[int, dict[str, dict]] = defaultdict(dict)
+    for r in list(Reaccion.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."reacciones" WHERE mensaje_id IN ({ids}) ORDER BY id')):
+        grupo = por_mensaje[r.mensaje_id].setdefault(r.emoji, {"emoji": r.emoji, "quienes": [], "nombres": []})
+        grupo["quienes"].append(r.quien)
+        grupo["nombres"].append(_nombre_de_quien(r.quien, autores).split(" ")[0])
+    return {mid: list(grupos.values()) for mid, grupos in por_mensaje.items()}
+
+
 def _autor(m, autores: _Autores) -> dict:
     """Quién escribió. En el historial de Discord manda el nombre que tenía allá (puede no tener cuenta)."""
     base = autores.de(m.autor_tipo, m.autor_id)
@@ -225,7 +257,7 @@ def _autor(m, autores: _Autores) -> dict:
     return base
 
 
-def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[dict]] | None = None) -> dict:
+def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[dict]] | None = None, reacciones: dict[int, list[dict]] | None = None) -> dict:
     respuesta = None
     if m.respuesta_a:
         original = MensajeCanal.get(id=m.respuesta_a)
@@ -244,6 +276,7 @@ def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[d
         "borrado": m.borrado,
         "editado": m.editado_en is not None,
         "respuesta_a": respuesta,
+        "reacciones": [] if m.borrado else (reacciones if reacciones is not None else _reacciones_de([m.id], autores)).get(m.id, []),
         "creado_en": _iso(m.creado_en),
         "origen": "discord" if m.id < 0 else None,
     }
@@ -519,9 +552,10 @@ class MensajeriaServices:
                 lista = list(reversed(lista[:_PAGINA]))
             autores = _Autores()
             adjuntos = _adjuntos_de([m.id for m in lista])
+            reacciones = _reacciones_de([m.id for m in lista], autores)
             salida = []
             for m in lista:
-                salida.append(_mensaje_dict(m, autores, adjuntos))
+                salida.append(_mensaje_dict(m, autores, adjuntos, reacciones))
             return {
                 "canal": {"id": canal.id, "tipo": canal.tipo, "nombre": canal.nombre, "descripcion": canal.descripcion},
                 "mensajes": salida,
@@ -642,6 +676,32 @@ class MensajeriaServices:
                 raise HTTPException(status_code=403, detail="Solo podés borrar tus propios mensajes.")
             m.borrado = True  # se conserva el registro; el texto deja de mostrarse
             return _mensaje_dict(m, _Autores()), _info(m.canal)
+
+    def reaccionar(self, sesion: dict, mensaje_id: int, emoji: str) -> tuple[dict, dict]:
+        """Pone o saca un emoji, como en Discord. Reacciona cualquiera que vea el canal, también donde no
+        puede escribir (en #anuncios los clientes solo reaccionan)."""
+        emoji = (emoji or "").strip()
+        if not emoji or len(emoji) > 16 or any(c.isascii() and c.isalnum() for c in emoji) or any(c.isspace() for c in emoji):
+            raise HTTPException(status_code=422, detail="Reacción inválida.")
+        quien = _quien(sesion)
+        with db_session:
+            m = MensajeCanal.get(id=mensaje_id)
+            if m is None or m.borrado or not _ve(sesion, _info(m.canal)):
+                raise HTTPException(status_code=404, detail="Mensaje no encontrado.")
+            if sesion.get("pausa") and m.canal.tipo != "cliente":
+                raise HTTPException(status_code=423, detail="Tu cuenta está en pausa.")
+            mid = m.id
+            existente = Reaccion.get(mensaje_id=mid, quien=quien, emoji=emoji)
+            if existente is not None:
+                existente.delete()
+            else:
+                distintos = {r.emoji for r in list(Reaccion.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."reacciones" WHERE mensaje_id = $mid'))}
+                if emoji not in distintos and len(distintos) >= _MAX_EMOJIS_POR_MENSAJE:
+                    raise HTTPException(status_code=422, detail="Este mensaje ya tiene demasiadas reacciones distintas.")
+                Reaccion(mensaje_id=mid, canal_id=m.canal.id, quien=quien, emoji=emoji)
+            db.flush()
+            evento = {"mensaje_id": mid, "canal_id": m.canal.id, "reacciones": _reacciones_de([mid], _Autores()).get(mid, [])}
+            return evento, _info(m.canal)
 
     @staticmethod
     def _marcar(canal_id: int, lector: tuple[str, int], ultimo_id: int) -> None:
@@ -801,6 +861,7 @@ class MensajeriaServices:
                     ruta.unlink()
                 a.delete()
             db.execute(f'DELETE FROM "{DB_SCHEMA}"."menciones" WHERE canal_id = $canal_id')
+            db.execute(f'DELETE FROM "{DB_SCHEMA}"."reacciones" WHERE canal_id = $canal_id')
             db.execute(f'DELETE FROM "{DB_SCHEMA}"."lecturas_canal" WHERE canal_id = $canal_id')
             mensajes = db.execute(f'DELETE FROM "{DB_SCHEMA}"."mensajes_canal" WHERE canal = $canal_id').rowcount
             canal.delete()

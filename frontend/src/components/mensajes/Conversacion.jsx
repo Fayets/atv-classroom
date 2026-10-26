@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { borrarMensaje, editarMensaje, enviarMensaje, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaEnviada, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto } from '../../api/mensajes'
+import { borrarMensaje, editarMensaje, reaccionar, enviarMensaje, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaEnviada, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto } from '../../api/mensajes'
 import { fetchVoz } from '../../api/cuenta'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
@@ -17,6 +17,10 @@ const AGRUPAR_MS = 5 * 60 * 1000
 const cacheVacio = new Map() // canalId → { mensaje, fantasma }
 const SEGUIMIENTO_DESPUES_MS = 60 * 60 * 1000 // si escribiste vos último, la sugerencia de seguimiento aparece pasada una hora
 let temporal = 0
+
+// Las reacciones de un toque, como las frecuentes de Discord.
+const EMOJIS = ['👍', '❤️', '🔥', '🙌', '👏', '😂', '🎉', '💪', '👀', '🙏', '✅', '🚀']
+const PRESION_MS = 450 // en el celular, mantener apretado un mensaje abre las reacciones
 
 // Etiqueta a todos los que ven el canal (solo lo puede usar el equipo).
 const EVERYONE = { id: 0, nombre: 'everyone', area: 'Etiqueta a todos en este canal' }
@@ -69,6 +73,18 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   const leidoEnviado = useRef(0)
   const ultimoAvisoEscribiendo = useRef(0)
   const yo = isEquipo ? `equipo:${user?.usuario_id}` : `cliente:${user?.usuario_id}`
+  // Quién reacciona: cada persona del equipo del cliente por su lado (comparten cuenta, no reacción).
+  const yoReaccion = isEquipo ? yo : user?.miembro ? `miembro:${user.miembro.id}` : yo
+  const [eligiendo, setEligiendo] = useState(null) // id del mensaje con el selector de emojis abierto
+  const presion = useRef(null)
+  useEffect(() => {
+    if (eligiendo == null) return undefined
+    const cerrar = (e) => {
+      if (!e.target.closest?.('.msj-reac-elegir, .msj-reac-abrir')) setEligiendo(null)
+    }
+    document.addEventListener('pointerdown', cerrar)
+    return () => document.removeEventListener('pointerdown', cerrar)
+  }, [eligiendo])
   const mensajesRef = useRef(mensajes)
   mensajesRef.current = mensajes
 
@@ -133,6 +149,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
           })
         } else if (ev.tipo === 'editado' && ev.mensaje.canal_id === canalId) {
           setMensajes((m) => m.map((x) => (x.id === ev.mensaje.id ? ev.mensaje : x)))
+        } else if (ev.tipo === 'reacciones' && ev.canal_id === canalId) {
+          setMensajes((m) => m.map((x) => (x.id === ev.mensaje_id ? { ...x, reacciones: ev.reacciones } : x)))
         } else if (ev.tipo === 'borrado' && ev.mensaje.canal_id === canalId) {
           // Como en Discord: desaparece para todos y las respuestas que lo citaban lo indican.
           setMensajes((m) => quitarMensaje(m, ev.mensaje.id))
@@ -648,6 +666,36 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
     }
   }
 
+  async function alternarReaccion(m, emoji) {
+    setEligiendo(null)
+    // Al instante en pantalla; la respuesta del servidor (y el evento en vivo) deja la versión buena.
+    const quitar = (m.reacciones || []).some((r) => r.emoji === emoji && r.quienes.includes(yoReaccion))
+    const local = (lista) => {
+      const sin = lista.map((r) => (r.emoji === emoji ? { ...r, quienes: r.quienes.filter((q) => q !== yoReaccion) } : r))
+      const con = sin.some((r) => r.emoji === emoji)
+        ? sin.map((r) => (r.emoji === emoji ? { ...r, quienes: [...r.quienes, yoReaccion], nombres: [...r.nombres, 'Vos'] } : r))
+        : [...sin, { emoji, quienes: [yoReaccion], nombres: ['Vos'] }]
+      return (quitar ? sin : con).filter((r) => r.quienes.length)
+    }
+    setMensajes((lista) => lista.map((x) => (x.id === m.id ? { ...x, reacciones: local(x.reacciones || []) } : x)))
+    try {
+      const r = await reaccionar(m.id, emoji)
+      setMensajes((lista) => lista.map((x) => (x.id === r.mensaje_id ? { ...x, reacciones: r.reacciones } : x)))
+    } catch (err) {
+      setMensajes((lista) => lista.map((x) => (x.id === m.id ? { ...x, reacciones: m.reacciones } : x)))
+      setError(err.message)
+    }
+  }
+
+  function empezarPresion(m) {
+    clearTimeout(presion.current)
+    presion.current = setTimeout(() => {
+      navigator.vibrate?.(10)
+      setEligiendo(m.id)
+    }, PRESION_MS)
+  }
+  const soltarPresion = () => clearTimeout(presion.current)
+
   async function borrar(m) {
     setABorrar(null)
     try {
@@ -777,7 +825,11 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                 </div>
               ) : null}
               <article
-                className={`msj-m${agrupado ? ' is-agrupado' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${
+                onTouchStart={real && !m.borrado ? () => empezarPresion(m) : undefined}
+                onTouchMove={soltarPresion}
+                onTouchEnd={soltarPresion}
+                onTouchCancel={soltarPresion}
+                className={`msj-m${eligiendo === m.id ? ' is-eligiendo' : ''}${agrupado ? ' is-agrupado' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${
                   !mio && m.texto && ((miPrimerNombre && normal(m.texto).includes(`@${normal(miPrimerNombre)}`)) || (m.autor?.tipo === 'equipo' && ES_EVERYONE.test(m.texto))) ? ' is-mencion' : ''
                 }`}
               >
@@ -812,6 +864,29 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                       </>
                     )}
                     {m.editado && !m.borrado ? <span className="msj-editado">(editado)</span> : null}
+                    {real && !m.borrado && m.reacciones?.length ? (
+                      <div className="msj-reacciones">
+                        {m.reacciones.map((r) => {
+                          const mia = r.quienes.includes(yoReaccion)
+                          return (
+                            <button
+                              key={r.emoji}
+                              type="button"
+                              className={`msj-reac${mia ? ' is-mia' : ''}`}
+                              title={r.nombres.join(', ')}
+                              aria-pressed={mia}
+                              onClick={() => alternarReaccion(m, r.emoji)}
+                            >
+                              <span>{r.emoji}</span>
+                              <b>{r.quienes.length}</b>
+                            </button>
+                          )
+                        })}
+                        <button type="button" className="msj-reac msj-reac-abrir" aria-label="Agregar reacción" onClick={() => setEligiendo(eligiendo === m.id ? null : m.id)}>
+                          <CaraMas />
+                        </button>
+                      </div>
+                    ) : null}
                     {m.fallo ? (
                       <button type="button" className="msj-reintentar" onClick={() => reintentar(m)}>
                         {m.fallo}. Tocá para reintentar
@@ -821,23 +896,37 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                       <span className="msj-visto">Visto</span>
                     ) : null}
                   </div>
-                  {real && !m.borrado && datos.puede_escribir ? (
+                  {eligiendo === m.id ? (
+                    <div className="msj-reac-elegir" role="menu" aria-label="Reaccionar">
+                      {EMOJIS.map((e) => (
+                        <button key={e} type="button" role="menuitem" onClick={() => alternarReaccion(m, e)}>
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  {real && !m.borrado ? (
                     <div className="msj-m__acciones">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRespondiendo(m)
-                          caja.current?.focus()
-                        }}
-                      >
-                        Responder
+                      <button type="button" className="msj-reac-abrir" aria-label="Reaccionar" title="Reaccionar" onClick={() => setEligiendo(eligiendo === m.id ? null : m.id)}>
+                        <CaraMas />
                       </button>
-                      {mio && m.texto ? (
+                      {datos.puede_escribir ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRespondiendo(m)
+                            caja.current?.focus()
+                          }}
+                        >
+                          Responder
+                        </button>
+                      ) : null}
+                      {mio && m.texto && datos.puede_escribir ? (
                         <button type="button" onClick={() => setEditando(m.id)}>
                           Editar
                         </button>
                       ) : null}
-                      {mio || isAdmin ? (
+                      {(mio || isAdmin) && datos.puede_escribir ? (
                         <button type="button" onClick={() => setABorrar(m)}>
                           Eliminar
                         </button>
@@ -1059,5 +1148,14 @@ function Edicion({ texto, onGuardar, onCancelar }) {
         </button>
       </span>
     </div>
+  )
+}
+
+function CaraMas() {
+  return (
+    <svg className="msj-cara-mas" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20.5 11.5a8.5 8.5 0 1 1-8-8.5" />
+      <path d="M8.5 14.5a4.2 4.2 0 0 0 7 0M9 9.5h.01M15 9.5h.01M19 2.5v6M16 5.5h6" />
+    </svg>
   )
 }

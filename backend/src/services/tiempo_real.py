@@ -26,16 +26,13 @@ CIERRE_LENTA = 4408     # código de cierre: el navegador reconecta (no es un pr
 def puede_ver(sesion: dict, canal: dict) -> bool:
     """canal: {"id", "tipo", "cliente_id", "roles", "creado_por"}. El admin ve todo; el coach, todos los
     chats de clientes (como el admin) y los grupos del equipo, los que creó él o donde lo etiquetaron;
-    el cliente, su canal y los grupos de su rol. Los anuncios los ven todos."""
+    el cliente (y su equipo, que ve lo mismo), su canal y los grupos de su rol. Los anuncios los ven todos."""
     rol = sesion.get("rol")
     if canal["tipo"] == "directo":
         # Un mensaje directo lo ven solo sus dos participantes: ni siquiera un admin.
         return rol in ("admin", "coach") and not sesion.get("miembro_id") and sesion.get("usuario_id") in (canal.get("participantes") or [])
     if rol == "admin":
         return True
-    if sesion.get("miembro_id"):
-        # El equipo del cliente ve solo el chat privado de ese cliente: ni comunidad ni anuncios.
-        return canal["tipo"] == "cliente" and canal["cliente_id"] == sesion["usuario_id"]
     if canal["tipo"] == "anuncios":
         return True
     if canal["tipo"] == "grupo":

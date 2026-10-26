@@ -139,6 +139,27 @@
 .msj-m__acciones button { padding: 4px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--m-t2); font: inherit; font-size: 12px; cursor: pointer; }
 .msj-m__acciones button:hover { background: rgba(0, 0, 0, 0.06); color: var(--m-t1); }
 
+.msj-m__acciones .msj-reac-abrir { display: grid; place-items: center; padding: 3px 6px; }
+.msj-cara-mas { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Reacciones, como en Discord: un chip por emoji con cuántos lo pusieron; el tuyo resaltado. */
+.msj-reacciones { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.msj-reac { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 8px; border: 0; border-radius: 13px; background: rgba(0, 0, 0, 0.05); box-shadow: inset 0 0 0 1px transparent; color: var(--m-t2); font: inherit; font-size: 12.5px; cursor: pointer; transition: transform 120ms ease; }
+.msj-reac span { font-size: 15px; line-height: 1; }
+.msj-reac b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.msj-reac:active { transform: scale(0.92); }
+.msj-reac.is-mia { background: rgba(255, 37, 24, 0.09); box-shadow: inset 0 0 0 1px rgba(255, 37, 24, 0.45); color: #c2160b; }
+.msj-reac.msj-reac-abrir { width: 32px; padding: 0; justify-content: center; color: var(--m-t3); opacity: 0; }
+.msj-m:hover .msj-reac.msj-reac-abrir, .msj-m.is-eligiendo .msj-reac.msj-reac-abrir { opacity: 1; }
+@media (hover: none) { .msj-reac.msj-reac-abrir { opacity: 1; } }
+@media (hover: hover) { .msj-reac:hover { background: rgba(0, 0, 0, 0.08); } .msj-reac.is-mia:hover { background: rgba(255, 37, 24, 0.14); } }
+.msj-reac-elegir { position: absolute; top: -50px; right: 22px; z-index: 5; display: flex; flex-wrap: wrap; gap: 2px; max-width: calc(100% - 44px); padding: 5px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.14), 0 10px 28px -8px rgba(0, 0, 0, 0.3); animation: msj-reac-in 140ms ease-out; }
+.msj-reac-elegir button { width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; font-size: 20px; line-height: 1; cursor: pointer; }
+.msj-reac-elegir button:hover, .msj-reac-elegir button:focus-visible { background: rgba(0, 0, 0, 0.06); }
+@keyframes msj-reac-in { from { opacity: 0; transform: translateY(4px) scale(0.97); } to { opacity: 1; transform: none; } }
+.msj-m.is-eligiendo .msj-m__acciones { display: none; }
+@media (max-width: 600px) { .msj-reac-elegir { right: 14px; max-width: calc(100% - 28px); } .msj-m { -webkit-touch-callout: none; } }
+
 .msj-edicion textarea { width: 100%; min-height: 60px; padding: 8px 10px; border: 1px solid var(--m-linea2); border-radius: 8px; background: #fff; color: var(--m-t1); font: inherit; font-size: 14px; resize: vertical; }
 .msj-edicion textarea:focus { outline: none; box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.25); }
 .msj-edicion span { font-size: 11.5px; color: var(--m-t4); }

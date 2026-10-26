@@ -46,6 +46,10 @@ class MensajeEdicion(BaseModel):
     texto: str = Field(min_length=1, max_length=MAX_TEXTO)
 
 
+class ReaccionCuerpo(BaseModel):
+    emoji: str = Field(min_length=1, max_length=16)
+
+
 class Leido(BaseModel):
     ultimo_id: int = Field(ge=0)
 
@@ -248,6 +252,13 @@ async def editar(mensaje_id: int, body: MensajeEdicion, sesion: dict = Depends(s
     mensaje, canal = await run_in_threadpool(service.editar, sesion, mensaje_id, body.texto)
     await hub.emitir({"tipo": "editado", "mensaje": mensaje}, canal)
     return mensaje
+
+
+@router.put("/{mensaje_id}/reacciones")
+async def reaccionar(mensaje_id: int, body: ReaccionCuerpo, sesion: dict = Depends(sesion_mensajes)):
+    evento, canal = await run_in_threadpool(service.reaccionar, sesion, mensaje_id, body.emoji)
+    await hub.emitir({"tipo": "reacciones", **evento}, canal)
+    return evento
 
 
 @router.delete("/{mensaje_id}")
