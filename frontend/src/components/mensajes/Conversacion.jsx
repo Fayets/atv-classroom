@@ -1132,10 +1132,23 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
 
 function Edicion({ texto, onGuardar, onCancelar }) {
   const [valor, setValor] = useState(texto)
+  const caja = useRef(null)
+  // Crece con el texto (como el mensaje que se está editando) hasta un tope; más allá, scroll adentro.
+  useLayoutEffect(() => {
+    const el = caja.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight + 2, window.innerHeight * 0.6)}px`
+  }, [valor])
+  useEffect(() => {
+    const el = caja.current
+    el?.focus()
+    el?.setSelectionRange(el.value.length, el.value.length)
+  }, [])
   return (
     <div className="msj-edicion">
       <textarea
-        autoFocus
+        ref={caja}
         value={valor}
         onChange={(e) => setValor(e.target.value)}
         onKeyDown={(e) => {
