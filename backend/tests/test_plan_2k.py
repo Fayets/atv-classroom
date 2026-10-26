@@ -1,11 +1,10 @@
-"""2K (backend offer): ve su canal privado pero no escribe, no ve la comunidad, no usa la guía con IA
-y no suma equipo. Solo contra una base local. Lo creado se borra al final."""
+"""2K (backend offer): tiene su canal privado (para pedir sus sesiones 1 a 1) pero no ve la comunidad,
+no usa la guía con IA y no suma equipo. Solo contra una base local. Lo creado se borra al final."""
 
 import secrets
 
 import pytest
 from decouple import config
-from fastapi import HTTPException
 from pony.orm import db_session
 
 from src.db import db, init_db
@@ -43,8 +42,9 @@ def test_ve_solo_su_canal():
         assert not puede_ver(DOSK, canal)
 
 
-def test_lee_lo_del_equipo_pero_no_escribe(monkeypatch):
+def test_escribe_en_su_canal(monkeypatch):
     monkeypatch.setattr(ms, "_TOPE_EQUIPO_POR_MINUTO", 1000)
+    monkeypatch.setattr(ms, "_TOPE_POR_MINUTO", 1000)
     from src.models import Canal
 
     with db_session:
@@ -53,9 +53,8 @@ def test_lee_lo_del_equipo_pero_no_escribe(monkeypatch):
         cid = c.id
     svc.enviar(ADMIN, cid, "Te dejé el roadmap", None)
     datos = svc.mensajes(DOSK, cid)
-    assert datos["puede_escribir"] is False and datos["mensajes"][-1]["texto"] == "Te dejé el roadmap"
-    with pytest.raises(HTTPException):
-        svc.enviar(DOSK, cid, "hola", None)
+    assert datos["puede_escribir"] is True and datos["mensajes"][-1]["texto"] == "Te dejé el roadmap"
+    assert svc.enviar(DOSK, cid, "Quiero agendar mi sesión 2", None)[0]["texto"] == "Quiero agendar mi sesión 2"
 
 
 def test_sin_equipo():

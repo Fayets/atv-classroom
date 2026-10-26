@@ -192,6 +192,7 @@
 .msj-enviar:disabled { background: #e5e5ea; color: #aeaeb2; cursor: default; }
 .msj-redactar__ayuda { margin: 6px 4px 0; font-size: 11px; color: var(--m-t4); }
 .msj-solo-lectura { flex: none; margin: 0 22px 18px; padding: 12px; border-radius: 12px; background: var(--m-panel); font-size: 13px; color: var(--m-t3); text-align: center; }
+.msj-aviso-1a1 { margin: 0 16px 6px; padding: 8px 12px; border-radius: 10px; background: rgba(255, 37, 24, 0.07); color: var(--m-t2); font-size: 12.5px; line-height: 1.4; }
 
 .msj-vacio { margin: auto; padding: 24px; font-size: 14px; color: var(--m-t3); text-align: center; }
 .msj-error { margin: 6px 22px; font-size: 13px; color: var(--m-acento); }

@@ -20,7 +20,6 @@ from src.models import Adjunto, Admin, Canal, ClienteExterno, LecturaCanal, Menc
 from src.storage import adjuntos as almacen
 from src.services.auth_service import _emails_del_cliente, _tiene_acceso, es_equipo, ve_plata
 from src.services.cuenta_service import foto_de, fotos_de
-from src.services.plan_acceso import sin_chat
 from src.services.roles_canal import validar_roles
 from src.services.tiempo_real import puede_ver
 
@@ -583,7 +582,7 @@ class MensajeriaServices:
             return True
         if canal.tipo == "grupo":
             return True  # si llegó acá es porque lo ve (ver _canal_visible)
-        return canal.tipo == "cliente" and canal.cliente_id == sesion["usuario_id"] and not sin_chat(sesion)
+        return canal.tipo == "cliente" and canal.cliente_id == sesion["usuario_id"]
 
     def enviar(
         self,

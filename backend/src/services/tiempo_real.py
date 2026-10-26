@@ -35,7 +35,7 @@ def puede_ver(sesion: dict, canal: dict) -> bool:
     if rol == "admin":
         return True
     if sin_chat(sesion):
-        # 2K: solo su canal privado, para leer lo que le manda el equipo.
+        # 2K: solo su canal privado (para pedir sus sesiones 1 a 1), sin comunidad ni anuncios.
         return canal["tipo"] == "cliente" and canal["cliente_id"] == sesion["usuario_id"]
     if canal["tipo"] == "anuncios":
         return True

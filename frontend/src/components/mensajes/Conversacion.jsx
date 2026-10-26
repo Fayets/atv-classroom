@@ -717,6 +717,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
   const canal = item ? { ...datos.canal, nombre: item.nombre, descripcion: item.descripcion } : datos.canal
   const todos = [...mensajes, ...pendientes]
   const esPrivado = canal.tipo === 'cliente'
+  // 2K: su chat es solo para pedir las sesiones 1 a 1 (los coaches no dan consultas por acá).
+  const solo1a1 = esPrivado && !isEquipo && user?.rol === '2k'
   const esGrupo = canal.tipo === 'grupo'
   const esDirecto = canal.tipo === 'directo'
   // "Visto": hasta dónde leyó el otro lado, sobre mi último mensaje.
@@ -987,6 +989,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
           <span>Ver cómo</span>
         </button>
       ) : datos.puede_escribir ? (
+        <>
+        {solo1a1 ? <p className="msj-aviso-1a1">Este chat es para pedir tus sesiones 1 a 1. Las consultas las trabajamos en la sesión.</p> : null}
         <form className="msj-redactar" onSubmit={mandar}>
           {respondiendo ? (
             <div className="msj-redactar__resp">
@@ -1099,7 +1103,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                 onKeyDown={teclas}
                 onPaste={alPegar}
                 onClick={(e) => e.target.selectionStart !== texto.length && setFantasma(null)}
-                placeholder={fantasma ? '' : esDirecto ? `Escribile a ${canal.nombre.split(' ')[0]}` : angosto ? `Escribí en #${canal.nombre}` : `Escribí en #${canal.nombre} · @ para etiquetar`}
+                placeholder={fantasma ? '' : solo1a1 ? 'Pedí tu sesión 1 a 1' : esDirecto ? `Escribile a ${canal.nombre.split(' ')[0]}` : angosto ? `Escribí en #${canal.nombre}` : `Escribí en #${canal.nombre} · @ para etiquetar`}
                 maxLength={4000}
               />
             </div>
@@ -1118,8 +1122,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
           </div>
           )}
         </form>
+        </>
       ) : (
-        <p className="msj-solo-lectura">{esPrivado ? 'Tu plan no incluye chat: acá vas a ver lo que te mande el equipo de ATV.' : 'En este canal publica solo el equipo de ATV.'}</p>
+        <p className="msj-solo-lectura">En este canal publica solo el equipo de ATV.</p>
       )}
     </section>
   )
