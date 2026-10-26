@@ -10,8 +10,9 @@ const BIENVENIDA = `{nombre}, ¡bienvenido/a a ATV! 🙌 Este es tu canal privad
 
 ✅ ONBOARDING — hacelo hoy
 1. Revisá tu mail: te llegó el link al onboarding y tu contraseña.
-2. Recorré todos los pasos hasta el final: firmá tu contrato, mirá el video de bienvenida completo y completá tu perfil.
-3. En "Tus recursos" están tus datos para entrar al classroom y la invitación al Discord de la comunidad.
+2. Recorré todos los pasos hasta el final: firmá tu contrato y mirá el video de bienvenida completo.
+3. Completá el formulario de onboarding (el paso "Tu perfil"): es obligatorio, con eso preparamos tu primera sesión.
+4. En "Tus recursos" están tus datos para entrar al classroom y la invitación al Discord de la comunidad.
 
 📅 DESPUÉS
 Presentate en este canal (quién sos y qué querés lograr) y avisanos cuando termines: te pasamos el link para agendar tu primera sesión.
@@ -22,8 +23,9 @@ const BIENVENIDA_2K = `{nombre}, ¡bienvenido/a a ATV! 🙌 Este es tu canal pri
 
 ✅ ONBOARDING — hacelo hoy
 1. Revisá tu mail: te llegó el link al onboarding y tu contraseña.
-2. Recorré todos los pasos hasta el final: firmá tu contrato, mirá el video de bienvenida completo y completá tu perfil.
-3. En "Tus recursos" están tus datos para entrar al classroom.
+2. Recorré todos los pasos hasta el final: firmá tu contrato y mirá el video de bienvenida completo.
+3. Completá el formulario de onboarding (el paso "Tu perfil"): es obligatorio, con eso preparamos tu primera sesión.
+4. En "Tus recursos" están tus datos para entrar al classroom.
 
 📅 DESPUÉS
 Avisanos por acá cuando termines y agendamos tu sesión de diagnóstico.
