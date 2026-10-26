@@ -115,3 +115,20 @@ def test_completa_la_ficha_de_la_sena_y_anular_la_deja_como_estaba(onboarding):
             db.execute(f'DELETE FROM "{DB_SCHEMA}"."canales" WHERE cliente_id = $i', {"i": ficha})
             db.execute(f'DELETE FROM "{DB_SCHEMA}"."altas_clientes" WHERE cliente_id = $i', {"i": ficha})
             db.execute("DELETE FROM clients.clientes WHERE id = $i", {"i": ficha})
+
+
+def test_alta_2k_sin_discord_y_con_los_datos_del_contrato(onboarding):
+    svc = al.AltaServices()
+    with pytest.raises(HTTPException) as e:
+        svc.crear(COACH, "Prueba Alta Test", MAIL, "2K", sin_ficha=True)
+    assert e.value.status_code == 422  # sin link de la llamada, ingresos y meta no hay contrato
+    datos = {"link_llamada": "https://fathom.video/share/prueba", "ingresos_actuales": "entre USD 1.000 y USD 1.500", "meta_ingresos": "USD 2.000"}
+    a = svc.crear(COACH, "Prueba Alta Test", MAIL, "2K", sin_ficha=True, contrato=datos)
+    rutas = [r for _, r, _ in onboarding]
+    assert not any(r.endswith("create-discord-channel") for r in rutas) and a["discord_invite_url"] is None
+    alta = next(j for _, r, j in onboarding if r == "/api/admin/add-client")
+    assert alta["plan"] == "2K" and alta["payment_mode"] is None
+    assert alta["call_link"] == datos["link_llamada"] and alta["target_income"] == "USD 2.000"
+    with db_session:
+        plan, dias = db.select("SELECT plan_actual, fecha_vencimiento - fecha_inicio FROM clients.clientes WHERE id = $i", {"i": a["cliente_id"]})[0]
+    assert plan == "2k" and dias == 90

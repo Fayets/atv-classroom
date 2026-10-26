@@ -666,6 +666,10 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .alta-sena__no { justify-self: start; border: 0; padding: 2px 0; background: none; font: inherit; font-size: 12.5px; font-weight: 600; color: #6e6e73; cursor: pointer; text-decoration: underline; }
 .alta-sena__ok { margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; background: rgba(31, 157, 85, 0.1); color: #1f7a45; font-size: 12.5px; font-weight: 600; }
 .alta-pago-fijo { margin: 0; font-size: 12.5px; color: var(--text-muted); }
+.alta-2k { display: flex; flex-direction: column; gap: 10px; }
+.alta-2k label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--m-t2, #3a3a3c); }
+.alta-2k input { width: 100%; box-sizing: border-box; height: 34px; padding: 0 10px; border: 1px solid #d2d2d7; border-radius: 8px; background: #fff; font: inherit; font-size: 13.5px; color: inherit; }
+.alta-2k input:focus { outline: none; border-color: var(--m-acento, #c0392b); box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18); }
 .alta-sena__ok button { border: 0; background: none; padding: 0; font: inherit; color: #1f7a45; text-decoration: underline; cursor: pointer; }
 .alta-sena > small { font-size: 12px; color: #8a6d2b; }
 .alta-sena__lista { display: grid; gap: 4px; margin-top: 2px; }

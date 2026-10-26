@@ -1119,7 +1119,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
           )}
         </form>
       ) : (
-        <p className="msj-solo-lectura">En este canal publica solo el equipo de ATV.</p>
+        <p className="msj-solo-lectura">{esPrivado ? 'Tu plan no incluye chat: acá vas a ver lo que te mande el equipo de ATV.' : 'En este canal publica solo el equipo de ATV.'}</p>
       )}
     </section>
   )

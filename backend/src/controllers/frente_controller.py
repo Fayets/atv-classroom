@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from src.services.auth_service import obtener_sesion_desde_request, tipo_de_sesion
 from src.services.frente_service import FrenteServices
 from src.services.guia_service import recomendar
+from src.services.plan_acceso import sin_ia
 from src.services.solicitud_service import SolicitudServices, avisar_pedido_ayuda
 
 logger = logging.getLogger(__name__)
@@ -83,6 +84,8 @@ def _contar_consulta(sesion: dict) -> None:
 
 @router.post("/guia")
 async def guia(body: GuiaRequest, sesion: dict = Depends(obtener_sesion_desde_request)):
+    if sin_ia(sesion):
+        raise HTTPException(status_code=403, detail="Tu plan no incluye la guía.")
     _contar_consulta(sesion)
     try:
         respuesta = await recomendar(body.texto)

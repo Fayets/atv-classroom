@@ -25,6 +25,8 @@ export default function InicioPage() {
   const navigate = useNavigate()
   const { user, isEquipo } = useAuth()
   const enPausa = Boolean(user?.pausa) && !isEquipo
+  // El 2K no incluye la guía con IA: el inicio queda con su plan, su roadmap y el material.
+  const sinGuia = !isEquipo && user?.rol === '2k'
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
   const [texto, setTexto] = useState('')
@@ -92,6 +94,19 @@ export default function InicioPage() {
     <div className="app-shell im-root">
       <AppHeader />
       <main className="im-home">
+        {sinGuia ? (
+          <section className="im-ask">
+            <div className="im-hero">
+              <div className="im-hero__inner">
+                <h1>
+                  {nombre ? `${nombre}, ¿por dónde` : '¿Por dónde'}
+                  <br />
+                  seguimos hoy?
+                </h1>
+              </div>
+            </div>
+          </section>
+        ) : (
         <section className={`im-ask${pregunta ? ' is-chat' : ''}`}>
           <div className="im-hero" aria-hidden={Boolean(pregunta)}>
             <div className="im-hero__inner">
@@ -291,6 +306,7 @@ export default function InicioPage() {
             </div>
           </div>
         </section>
+        )}
 
         {error ? <p className="im-error">{error}</p> : null}
 

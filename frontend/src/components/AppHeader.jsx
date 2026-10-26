@@ -9,7 +9,7 @@ import { getUserInitials } from '../utils/user'
 import Isotipo from './marca/Isotipo'
 
 
-const PLANES = { advantage: 'High Level', high: 'High Level', boost: 'Boost', mid: 'Mid level', entry: 'Entry level', mentoria: 'Mentoria' }
+const PLANES = { advantage: 'High Level', high: 'High Level', boost: 'Boost', mid: 'Mid level', entry: 'Entry level', mentoria: 'Mentoria', '2k': '2K' }
 
 export default function AppHeader() {
   const { user, logout, isAdmin, isEquipo } = useAuth()

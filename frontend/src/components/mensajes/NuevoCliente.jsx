@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { anularAlta, buscarFicha, crearAlta, enviarOnboarding, fetchAltas } from '../../api/altas'
 
-const PLANES = ['Entry Level', 'Mid Level', 'High Level', 'Boost', 'Mentoría']
+const PLANES = ['Entry Level', 'Mid Level', 'High Level', 'Boost', 'Mentoría', '2K']
+// 2K: sin Discord ni chat; su contrato trae las cuotas fijas y estos tres datos de la llamada de venta.
+const CON_CONTRATO_PROPIO = ['2K']
+const CONTRATO_VACIO = { link_llamada: '', ingresos_actuales: '', meta_ingresos: '' }
 // Va al contrato de ZapSign. High Level y Boost firman el contrato de High Level: siempre pago único.
 const PAGOS = ['Pago único', 'Dos cuotas', 'Tres cuotas']
 const PAGO_UNICO = ['High Level', 'Boost']
@@ -41,6 +44,7 @@ export default function NuevoCliente({ onCerrar, onAbrirChat, sena = null }) {
     email: '',
     plan: sena?.plan && PLANES.includes(sena.plan) ? sena.plan : 'Entry Level',
     pago: '',
+    contrato: CONTRATO_VACIO,
     ficha_id: sena?.id ?? null,
     sin_ficha: false,
   })
@@ -76,14 +80,18 @@ export default function NuevoCliente({ onCerrar, onAbrirChat, sena = null }) {
   const preguntar = candidatas.length && !form.ficha_id && !form.sin_ficha
   const COINCIDE = { mail: 'Mismo mail', nombre: 'Mismo nombre', parecido: 'Nombre parecido' }
   const pagoUnico = PAGO_UNICO.includes(form.plan)
-  const faltaPago = !pagoUnico && !form.pago
+  const contratoPropio = CON_CONTRATO_PROPIO.includes(form.plan)
+  const faltaPago = contratoPropio
+    ? !/^https?:\/\//.test(form.contrato.link_llamada.trim()) || !form.contrato.ingresos_actuales.trim() || !form.contrato.meta_ingresos.trim()
+    : !pagoUnico && !form.pago
+  const datoContrato = (k) => (e) => setForm((f) => ({ ...f, contrato: { ...f.contrato, [k]: e.target.value } }))
 
   async function crear(e) {
     e.preventDefault()
     setOcupado('crear')
     setError('')
     try {
-      const a = await crearAlta(form)
+      const a = await crearAlta({ ...form, contrato: contratoPropio ? form.contrato : null })
       setHecha(a)
       setRecientes((r) => [a, ...r])
     } catch (err) {
@@ -115,7 +123,7 @@ export default function NuevoCliente({ onCerrar, onAbrirChat, sena = null }) {
       setRecientes((r) => r.filter((x) => x.id !== hecha.id))
       setHecha(null)
       setAnulando(false)
-      setForm({ nombre: '', email: '', plan: 'Entry Level', pago: '', ficha_id: null, sin_ficha: false })
+      setForm({ nombre: '', email: '', plan: 'Entry Level', pago: '', contrato: CONTRATO_VACIO, ficha_id: null, sin_ficha: false })
       setElegida(null)
     } catch (err) {
       setError(err.message || 'No se pudo anular.')
@@ -190,6 +198,24 @@ export default function NuevoCliente({ onCerrar, onAbrirChat, sena = null }) {
                 ))}
               </div>
             </fieldset>
+            {contratoPropio ? (
+              <fieldset className="msj-modal__campo alta-2k">
+                <legend>Para su contrato 2K</legend>
+                <label>
+                  <span>Link de la grabación de la llamada</span>
+                  <input value={form.contrato.link_llamada} onChange={datoContrato('link_llamada')} placeholder="https://fathom.video/share/…" inputMode="url" maxLength={500} />
+                </label>
+                <label>
+                  <span>Cuánto factura hoy por mes</span>
+                  <input value={form.contrato.ingresos_actuales} onChange={datoContrato('ingresos_actuales')} placeholder="entre USD 1.000 y USD 1.500" maxLength={160} />
+                </label>
+                <label>
+                  <span>A cuánto tiene que llegar en 30 días para cobrar la 2ª cuota</span>
+                  <input value={form.contrato.meta_ingresos} onChange={datoContrato('meta_ingresos')} placeholder="USD 2.000" maxLength={160} />
+                </label>
+                <p className="alta-pago-fijo">Cuotas fijas del contrato: USD 500 hoy, USD 500 al mes (si llegó a la meta) y USD 1.300 a los dos meses.</p>
+              </fieldset>
+            ) : (
             <fieldset className="msj-modal__campo">
               <legend>Modalidad de pago</legend>
               {pagoUnico ? (
@@ -205,6 +231,7 @@ export default function NuevoCliente({ onCerrar, onAbrirChat, sena = null }) {
                 </div>
               )}
             </fieldset>
+            )}
             {error ? <p className="msj-modal__error" role="alert">{error}</p> : null}
             <div className="msj-modal__botones">
               <button type="button" onClick={onCerrar}>Cancelar</button>
@@ -217,7 +244,9 @@ export default function NuevoCliente({ onCerrar, onAbrirChat, sena = null }) {
             <ul className="alta-hecho">
               <li className="is-ok">Ficha lista · plan {hecha.plan}</li>
               <li className="is-ok">Su chat en el classroom</li>
-              {hecha.canal_ya_existia ? (
+              {hecha.plan === '2K' ? (
+                <li className="is-ok">Sin Discord: el 2K no tiene chat ni comunidad</li>
+              ) : hecha.canal_ya_existia ? (
                 <li className="is-ok">Usa su canal de Discord #{hecha.canal}, que ya existía</li>
               ) : hecha.discord_invite_url ? (
                 <li className="is-ok">Canal de Discord #{hecha.canal}</li>

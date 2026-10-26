@@ -17,6 +17,8 @@ from src.db import DB_SCHEMA, db
 from src.models import ClienteExterno, LimiteEquipo, MiembroCliente, SesionGuardada
 
 LIMITE_POR_DEFECTO = 10
+from src.services.plan_acceso import PLANES_SIN_EQUIPO  # noqa: E402
+
 PLANES = ["mentoria", "boost", "advantage", "mid", "entry"]
 
 ROLES = {
@@ -35,6 +37,8 @@ def nombre_rol(rol: str | None) -> str:
 
 
 def limite_de(plan: str | None) -> int:
+    if plan in PLANES_SIN_EQUIPO:
+        return 0
     fila = LimiteEquipo.get(plan=plan or "")
     return fila.maximo if fila else LIMITE_POR_DEFECTO
 

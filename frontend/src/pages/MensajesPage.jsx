@@ -27,6 +27,7 @@ const GRUPOS = [
   { id: 'mid', nombre: 'Mid level', planes: ['mid'] },
   { id: 'entry', nombre: 'Entry level', planes: ['entry'] },
   { id: 'mentoria', nombre: 'Mentoria', planes: ['mentoria'] },
+  { id: '2k', nombre: '2K', planes: ['2k'] },
 ]
 function agrupar(lista) {
   const grupos = GRUPOS.map((g) => ({ ...g, canales: [] }))
