@@ -183,7 +183,7 @@ class ProgramaServices:
                 raise HTTPException(status_code=404, detail="Programa no encontrado.")
             exigir_desbloqueado(programa)
             if modulo_cerrado(programa, ve_como):
-                raise HTTPException(status_code=403, detail="Este módulo no está incluido en tu plan.")
+                raise HTTPException(status_code=403, detail="Este módulo está bloqueado.")
 
             secciones = list(Seccion.select()[:])
             secciones_programa = [

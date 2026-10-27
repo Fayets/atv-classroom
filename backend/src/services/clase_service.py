@@ -46,7 +46,7 @@ class ClaseServices:
                 raise HTTPException(status_code=404, detail="Clase no encontrada.")
             exigir_desbloqueado(clase.seccion.programa)
             if modulo_cerrado(clase.seccion.programa, ve_como):
-                raise HTTPException(status_code=403, detail="Este módulo no está incluido en tu plan.")
+                raise HTTPException(status_code=403, detail="Este módulo está bloqueado.")
 
             progreso = _buscar_progreso(clase_id, usuario_id, tipo)
             nota = _buscar_nota(clase_id, usuario_id, tipo)
