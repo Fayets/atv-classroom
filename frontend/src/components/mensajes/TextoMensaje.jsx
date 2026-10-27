@@ -3,6 +3,7 @@ import { normal } from '../../utils/mensajes'
 
 const URL = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g
 const MENCION = /(@[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)/g
+const NEGRITA = /\*\*([^*\n]+?)\*\*/g // **texto**, como en Discord (lo traído de allá y los anuncios del equipo)
 
 function ConMenciones({ texto, nombres, yo }) {
   if (!nombres?.size && !/@(everyone|todos)/i.test(texto)) return texto
@@ -21,7 +22,8 @@ function ConMenciones({ texto, nombres, yo }) {
   })
 }
 
-// Respeta los saltos de línea, convierte los links en enlaces y resalta las @menciones (sin HTML del usuario).
+// Respeta los saltos de línea, convierte los links en enlaces, pone en negrita lo que va entre ** y resalta
+// las @menciones (sin HTML del usuario).
 export default function TextoMensaje({ texto, nombres, yo }) {
   const partes = texto.split(URL)
   return (
@@ -32,7 +34,15 @@ export default function TextoMensaje({ texto, nombres, yo }) {
             {parte}
           </a>
         ) : (
-          <ConMenciones key={i} texto={parte} nombres={nombres} yo={yo} />
+          parte.split(NEGRITA).map((trozo, j) =>
+            j % 2 === 1 ? (
+              <strong key={`${i}-${j}`}>
+                <ConMenciones texto={trozo} nombres={nombres} yo={yo} />
+              </strong>
+            ) : (
+              <ConMenciones key={`${i}-${j}`} texto={trozo} nombres={nombres} yo={yo} />
+            ),
+          )
         ),
       )}
     </p>
