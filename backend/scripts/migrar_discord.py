@@ -19,7 +19,9 @@ Uso (dentro del contenedor del backend):
     python -m scripts.migrar_discord /tmp/discord            # solo muestra qué haría
     python -m scripts.migrar_discord /tmp/discord --aplicar  # importa
     python -m scripts.migrar_discord /tmp/discord --nuevos --aplicar  # solo lo nuevo, sin borrar
+    python -m scripts.migrar_discord /tmp/discord --nuevos --solo=alvaro-larraz --aplicar  # solo esos canales
 Opciones: --mapa=canal=cliente_id,...  (ata canales sin cliente)  ·  --alias="Viejo=Nuevo,..." (misma persona)
+          --solo=canal,...  (con --nuevos: migra solo esos canales; se leen todos igual para saber quién es del equipo)
 """
 
 import json
@@ -184,8 +186,10 @@ def main() -> None:
     aplicar = "--aplicar" in sys.argv
     solo_nuevos = "--nuevos" in sys.argv
     # --mapa canal=cliente_id: ata un canal a un cliente a mano (para probar o corregir uno suelto).
-    mapa_manual, alias = {}, {}
+    mapa_manual, alias, solo = {}, {}, set()
     for arg in sys.argv[2:]:
+        if arg.startswith("--solo="):
+            solo = {c.strip() for c in arg[len("--solo="):].split(",") if c.strip()}
         # --alias="Emi=Emi Enrique,Juan=juancarrizo": la misma persona con otro nombre en Discord.
         if arg.startswith("--alias="):
             for par in arg[len("--alias="):].split(","):
@@ -195,6 +199,9 @@ def main() -> None:
             for par in arg[len("--mapa="):].split(","):
                 canal, _, cid = par.partition("=")
                 mapa_manual[canal.strip()] = int(cid)
+    if solo and not solo_nuevos:
+        # Sin --nuevos la importación reemplaza todo el historial: con --solo borraría los demás chats.
+        raise SystemExit("--solo va siempre con --nuevos.")
     init_db()
     from src.models import Adjunto, Admin, Canal, ClienteExterno, EstadoAprendizaje, HechoCerebro, MensajeCanal, PerfilCliente
     from src.storage import adjuntos as almacen
@@ -268,6 +275,7 @@ def main() -> None:
             admin_id = cuentas.get(CUENTA_DE.get(m["autor"], "")) if es_equipo else None
             todos.append({
                 "orden": (m["fecha"], orden_archivo, orden),
+                "canal": t["canal"],
                 "cliente_id": t["cliente_id"],
                 "autor_tipo": "admin" if es_equipo else "cliente",
                 "autor_id": (admin_id or 0) if es_equipo else t["cliente_id"],
@@ -302,6 +310,12 @@ def main() -> None:
     for cid, n in por_cliente.most_common(10):
         print(f"  {nombres_cliente.get(cid, cid)}: {n}")
 
+    if solo:
+        faltan = solo - {t["canal"] for t in transcripts}
+        if faltan:
+            raise SystemExit(f"No encontré estos canales con cliente: {', '.join(sorted(faltan))}")
+        todos = [x for x in todos if x["canal"] in solo]
+        print(f"\nSolo los canales: {', '.join(sorted(solo))}")
     if solo_nuevos:
         todos = _solo_lo_nuevo(todos)
         print(f"\nModo --nuevos: {len(todos)} mensajes nuevos desde la última importación")
