@@ -48,6 +48,8 @@ CLASES = {
     53: "documentar",       # Cómo documentar procesos para delegar (Naza)
     54: "organizar",        # Cómo organizar tu día para hacer +100K/MES (Naza)
     # Marketing
+    58: "proximamente",     # submódulo Creando en vivo: nunca se grabó, la clase se llama "Próximamente"
+    59: "proximamente",     # submódulo Psicología del consumo: ídem
     60: "marca personal",   # Cómo arrancar una marca personal de 0 (Naza)
     61: "depurar",          # Cómo depurar una cuenta viral (Naza)
     62: "editor",           # Cómo trabajar con un editor (Naza)
@@ -82,10 +84,7 @@ CLASES = {
 
 # Clases que nunca se grabaron y no tienen id a mano: van por módulo (título exacto) y por palabra del título.
 # Tiene que haber exactamente una que coincida.
-POR_TITULO = [
-    ("marketing", "vivo"),                # Creando en vivo (nunca se grabó)
-    ("marketing", "psicolog"),            # Psicología del consumo (nunca se grabó)
-]
+POR_TITULO = []
 
 # Módulos enteros: (palabra del título del módulo, submódulos que se salvan). Si no aparece el submódulo que
 # se salva, no se toca el módulo: mejor no bloquear nada que bloquear las clases de ventas.
