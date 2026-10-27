@@ -61,6 +61,9 @@ CLASES = {
     84: "urgencia",         # Cómo generar urgencia de forma natural (Fede)
     85: "downsell",         # Cómo hacer downsell y cuotas (Fede)
     86: "ego",              # Cómo manejar leads con ego (Fede)
+    87: "creencias",        # Cómo detectar las creencias limitantes del lead (Fede)
+    88: "identidad",        # Cómo meter al lead en el marco de identidad (Fede)
+    89: "presentacion",     # Presentación de ventas (Fede)
 }
 
 # Clases que nunca se grabaron y no tienen id a mano: van por módulo (título exacto) y por palabra del título.
