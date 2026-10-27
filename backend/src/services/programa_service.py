@@ -5,7 +5,7 @@ from pony.orm import db_session
 
 from src.models import Clase, Programa, Progreso, Seccion
 from src.services.bloqueos import exigir_desbloqueado, programa_bloqueado
-from src.services.video_acceso import recursos, video
+from src.services.video_acceso import modulo_cerrado, recursos, video
 from src.utils.clase_content import serializar_recursos
 
 
@@ -78,11 +78,12 @@ def _serializar_clase(clase: Clase, usuario_id: int, tipo: str, ve_como: str | N
 
 
 class ProgramaServices:
-    def listar_programas(self, usuario_id: int, tipo: str) -> list[dict]:
+    def listar_programas(self, usuario_id: int, tipo: str, *, ve_como: str | None) -> list[dict]:
         with db_session:
             programas = list(Programa.select()[:])
+            cerrados = {p.id for p in programas if modulo_cerrado(p, ve_como)}
             # Los bloqueados van al final, en su orden.
-            programas_ordenados = sorted(programas, key=lambda programa: (programa_bloqueado(programa), programa.orden))
+            programas_ordenados = sorted(programas, key=lambda programa: (programa_bloqueado(programa) or programa.id in cerrados, programa.orden))
 
             return [
                 {
@@ -97,12 +98,14 @@ class ProgramaServices:
                         tipo,
                     ),
                     "total_clases": len(_clases_de_programa(programa.id)),
-                    "bloqueado": programa_bloqueado(programa),
+                    "bloqueado": programa_bloqueado(programa) or programa.id in cerrados,
+                    # "pronto": todavía no se abre para nadie; "plan": no está en el plan de quien mira.
+                    "motivo_bloqueo": "pronto" if programa_bloqueado(programa) else ("plan" if programa.id in cerrados else None),
                 }
                 for programa in programas_ordenados
             ]
 
-    def continuar(self, usuario_id: int, tipo: str) -> dict | None:
+    def continuar(self, usuario_id: int, tipo: str, *, ve_como: str | None) -> dict | None:
         """"Seguí donde quedaste": la clase que sigue a la última que completó (en su módulo, y si lo terminó,
         en el próximo). Si todavía no completó ninguna, la primera del classroom."""
         campo = _campo_id(tipo)
@@ -112,7 +115,7 @@ class ProgramaServices:
             ultima = max((p for p in mios if p.completado and p.completado_en), key=lambda p: p.completado_en, default=None)
             modulos = []
             for programa in sorted(list(Programa.select()), key=lambda p: p.orden):
-                if programa_bloqueado(programa):
+                if programa_bloqueado(programa) or modulo_cerrado(programa, ve_como):
                     continue
                 clases = [
                     c for s in sorted(programa.secciones, key=lambda s: s.orden) for c in sorted(s.clases, key=lambda c: c.orden)
@@ -179,6 +182,8 @@ class ProgramaServices:
             if programa is None:
                 raise HTTPException(status_code=404, detail="Programa no encontrado.")
             exigir_desbloqueado(programa)
+            if modulo_cerrado(programa, ve_como):
+                raise HTTPException(status_code=403, detail="Este módulo no está incluido en tu plan.")
 
             secciones = list(Seccion.select()[:])
             secciones_programa = [

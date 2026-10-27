@@ -81,6 +81,7 @@ class ProgramaListItem(BaseModel):
     porcentaje_progreso: int = 0
     total_clases: int = 0
     bloqueado: bool = False
+    motivo_bloqueo: str | None = None
 
 
 class ClaseListItem(BaseModel):

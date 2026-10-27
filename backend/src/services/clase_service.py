@@ -7,7 +7,7 @@ from src.db import db
 from src.models import Clase, Nota, Progreso
 from src.services.bloqueos import exigir_desbloqueado
 from src.services.frente_service import BRIEFS, coach_de_clase
-from src.services.video_acceso import recursos, video
+from src.services.video_acceso import modulo_cerrado, recursos, video
 from src.utils.clase_content import serializar_recursos
 
 
@@ -45,6 +45,8 @@ class ClaseServices:
             if clase is None:
                 raise HTTPException(status_code=404, detail="Clase no encontrada.")
             exigir_desbloqueado(clase.seccion.programa)
+            if modulo_cerrado(clase.seccion.programa, ve_como):
+                raise HTTPException(status_code=403, detail="Este módulo no está incluido en tu plan.")
 
             progreso = _buscar_progreso(clase_id, usuario_id, tipo)
             nota = _buscar_nota(clase_id, usuario_id, tipo)

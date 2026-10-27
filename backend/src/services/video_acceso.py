@@ -64,3 +64,16 @@ def recursos(clase, ve_como: str | None) -> list[dict]:
     if ve_como is not None and valor(ve_como, "sops") == "no":
         return []
     return serializar_recursos(clase)
+
+
+def modulo_cerrado(programa, ve_como: str | None) -> bool:
+    """El módulo no se abre para ese plan: tiene las clases apagadas en Permisos o todos sus videos bloqueados
+    para él. Los SOPs siguen en la pestaña SOPs."""
+    from src.services.permisos_service import valor
+
+    if ve_como is None:
+        return False
+    if valor(ve_como, "clases") == "no":
+        return True
+    clases = [c for s in programa.secciones for c in s.clases]
+    return bool(clases) and all(ve_como in bloqueado_para(c) for c in clases)

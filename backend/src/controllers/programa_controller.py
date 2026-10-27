@@ -15,7 +15,7 @@ service = ProgramaServices()
 def listar_programas(sesion: dict = Depends(obtener_sesion_desde_request)):
     try:
         tipo, pid = persona(sesion)
-        return service.listar_programas(pid, tipo)
+        return service.listar_programas(pid, tipo, ve_como=ve_como(sesion))
     except HTTPException as exc:
         raise exc
     except Exception:
@@ -25,7 +25,7 @@ def listar_programas(sesion: dict = Depends(obtener_sesion_desde_request)):
 @router.get("/continuar")
 def continuar(sesion: dict = Depends(obtener_sesion_desde_request)):
     tipo, pid = persona(sesion)
-    return service.continuar(pid, tipo)
+    return service.continuar(pid, tipo, ve_como=ve_como(sesion))
 
 
 @router.get("/sops")

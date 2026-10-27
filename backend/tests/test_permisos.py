@@ -47,3 +47,19 @@ def test_clases_y_sops_apagados_por_plan():
     c = SimpleNamespace(video_url="https://vimeo.com/1", video_bloqueado=False, video_bloqueado_para="", recursos=[])
     assert video(c, "mid")["video_proximamente"] is True and video(c, "high")["video_url"]
     assert recursos(c, "mid") == []
+
+
+def test_modulo_cerrado_si_no_ve_ningun_video_o_tiene_las_clases_apagadas():
+    from types import SimpleNamespace
+
+    from src.services.video_acceso import modulo_cerrado
+
+    cl = lambda para: SimpleNamespace(video_bloqueado=bool(para), video_bloqueado_para=para)
+    todo_bloqueado = SimpleNamespace(secciones=[SimpleNamespace(clases=[cl("high,boost"), cl("high")])])
+    mezcla = SimpleNamespace(secciones=[SimpleNamespace(clases=[cl("high"), cl("")])])
+    vacio = SimpleNamespace(secciones=[])
+    assert modulo_cerrado(todo_bloqueado, "high") and not modulo_cerrado(todo_bloqueado, "boost")
+    assert not modulo_cerrado(mezcla, "high") and not modulo_cerrado(vacio, "high")
+    assert not modulo_cerrado(todo_bloqueado, None)  # el equipo entra siempre
+    p.guardar([{"plan": "mid", "clave": "clases", "valor": "no"}])
+    assert modulo_cerrado(mezcla, "mid")
