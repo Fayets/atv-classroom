@@ -8,9 +8,6 @@
 .rm-lado button { width: 100%; display: flex; align-items: center; gap: 9px; padding: 7px 10px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: 14px; color: var(--rm-t1); text-align: left; cursor: pointer; }
 .rm-lado button:hover { background: rgba(0, 0, 0, 0.04); }
 .rm-lado button.is-on { background: rgba(0, 0, 0, 0.06); font-weight: 600; }
-.rm-lado .rm-volver, .rm-vacio .rm-volver { width: auto; margin: 4px 0 8px; padding: 7px 12px 7px 8px; gap: 4px; border-radius: 9px; background: rgba(0, 0, 0, 0.05); font-weight: 600; font-size: 13.5px; color: var(--rm-t1, #1d1d1f); }
-.rm-volver svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.rm-vacio .rm-volver { display: inline-flex; align-items: center; border: 0; cursor: pointer; font-family: inherit; }
 .rm-lado button .rm-cuenta { margin-left: auto; font-size: 12.5px; color: var(--rm-t3); font-variant-numeric: tabular-nums; font-weight: 400; }
 .rm-punto { width: 9px; height: 9px; border-radius: 3px; background: var(--rm-t3); }
 .rm-punto.is-rojo { border-radius: 50%; background: var(--rm-rojo); }

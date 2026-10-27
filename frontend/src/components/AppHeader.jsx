@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useEscritorio } from '../context/EscritorioContext'
 import { useMensajeria } from '../context/MensajeriaContext'
@@ -18,6 +18,10 @@ export default function AppHeader() {
   // Como en Discord, el número baja al leer: mensajes sin leer. El coach ve sus alertas sin responder.
   const contador = isEquipo && !isAdmin ? resumen.esperando : resumen.no_leidos
   const navigate = useNavigate()
+  // Como la flecha de Finder: vuelve a la pantalla anterior sin cerrar la ventana. Solo si hay a dónde volver.
+  // React Router guarda en history.state.idx cuántas pantallas recorriste en la app: con 0 no hay a dónde volver.
+  useLocation()
+  const hayAtras = (window.history.state?.idx ?? 0) > 0
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
   const initials = getUserInitials(user?.nombre)
@@ -113,6 +117,11 @@ export default function AppHeader() {
             <span className="app-header__rotulo">Classroom</span>
           </Link>
         )}
+        {isEquipo ? (
+          <button type="button" className="mac-atras" onClick={() => navigate(-1)} disabled={!hayAtras} aria-label="Volver a la pantalla anterior" title="Volver">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+          </button>
+        ) : null}
       </div>
 
       {secciones ? (

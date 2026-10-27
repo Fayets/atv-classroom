@@ -91,6 +91,11 @@
 .mac-semaforo button:nth-child(3) { background: #28c840; }
 .mac-semaforo button svg { width: 8px; height: 8px; opacity: 0; }
 .mac-semaforo:hover button svg { opacity: 1; }
+/* Flecha de volver, como la de Finder: al lado del semáforo, en todas las pantallas del equipo. */
+.mac-atras { display: grid; place-items: center; width: 28px; height: 24px; margin-left: -8px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #3a3a3c; cursor: pointer; }
+.mac-atras:hover:not(:disabled) { background: rgba(0, 0, 0, 0.07); }
+.mac-atras:disabled { color: rgba(0, 0, 0, 0.22); cursor: default; }
+.mac-atras svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
 
 .esc-ventana .app-header,
 .esc-ventana .msj-lateral,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { fetchMiRoadmap, fetchRoadmap, marcarPaso } from '../api/roadmap'
 import AppHeader from '../components/AppHeader'
 import { useAuth } from '../context/AuthContext'
@@ -108,17 +108,6 @@ export default function RoadmapPage() {
   const { isEquipo } = useAuth()
   const [params] = useSearchParams()
   const clienteId = Number(params.get('cliente')) || null
-  const navigate = useNavigate()
-  const location = useLocation()
-  // El equipo llega acá desde el chat del cliente ("Ver el tablero como lo ve el cliente"): vuelve al chat
-  // sin cerrar nada. Si entró directo por el link, va a Mensajes.
-  const volver = isEquipo && clienteId ? () => (location.key !== 'default' ? navigate(-1) : navigate('/mensajes')) : null
-  const botonVolver = volver ? (
-    <button type="button" className="rm-volver" onClick={volver}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
-      Volver al chat
-    </button>
-  ) : null
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
   const [filtro, setFiltro] = useState('todo')
@@ -301,15 +290,9 @@ export default function RoadmapPage() {
   return (
     <div className="app-shell rm-root">
       <AppHeader />
-      {error || !datos ? (
-        <div className="rm-vacio">
-          {botonVolver}
-          <p>{error || 'Cargando el roadmap…'}</p>
-        </div>
-      ) : (
+      {error ? <p className="rm-vacio">{error}</p> : !datos ? <p className="rm-vacio">Cargando el roadmap…</p> : (
         <div className="rm">
           <aside className="rm-lado" aria-label="Filtros">
-            {botonVolver}
             <p className="rm-seccion">Roadmaps</p>
             <button type="button" className={filtro === 'vigente' ? 'is-on' : ''} onClick={() => setFiltro('vigente')}>
               <i className="rm-punto is-rojo" /> Vigente <span className="rm-cuenta">{datos.vigentes}</span>
