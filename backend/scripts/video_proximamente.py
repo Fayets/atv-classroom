@@ -1,5 +1,6 @@
-"""Pone en "Próximamente" el video de las clases del módulo Advantage donde sale el equipo (lista de Franco,
-27-10-2026). Solo el video: los SOPs de cada clase se siguen viendo.
+"""Pone en "Próximamente" el video de las clases donde sale el equipo (listas de Franco del 27-10-2026:
+Advantage y Business Foundations). Solo el video: los SOPs de cada clase se siguen viendo. Se puede correr
+de nuevo cuando se suman clases: las que ya estaban quedan igual.
 
 Cada clase va por su id con una palabra que tiene que estar en el título: si no coincide, no se toca y se
 avisa. Sin --aplicar solo muestra lo que haría.
@@ -39,6 +40,13 @@ CLASES = {
     46: "lanzamientos",     # ¿Cuándo hacer lanzamientos? (Naza)
     47: "producto",         # Cómo crear y cómo mejorar tu producto (Naza)
     48: "proyecciones",     # Proyecciones y limitaciones (Naza)
+    # Business Foundations
+    49: "perfil",           # Qué buscar en cada perfil y dónde buscarlo (Naza)
+    50: "miembro",          # Cómo onboardear a un miembro del equipo (Naza)
+    51: "gestionar",        # Cómo gestionar tu equipo (Naza)
+    52: "reuniones",        # Reuniones efectivas (Naza)
+    53: "documentar",       # Cómo documentar procesos para delegar (Naza)
+    54: "organizar",        # Cómo organizar tu día para hacer +100K/MES (Naza)
 }
 
 
