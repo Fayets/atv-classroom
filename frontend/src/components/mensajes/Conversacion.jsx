@@ -849,7 +849,6 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                       <div className="msj-m__head">
                         <b className={m.autor.tipo === 'equipo' ? 'is-equipo' : ''}>{m.autor.nombre}</b>
                         {m.autor.tipo === 'equipo' ? <span className="msj-rol">ATV</span> : null}
-                        {m.autor.miembro ? <span className="msj-insignia" title="Del equipo del cliente">{m.autor.miembro.rol_nombre}</span> : null}
                         <time dateTime={m.creado_en}>{hora(m.creado_en)}</time>
                         {m.origen === 'discord' ? <span className="msj-m__origen" title="Mensaje traído del historial de Discord">Discord</span> : null}
                       </div>

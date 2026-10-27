@@ -127,7 +127,7 @@ export default function CuentaPage() {
 
             {c.tipo === 'cliente' ? (
               <Seccion titulo={c.miembro ? `Plan de ${c.miembro.cliente_nombre}` : 'Tu plan'}>
-                {c.miembro ? <p className="cuenta-equipo__soy">Sos parte del equipo de {c.miembro.cliente_nombre} como {c.miembro.rol_nombre.toLowerCase()}.</p> : null}
+                {c.miembro ? <p className="cuenta-equipo__soy">Sos parte del equipo de {c.miembro.cliente_nombre}.</p> : null}
                 <div className="cuenta-plan">
                   <span className="cuenta-plan__nombre">{c.plan_nombre || 'Sin plan'}</span>
                   <span className={`cuenta-plan__dias${vencido ? ' is-vencido' : c.dias_restantes != null && c.dias_restantes <= 15 ? ' is-poco' : ''}`}>

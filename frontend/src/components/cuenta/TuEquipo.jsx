@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { agregarMiembro, editarMiembro, fetchEquipo, quitarMiembro } from '../../api/equipo'
 import { getUserInitials } from '../../utils/user'
 
-const VACIO = { email: '', nombre: '', rol: 'setter' }
+// Todos los del equipo tienen los mismos permisos: no se elige rol (va 'otro' por compatibilidad).
+const VACIO = { email: '', nombre: '', rol: 'otro' }
 
 // El cliente suma a su equipo (socios, setters, closers…) al chat. Entran con su mail y la misma clave.
 export default function TuEquipo() {
@@ -63,7 +64,6 @@ export default function TuEquipo() {
                 <b>{m.nombre}</b>
                 <small>{m.email}</small>
               </span>
-              <span className="cuenta-equipo__rol">{m.rol_nombre}</span>
               {confirmar === m.id ? (
                 <span className="cuenta-equipo__acciones">
                   <button type="button" className="is-peligro" onClick={() => quitar(m)}>Sacar</button>
@@ -89,14 +89,6 @@ export default function TuEquipo() {
           <label>
             <span>Mail</span>
             <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="leo@gmail.com" autoComplete="off" />
-          </label>
-          <label>
-            <span>Rol</span>
-            <select value={form.rol} onChange={(e) => setForm({ ...form, rol: e.target.value })}>
-              {datos.roles.map((r) => (
-                <option key={r.id} value={r.id}>{r.nombre}</option>
-              ))}
-            </select>
           </label>
           <div className="cuenta-equipo__botones">
             <button type="button" className="cuenta-boton is-suave" onClick={() => setForm(null)}>Cancelar</button>
