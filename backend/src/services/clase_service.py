@@ -54,6 +54,9 @@ class ClaseServices:
                 "orden": clase.orden,
                 "video_url": None if clase.video_bloqueado else clase.video_url,
                 "video_proximamente": bool(clase.video_bloqueado),
+                # Para el cartel de "Próximamente": va con el dibujo y el nombre del módulo.
+                "modulo": clase.seccion.programa.titulo,
+                "portada": clase.seccion.programa.cover_url,
                 "duracion_segundos": clase.duracion_segundos,
                 "descripcion": clase.descripcion,
                 "recursos": serializar_recursos(clase),

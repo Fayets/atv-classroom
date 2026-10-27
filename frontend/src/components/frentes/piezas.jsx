@@ -27,10 +27,18 @@ export function Video({ clase, className = '' }) {
   return (
     <div className={`pc-video ${className}`}>
       {clase?.video_proximamente ? (
-        <div className="pc-video__pronto">
-          <span className="pc-video__pronto-tag">Próximamente</span>
-          <b>Estamos regrabando este video</b>
-          <small>Mientras tanto, abajo tenés los SOPs y documentos de la clase.</small>
+        // Como las portadas de los módulos: fondo hueso, etiqueta azul, título grande y el dibujo del módulo.
+        <div className="pc-pronto">
+          <span className="pc-pronto__arriba">ATV — Aumenta tu valor</span>
+          {clase.portada ? <span className="pc-pronto__dibujo" style={{ backgroundImage: `url(${clase.portada})` }} aria-hidden="true" /> : null}
+          <div className="pc-pronto__texto">
+            <span className="pc-pronto__tag">Próximamente</span>
+            <b className="pc-pronto__titulo">{clase.titulo}</b>
+          </div>
+          <span className="pc-pronto__abajo">
+            {clase.modulo ? <>Módulo <b>{clase.modulo}</b><br /></> : null}
+            <small>Video en grabación · los SOPs ya están abajo</small>
+          </span>
         </div>
       ) : info?.type === 'iframe' ? (
         <iframe src={info.src} title={clase.titulo} allow="autoplay; fullscreen; picture-in-picture; clipboard-write" allowFullScreen />

@@ -115,6 +115,8 @@ class ClaseDetalleResponse(BaseModel):
     orden: int
     video_url: str | None = None
     video_proximamente: bool = False
+    modulo: str | None = None
+    portada: str | None = None
     duracion_segundos: int | None = None
     descripcion: str | None = None
     recursos: list["ClaseRecursoItem"] = []

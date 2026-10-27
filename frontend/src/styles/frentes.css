@@ -518,8 +518,22 @@ html .im-root .im-sec h2 { margin: 0 0 10px; font-size: 11px; font-weight: 600; 
   .im-hoy { gap: 20px; }
 }
 
-/* Video en "Próximamente": se regraba; los SOPs de la clase siguen abajo. */
-.pc-video__pronto { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; text-align: center; color: #f5f5f7; background: radial-gradient(120% 90% at 50% 40%, #2a2a2d, #0d0d0e); }
-.pc-video__pronto-tag { padding: 4px 12px; border-radius: 99px; background: #c0392b; color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-.pc-video__pronto b { font-size: 18px; font-weight: 650; }
-.pc-video__pronto small { max-width: 34ch; font-size: 13.5px; color: #a1a1a6; line-height: 1.45; }
+/* Video en "Próximamente": cartel con la estética de las portadas de los módulos (fondo hueso, etiqueta azul
+   marino, título en negro pesado). El dibujo es el de la portada del módulo: la mitad derecha de su imagen. */
+.pc-video:has(.pc-pronto) { background: #e7e4dd; container-type: inline-size; }
+.pc-pronto { position: absolute; inset: 0; color: #1f1e1c; background: #e6e3dc; }
+.pc-pronto__arriba, .pc-pronto__abajo { position: absolute; left: 6.2%; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: max(9px, 1.15cqw); letter-spacing: 0.32em; text-transform: uppercase; color: #8a8780; }
+.pc-pronto__arriba { top: 8%; }
+.pc-pronto__abajo { bottom: 8%; line-height: 1.7; }
+.pc-pronto__abajo b { color: #1f1e1c; font-weight: 700; }
+.pc-pronto__abajo small { font-size: inherit; }
+@container (max-width: 560px) {
+  .pc-pronto__arriba, .pc-pronto__abajo, .pc-pronto__tag { letter-spacing: 0.16em; }
+  .pc-pronto__abajo small { display: none; }
+  .pc-pronto__texto { width: 56%; }
+}
+.pc-pronto__dibujo { position: absolute; top: 0; right: 0; bottom: 0; aspect-ratio: 610 / 659; background-size: auto 100%; background-position: right center; background-repeat: no-repeat;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%); mask-image: linear-gradient(90deg, transparent, #000 12%); }
+.pc-pronto__texto { position: absolute; left: 6.2%; top: 50%; transform: translateY(-50%); width: 52%; display: flex; flex-direction: column; align-items: flex-start; gap: 1.6cqw; }
+.pc-pronto__tag { padding: 0.55cqw 1.2cqw; border-radius: 3px; background: #00001d; color: #f2efe9; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: max(9px, 1.1cqw); font-weight: 700; letter-spacing: 0.28em; text-transform: uppercase; }
+.pc-pronto__titulo { font-size: clamp(18px, 4.6cqw, 56px); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; text-transform: uppercase; text-wrap: balance; }
