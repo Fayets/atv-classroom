@@ -60,6 +60,41 @@ function Field({ label, children }) {
   )
 }
 
+// Para qué planes el video de la clase sale en "Próximamente". Los SOPs se ven siempre.
+const PLANES_VIDEO = [
+  { id: 'high', nombre: 'High Level' },
+  { id: 'boost', nombre: 'Boost' },
+  { id: 'mid', nombre: 'Mid level' },
+  { id: 'entry', nombre: 'Entry level' },
+  { id: 'mentoria', nombre: 'Mentoría' },
+  { id: '2k', nombre: '2K' },
+]
+const TODOS_MENOS_2K = PLANES_VIDEO.filter((p) => p.id !== '2k').map((p) => p.id)
+
+function BloqueoVideo({ planes, onChange }) {
+  const alternar = (id) => onChange(planes.includes(id) ? planes.filter((p) => p !== id) : [...planes, id])
+  return (
+    <div className="admin-bloqueo">
+      <span className="admin-field__label">Video bloqueado para (los SOPs se ven igual)</span>
+      <div className="admin-bloqueo__planes">
+        {PLANES_VIDEO.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            className={`admin-bloqueo__plan${planes.includes(p.id) ? ' is-bloqueado' : ''}`}
+            aria-pressed={planes.includes(p.id)}
+            onClick={() => alternar(p.id)}
+          >
+            {planes.includes(p.id) ? '🔒 ' : ''}{p.nombre}
+          </button>
+        ))}
+        <button type="button" className="admin-bloqueo__atajo" onClick={() => onChange(TODOS_MENOS_2K)}>Todos menos 2K</button>
+        {planes.length ? <button type="button" className="admin-bloqueo__atajo" onClick={() => onChange([])}>Liberar</button> : null}
+      </div>
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const [programas, setProgramas] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -281,7 +316,7 @@ export default function AdminPage() {
         titulo: clase.titulo,
         orden: Number(clase.orden) || 0,
         video_url: clase.video_url?.trim() || '',
-        video_bloqueado: Boolean(clase.video_bloqueado),
+        video_bloqueado_para: clase.video_bloqueado_para || [],
         duracion_segundos: clase.duracion_segundos
           ? Number(clase.duracion_segundos)
           : null,
@@ -702,21 +737,17 @@ export default function AdminPage() {
                                 }
                                 placeholder="URL del video (YouTube, Vimeo, Loom o MP4)"
                               />
-                              <label className="admin-check">
-                                <input
-                                  type="checkbox"
-                                  checked={Boolean(clase.video_bloqueado)}
-                                  onChange={(e) =>
-                                    updateClaseLocal(
-                                      seccion.id,
-                                      clase.id,
-                                      'video_bloqueado',
-                                      e.target.checked,
-                                    )
-                                  }
-                                />
-                                Video en "Próximamente" (los SOPs se siguen viendo)
-                              </label>
+                              <BloqueoVideo
+                                planes={clase.video_bloqueado_para || []}
+                                onChange={(planes) =>
+                                  updateClaseLocal(
+                                    seccion.id,
+                                    clase.id,
+                                    'video_bloqueado_para',
+                                    planes,
+                                  )
+                                }
+                              />
                               <label className="admin-field">
                                 <span className="admin-field__label">
                                   Descripción

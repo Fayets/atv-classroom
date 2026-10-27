@@ -15,6 +15,7 @@ import unicodedata
 from pony.orm import db_session
 
 from src.db import init_db
+from src.services.video_acceso import POR_DEFECTO, guardar_bloqueo
 
 # id de la clase -> palabra que tiene que aparecer en el título (sin tildes, en minúscula)
 CLASES = {
@@ -139,8 +140,8 @@ def main(aplicar: bool) -> int:
             cid = clase.id
             estado = "ya estaba" if clase.video_bloqueado else ("marcada" if aplicar else "se marcaría")
             print(f"  ✓ {cid:>3}  {clase.titulo}  [{clase.seccion.programa.titulo}] — {estado}")
-            if aplicar:
-                clase.video_bloqueado = True
+            if aplicar and not clase.video_bloqueado:
+                guardar_bloqueo(clase, POR_DEFECTO)
     total = len(CLASES) + len(POR_TITULO) + len(MODULOS)
     print(f"\n{total - malas} de {total} pedidos bien ({len(elegidas)} clases) — {'en Próximamente' if aplicar else 'corré con --aplicar'}")
     return 1 if malas else 0

@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from src.services.auth_service import obtener_sesion_desde_request, tipo_de_sesion
 from src.services.frente_service import FrenteServices
+from src.services.video_acceso import ve_como
 from src.services.guia_service import recomendar
 from src.services.plan_acceso import sin_ia
 from src.services.solicitud_service import SolicitudServices, avisar_pedido_ayuda
@@ -54,7 +55,7 @@ def listar_frentes(sesion: dict = Depends(obtener_sesion_desde_request)):
 
 @router.get("/frentes/{slug}")
 def detalle_frente(slug: str, sesion: dict = Depends(obtener_sesion_desde_request)):
-    return service.detalle(slug, sesion["usuario_id"], _tipo(sesion))
+    return service.detalle(slug, sesion["usuario_id"], _tipo(sesion), ve_como=ve_como(sesion))
 
 
 @router.put("/frentes/{slug}")

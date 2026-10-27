@@ -24,8 +24,11 @@ export function Chevron({ dir = 'right' }) {
 
 export function Video({ clase, className = '' }) {
   const info = getVideoEmbedInfo(clase?.video_url)
+  const bloqueadoPara = clase?.video_bloqueado_para || []
   return (
     <div className={`pc-video ${className}`}>
+      {/* Solo el equipo recibe esta lista: ve el video y sabe para quién está bloqueado. */}
+      {bloqueadoPara.length ? <span className="pc-video__aviso">🔒 Bloqueado para {bloqueadoPara.join(', ')}</span> : null}
       {clase?.video_proximamente ? (
         // Como las portadas de los módulos: fondo hueso, etiqueta azul, título grande y el dibujo del módulo.
         <div className="pc-pronto">

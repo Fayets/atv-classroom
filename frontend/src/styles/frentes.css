@@ -537,3 +537,6 @@ html .im-root .im-sec h2 { margin: 0 0 10px; font-size: 11px; font-weight: 600; 
 .pc-pronto__texto { position: absolute; left: 6.2%; top: 50%; transform: translateY(-50%); width: 52%; display: flex; flex-direction: column; align-items: flex-start; gap: 1.6cqw; }
 .pc-pronto__tag { padding: 0.55cqw 1.2cqw; border-radius: 3px; background: #00001d; color: #f2efe9; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: max(9px, 1.1cqw); font-weight: 700; letter-spacing: 0.28em; text-transform: uppercase; }
 .pc-pronto__titulo { font-size: clamp(18px, 4.6cqw, 56px); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; text-transform: uppercase; text-wrap: balance; }
+
+/* Equipo mirando un video bloqueado para algunos planes. */
+.pc-video__aviso { position: absolute; top: 10px; left: 10px; z-index: 2; max-width: calc(100% - 20px); padding: 4px 10px; border-radius: 99px; background: rgba(0, 0, 0, 0.72); color: #fff; font-size: 12px; font-weight: 600; pointer-events: none; }

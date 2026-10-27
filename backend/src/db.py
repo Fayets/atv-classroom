@@ -86,6 +86,7 @@ def _apply_migrations() -> None:
                 # pide un candado exclusivo, y con la app andando eso choca con las lecturas (deadlock).
                 _agregar_columna(cur, "clase", "descripcion", "TEXT")
                 _agregar_columna(cur, "clase", "video_bloqueado", "BOOLEAN NOT NULL DEFAULT FALSE")
+                _agregar_columna(cur, "clase", "video_bloqueado_para", "VARCHAR")
                 # Equipo: coaches además del admin, login con Google (sin contraseña).
                 _agregar_columna(cur, "admins", "rol", "VARCHAR NOT NULL DEFAULT 'admin'")
                 _agregar_columna(cur, "admins", "area", "VARCHAR")

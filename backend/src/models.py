@@ -100,6 +100,8 @@ class Clase(db.Entity):
     descripcion = Optional(str)
     # Video en "Próximamente": no le llega a nadie (sale el equipo grabando, etc.); los SOPs siguen.
     video_bloqueado = Required(bool, default=False)
+    # Planes que NO ven el video ("high,boost,…"); video_bloqueado queda en True si hay alguno. Ver video_acceso.
+    video_bloqueado_para = Optional(str, nullable=True)
 
     recursos = Set("ClaseRecurso")
 

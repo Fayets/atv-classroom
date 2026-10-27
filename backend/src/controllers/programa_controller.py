@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from src import schemas
 from src.services.auth_service import obtener_sesion_desde_request, persona
 from src.services.programa_service import ProgramaServices
+from src.services.video_acceso import ve_como
 
 router = APIRouter(prefix="/api/programas", tags=["programas"])
 service = ProgramaServices()
@@ -39,7 +40,7 @@ def obtener_programa(
 ):
     try:
         tipo, pid = persona(sesion)
-        return service.obtener_detalle_programa(programa_id, pid, tipo)
+        return service.obtener_detalle_programa(programa_id, pid, tipo, ve_como=ve_como(sesion))
     except HTTPException as exc:
         raise exc
     except Exception:

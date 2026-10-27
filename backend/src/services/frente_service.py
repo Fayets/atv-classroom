@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from pony.orm import db_session, flush
 
 from src.models import Clase, ConsultaCoach, Frente
+from src.services.video_acceso import video
 from src.utils.clase_content import serializar_recursos
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
@@ -115,7 +116,7 @@ def _frente(usuario_id: int, tipo: str, slug: str) -> Frente | None:
     return Frente.get(usuario_id=usuario_id, tipo_usuario=tipo, slug=slug)
 
 
-def _clase(clase_id: int) -> dict | None:
+def _clase(clase_id: int, ve_como: str | None) -> dict | None:
     clase = Clase.get(id=clase_id)
     if clase is None:
         return None
@@ -123,8 +124,7 @@ def _clase(clase_id: int) -> dict | None:
     return {
         "id": clase.id,
         "titulo": clase.titulo,
-        "video_url": None if clase.video_bloqueado else clase.video_url,
-        "video_proximamente": bool(clase.video_bloqueado),
+        **video(clase, ve_como),
         "modulo": clase.seccion.programa.titulo,
         "portada": clase.seccion.programa.cover_url,
         "programa_id": clase.seccion.programa.id,
@@ -157,7 +157,7 @@ class FrenteServices:
                 )
             return {"areas": CATALOGO["areas"], "problemas": problemas}
 
-    def detalle(self, slug: str, usuario_id: int, tipo: str) -> dict:
+    def detalle(self, slug: str, usuario_id: int, tipo: str, *, ve_como: str | None) -> dict:
         problema = _problema(slug)
         with db_session:
             sop_clase = Clase.get(id=problema["sop"]["clase_id"])
@@ -167,7 +167,7 @@ class FrenteServices:
                 "area": problema["area"],
                 "titulo": problema["titulo"],
                 "sintoma": problema["sintoma"],
-                "resolver": [c for c in (_clase(i) for i in problema["resolver"]) if c],
+                "resolver": [c for c in (_clase(i, ve_como) for i in problema["resolver"]) if c],
                 "plantillas": _plantillas(problema),
                 "sop": {
                     "nombre": problema["sop"]["nombre"],

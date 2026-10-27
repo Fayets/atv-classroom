@@ -5,6 +5,7 @@ from pony.orm import db_session
 
 from src.models import Clase, Programa, Progreso, Seccion
 from src.services.bloqueos import exigir_desbloqueado, programa_bloqueado
+from src.services.video_acceso import video
 from src.utils.clase_content import serializar_recursos
 
 
@@ -65,13 +66,12 @@ def _calcular_porcentaje_programa(programa_id: int, usuario_id: int, tipo: str) 
     return round(completadas / total_clases * 100)
 
 
-def _serializar_clase(clase: Clase, usuario_id: int, tipo: str) -> dict:
+def _serializar_clase(clase: Clase, usuario_id: int, tipo: str, ve_como: str | None) -> dict:
     return {
         "id": clase.id,
         "titulo": clase.titulo,
         "orden": clase.orden,
-        "video_url": None if clase.video_bloqueado else clase.video_url,
-        "video_proximamente": bool(clase.video_bloqueado),
+        **video(clase, ve_como),
         "duracion_segundos": clase.duracion_segundos,
         "completado": _clase_completada(clase.id, usuario_id, tipo),
     }
@@ -171,6 +171,8 @@ class ProgramaServices:
         programa_id: int,
         usuario_id: int,
         tipo: str,
+        *,
+        ve_como: str | None,
     ) -> dict:
         with db_session:
             programa = Programa.get(id=programa_id)
@@ -194,7 +196,7 @@ class ProgramaServices:
                         "titulo": seccion.titulo,
                         "orden": seccion.orden,
                         "clases": [
-                            _serializar_clase(clase, usuario_id, tipo)
+                            _serializar_clase(clase, usuario_id, tipo, ve_como)
                             for clase in clases_ordenadas
                         ],
                     }

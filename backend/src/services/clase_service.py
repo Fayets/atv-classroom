@@ -7,6 +7,7 @@ from src.db import db
 from src.models import Clase, Nota, Progreso
 from src.services.bloqueos import exigir_desbloqueado
 from src.services.frente_service import BRIEFS, coach_de_clase
+from src.services.video_acceso import video
 from src.utils.clase_content import serializar_recursos
 
 
@@ -38,7 +39,7 @@ def _buscar_nota(clase_id: int, usuario_id: int, tipo: str) -> Nota | None:
 
 
 class ClaseServices:
-    def obtener_detalle_clase(self, clase_id: int, usuario_id: int, tipo: str) -> dict:
+    def obtener_detalle_clase(self, clase_id: int, usuario_id: int, tipo: str, *, ve_como: str | None) -> dict:
         with db_session:
             clase = Clase.get(id=clase_id)
             if clase is None:
@@ -52,8 +53,7 @@ class ClaseServices:
                 "id": clase.id,
                 "titulo": clase.titulo,
                 "orden": clase.orden,
-                "video_url": None if clase.video_bloqueado else clase.video_url,
-                "video_proximamente": bool(clase.video_bloqueado),
+                **video(clase, ve_como),
                 # Para el cartel de "Próximamente": va con el dibujo y el nombre del módulo.
                 "modulo": clase.seccion.programa.titulo,
                 "portada": clase.seccion.programa.cover_url,
