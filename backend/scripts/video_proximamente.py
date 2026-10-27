@@ -1,5 +1,5 @@
 """Pone en "Próximamente" el video de las clases donde sale el equipo (listas de Franco del 27-10-2026:
-Advantage y Business Foundations). Solo el video: los SOPs de cada clase se siguen viendo. Se puede correr
+Advantage, Business Foundations y Marketing). Solo el video: los SOPs de cada clase se siguen viendo. Se puede correr
 de nuevo cuando se suman clases: las que ya estaban quedan igual.
 
 Cada clase va por su id con una palabra que tiene que estar en el título: si no coincide, no se toca y se
@@ -47,7 +47,18 @@ CLASES = {
     52: "reuniones",        # Reuniones efectivas (Naza)
     53: "documentar",       # Cómo documentar procesos para delegar (Naza)
     54: "organizar",        # Cómo organizar tu día para hacer +100K/MES (Naza)
+    # Marketing
+    60: "marca personal",   # Cómo arrancar una marca personal de 0 (Naza)
+    61: "depurar",          # Cómo depurar una cuenta viral (Naza)
+    62: "editor",           # Cómo trabajar con un editor (Naza)
 }
+
+# Clases que nunca se grabaron y no tienen id a mano: van por módulo (título exacto) y por palabra del título.
+# Tiene que haber exactamente una que coincida.
+POR_TITULO = [
+    ("marketing", "en vivo"),             # Creando en vivo (nunca se grabó)
+    ("marketing", "psicologia del consumo"),  # Psicología del consumo (nunca se grabó)
+]
 
 
 def _plano(texto: str) -> str:
@@ -60,17 +71,30 @@ def main(aplicar: bool) -> int:
 
     malas = 0
     with db_session:
+        elegidas = []
         for cid, palabra in CLASES.items():
             clase = Clase.get(id=cid)
             if clase is None or palabra not in _plano(clase.titulo):
                 malas += 1
                 print(f"  ✗ {cid:>3}  {clase.titulo if clase else '(no existe)'}  — esperaba «{palabra}», NO se toca")
                 continue
+            elegidas.append(clase)
+        todas = list(Clase.select())
+        for modulo, palabra in POR_TITULO:
+            hits = [c for c in todas if _plano(c.seccion.programa.titulo).strip() == modulo and palabra in _plano(c.titulo)]
+            if len(hits) != 1:
+                malas += 1
+                print(f"  ✗   ?  «{palabra}» en {modulo}: {len(hits)} clases coinciden ({', '.join(c.titulo for c in hits) or 'ninguna'}), NO se toca")
+                continue
+            elegidas.append(hits[0])
+        for clase in elegidas:
+            cid = clase.id
             estado = "ya estaba" if clase.video_bloqueado else ("marcada" if aplicar else "se marcaría")
             print(f"  ✓ {cid:>3}  {clase.titulo}  [{clase.seccion.programa.titulo}] — {estado}")
             if aplicar:
                 clase.video_bloqueado = True
-    print(f"\n{len(CLASES) - malas} de {len(CLASES)} {'en Próximamente' if aplicar else 'listas (corré con --aplicar)'}")
+    total = len(CLASES) + len(POR_TITULO)
+    print(f"\n{total - malas} de {total} {'en Próximamente' if aplicar else 'listas (corré con --aplicar)'}")
     return 1 if malas else 0
 
 
