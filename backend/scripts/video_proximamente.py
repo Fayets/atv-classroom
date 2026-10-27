@@ -1,5 +1,5 @@
 """Pone en "Próximamente" el video de las clases donde sale el equipo (listas de Franco del 27-10-2026:
-Advantage, Business Foundations y Marketing). Solo el video: los SOPs de cada clase se siguen viendo. Se puede correr
+Advantage, Business Foundations, Marketing y Sales). Solo el video: los SOPs de cada clase se siguen viendo. Se puede correr
 de nuevo cuando se suman clases: las que ya estaban quedan igual.
 
 Cada clase va por su id con una palabra que tiene que estar en el título: si no coincide, no se toca y se
@@ -51,6 +51,16 @@ CLASES = {
     60: "marca personal",   # Cómo arrancar una marca personal de 0 (Naza)
     61: "depurar",          # Cómo depurar una cuenta viral (Naza)
     62: "editor",           # Cómo trabajar con un editor (Naza)
+    # Sales
+    77: "marketing",        # Cómo aportar a marketing (Fede)
+    78: "habitos",          # Los 7 hábitos del vendedor #1 (Fede)
+    79: "principios",       # Los 5 principios fundamentales de ventas (Fede)
+    80: "avanzadas",        # Introducción a las ventas avanzadas (Fede)
+    81: "tonalidad",        # Tonalidad avanzada para llamadas (Fede)
+    83: "autoridad",        # Cómo hacer que te perciban como autoridad (Fede)
+    84: "urgencia",         # Cómo generar urgencia de forma natural (Fede)
+    85: "downsell",         # Cómo hacer downsell y cuotas (Fede)
+    86: "ego",              # Cómo manejar leads con ego (Fede)
 }
 
 # Clases que nunca se grabaron y no tienen id a mano: van por módulo (título exacto) y por palabra del título.
