@@ -83,14 +83,14 @@ CLASES = {
 # Clases que nunca se grabaron y no tienen id a mano: van por módulo (título exacto) y por palabra del título.
 # Tiene que haber exactamente una que coincida.
 POR_TITULO = [
-    ("marketing", "en vivo"),             # Creando en vivo (nunca se grabó)
-    ("marketing", "psicologia del consumo"),  # Psicología del consumo (nunca se grabó)
+    ("marketing", "vivo"),                # Creando en vivo (nunca se grabó)
+    ("marketing", "psicolog"),            # Psicología del consumo (nunca se grabó)
 ]
 
 # Módulos enteros: (palabra del título del módulo, submódulos que se salvan). Si no aparece el submódulo que
 # se salva, no se toca el módulo: mejor no bloquear nada que bloquear las clases de ventas.
 MODULOS = [
-    ("50k", ["proceso de ventas"]),  # Toda la Guía 50k menos el submódulo Proceso de ventas
+    ("50k", ["proceso de venta"]),  # Toda la Guía 50k menos el submódulo "Proceso de venta"
 ]
 
 
@@ -118,6 +118,9 @@ def main(aplicar: bool) -> int:
             if len(hits) != 1:
                 malas += 1
                 print(f"  ✗   ?  «{palabra}» en {modulo}: {len(hits)} clases coinciden ({', '.join(c.titulo for c in hits) or 'ninguna'}), NO se toca")
+                if not hits:
+                    for c in sorted((c for c in todas if _plano(c.seccion.programa.titulo).strip() == modulo), key=lambda c: (c.seccion.orden, c.orden)):
+                        print(f"        {c.id:>3}  {c.titulo}  [{c.seccion.titulo}]")
                 continue
             elegidas.append(hits[0])
         for palabra, salvar in MODULOS:
