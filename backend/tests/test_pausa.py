@@ -157,3 +157,24 @@ def test_inactivo_corta_como_pausa_con_otro_cartel(equipo, cliente):
     finally:
         svc.marcar_inactivo(equipo["ventas"], cid, False)
     assert auth.obtener_sesion_desde_request(_pedido("POST", f"/api/mensajes/canales/{cid}/mensajes", token))["pausa"] is False
+
+
+def test_contacto_segun_plan():
+    for plan in ("mentoria", "entry", "2k"):
+        assert auth.contacto_pausa(plan)["nombre"] == "Alejandro Ramirez"
+    for plan in ("mid", "high", "advantage", "boost", "BOOST"):
+        c = auth.contacto_pausa(plan)
+        assert c["nombre"] == "Juampi Toledo" and c["link"] == "https://wa.me/5493804660274"
+    assert "Alejandro Ramirez al +506 7103 0224" in auth.mensaje_pausa("inactivo", "entry")
+
+
+def test_el_cliente_high_ve_a_juampi(equipo, cliente):
+    svc.marcar_pausa(equipo["ventas"], cliente["canal_id"], True)
+    try:
+        perfil = auth.obtener_perfil_sesion(auth.obtener_sesion_desde_request(_pedido("GET", "/api/auth/me", cliente["token"])))
+        assert perfil["contacto_pausa"]["nombre"] == "Juampi Toledo"
+        with pytest.raises(HTTPException) as e:
+            auth.obtener_sesion_desde_request(_pedido("GET", "/api/roadmap", cliente["token"]))
+        assert "Juampi Toledo" in e.value.detail
+    finally:
+        svc.marcar_pausa(equipo["ventas"], cliente["canal_id"], False)

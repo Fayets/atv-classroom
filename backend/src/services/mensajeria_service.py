@@ -532,7 +532,7 @@ class MensajeriaServices:
                 # En pausa, de la comunidad solo ve el candado: los mensajes no salen del servidor.
                 from src.services.auth_service import mensaje_pausa
 
-                raise HTTPException(status_code=423, detail=mensaje_pausa(sesion.get("motivo")))
+                raise HTTPException(status_code=423, detail=mensaje_pausa(sesion.get("motivo"), sesion.get("plan")))
             cid = canal.id
             hay_mas = False
             if despues_de is not None:

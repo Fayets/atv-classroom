@@ -340,7 +340,7 @@ def obtener_sesion_desde_request(request: Request) -> dict:
     # Cliente en pausa o inactivo: solo puede leer su canal. Todo lo demás (módulos, IA, roadmaps, escribir)
     # se corta acá, en el servidor, con 423 para que la app muestre el cartel de "hablá con Lucas".
     if sesion.get("pausa") and not permitido_en_pausa(request.method, request.url.path):
-        raise HTTPException(status_code=423, detail=mensaje_pausa(sesion.get("motivo")))
+        raise HTTPException(status_code=423, detail=mensaje_pausa(sesion.get("motivo"), sesion.get("plan")))
     return sesion
 
 
@@ -366,13 +366,24 @@ def permitido_en_pausa(metodo: str, ruta: str) -> bool:
     return any(metodo == m and r.match(ruta) for m, r in _EN_PAUSA)
 
 
-def contacto_pausa() -> dict:
-    numero = "".join(ch for ch in PAUSA_WHATSAPP if ch.isdigit())
-    return {"nombre": PAUSA_CONTACTO, "whatsapp": PAUSA_WHATSAPP or None, "link": f"https://wa.me/{numero}" if numero else None}
+# A quién le escribe un cliente en pausa o inactivo, según su plan: los programas de entrada con Ale, los
+# de arriba con Juampi. Un plan que no esté acá cae en PAUSA_CONTACTO/PAUSA_WHATSAPP.
+_ALE = ("Alejandro Ramirez", "+506 7103 0224")
+_JUAMPI = ("Juampi Toledo", "+54 9 3804 66-0274")
+_CONTACTO_POR_PLAN = {
+    "mentoria": _ALE, "entry": _ALE, "2k": _ALE,
+    "mid": _JUAMPI, "high": _JUAMPI, "advantage": _JUAMPI, "boost": _JUAMPI,
+}
 
 
-def mensaje_pausa(motivo: str | None = None) -> str:
-    c = contacto_pausa()
+def contacto_pausa(plan: str | None = None) -> dict:
+    nombre, whatsapp = _CONTACTO_POR_PLAN.get((plan or "").lower(), (PAUSA_CONTACTO, PAUSA_WHATSAPP))
+    numero = "".join(ch for ch in whatsapp if ch.isdigit())
+    return {"nombre": nombre, "whatsapp": whatsapp or None, "link": f"https://wa.me/{numero}" if numero else None}
+
+
+def mensaje_pausa(motivo: str | None = None, plan: str | None = None) -> str:
+    c = contacto_pausa(plan)
     inicio = "Tu cuenta está inactiva. Para reactivarla" if motivo == "inactivo" else "Tu programa está en pausa. Para reanudarlo"
     return f"{inicio}, escribile a {c['nombre']}" + (f" al {c['whatsapp']}." if c["whatsapp"] else ".")
 
@@ -403,8 +414,9 @@ def _validar_token(token: str) -> dict:
             # Inactivos corta igual que Pausa (solo lee su canal); cambia el cartel que ve.
             en_pausa = bool(canal and (canal.pausa or canal.inactivo))
             motivo = "pausa" if canal and canal.pausa else ("inactivo" if en_pausa else None)
+            plan = cliente.plan_actual
     else:
-        en_pausa, motivo = False, None
+        en_pausa, motivo, plan = False, None, None
 
     return {
         "usuario_id": sesion["usuario_id"],
@@ -415,6 +427,7 @@ def _validar_token(token: str) -> dict:
         "miembro_rol": sesion.get("miembro_rol"),
         "pausa": en_pausa,
         "motivo": motivo,
+        "plan": plan,
     }
 
 
@@ -468,7 +481,7 @@ def obtener_perfil_sesion(sesion: dict) -> dict:
             "email": sesion["email"],
             "rol": sesion["rol"],
             "pausa": bool(sesion.get("pausa")),
-            "contacto_pausa": contacto_pausa() if sesion.get("pausa") else None,
+            "contacto_pausa": contacto_pausa(cliente.plan_actual) if sesion.get("pausa") else None,
             "motivo_pausa": sesion.get("motivo"),
             "dias_restantes": _calcular_dias_restantes(fecha_vencimiento),
             "fecha_vencimiento": fecha_vencimiento.isoformat() if fecha_vencimiento else None,
