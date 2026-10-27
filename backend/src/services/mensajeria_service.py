@@ -584,7 +584,11 @@ class MensajeriaServices:
             return True
         if canal.tipo == "grupo":
             return True  # si llegó acá es porque lo ve (ver _canal_visible)
-        return canal.tipo == "cliente" and canal.cliente_id == sesion["usuario_id"]
+        if canal.tipo != "cliente" or canal.cliente_id != sesion["usuario_id"]:
+            return False
+        from src.services.permisos_service import permite
+
+        return permite(sesion, "chat")
 
     def enviar(
         self,

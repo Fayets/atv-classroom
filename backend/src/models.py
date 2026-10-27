@@ -482,6 +482,18 @@ class MiembroCliente(db.Entity):
     creado_en = Required(datetime, default=datetime.utcnow)
 
 
+class PermisoPlan(db.Entity):
+    """Un interruptor de la pantalla Permisos: qué ve un plan (clases, sops, roadmaps, chat, comunidad, ia).
+    Lo que no está guardado toma el valor por defecto de permisos_service."""
+
+    _table_ = (DB_SCHEMA, "permisos_plan")
+
+    plan = Required(str)
+    clave = Required(str)
+    valor = Required(str)
+    PrimaryKey(plan, clave)
+
+
 class LimiteEquipo(db.Entity):
     """Cuántas personas de su equipo puede sumar un cliente según su plan (si no está, va el de por defecto)."""
 

@@ -19,7 +19,7 @@ from src.models import ClienteExterno, LimiteEquipo, MiembroCliente, SesionGuard
 LIMITE_POR_DEFECTO = 10
 from src.services.plan_acceso import PLANES_SIN_EQUIPO  # noqa: E402
 
-PLANES = ["mentoria", "boost", "advantage", "mid", "entry"]
+PLANES = ["mentoria", "boost", "advantage", "mid", "entry", "2k"]
 
 ROLES = {
     "socio": "Socio",
@@ -37,10 +37,11 @@ def nombre_rol(rol: str | None) -> str:
 
 
 def limite_de(plan: str | None) -> int:
-    if plan in PLANES_SIN_EQUIPO:
-        return 0
-    fila = LimiteEquipo.get(plan=plan or "")
-    return fila.maximo if fila else LIMITE_POR_DEFECTO
+    with db_session:
+        fila = LimiteEquipo.get(plan=plan or "")
+        if fila:
+            return fila.maximo
+    return 0 if plan in PLANES_SIN_EQUIPO else LIMITE_POR_DEFECTO
 
 
 def _dict(m: MiembroCliente) -> dict:

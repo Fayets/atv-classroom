@@ -718,7 +718,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const todos = [...mensajes, ...pendientes]
   const esPrivado = canal.tipo === 'cliente'
   // 2K: su chat es solo para pedir las sesiones 1 a 1 (los coaches no dan consultas por acá).
-  const solo1a1 = esPrivado && !isEquipo && user?.rol === '2k'
+  const solo1a1 = esPrivado && !isEquipo && (user?.permisos?.chat ?? (user?.rol === '2k' ? '1a1' : 'si')) === '1a1'
   const esGrupo = canal.tipo === 'grupo'
   const esDirecto = canal.tipo === 'directo'
   // "Visto": hasta dónde leyó el otro lado, sobre mi último mensaje.

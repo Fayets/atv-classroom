@@ -42,6 +42,8 @@ class SessionProfileResponse(BaseModel):
     miembro: dict | None = None
     pausa: bool = False
     contacto_pausa: dict | None = None
+    motivo_pausa: str | None = None  # "pausa" | "inactivo": cambia el cartel que ve
+    permisos: dict | None = None  # lo que su plan tiene encendido en la pantalla Permisos
 
 
 class MiembroEquipo(BaseModel):

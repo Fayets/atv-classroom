@@ -30,7 +30,7 @@ def continuar(sesion: dict = Depends(obtener_sesion_desde_request)):
 
 @router.get("/sops")
 def listar_sops(sesion: dict = Depends(obtener_sesion_desde_request)):
-    return service.listar_sops()
+    return service.listar_sops(ve_como=ve_como(sesion))
 
 
 @router.get("/{programa_id}", response_model=schemas.ProgramaDetalleResponse)

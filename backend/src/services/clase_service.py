@@ -7,7 +7,7 @@ from src.db import db
 from src.models import Clase, Nota, Progreso
 from src.services.bloqueos import exigir_desbloqueado
 from src.services.frente_service import BRIEFS, coach_de_clase
-from src.services.video_acceso import video
+from src.services.video_acceso import recursos, video
 from src.utils.clase_content import serializar_recursos
 
 
@@ -59,7 +59,7 @@ class ClaseServices:
                 "portada": clase.seccion.programa.cover_url,
                 "duracion_segundos": clase.duracion_segundos,
                 "descripcion": clase.descripcion,
-                "recursos": serializar_recursos(clase),
+                "recursos": recursos(clase, ve_como),
                 "seccion_id": clase.seccion.id,
                 "programa_id": clase.seccion.programa.id,
                 "completado": progreso.completado if progreso is not None else False,

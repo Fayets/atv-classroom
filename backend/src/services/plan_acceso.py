@@ -10,9 +10,15 @@ PLANES_SIN_IA = frozenset({"2k"})
 PLANES_SIN_EQUIPO = frozenset({"2k"})
 
 
+# Los valores salen de la pantalla Permisos del admin (permisos_service); las constantes de arriba son lo que
+# trae el 2K por defecto.
 def sin_chat(sesion: dict) -> bool:
-    return sesion.get("rol") in PLANES_SIN_CHAT
+    from src.services.permisos_service import permite
+
+    return not permite(sesion, "comunidad")
 
 
 def sin_ia(sesion: dict) -> bool:
-    return sesion.get("rol") in PLANES_SIN_IA
+    from src.services.permisos_service import permite
+
+    return not permite(sesion, "ia")

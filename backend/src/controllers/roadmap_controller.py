@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from src.services.auth_service import obtener_sesion_desde_request
+from src.services.permisos_service import exigir
 from src.services.roadmap_ia_service import RoadmapIAServices
 from src.services.roadmap_service import RoadmapServices
 
@@ -42,6 +43,7 @@ class Tilde(BaseModel):
 @router.get("")
 async def mio(sesion: dict = Depends(obtener_sesion_desde_request)):
     """El roadmap del cliente que entra (o de su equipo)."""
+    exigir(sesion, "roadmaps")
     return await run_in_threadpool(service.ver, sesion, None)
 
 
@@ -73,4 +75,5 @@ async def generar(cliente_id: int, datos: Generar, sesion: dict = Depends(obtene
 
 @router.put("/docs/{doc_id}/pasos/{paso_id}")
 async def marcar_paso(doc_id: int, paso_id: int, datos: Tilde, sesion: dict = Depends(obtener_sesion_desde_request)):
+    exigir(sesion, "roadmaps")
     return await run_in_threadpool(service.marcar_paso, sesion, doc_id, paso_id, datos.hecho)

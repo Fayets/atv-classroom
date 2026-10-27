@@ -37,8 +37,10 @@ def guardar_bloqueo(clase, planes: list[str]) -> None:
 def video(clase, ve_como: str | None) -> dict:
     """Los campos de video de la clase para quien la mira. ve_como: la clave del plan del cliente, o None
     si es alguien del equipo de ATV."""
+    from src.services.permisos_service import valor
+
     bloqueos = bloqueado_para(clase)
-    if ve_como is not None and ve_como in bloqueos:
+    if ve_como is not None and (ve_como in bloqueos or valor(ve_como, "clases") == "no"):
         return {"video_url": None, "video_proximamente": True}
     return {
         "video_url": clase.video_url,
@@ -52,3 +54,13 @@ def ve_como(sesion: dict) -> str | None:
     from src.services.auth_service import es_equipo
 
     return None if es_equipo(sesion) else clave_de_plan(sesion.get("rol"))
+
+
+def recursos(clase, ve_como: str | None) -> list[dict]:
+    """Los SOPs de la clase, salvo que el plan los tenga apagados en Permisos."""
+    from src.services.permisos_service import valor
+    from src.utils.clase_content import serializar_recursos
+
+    if ve_como is not None and valor(ve_como, "sops") == "no":
+        return []
+    return serializar_recursos(clase)

@@ -111,3 +111,8 @@ export function actualizarMiembroEquipo(miembroId, data) {
 export function borrarMiembroEquipo(miembroId) {
   return adminRequest(`/api/admin/equipo/${miembroId}`, { method: 'DELETE' })
 }
+
+// Permisos por plan: qué parte del classroom ve cada plan, y el video de cada clase.
+export const fetchPermisos = () => request('/api/admin/permisos')
+export const guardarPermisos = (cambios) => request('/api/admin/permisos', { method: 'PUT', body: JSON.stringify({ cambios }) })
+export const bloquearVideo = (claseId, planes) => request(`/api/admin/clases/${claseId}/bloqueo`, { method: 'PUT', body: JSON.stringify({ planes }) })

@@ -5,7 +5,7 @@ from pony.orm import db_session
 
 from src.models import Clase, Programa, Progreso, Seccion
 from src.services.bloqueos import exigir_desbloqueado, programa_bloqueado
-from src.services.video_acceso import video
+from src.services.video_acceso import recursos, video
 from src.utils.clase_content import serializar_recursos
 
 
@@ -145,7 +145,7 @@ class ProgramaServices:
                     }
             return None
 
-    def listar_sops(self) -> list[dict]:
+    def listar_sops(self, *, ve_como: str | None) -> list[dict]:
         """Las clases que traen documentos (los SOPs), por módulo y en el orden del classroom.
         Sin los módulos bloqueados ni las clases "Próximamente"."""
         with db_session:
@@ -159,7 +159,7 @@ class ProgramaServices:
                         if not clase.titulo or clase.titulo.strip().lower().startswith("próximamente"):
                             continue
                         # Los links a grupos de WhatsApp no son SOPs; cada clase es un SOP con sus documentos.
-                        docs = [r for r in serializar_recursos(clase) if not re.search(r"whatsapp\.com|wa\.me", r["url"])]
+                        docs = [r for r in recursos(clase, ve_como) if not re.search(r"whatsapp\.com|wa\.me", r["url"])]
                         if docs:
                             sops.append({"clase_id": clase.id, "titulo": clase.titulo, "seccion": seccion.titulo, "documentos": docs})
                 if sops:

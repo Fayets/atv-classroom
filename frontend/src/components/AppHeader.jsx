@@ -13,6 +13,8 @@ const PLANES = { advantage: 'High Level', high: 'High Level', boost: 'Boost', mi
 
 export default function AppHeader() {
   const { user, logout, isAdmin, isEquipo } = useAuth()
+  // Lo que su plan tiene apagado en Permisos (admin) no aparece en el menú.
+  const conRoadmap = isEquipo || (user?.permisos?.roadmaps ?? (user?.rol === '2k' ? 'no' : 'si')) !== 'no'
   const { resumen, habilitada } = useMensajeria()
   const escritorio = useEscritorio()
   // Como en Discord, el número baja al leer: mensajes sin leer. El coach ve sus alertas sin responder.
@@ -140,7 +142,7 @@ export default function AppHeader() {
         <nav className="cliente-nav" aria-label="Secciones">
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-on' : '')}>Inicio</NavLink>
           <NavLink to="/classroom" className={({ isActive }) => (isActive ? 'is-on' : '')}>Material</NavLink>
-          <NavLink to="/roadmap" className={({ isActive }) => (isActive ? 'is-on' : '')}>Roadmap</NavLink>
+          {conRoadmap ? <NavLink to="/roadmap" className={({ isActive }) => (isActive ? 'is-on' : '')}>Roadmap</NavLink> : null}
           {habilitada ? (
             <NavLink to="/mensajes" className={({ isActive }) => (isActive ? 'is-on' : '')}>
               Mensajes
@@ -166,10 +168,12 @@ export default function AppHeader() {
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M10 9.5v5l4-2.5z" /></svg>
             Material
           </NavLink>
-          <NavLink to="/roadmap" className={({ isActive }) => (isActive ? 'is-on' : '')}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-1 3-6 7-7s4-6 7-7" /><circle cx="5" cy="19" r="1.6" /><circle cx="19" cy="5" r="1.6" /></svg>
-            Roadmap
-          </NavLink>
+          {conRoadmap ? (
+            <NavLink to="/roadmap" className={({ isActive }) => (isActive ? 'is-on' : '')}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-1 3-6 7-7s4-6 7-7" /><circle cx="5" cy="19" r="1.6" /><circle cx="19" cy="5" r="1.6" /></svg>
+              Roadmap
+            </NavLink>
+          ) : null}
           {habilitada ? (
             <NavLink to="/mensajes" className={({ isActive }) => (isActive ? 'is-on' : '')}>
               {contador ? <span className="cliente-tabs__cuenta">{contador > 99 ? '99+' : contador}</span> : null}

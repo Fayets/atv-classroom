@@ -119,6 +119,12 @@ def _tiene_acceso(cliente: ClienteExterno) -> bool:
     return cliente.fecha_vencimiento is None or cliente.fecha_vencimiento >= date.today()
 
 
+def _permisos_de(plan: str | None) -> dict:
+    from src.services.permisos_service import PERMISOS, valor
+
+    return {clave: valor(plan, clave) for clave in PERMISOS}
+
+
 def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
@@ -483,6 +489,8 @@ def obtener_perfil_sesion(sesion: dict) -> dict:
             "pausa": bool(sesion.get("pausa")),
             "contacto_pausa": contacto_pausa(cliente.plan_actual) if sesion.get("pausa") else None,
             "motivo_pausa": sesion.get("motivo"),
+            # Lo que su plan tiene encendido en la pantalla Permisos (la app esconde lo apagado).
+            "permisos": _permisos_de(cliente.plan_actual),
             "dias_restantes": _calcular_dias_restantes(fecha_vencimiento),
             "fecha_vencimiento": fecha_vencimiento.isoformat() if fecha_vencimiento else None,
             "foto_url": _foto_persona(sesion),

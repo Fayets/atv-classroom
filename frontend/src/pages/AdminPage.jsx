@@ -17,6 +17,7 @@ import {
   uploadRecursoPdf,
 } from '../api/admin'
 import AppHeader from '../components/AppHeader'
+import PermisosPlanes from '../components/admin/PermisosPlanes'
 
 const PROGRAMA_VACIO = {
   titulo: '',
@@ -60,41 +61,6 @@ function Field({ label, children }) {
   )
 }
 
-// Para qué planes el video de la clase sale en "Próximamente". Los SOPs se ven siempre.
-const PLANES_VIDEO = [
-  { id: 'high', nombre: 'High Level' },
-  { id: 'boost', nombre: 'Boost' },
-  { id: 'mid', nombre: 'Mid level' },
-  { id: 'entry', nombre: 'Entry level' },
-  { id: 'mentoria', nombre: 'Mentoría' },
-  { id: '2k', nombre: '2K' },
-]
-const TODOS_MENOS_2K = PLANES_VIDEO.filter((p) => p.id !== '2k').map((p) => p.id)
-
-function BloqueoVideo({ planes, onChange }) {
-  const alternar = (id) => onChange(planes.includes(id) ? planes.filter((p) => p !== id) : [...planes, id])
-  return (
-    <div className="admin-bloqueo">
-      <span className="admin-field__label">Video bloqueado para (los SOPs se ven igual)</span>
-      <div className="admin-bloqueo__planes">
-        {PLANES_VIDEO.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            className={`admin-bloqueo__plan${planes.includes(p.id) ? ' is-bloqueado' : ''}`}
-            aria-pressed={planes.includes(p.id)}
-            onClick={() => alternar(p.id)}
-          >
-            {planes.includes(p.id) ? '🔒 ' : ''}{p.nombre}
-          </button>
-        ))}
-        <button type="button" className="admin-bloqueo__atajo" onClick={() => onChange(TODOS_MENOS_2K)}>Todos menos 2K</button>
-        {planes.length ? <button type="button" className="admin-bloqueo__atajo" onClick={() => onChange([])}>Liberar</button> : null}
-      </div>
-    </div>
-  )
-}
-
 export default function AdminPage() {
   const [programas, setProgramas] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -103,6 +69,7 @@ export default function AdminPage() {
   const [cargandoLista, setCargandoLista] = useState(true)
   const [cargandoDetalle, setCargandoDetalle] = useState(false)
   const [guardando, setGuardando] = useState(false)
+  const [vistaAdmin, setVistaAdmin] = useState('permisos')
   const [error, setError] = useState('')
 
   const loadLista = useCallback(async () => {
@@ -498,17 +465,27 @@ export default function AdminPage() {
         <header className="admin-page__header">
           <div>
             <p className="admin-page__eyebrow">Panel admin</p>
-            <h1 className="admin-page__title">Configuración de módulos</h1>
+            <h1 className="admin-page__title">{vistaAdmin === 'permisos' ? 'Permisos por plan' : 'Configuración de módulos'}</h1>
           </div>
-          <button
-            type="button"
-            className="admin-btn admin-btn--primary"
-            onClick={handleNuevoPrograma}
-            disabled={guardando}
-          >
-            + Nuevo módulo
-          </button>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="admin-tabs" role="tablist">
+              <button type="button" role="tab" aria-selected={vistaAdmin === 'permisos'} className={vistaAdmin === 'permisos' ? 'is-on' : ''} onClick={() => setVistaAdmin('permisos')}>Permisos</button>
+              <button type="button" role="tab" aria-selected={vistaAdmin === 'contenido'} className={vistaAdmin === 'contenido' ? 'is-on' : ''} onClick={() => setVistaAdmin('contenido')}>Editar contenido</button>
+            </div>
+            {vistaAdmin === 'contenido' ? (
+              <button
+                type="button"
+                className="admin-btn admin-btn--primary"
+                onClick={handleNuevoPrograma}
+                disabled={guardando}
+              >
+                + Nuevo módulo
+              </button>
+            ) : null}
+          </div>
         </header>
+
+        {vistaAdmin === 'permisos' ? <PermisosPlanes /> : null}
 
         {error ? (
           <p className="admin-page__error" role="alert">
@@ -516,6 +493,7 @@ export default function AdminPage() {
           </p>
         ) : null}
 
+        {vistaAdmin === 'contenido' ? (
         <div className="admin-page__layout">
           <aside className="admin-list">
             <h2 className="admin-list__title">Módulos</h2>
@@ -737,17 +715,6 @@ export default function AdminPage() {
                                 }
                                 placeholder="URL del video (YouTube, Vimeo, Loom o MP4)"
                               />
-                              <BloqueoVideo
-                                planes={clase.video_bloqueado_para || []}
-                                onChange={(planes) =>
-                                  updateClaseLocal(
-                                    seccion.id,
-                                    clase.id,
-                                    'video_bloqueado_para',
-                                    planes,
-                                  )
-                                }
-                              />
                               <label className="admin-field">
                                 <span className="admin-field__label">
                                   Descripción
@@ -943,6 +910,7 @@ export default function AdminPage() {
             )}
           </section>
         </div>
+        ) : null}
       </main>
     </div>
   )

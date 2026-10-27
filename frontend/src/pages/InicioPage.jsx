@@ -26,7 +26,7 @@ export default function InicioPage() {
   const { user, isEquipo } = useAuth()
   const enPausa = Boolean(user?.pausa) && !isEquipo
   // El 2K no incluye la guía con IA: el inicio queda con su plan, su roadmap y el material.
-  const sinGuia = !isEquipo && user?.rol === '2k'
+  const sinGuia = !isEquipo && (user?.permisos?.ia ?? (user?.rol === '2k' ? 'no' : 'si')) === 'no'
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
   const [texto, setTexto] = useState('')

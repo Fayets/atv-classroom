@@ -70,7 +70,7 @@ export function PausaSync() {
   const refrescar = useCallback(async (mostrar) => {
     try {
       const p = await fetchSessionProfile()
-      actualizarUsuario({ pausa: Boolean(p.pausa), contacto_pausa: p.contacto_pausa || null, motivo_pausa: p.motivo_pausa || null })
+      actualizarUsuario({ pausa: Boolean(p.pausa), contacto_pausa: p.contacto_pausa || null, motivo_pausa: p.motivo_pausa || null, permisos: p.permisos || null })
       if (p.pausa && mostrar) setAbierto(true)
     } catch {
       /* sin red: queda lo que había */

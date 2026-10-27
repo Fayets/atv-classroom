@@ -3,10 +3,20 @@ siempre salen; el equipo ve el video con el aviso de para quién está bloqueado
 
 from types import SimpleNamespace
 
+import pytest
+
 from src.services import frente_service
 from src.services.video_acceso import bloqueado_para, guardar_bloqueo, video
 
 URL = "https://vimeo.com/123456"
+
+
+@pytest.fixture(autouse=True)
+def base():
+    from src.db import db, init_db
+
+    if db.provider is None:
+        init_db()
 
 
 def _clase(bloqueado=False, para=None):
@@ -34,7 +44,9 @@ def test_bloqueo_por_plan_y_el_equipo_lo_ve():
 
 def test_la_clase_del_frente_respeta_el_plan_y_deja_los_sops(monkeypatch):
     sops = [{"id": 1, "titulo": "SOP", "url": "https://docs.google.com/x", "orden": 0}]
-    monkeypatch.setattr(frente_service, "serializar_recursos", lambda c: sops)
+    from src.utils import clase_content
+
+    monkeypatch.setattr(clase_content, "serializar_recursos", lambda c: sops)
     monkeypatch.setattr(frente_service.Clase, "get", classmethod(lambda cls, **k: _clase(bloqueado=True)))
     bloqueada = frente_service._clase(999999, "high")
     assert bloqueada["video_url"] is None and bloqueada["video_proximamente"] is True and bloqueada["recursos"] == sops

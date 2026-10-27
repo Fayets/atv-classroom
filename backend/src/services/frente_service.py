@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from pony.orm import db_session, flush
 
 from src.models import Clase, ConsultaCoach, Frente
-from src.services.video_acceso import video
+from src.services.video_acceso import recursos, video
 from src.utils.clase_content import serializar_recursos
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
@@ -128,7 +128,7 @@ def _clase(clase_id: int, ve_como: str | None) -> dict | None:
         "modulo": clase.seccion.programa.titulo,
         "portada": clase.seccion.programa.cover_url,
         "programa_id": clase.seccion.programa.id,
-        "recursos": serializar_recursos(clase),
+        "recursos": recursos(clase, ve_como),
         "resumen": brief["resumen"] if brief else None,
         "claves": brief["claves"] if brief else [],
     }
@@ -171,7 +171,7 @@ class FrenteServices:
                 "plantillas": _plantillas(problema),
                 "sop": {
                     "nombre": problema["sop"]["nombre"],
-                    "recursos": serializar_recursos(sop_clase) if sop_clase else [],
+                    "recursos": recursos(sop_clase, ve_como) if sop_clase else [],
                     "cubrir": sop_brief["claves"] if sop_brief else [],
                 },
                 "frente": _estado(problema, _frente(usuario_id, tipo, slug)),

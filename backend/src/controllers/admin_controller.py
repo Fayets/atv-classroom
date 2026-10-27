@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel
 
 from src import schemas
+from src.services import permisos_service
 from src.services.admin_service import AdminServices
 from src.services.auth_service import obtener_sesion_desde_request
 
@@ -132,3 +134,33 @@ async def subir_recurso_pdf(
 @router.delete("/recursos/{recurso_id}", status_code=204)
 def eliminar_recurso(recurso_id: int, _sesion: dict = Depends(requerir_admin)):
     service.eliminar_recurso(recurso_id)
+
+
+# Permisos por plan: la pantalla general (qué parte del classroom ve cada plan) y el detalle de videos por clase.
+class CambioPermiso(BaseModel):
+    plan: str
+    clave: str
+    valor: str
+
+
+class Permisos(BaseModel):
+    cambios: list[CambioPermiso]
+
+
+class BloqueoVideo(BaseModel):
+    planes: list[str]
+
+
+@router.get("/permisos")
+def ver_permisos(_sesion: dict = Depends(requerir_admin)):
+    return permisos_service.matriz()
+
+
+@router.put("/permisos")
+def guardar_permisos(body: Permisos, _sesion: dict = Depends(requerir_admin)):
+    return permisos_service.guardar([c.model_dump() for c in body.cambios])
+
+
+@router.put("/clases/{clase_id}/bloqueo")
+def bloquear_video(clase_id: int, body: BloqueoVideo, _sesion: dict = Depends(requerir_admin)):
+    return service.actualizar_clase(clase_id, {"video_bloqueado_para": body.planes})
