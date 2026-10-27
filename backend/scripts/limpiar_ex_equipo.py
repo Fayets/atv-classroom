@@ -46,6 +46,9 @@ def _sin_cierre_ajeno(texto: str) -> str:
 
 def _limpiar(texto: str) -> str:
     texto = _sin_cierre_ajeno(texto)
+    # "Mi instagram: @naza_gamero y @juanxcarrizo." está en primera persona: si es de alguien que se fue, la
+    # línea entera se va (no puede quedar el Instagram de otro como si fuera el suyo).
+    texto = "\n".join(l for l in texto.split("\n") if not (HANDLE.search(l) and re.search(r"instagram|\bmi ig\b", l, re.I)))
     t = HANDLE.sub(lambda m: m.group(0) + "\0", texto)  # marca cada @ que se va
     t = re.sub(r"@[\w.]+\0\s*(?:y|,)\s*", "", t)
     t = re.sub(r"\s*(?:y|,)\s*@[\w.]+\0", "", t)
@@ -96,6 +99,11 @@ def main(aplicar: bool) -> int:
             if aplicar:
                 c.descripcion = nuevo
         recursos = [r for r in list(ClaseRecurso.select()) if QUEDA.search(r.titulo or "")]
+        # Dos descripciones enteras ya limpias (una de Naza y una de Fede), para ver cómo queda todo el texto.
+        for cid in (6, 43):
+            c = Clase.get(id=cid)
+            if c and c.descripcion:
+                print(f"\n——— {cid} {c.titulo}, entera después de limpiar ———\n{_limpiar(c.descripcion) if QUEDA.search(c.descripcion) else c.descripcion}")
 
     print(f"\n{limpias} descripciones {'limpias' if aplicar else 'se limpian'} solas.")
     if a_mano:
