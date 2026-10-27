@@ -27,21 +27,20 @@ QUEDA = re.compile(rf"\b{NOMBRE}\b|@[\w.]*{NOMBRE}", re.I)
 FIRMA = re.compile(r"^(\s*[-–—]\s*)(.+?)\s*$")
 
 
-# Dónde arranca el cierre de la clase: el pedido de captura/etiqueta, "Mi instagram", la firma.
-CIERRE = re.compile(r"si la clase te (?:gust|sirvi)|si te gust[óo] la clase|etiquet|captura|instagram|^\s*⸻", re.I)
+# Dónde arranca el cierre de la clase: el separador "⸻" o el pedido de foto/etiqueta. Si ese cierre es de alguien
+# que se fue (tiene su @ o su firma), se va entero: es un mensaje suyo en primera persona.
+CIERRE = re.compile(r"^\s*⸻|si la clase te (?:gust|sirvi)|si te gust[óo] la clase", re.I)
 
 
 def _sin_cierre_ajeno(texto: str) -> str:
-    lineas = texto.rstrip().split("\n")
-    inicio = len(lineas)
-    for i in range(len(lineas) - 1, max(len(lineas) - 9, -1), -1):
-        l = lineas[i].strip()
-        if not l or CIERRE.search(l) or FIRMA.match(lineas[i]) or HANDLE.search(l):
-            inicio = i
-        else:
-            break
+    lineas = texto.split("\n")
+    inicio = next((i for i, l in enumerate(lineas) if CIERRE.search(l)), None)
+    if inicio is None:
+        return texto
     cola = "\n".join(lineas[inicio:])
-    return "\n".join(lineas[:inicio]) if HANDLE.search(cola) or re.search(rf"^\s*[-–—]\s*{NOMBRE}\b", cola, re.I | re.M) else texto
+    if HANDLE.search(cola) or re.search(rf"^\s*[-–—]\s*{NOMBRE}\b", cola, re.I | re.M):
+        return "\n".join(lineas[:inicio]).rstrip()
+    return texto
 
 
 def _limpiar(texto: str) -> str:
