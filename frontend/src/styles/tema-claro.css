@@ -103,7 +103,8 @@ html .pc-complete:not(.is-done):hover, html .ms-implementar:not(.is-done):hover:
 
 /* classroom y clases */
 html .mt-bar { background: rgba(0, 0, 0, 0.08); }
-html .mt-card__lock { color: #c0392b; }
+/* Como la etiqueta "MÓDULO" de las portadas: azul marino, letra hueso, mono espaciada. */
+html .mt-card__lock { color: #f2efe9; background: #00001d; border-radius: 4px; padding: 5px 10px 5px 8px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; }
 html .mt-nav__btn--prev, html .mt-nav__btn { color: #3a3a3c; }
 html .mt-nav__btn--next .mt-nav__txt small { color: #c0392b; }
 html .ms-indice__fondo { background: rgba(0, 0, 0, 0.25); }
