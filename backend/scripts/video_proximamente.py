@@ -1,5 +1,5 @@
 """Pone en "Próximamente" el video de las clases donde sale el equipo (listas de Franco del 27-10-2026:
-Advantage, Business Foundations, Marketing, Sales, Product y Creator Acquisition). Solo el video: los SOPs de cada clase se siguen viendo. Se puede correr
+Advantage, Business Foundations, Marketing, Sales, Product, Creator Acquisition y Marketing 100k). Solo el video: los SOPs de cada clase se siguen viendo. Se puede correr
 de nuevo cuando se suman clases: las que ya estaban quedan igual.
 
 Cada clase va por su id con una palabra que tiene que estar en el título: si no coincide, no se toca y se
@@ -75,6 +75,9 @@ CLASES = {
     # Creator Acquisition
     118: "infoproductos",   # Qué hace un experto en infoproductos? (Naza)
     119: "12 pasos",        # Flujo de los 12 pasos para hacer $$$ (Naza)
+    # Marketing 100k
+    191: "arquitectura",    # Arquitectura de marketing (Thiago)
+    192: "reportes",        # Reportes de marketing (Thiago)
 }
 
 # Clases que nunca se grabaron y no tienen id a mano: van por módulo (título exacto) y por palabra del título.
