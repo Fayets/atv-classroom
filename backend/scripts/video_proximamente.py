@@ -1,5 +1,5 @@
 """Pone en "Próximamente" el video de las clases donde sale el equipo (listas de Franco del 27-10-2026:
-Advantage, Business Foundations, Marketing y Sales). Solo el video: los SOPs de cada clase se siguen viendo. Se puede correr
+Advantage, Business Foundations, Marketing, Sales y Product). Solo el video: los SOPs de cada clase se siguen viendo. Se puede correr
 de nuevo cuando se suman clases: las que ya estaban quedan igual.
 
 Cada clase va por su id con una palabra que tiene que estar en el título: si no coincide, no se toca y se
@@ -64,6 +64,14 @@ CLASES = {
     87: "creencias",        # Cómo detectar las creencias limitantes del lead (Fede)
     88: "identidad",        # Cómo meter al lead en el marco de identidad (Fede)
     89: "presentacion",     # Presentación de ventas (Fede)
+    # Product
+    93: "estructura",       # Estructura de producto (Naza)
+    94: "capacidad",        # Capacidad operativa y cómo aumentarla (Naza)
+    95: "seguimiento",      # Seguimiento de clientes (Naza)
+    96: "inactividad",      # Cómo eliminar la inactividad (Naza)
+    97: "mejorar",          # Cómo mejorar el producto (Naza)
+    98: "upsell",           # Upsell (Naza)
+    99: "actualizacion",    # Manejo de actualizaciones (Naza)
 }
 
 # Clases que nunca se grabaron y no tienen id a mano: van por módulo (título exacto) y por palabra del título.
