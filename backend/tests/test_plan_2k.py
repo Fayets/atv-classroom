@@ -42,6 +42,11 @@ def test_ve_solo_su_canal():
         assert not puede_ver(DOSK, canal)
 
 
+def test_ve_la_guia_para_todos():
+    assert puede_ver(DOSK, {"id": 9, "tipo": "anuncios", "cliente_id": None, "roles": ["todos"]})
+    assert not puede_ver(DOSK, {"id": 10, "tipo": "anuncios", "cliente_id": None, "roles": []})
+
+
 def test_escribe_en_su_canal(monkeypatch):
     monkeypatch.setattr(ms, "_TOPE_EQUIPO_POR_MINUTO", 1000)
     monkeypatch.setattr(ms, "_TOPE_POR_MINUTO", 1000)

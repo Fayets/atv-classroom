@@ -15,7 +15,7 @@ import logging
 from fastapi import WebSocket
 
 from src.services.roles_canal import cliente_ve
-from src.services.plan_acceso import sin_chat
+from src.services.plan_acceso import ROL_PARA_TODOS, sin_chat
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,10 @@ def puede_ver(sesion: dict, canal: dict) -> bool:
     if rol == "admin":
         return True
     if sin_chat(sesion):
-        # 2K: solo su canal privado (para pedir sus sesiones 1 a 1), sin comunidad ni anuncios.
+        # 2K: solo su canal privado (para pedir sus sesiones 1 a 1), sin comunidad ni anuncios, salvo los
+        # anuncios marcados para todos (la guía de cómo usar la plataforma).
+        if canal["tipo"] == "anuncios":
+            return ROL_PARA_TODOS in (canal.get("roles") or [])
         return canal["tipo"] == "cliente" and canal["cliente_id"] == sesion["usuario_id"]
     if canal["tipo"] == "anuncios":
         return True

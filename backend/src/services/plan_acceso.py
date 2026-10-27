@@ -4,6 +4,8 @@ no ve la comunidad ni los anuncios, no usa la guía con IA y el acceso es solo d
 no incluye integrantes de su equipo)."""
 
 PLANES_SIN_CHAT = frozenset({"2k"})  # sin comunidad: solo su canal privado
+# Un canal de anuncios con este rol lo ven también los planes sin comunidad (la guía de cómo usar la plataforma).
+ROL_PARA_TODOS = "todos"
 PLANES_SIN_IA = frozenset({"2k"})
 PLANES_SIN_EQUIPO = frozenset({"2k"})
 
