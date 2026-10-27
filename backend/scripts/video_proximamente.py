@@ -1,5 +1,5 @@
 """Pone en "Próximamente" el video de las clases donde sale el equipo (listas de Franco del 27-10-2026:
-Advantage, Business Foundations, Marketing, Sales, Product, Creator Acquisition y Marketing 100k). Solo el video: los SOPs de cada clase se siguen viendo. Se puede correr
+Advantage, Business Foundations, Marketing, Sales, Product, Creator Acquisition, Marketing 100k y toda la Guía 50k menos su submódulo de proceso de ventas). Solo el video: los SOPs de cada clase se siguen viendo. Se puede correr
 de nuevo cuando se suman clases: las que ya estaban quedan igual.
 
 Cada clase va por su id con una palabra que tiene que estar en el título: si no coincide, no se toca y se
@@ -87,6 +87,12 @@ POR_TITULO = [
     ("marketing", "psicologia del consumo"),  # Psicología del consumo (nunca se grabó)
 ]
 
+# Módulos enteros: (palabra del título del módulo, submódulos que se salvan). Si no aparece el submódulo que
+# se salva, no se toca el módulo: mejor no bloquear nada que bloquear las clases de ventas.
+MODULOS = [
+    ("50k", ["proceso de ventas"]),  # Toda la Guía 50k menos el submódulo Proceso de ventas
+]
+
 
 def _plano(texto: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFD", texto or "") if unicodedata.category(c) != "Mn").lower()
@@ -114,14 +120,27 @@ def main(aplicar: bool) -> int:
                 print(f"  ✗   ?  «{palabra}» en {modulo}: {len(hits)} clases coinciden ({', '.join(c.titulo for c in hits) or 'ninguna'}), NO se toca")
                 continue
             elegidas.append(hits[0])
+        for palabra, salvar in MODULOS:
+            del_modulo = [c for c in todas if palabra in _plano(c.seccion.programa.titulo)]
+            programas = {c.seccion.programa.titulo for c in del_modulo}
+            secciones = {c.seccion.titulo for c in del_modulo}
+            faltan = [s for s in salvar if not any(s in _plano(t) for t in secciones)]
+            if len(programas) != 1 or faltan:
+                malas += 1
+                print(f"  ✗ módulo «{palabra}»: módulos {sorted(programas) or 'ninguno'}, submódulos {sorted(secciones)}; "
+                      f"no encuentro {faltan or 'un solo módulo'}, NO se toca")
+                continue
+            quedan = [c for c in del_modulo if not any(s in _plano(c.seccion.titulo) for s in salvar)]
+            print(f"  · módulo {programas.pop()}: {len(quedan)} clases, se salvan {len(del_modulo) - len(quedan)} de {', '.join(salvar)}")
+            elegidas.extend(sorted(quedan, key=lambda c: (c.seccion.orden, c.orden)))
         for clase in elegidas:
             cid = clase.id
             estado = "ya estaba" if clase.video_bloqueado else ("marcada" if aplicar else "se marcaría")
             print(f"  ✓ {cid:>3}  {clase.titulo}  [{clase.seccion.programa.titulo}] — {estado}")
             if aplicar:
                 clase.video_bloqueado = True
-    total = len(CLASES) + len(POR_TITULO)
-    print(f"\n{total - malas} de {total} {'en Próximamente' if aplicar else 'listas (corré con --aplicar)'}")
+    total = len(CLASES) + len(POR_TITULO) + len(MODULOS)
+    print(f"\n{total - malas} de {total} pedidos bien ({len(elegidas)} clases) — {'en Próximamente' if aplicar else 'corré con --aplicar'}")
     return 1 if malas else 0
 
 
