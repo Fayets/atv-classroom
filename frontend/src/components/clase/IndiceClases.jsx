@@ -11,10 +11,18 @@ export default function IndiceClases({ titulo, secciones, claseActivaId, onElegi
   const [q, setQ] = useState('')
   const inputRef = useRef(null)
   const activaRef = useRef(null)
+  const listaRef = useRef(null)
 
   useEffect(() => {
-    inputRef.current?.focus()
-    activaRef.current?.scrollIntoView({ block: 'center' })
+    inputRef.current?.focus({ preventScroll: true })
+    // Centra la clase activa moviendo solo la lista: scrollIntoView también corría la página de atrás
+    // (y en la ventana del escritorio dejaba el índice cortado arriba).
+    const lista = listaRef.current
+    const activa = activaRef.current
+    if (lista && activa) {
+      const delta = activa.getBoundingClientRect().top - lista.getBoundingClientRect().top
+      lista.scrollTop += delta - lista.clientHeight / 2 + activa.offsetHeight / 2
+    }
     function onKey(e) {
       if (e.key === 'Escape') onCerrar()
     }
@@ -39,7 +47,7 @@ export default function IndiceClases({ titulo, secciones, claseActivaId, onElegi
           <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Buscar en ${titulo}`} aria-label="Buscar clase" />
           <kbd>esc</kbd>
         </div>
-        <div className="ms-indice__lista">
+        <div className="ms-indice__lista" ref={listaRef}>
           {grupos.length ? (
             grupos.map((s) => (
               <section key={s.id}>

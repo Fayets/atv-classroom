@@ -1075,3 +1075,6 @@ html { -webkit-text-size-adjust: 100%; }
 .trabado__caja code { margin-top: 10px; font-size: 12px; color: #9a948b; word-break: break-word; }
 
 .admin-check { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+
+/* Texto sombreado: rojo suave de ATV en todo el classroom (antes salía blanco sobre blanco). */
+::selection { background: rgba(192, 57, 43, 0.22); }
