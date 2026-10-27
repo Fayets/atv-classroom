@@ -66,6 +66,9 @@ class ClientesServices:
                 "ORDER BY lower(coalesce(e.nombre, e.email))",
                 {},
             )
+        from src.services.dispositivos_service import alertas_por_cliente
+
+        alertas = alertas_por_cliente()
         return [
             {
                 "id": f["id"],
@@ -77,6 +80,7 @@ class ClientesServices:
                 "vence": _iso(f["fecha_vencimiento"]),
                 "responsable": f["responsable"],
                 "ultimo_mensaje": _iso(f["ultimo_mensaje_en"]),
+                "dispositivos_alerta": alertas.get(f["id"]),
             }
             for f in filas
         ]

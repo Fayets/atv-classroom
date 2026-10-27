@@ -119,6 +119,11 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "canales", "pausa", "BOOLEAN NOT NULL DEFAULT FALSE")
                 _agregar_columna(cur, "canales", "participantes_json", "TEXT")
                 _agregar_columna(cur, "canales", "orden", "INTEGER")
+                # Dispositivos de cada sesión (para ver si comparten la cuenta).
+                _agregar_columna(cur, "sesiones", "user_agent", "TEXT")
+                _agregar_columna(cur, "sesiones", "ciudad", "VARCHAR")
+                _agregar_columna(cur, "sesiones", "pais", "VARCHAR")
+                _agregar_columna(cur, "sesiones", "ultima_actividad", "TIMESTAMP")
                 # Cerebro: subnicho y revisión del nicho con todo lo del cliente; correcciones del Tab.
                 _agregar_columna(cur, "cerebro_perfil_cliente", "subnicho", "VARCHAR")
                 _agregar_columna(cur, "cerebro_perfil_cliente", "nicho_cita", "TEXT")

@@ -1,0 +1,24 @@
+/* Dispositivos: Mi cuenta (plegado) y la ficha del cliente en la carpeta Clientes. */
+.cuenta-plegable > summary { display: flex; align-items: center; gap: 6px; list-style: none; cursor: pointer; margin: 0 0 8px 4px; }
+.cuenta-plegable > summary::-webkit-details-marker { display: none; }
+.cuenta-plegable > summary::before { content: ''; width: 0; height: 0; border-left: 5px solid #8e8e93; border-top: 4px solid transparent; border-bottom: 4px solid transparent; transition: transform 0.15s; }
+.cuenta-plegable[open] > summary::before { transform: rotate(90deg); }
+.cuenta-plegable > summary h2 { margin: 0; }
+.cuenta-plegable__n { font-size: 12px; font-weight: 600; color: #8e8e93; font-variant-numeric: tabular-nums; }
+
+.disp-ayuda { margin: 0 0 6px; font-size: 13px; line-height: 1.45; color: #6e6e73; }
+.disp-lista { list-style: none; margin: 0; padding: 0; }
+.disp-lista li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #efeff2; }
+.disp-lista li:first-child { border-top: 0; }
+.disp-icono { flex: none; width: 20px; height: 20px; fill: none; stroke: #3a3a3c; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.disp-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.disp-txt b { font-size: 14px; font-weight: 600; }
+.disp-txt span { font-size: 12.5px; color: #8e8e93; overflow-wrap: anywhere; }
+.disp-este { flex: none; padding: 3px 10px; border-radius: 99px; background: #e6f4ea; color: #1e6b35; font-size: 12px; font-weight: 600; }
+.disp-cerrar { flex: none; min-height: 32px; padding: 0 12px; border: 0; border-radius: 8px; background: #f2f2f7; color: #1d1d1f; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.disp-cerrar:disabled { opacity: 0.6; cursor: default; }
+
+.disp-alerta { display: flex; flex-direction: column; gap: 2px; margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #5a5a5f; }
+.disp-alerta b { font-size: 14px; color: #1d1d1f; }
+.disp-alerta.is-alta { background: #fff2f0; box-shadow: inset 0 0 0 1px #f3c6bf; }
+.disp-alerta.is-media { background: #fdf6e3; box-shadow: inset 0 0 0 1px #f0dca8; }

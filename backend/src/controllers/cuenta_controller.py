@@ -3,7 +3,10 @@ from pydantic import BaseModel
 from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 
-from src.services.auth_service import obtener_sesion_desde_request
+from fastapi import Request
+
+from src.services import dispositivos_service
+from src.services.auth_service import _hash_token, obtener_sesion_desde_request, token_desde_request
 from src.services.cuenta_service import MAX_FOTO, CuentaServices
 
 router = APIRouter(prefix="/api/cuenta", tags=["cuenta"])
@@ -46,3 +49,14 @@ async def voz(sesion: dict = Depends(obtener_sesion_desde_request)):
 @router.put("/voz")
 async def elegir_voz(datos: Voz, sesion: dict = Depends(obtener_sesion_desde_request)):
     return await run_in_threadpool(service.elegir_voz, sesion, datos.admin_id)
+
+
+@router.get("/dispositivos")
+async def mis_dispositivos(request: Request, sesion: dict = Depends(obtener_sesion_desde_request)):
+    return await run_in_threadpool(dispositivos_service.mios, sesion, _hash_token(token_desde_request(request) or ""))
+
+
+@router.delete("/dispositivos/{sesion_id}")
+async def cerrar_dispositivo(sesion_id: int, sesion: dict = Depends(obtener_sesion_desde_request)):
+    await run_in_threadpool(dispositivos_service.cerrar_mio, sesion, sesion_id)
+    return {"ok": True}

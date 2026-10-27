@@ -334,6 +334,9 @@ def obtener_sesion_desde_request(request: Request) -> dict:
     if not token:
         raise HTTPException(status_code=401, detail="No autorizado.")
     sesion = _validar_token(token)
+    from src.services.dispositivos_service import registrar
+
+    registrar(_hash_token(token), request)
     # Cliente en pausa: solo puede leer su canal. Todo lo demás (módulos, IA, roadmaps, escribir) se corta
     # acá, en el servidor, con 423 para que la app muestre el cartel de "hablá con Lucas".
     if sesion.get("pausa") and not permitido_en_pausa(request.method, request.url.path):

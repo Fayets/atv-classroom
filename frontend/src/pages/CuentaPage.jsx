@@ -3,6 +3,7 @@ import { fetchCuenta, prepararFoto, quitarFoto, subirFoto } from '../api/cuenta'
 import AppHeader from '../components/AppHeader'
 import CuposEquipo from '../components/cuenta/CuposEquipo'
 import TuEquipo from '../components/cuenta/TuEquipo'
+import TusDispositivos from '../components/cuenta/TusDispositivos'
 import VozTab from '../components/cuenta/VozTab'
 import { NotificacionesCuenta } from '../components/Notificaciones'
 import FathomCuenta from '../components/cuenta/FathomCuenta'
@@ -158,6 +159,7 @@ export default function CuentaPage() {
             <Seccion titulo="Notificaciones">
               <NotificacionesCuenta />
             </Seccion>
+            <TusDispositivos />
             {c.tipo === 'cliente' && !c.miembro ? (
               <Seccion titulo="Tu equipo">
                 <TuEquipo />

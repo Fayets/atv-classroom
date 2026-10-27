@@ -42,6 +42,11 @@ class SesionGuardada(db.Entity):
     expira_en = Required(datetime)
     creado_en = Required(datetime, default=datetime.utcnow)
     miembro_id = Optional(int, nullable=True)  # si entró alguien del equipo del cliente
+    # Dispositivos (dispositivos_service): navegador, ciudad aproximada (de la IP, que no se guarda) y última actividad.
+    user_agent = Optional(str, nullable=True)
+    ciudad = Optional(str, nullable=True)
+    pais = Optional(str, nullable=True)
+    ultima_actividad = Optional(datetime, nullable=True)
 
 
 class ClienteExterno(db.Entity):

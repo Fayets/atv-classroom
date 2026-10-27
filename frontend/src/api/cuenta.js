@@ -39,3 +39,6 @@ export function prepararFoto(archivo, lado = 512) {
 // Con la voz de quién sugiere el Tab (equipo)
 export const fetchVoz = () => request('/api/cuenta/voz')
 export const elegirVoz = (adminId) => request('/api/cuenta/voz', { method: 'PUT', body: JSON.stringify({ admin_id: adminId }) })
+
+export const fetchDispositivos = () => request('/api/cuenta/dispositivos')
+export const cerrarDispositivo = (id) => request(`/api/cuenta/dispositivos/${id}`, { method: 'DELETE' })

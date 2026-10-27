@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { fetchCarpetaClientes, fetchFicha } from '../../api/clientes'
+import { cerrarDispositivoCliente, fetchCarpetaClientes, fetchDispositivosCliente, fetchFicha } from '../../api/clientes'
+import { Equipo, cuandoFue } from '../cuenta/dispositivos'
 
 // Cada cuota pagada "usa" un pago con el mismo monto y la misma fecha; lo que sobra son pagos sueltos.
 function pagosSinCuota(pagos, cuotas) {
@@ -22,6 +23,7 @@ const TAGS = {
   pausa: '#8e8e93',
   no_va_a_renovar: '#af52de',
   llamada_recompra: '#0a84ff',
+  revisar: '#ff2d55',
 }
 const FILTROS = [
   { id: 'todos', nombre: 'Todos los clientes', icono: 'reloj' },
@@ -29,6 +31,7 @@ const FILTROS = [
   { id: 'proximo_a_vencer', nombre: 'Por vencer', tag: 'proximo_a_vencer' },
   { id: 'vencido', nombre: 'Vencidos', tag: 'vencido' },
   { id: 'otros', nombre: 'Pausa y recompra', tag: 'pausa' },
+  { id: 'revisar', nombre: 'Dispositivos para revisar', tag: 'revisar' },
 ]
 const PLANES = ['mentoria', 'boost', 'advantage', 'mid', 'entry']
 const bonito = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : '—')
@@ -94,6 +97,49 @@ function Dato({ nombre, children }) {
       <dt>{nombre}</dt>
       <dd>{children}</dd>
     </div>
+  )
+}
+
+// Dispositivos del cliente y su equipo. Abierta solo si la cuenta parece compartida.
+function Dispositivos({ clienteId }) {
+  const [info, setInfo] = useState(null)
+  useEffect(() => {
+    let vivo = true
+    fetchDispositivosCliente(clienteId).then((d) => vivo && setInfo(d)).catch(() => vivo && setInfo({ dispositivos: [] }))
+    return () => {
+      vivo = false
+    }
+  }, [clienteId])
+  if (!info) return null
+  async function cerrar(d) {
+    await cerrarDispositivoCliente(d.id).catch(() => null)
+    setInfo((x) => ({ ...x, dispositivos: x.dispositivos.filter((y) => y.id !== d.id) }))
+  }
+  return (
+    <Seccion titulo={`Dispositivos · ${info.dispositivos.length}`} abierta={Boolean(info.alerta)}>
+      {info.alerta ? (
+        <p className={`disp-alerta is-${info.alerta}`}>
+          <b>{info.alerta === 'alta' ? 'Muy probable que comparta la cuenta' : 'Revisar: puede estar compartiendo la cuenta'}</b>
+          La cuenta del titular se usó esta semana desde {info.dispositivos_7d} dispositivos en {info.ciudades_7d} {info.ciudades_7d === 1 ? 'ciudad' : 'ciudades'}.
+        </p>
+      ) : null}
+      {info.dispositivos.length ? (
+        <ul className="disp-lista">
+          {info.dispositivos.map((d) => (
+            <li key={d.id}>
+              <Equipo d={d} />
+              <div className="disp-txt">
+                <b>{d.equipo} · {d.navegador}</b>
+                <span>{d.quien ? `${d.quien} (equipo)` : 'Titular'} · {[d.ciudad, d.pais].filter(Boolean).join(', ') || 'ubicación desconocida'} · {cuandoFue(d.ultima)}</span>
+              </div>
+              <button type="button" className="disp-cerrar" onClick={() => cerrar(d)}>Cerrar sesión</button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="fd-gris">Todavía no entró al classroom.</p>
+      )}
+    </Seccion>
   )
 }
 
@@ -227,6 +273,8 @@ function Ficha({ id, alAbrirChat }) {
         </Seccion>
       ) : null}
 
+      <Dispositivos clienteId={id} />
+
       <Seccion titulo="En el classroom">
         <dl className="fd-datos">
           <Dato nombre="Clases completadas">{String(cl.clases_completadas)}</Dato>
@@ -289,7 +337,8 @@ export default function Finder({ abierta, alCerrar, alEnfocar, alFrente, alAbrir
     return clientes.filter((c) => {
       if (plan && c.plan !== plan) return false
       if (filtro === 'otros' && !['pausa', 'no_va_a_renovar', 'llamada_recompra'].includes(c.estado)) return false
-      if (!['todos', 'otros'].includes(filtro) && c.estado !== filtro) return false
+      if (filtro === 'revisar' && !c.dispositivos_alerta) return false
+      if (!['todos', 'otros', 'revisar'].includes(filtro) && c.estado !== filtro) return false
       return !q || normal(c.nombre).includes(q) || normal(c.responsable).includes(q)
     })
   }, [clientes, filtro, plan, buscar])

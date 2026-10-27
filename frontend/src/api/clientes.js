@@ -16,3 +16,6 @@ export function fetchFicha(id) {
   p.catch(() => fichas.delete(id))
   return p
 }
+
+export const fetchDispositivosCliente = (id) => request(`/api/admin/clientes/${id}/dispositivos`)
+export const cerrarDispositivoCliente = (sesionId) => request(`/api/admin/clientes/dispositivos/${sesionId}`, { method: 'DELETE' })
