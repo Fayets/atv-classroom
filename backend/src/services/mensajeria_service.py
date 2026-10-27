@@ -484,6 +484,8 @@ class MensajeriaServices:
                             "plan": cliente.plan_actual,
                             "responsable": cliente.responsable,
                             "vence": cliente.fecha_vencimiento.isoformat() if cliente.fecha_vencimiento else None,
+                            # El nombre del canal de Discord: así lo nombra el equipo en los updates.
+                            "slug": (cliente.canal_discord or "").strip().lstrip("#").lower() or None if equipo else None,
                         }
                         if cliente is not None
                         else None,

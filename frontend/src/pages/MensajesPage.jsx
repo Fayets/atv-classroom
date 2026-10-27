@@ -548,6 +548,7 @@ export default function MensajesPage() {
     onDrop: (e) => soltar(e, grupoId),
   })
   const item = canales?.find((c) => c.id === activo)
+  const porSlug = useMemo(() => new Map((canales || []).filter((c) => c.cliente?.slug).map((c) => [c.cliente.slug, { id: c.id, nombre: c.nombre }])), [canales])
   const abrir = (id) => setParams(vista === 'alertas' ? { v: 'alertas', c: String(id) } : { c: String(id) })
   const cambiarVista = (v) => setParams(v === 'alertas' ? { v: 'alertas' } : {})
 
@@ -797,7 +798,7 @@ export default function MensajesPage() {
           ) : activo && item?.bloqueado ? (
             <CanalBloqueado item={item} />
           ) : activo ? (
-            <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} onVolver={() => setParams(vista === 'alertas' ? { v: 'alertas' } : {})} />
+            <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} canales={porSlug} onAbrirCanal={(id) => setParams({ c: String(id) })} onVolver={() => setParams(vista === 'alertas' ? { v: 'alertas' } : {})} />
           ) : (
             <div className="msj-vacio">
               {vista === 'alertas' ? 'Elegí una alerta para ir a la conversación.' : 'Elegí un canal para ver la conversación.'}

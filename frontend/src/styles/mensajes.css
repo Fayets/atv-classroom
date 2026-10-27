@@ -900,3 +900,8 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 /* Conexión cortada (deploy): recuadro amarillo con texto negro. */
 .msj-estado.is-caido { padding: 3px 8px; border-radius: 6px; background: #ffd60a; color: #1d1d1f; font-weight: 600; }
 .msj-estado.is-caido::before { display: none; }
+
+/* Canal de un cliente nombrado en un mensaje (los updates de Mauri): etiqueta azul que abre ese chat. */
+.msj-canal { display: inline; padding: 0 4px; border: 0; border-radius: 4px; background: rgba(10, 102, 214, 0.1); color: #0a66d6; font: inherit; font-weight: 600; cursor: pointer; }
+.msj-canal::before { content: '#'; opacity: 0.6; margin-right: 1px; }
+.msj-canal:hover { background: rgba(10, 102, 214, 0.2); text-decoration: underline; }

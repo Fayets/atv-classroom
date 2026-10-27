@@ -37,7 +37,7 @@ function agregarSinDuplicar(lista, nuevos) {
   return sumar.length ? [...lista, ...sumar].sort((a, b) => (a.id > b.id ? 1 : -1)) : lista
 }
 
-export default function Conversacion({ canalId, item, onVolver, oculta = false }) {
+export default function Conversacion({ canalId, item, onVolver, oculta = false, canales, onAbrirCanal }) {
   const { user, isEquipo, isAdmin } = useAuth()
   const { suscribir, avisarEscribiendo, conectado, avisarLeido, canalAbierto } = useMensajeria()
   const [datos, setDatos] = useState(null)
@@ -860,7 +860,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false }
                       <Edicion texto={m.texto} onGuardar={(t) => guardarEdicion(m, t)} onCancelar={() => setEditando(null)} />
                     ) : (
                       <>
-                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} yo={miPrimerNombre} /> : null}
+                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} yo={miPrimerNombre} canales={canales} onAbrirCanal={onAbrirCanal} /> : null}
                         <Enlaces texto={m.texto} />
                         <Adjuntos adjuntos={m.adjuntos} alCargar={bajarSiEstabaAbajo} />
                       </>
