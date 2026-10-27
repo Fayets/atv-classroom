@@ -21,6 +21,7 @@ def _serializar_clase(clase: Clase) -> dict:
         "titulo": clase.titulo,
         "orden": clase.orden,
         "video_url": clase.video_url,
+        "video_bloqueado": bool(clase.video_bloqueado),
         "duracion_segundos": clase.duracion_segundos,
         "descripcion": clase.descripcion,
         "recursos": serializar_recursos(clase),
@@ -189,6 +190,7 @@ class AdminServices:
                 titulo=data["titulo"],
                 orden=data.get("orden", 0),
                 video_url=data.get("video_url"),
+                video_bloqueado=bool(data.get("video_bloqueado")),
                 duracion_segundos=data.get("duracion_segundos"),
                 descripcion=data.get("descripcion"),
             )
@@ -206,7 +208,7 @@ class AdminServices:
             if clase is None:
                 raise HTTPException(status_code=404, detail="Clase no encontrada.")
 
-            for campo in ("titulo", "orden", "video_url", "duracion_segundos", "descripcion"):
+            for campo in ("titulo", "orden", "video_url", "video_bloqueado", "duracion_segundos", "descripcion"):
                 if campo in data:
                     setattr(clase, campo, data[campo])
 

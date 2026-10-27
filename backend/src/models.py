@@ -98,6 +98,8 @@ class Clase(db.Entity):
     video_url = Optional(str)
     duracion_segundos = Optional(int)
     descripcion = Optional(str)
+    # Video en "Próximamente": no le llega a nadie (sale el equipo grabando, etc.); los SOPs siguen.
+    video_bloqueado = Required(bool, default=False)
 
     recursos = Set("ClaseRecurso")
 

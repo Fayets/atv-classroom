@@ -1073,3 +1073,5 @@ html { -webkit-text-size-adjust: 100%; }
 .trabado__caja p { margin: 0; color: #6d6862; }
 .trabado__caja button { margin-top: 6px; padding: 10px 18px; border: 0; border-radius: 10px; background: #242321; color: #f3f0e9; font: inherit; font-weight: 600; cursor: pointer; }
 .trabado__caja code { margin-top: 10px; font-size: 12px; color: #9a948b; word-break: break-word; }
+
+.admin-check { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }

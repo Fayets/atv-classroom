@@ -26,7 +26,13 @@ export function Video({ clase, className = '' }) {
   const info = getVideoEmbedInfo(clase?.video_url)
   return (
     <div className={`pc-video ${className}`}>
-      {info?.type === 'iframe' ? (
+      {clase?.video_proximamente ? (
+        <div className="pc-video__pronto">
+          <span className="pc-video__pronto-tag">Próximamente</span>
+          <b>Estamos regrabando este video</b>
+          <small>Mientras tanto, abajo tenés los SOPs y documentos de la clase.</small>
+        </div>
+      ) : info?.type === 'iframe' ? (
         <iframe src={info.src} title={clase.titulo} allow="autoplay; fullscreen; picture-in-picture; clipboard-write" allowFullScreen />
       ) : info?.type === 'video' ? (
         <video src={info.src} controls playsInline />

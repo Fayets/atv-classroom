@@ -86,6 +86,7 @@ class ClaseListItem(BaseModel):
     titulo: str
     orden: int
     video_url: str | None = None
+    video_proximamente: bool = False
     duracion_segundos: int | None = None
     completado: bool = False
 
@@ -113,6 +114,7 @@ class ClaseDetalleResponse(BaseModel):
     titulo: str
     orden: int
     video_url: str | None = None
+    video_proximamente: bool = False
     duracion_segundos: int | None = None
     descripcion: str | None = None
     recursos: list["ClaseRecursoItem"] = []
@@ -196,6 +198,7 @@ class ClaseAdminItem(BaseModel):
     titulo: str
     orden: int
     video_url: str | None = None
+    video_bloqueado: bool = False
     duracion_segundos: int | None = None
     descripcion: str | None = None
     recursos: list[ClaseRecursoItem] = []
@@ -243,6 +246,7 @@ class ClaseAdminCreate(BaseModel):
     titulo: str = Field(min_length=1)
     orden: int = 0
     video_url: str | None = None
+    video_bloqueado: bool = False
     duracion_segundos: int | None = None
     descripcion: str | None = None
     recursos: list[ClaseRecursoItem] = []
@@ -252,6 +256,7 @@ class ClaseAdminUpdate(BaseModel):
     titulo: str | None = Field(default=None, min_length=1)
     orden: int | None = None
     video_url: str | None = None
+    video_bloqueado: bool | None = None
     duracion_segundos: int | None = None
     descripcion: str | None = None
     recursos: list[ClaseRecursoItem] | None = None

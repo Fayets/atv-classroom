@@ -43,7 +43,7 @@ def catalogo() -> list[dict]:
             f'FROM "{DB_SCHEMA}"."clase" c JOIN "{DB_SCHEMA}"."seccion" s ON s.id = c.seccion '
             f'JOIN "{DB_SCHEMA}"."programa" p ON p.id = s.programa '
             # sin las "Próximamente" ni las vacías (sin video ni documentos): no se manda un link a nada
-            f"WHERE c.titulo NOT ILIKE 'próximamente%' AND (coalesce(c.video_url, '') <> '' "
+            f"WHERE c.titulo NOT ILIKE 'próximamente%' AND ((coalesce(c.video_url, '') <> '' AND NOT c.video_bloqueado) "
             f'OR EXISTS (SELECT 1 FROM "{DB_SCHEMA}"."clase_recurso" r2 WHERE r2.clase = c.id)) '
             f"ORDER BY p.orden, s.orden, c.orden"
         )

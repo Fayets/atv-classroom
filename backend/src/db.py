@@ -85,6 +85,7 @@ def _apply_migrations() -> None:
                 # Solo se altera una tabla si de verdad falta la columna: "ADD COLUMN IF NOT EXISTS" igual
                 # pide un candado exclusivo, y con la app andando eso choca con las lecturas (deadlock).
                 _agregar_columna(cur, "clase", "descripcion", "TEXT")
+                _agregar_columna(cur, "clase", "video_bloqueado", "BOOLEAN NOT NULL DEFAULT FALSE")
                 # Equipo: coaches además del admin, login con Google (sin contraseña).
                 _agregar_columna(cur, "admins", "rol", "VARCHAR NOT NULL DEFAULT 'admin'")
                 _agregar_columna(cur, "admins", "area", "VARCHAR")

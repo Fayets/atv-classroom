@@ -281,6 +281,7 @@ export default function AdminPage() {
         titulo: clase.titulo,
         orden: Number(clase.orden) || 0,
         video_url: clase.video_url?.trim() || '',
+        video_bloqueado: Boolean(clase.video_bloqueado),
         duracion_segundos: clase.duracion_segundos
           ? Number(clase.duracion_segundos)
           : null,
@@ -701,6 +702,21 @@ export default function AdminPage() {
                                 }
                                 placeholder="URL del video (YouTube, Vimeo, Loom o MP4)"
                               />
+                              <label className="admin-check">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(clase.video_bloqueado)}
+                                  onChange={(e) =>
+                                    updateClaseLocal(
+                                      seccion.id,
+                                      clase.id,
+                                      'video_bloqueado',
+                                      e.target.checked,
+                                    )
+                                  }
+                                />
+                                Video en "Próximamente" (los SOPs se siguen viendo)
+                              </label>
                               <label className="admin-field">
                                 <span className="admin-field__label">
                                   Descripción

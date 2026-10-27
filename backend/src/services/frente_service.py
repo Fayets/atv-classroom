@@ -123,7 +123,8 @@ def _clase(clase_id: int) -> dict | None:
     return {
         "id": clase.id,
         "titulo": clase.titulo,
-        "video_url": clase.video_url,
+        "video_url": None if clase.video_bloqueado else clase.video_url,
+        "video_proximamente": bool(clase.video_bloqueado),
         "programa_id": clase.seccion.programa.id,
         "recursos": serializar_recursos(clase),
         "resumen": brief["resumen"] if brief else None,

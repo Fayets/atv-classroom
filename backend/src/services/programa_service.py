@@ -70,7 +70,8 @@ def _serializar_clase(clase: Clase, usuario_id: int, tipo: str) -> dict:
         "id": clase.id,
         "titulo": clase.titulo,
         "orden": clase.orden,
-        "video_url": clase.video_url,
+        "video_url": None if clase.video_bloqueado else clase.video_url,
+        "video_proximamente": bool(clase.video_bloqueado),
         "duracion_segundos": clase.duracion_segundos,
         "completado": _clase_completada(clase.id, usuario_id, tipo),
     }
