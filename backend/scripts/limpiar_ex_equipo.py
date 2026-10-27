@@ -1,7 +1,9 @@
 """Saca de las descripciones de las clases a quienes ya no están en ATV: Fede, Naza y Thiago (pedido de Franco,
 27-10-2026). Lo que se puede sacar sin romper el texto se saca solo:
 
-- su @ de Instagram (y el "y"/"," que lo une a otro @),
+- el cierre de la clase si es suyo: el pedido de etiquetarlo, "Mi instagram: @…" y su firma (en primera persona
+  no puede quedar apuntando al Instagram de otro),
+- su @ de Instagram suelto (y el "y"/"," que lo une a otro @),
 - su firma ("-Naza", "– Fede y Juan" queda "– Juan"),
 - "con Naza" pasa a "con el equipo".
 
@@ -25,7 +27,25 @@ QUEDA = re.compile(rf"\b{NOMBRE}\b|@[\w.]*{NOMBRE}", re.I)
 FIRMA = re.compile(r"^(\s*[-–—]\s*)(.+?)\s*$")
 
 
+# Dónde arranca el cierre de la clase: el pedido de captura/etiqueta, "Mi instagram", la firma.
+CIERRE = re.compile(r"si la clase te (?:gust|sirvi)|si te gust[óo] la clase|etiquet|captura|instagram|^\s*⸻", re.I)
+
+
+def _sin_cierre_ajeno(texto: str) -> str:
+    lineas = texto.rstrip().split("\n")
+    inicio = len(lineas)
+    for i in range(len(lineas) - 1, max(len(lineas) - 9, -1), -1):
+        l = lineas[i].strip()
+        if not l or CIERRE.search(l) or FIRMA.match(lineas[i]) or HANDLE.search(l):
+            inicio = i
+        else:
+            break
+    cola = "\n".join(lineas[inicio:])
+    return "\n".join(lineas[:inicio]) if HANDLE.search(cola) or re.search(rf"^\s*[-–—]\s*{NOMBRE}\b", cola, re.I | re.M) else texto
+
+
 def _limpiar(texto: str) -> str:
+    texto = _sin_cierre_ajeno(texto)
     t = HANDLE.sub(lambda m: m.group(0) + "\0", texto)  # marca cada @ que se va
     t = re.sub(r"@[\w.]+\0\s*(?:y|,)\s*", "", t)
     t = re.sub(r"\s*(?:y|,)\s*@[\w.]+\0", "", t)
@@ -49,8 +69,9 @@ def _limpiar(texto: str) -> str:
 
 
 def _cambios(antes: str, despues: str) -> list[str]:
-    a, d = antes.strip().split("\n"), set(despues.split("\n"))
-    return [f"      − {l.strip()}" for l in a if l not in d and l.strip()]
+    a, d = antes.strip().split("\n"), despues.split("\n")
+    return [f"      − {l.strip()}" for l in a if l not in set(d) and l.strip()] + [
+        f"      + {l.strip()}" for l in d if l not in set(a) and l.strip()]
 
 
 def main(aplicar: bool) -> int:
