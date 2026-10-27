@@ -4,6 +4,7 @@ from starlette.concurrency import run_in_threadpool
 
 from src.services.alta_service import AltaServices
 from src.services.auth_service import obtener_sesion_desde_request
+from src.services.tiempo_real import hub
 
 router = APIRouter(prefix="/api/altas", tags=["altas"])
 service = AltaServices()
@@ -25,7 +26,10 @@ async def listar(sesion: dict = Depends(obtener_sesion_desde_request)):
 
 @router.post("")
 async def crear(datos: Alta, sesion: dict = Depends(obtener_sesion_desde_request)):
-    return await run_in_threadpool(service.crear, sesion, datos.nombre, datos.email, datos.plan, datos.ficha_id, datos.sin_ficha, datos.pago)
+    alta = await run_in_threadpool(service.crear, sesion, datos.nombre, datos.email, datos.plan, datos.ficha_id, datos.sin_ficha, datos.pago)
+    # Mensajes vuelve a pedir la lista: el chat del cliente nuevo aparece sin refrescar.
+    await hub.emitir_a_todos({"tipo": "canal"})
+    return alta
 
 
 @router.get("/senas")
@@ -45,4 +49,6 @@ async def enviar(alta_id: int, sesion: dict = Depends(obtener_sesion_desde_reque
 
 @router.delete("/{alta_id}")
 async def anular(alta_id: int, sesion: dict = Depends(obtener_sesion_desde_request)):
-    return await run_in_threadpool(service.anular, sesion, alta_id)
+    respuesta = await run_in_threadpool(service.anular, sesion, alta_id)
+    await hub.emitir_a_todos({"tipo": "canal"})
+    return respuesta
