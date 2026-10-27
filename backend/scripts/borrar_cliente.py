@@ -7,6 +7,7 @@ lo que hay en cada tabla. Si el onboarding tiene el contrato firmado, antes de b
 
     python -m scripts.borrar_cliente maydana            # muestra
     python -m scripts.borrar_cliente maydana --aplicar  # borra
+    ... --aplicar --llamadas                            # borra también sus llamadas de Fathom (eran de prueba)
 """
 
 import sys
@@ -78,7 +79,7 @@ def main(texto: str, aplicar: bool) -> int:
                 print(f"  {tabla:<24} {n}")
         llamadas = _cuenta(f"SELECT 1 FROM {S}.llamadas WHERE cliente_id = $c", p) if "llamadas" in existentes else 0
         if llamadas:
-            print(f"  llamadas (de los coaches: quedan, sin cliente) {llamadas}")
+            print(f"  llamadas {llamadas}" + ("" if "--llamadas" in sys.argv else "  (quedan, sin cliente; con --llamadas se borran)"))
 
         altas = db.select(f"SELECT id, session_id FROM {S}.altas_clientes WHERE cliente_id = $c", p)
         sesiones_onb = [str(s) for _, s in altas if s]
@@ -108,7 +109,13 @@ def main(texto: str, aplicar: bool) -> int:
         for tabla, cond, n in conteos:
             if n:
                 db.execute(f"DELETE FROM {S}.{tabla} WHERE {cond}", p)
-        if llamadas:
+        if llamadas and "--llamadas" in sys.argv:
+            # Como el botón Borrar de la carpeta Llamadas: queda anotada para que Fathom no la vuelva a traer.
+            db.execute(
+                f"INSERT INTO {S}.llamadas_borradas (fathom_id, admin_id, borrada_en) "
+                f"SELECT fathom_id, admin_id, now() FROM {S}.llamadas WHERE cliente_id = $c ON CONFLICT DO NOTHING", p)
+            db.execute(f"DELETE FROM {S}.llamadas WHERE cliente_id = $c", p)
+        elif llamadas:
             db.execute(f"UPDATE {S}.llamadas SET cliente_id = NULL WHERE cliente_id = $c", p)
         db.execute(f"DELETE FROM {S}.altas_clientes WHERE cliente_id = $c", p)
 
