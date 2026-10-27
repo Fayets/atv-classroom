@@ -1065,3 +1065,11 @@ html .app-header--cliente .app-header__avatar { background: #242321; color: #f3f
   input, textarea, select { font-size: 16px !important; }
 }
 html { -webkit-text-size-adjust: 100%; }
+
+/* Cartel cuando una pantalla falla (components/Trabado.jsx): en vez de quedar en blanco. */
+.trabado { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; background: #f3f0e9; font-family: inherit; color: #242321; }
+.trabado__caja { max-width: 420px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.trabado__caja b { font-size: 22px; letter-spacing: -0.02em; }
+.trabado__caja p { margin: 0; color: #6d6862; }
+.trabado__caja button { margin-top: 6px; padding: 10px 18px; border: 0; border-radius: 10px; background: #242321; color: #f3f0e9; font: inherit; font-weight: 600; cursor: pointer; }
+.trabado__caja code { margin-top: 10px; font-size: 12px; color: #9a948b; word-break: break-word; }
