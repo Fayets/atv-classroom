@@ -5,7 +5,7 @@
   no puede quedar apuntando al Instagram de otro),
 - su @ de Instagram suelto (y el "y"/"," que lo une a otro @),
 - su firma ("-Naza", "– Fede y Juan" queda "– Juan"),
-- "con Naza" pasa a "con el equipo".
+- "hablar con Naza" (los Case of Study, para entrar al Círculo Privado) pasa a "hablar con Juan".
 
 Si después de eso el nombre sigue en una oración, esa clase no se toca y se lista para reescribirla a mano.
 Sin --aplicar solo muestra los cambios.
@@ -62,7 +62,7 @@ def _limpiar(texto: str) -> str:
             continue
         lineas.append(linea)
     t = "\n".join(lineas)
-    t = re.sub(rf"\bcon {NOMBRE}\b", "con el equipo", t, flags=re.I)
+    t = re.sub(rf"\bcon {NOMBRE}\b", "con Juan", t, flags=re.I)
     t = re.sub(r"[ \t]+\n", "\n", t)
     t = re.sub(r"\n{3,}", "\n\n", t)
     return t.strip()
