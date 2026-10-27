@@ -905,3 +905,16 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-canal { display: inline; padding: 0 4px; border: 0; border-radius: 4px; background: rgba(10, 102, 214, 0.1); color: #0a66d6; font: inherit; font-weight: 600; cursor: pointer; }
 .msj-canal::before { content: '#'; opacity: 0.6; margin-right: 1px; }
 .msj-canal:hover { background: rgba(10, 102, 214, 0.2); text-decoration: underline; }
+
+/* Roadmaps del cliente: tacho por fila (aparece al pasar el mouse; en el celular, siempre) y confirmación ahí mismo. */
+.rmc-item { position: relative; }
+.rmc-item .msj-accion__boton { padding-right: 40px; }
+.rmc-tacho { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); width: 28px; height: 28px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #8e8e93; cursor: pointer; opacity: 0; transition: opacity 0.12s; }
+.rmc-tacho svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.rmc-item:hover .rmc-tacho, .rmc-tacho:focus-visible { opacity: 1; }
+.rmc-tacho:hover { background: rgba(215, 0, 21, 0.08); color: #d70015; }
+@media (hover: none) { .rmc-tacho { opacity: 1; } }
+.rmc-confirmar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: #fff5f5; box-shadow: inset 0 0 0 1px rgba(215, 0, 21, 0.18); font-size: 13px; }
+.rmc-confirmar span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rmc-confirmar button { padding: 5px 10px; border: 0; border-radius: 7px; background: #f2f2f7; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.rmc-confirmar button.is-peligro { background: #d70015; color: #fff; }

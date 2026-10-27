@@ -83,6 +83,21 @@ export default function RoadmapCliente({ clienteId, canalId, cliente = 'el clien
     }
   }
 
+  // Borrar desde la lista: el tacho de cada fila pide confirmar ahí mismo.
+  const [aBorrar, setABorrar] = useState(null)
+  async function borrarDeLista(id) {
+    setGuardando(true)
+    try {
+      setDatos(await borrarDoc(id))
+      setABorrar(null)
+      if (form?.id === id) setForm(null)
+    } catch (err) {
+      setError(err.message || 'No se pudo borrar.')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
   async function borrar() {
     setGuardando(true)
     try {
@@ -163,7 +178,15 @@ export default function RoadmapCliente({ clienteId, canalId, cliente = 'el clien
       {docs.length ? (
         <ul className="msj-acciones__lista">
           {docs.slice().reverse().map((d) => (
-            <li key={d.id} className="msj-accion">
+            <li key={d.id} className="msj-accion rmc-item">
+              {aBorrar === d.id ? (
+                <div className="rmc-confirmar" role="alert">
+                  <span>¿Borrar «{d.titulo}»?</span>
+                  <button type="button" className="is-peligro" onClick={() => borrarDeLista(d.id)} disabled={guardando}>{guardando ? 'Borrando…' : 'Borrar'}</button>
+                  <button type="button" onClick={() => setABorrar(null)}>No</button>
+                </div>
+              ) : (
+              <>
               <button
                 type="button"
                 className="msj-accion__boton"
@@ -173,6 +196,11 @@ export default function RoadmapCliente({ clienteId, canalId, cliente = 'el clien
                 <span>{d.versiones > 1 ? `${d.titulo} · v${d.version}` : d.titulo}</span>
                 <em className={d.id === principalId ? 'is-ok' : ''} title={d.pasos?.length ? `${d.paso_actual} de ${d.pasos_total} pasos hechos` : undefined}>{d.id === principalId ? 'Seguir ahora' : d.estado === 'reemplazado' ? 'Reemplazado' : corta(d.fecha)}</em>
               </button>
+              <button type="button" className="rmc-tacho" onClick={() => setABorrar(d.id)} aria-label={`Borrar ${d.titulo}`} title="Borrar">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" /></svg>
+              </button>
+              </>
+              )}
             </li>
           ))}
         </ul>
