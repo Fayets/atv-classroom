@@ -93,6 +93,8 @@ function conMensaje(lista, m, { mio, aLaVista }) {
 // y un círculo rojo con la cantidad si te etiquetaron.
 // Cliente en pausa: los canales de la comunidad se ven con candado y sin un solo mensaje.
 function CanalBloqueado({ item }) {
+  const { user } = useAuth()
+  const inactiva = user?.motivo_pausa === 'inactivo'
   useEffect(() => {
     pedirCartelPausa()
   }, [item.id])
@@ -102,8 +104,8 @@ function CanalBloqueado({ item }) {
         <svg viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="7" rx="1.6" /><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
       </span>
       <b>#{item.nombre} está bloqueado</b>
-      <p>Tu programa está en pausa: mientras tanto no podés ver lo que se habla en la comunidad.</p>
-      <button type="button" className="msj-bloqueado__boton" onClick={pedirCartelPausa}>Ver cómo reanudarlo</button>
+      <p>{inactiva ? 'Tu cuenta está inactiva' : 'Tu programa está en pausa'}: mientras tanto no podés ver lo que se habla en la comunidad.</p>
+      <button type="button" className="msj-bloqueado__boton" onClick={pedirCartelPausa}>{inactiva ? 'Ver cómo reactivarla' : 'Ver cómo reanudarlo'}</button>
     </div>
   )
 }
@@ -566,7 +568,7 @@ export default function MensajesPage() {
         {visibles.map((c) => (
           <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} arrastrable />
         ))}
-        {g.id === 'inactivos' && !g.canales.length && soltandoEn === g.id ? <p className="msj-grupo__vacio">Soltalo acá para archivarlo</p> : null}
+        {g.id === 'inactivos' && !g.canales.length && soltandoEn === g.id ? <p className="msj-grupo__vacio">Soltalo acá: queda inactivo y solo va a poder leer su canal</p> : null}
         {g.id === 'pausa' && !g.canales.length && soltandoEn === g.id ? <p className="msj-grupo__vacio">Soltalo acá: solo va a poder leer su canal</p> : null}
       </section>
     )

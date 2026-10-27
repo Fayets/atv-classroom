@@ -13,15 +13,20 @@ import '../styles/pausa.css'
 export const EVENTO_PAUSA = 'atv-pausa' // el servidor cortó algo por pausa: refrescar el perfil y mostrar el cartel
 const VISTO = 'atv-pausa-visto'
 
-function Contacto({ contacto, onCanal }) {
+function Contacto({ contacto, motivo, onCanal }) {
   const nombre = contacto?.nombre || 'Lucas'
+  const inactiva = motivo === 'inactivo'
   return (
     <>
       <span className="pausa-icono" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2" /><rect x="14" y="5" width="4" height="14" rx="1.2" /></svg>
+        {inactiva ? (
+          <svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" strokeWidth="2" /></svg>
+        ) : (
+          <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2" /><rect x="14" y="5" width="4" height="14" rx="1.2" /></svg>
+        )}
       </span>
-      <h2 id="pausa-titulo">Tu programa está en pausa</h2>
-      <p>Para reanudarlo, comunicate con <b>{nombre}</b>.</p>
+      <h2 id="pausa-titulo">{inactiva ? 'Tu cuenta está inactiva' : 'Tu programa está en pausa'}</h2>
+      <p>Para {inactiva ? 'reactivarla' : 'reanudarlo'}, comunicate con <b>{nombre}</b>.</p>
       {contacto?.whatsapp ? <p className="pausa-numero">{contacto.whatsapp}</p> : null}
       <div className="pausa-acciones">
         {contacto?.link ? (
@@ -47,7 +52,7 @@ export function CartelPausa({ abierto, alCerrar }) {
   return createPortal(
     <div className="pausa-fondo" onClick={(e) => e.target === e.currentTarget && alCerrar()}>
       <div className="pausa-tarjeta" role="dialog" aria-modal="true" aria-labelledby="pausa-titulo">
-        <Contacto contacto={user?.contacto_pausa} onCanal={habilitada ? () => { alCerrar(); navigate('/mensajes') } : null} />
+        <Contacto contacto={user?.contacto_pausa} motivo={user?.motivo_pausa} onCanal={habilitada ? () => { alCerrar(); navigate('/mensajes') } : null} />
         <button type="button" className="pausa-cerrar" onClick={alCerrar}>Entendido</button>
       </div>
     </div>,
@@ -65,7 +70,7 @@ export function PausaSync() {
   const refrescar = useCallback(async (mostrar) => {
     try {
       const p = await fetchSessionProfile()
-      actualizarUsuario({ pausa: Boolean(p.pausa), contacto_pausa: p.contacto_pausa || null })
+      actualizarUsuario({ pausa: Boolean(p.pausa), contacto_pausa: p.contacto_pausa || null, motivo_pausa: p.motivo_pausa || null })
       if (p.pausa && mostrar) setAbierto(true)
     } catch {
       /* sin red: queda lo que había */

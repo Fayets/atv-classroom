@@ -337,10 +337,10 @@ def obtener_sesion_desde_request(request: Request) -> dict:
     from src.services.dispositivos_service import registrar
 
     registrar(_hash_token(token), request)
-    # Cliente en pausa: solo puede leer su canal. Todo lo demás (módulos, IA, roadmaps, escribir) se corta
-    # acá, en el servidor, con 423 para que la app muestre el cartel de "hablá con Lucas".
+    # Cliente en pausa o inactivo: solo puede leer su canal. Todo lo demás (módulos, IA, roadmaps, escribir)
+    # se corta acá, en el servidor, con 423 para que la app muestre el cartel de "hablá con Lucas".
     if sesion.get("pausa") and not permitido_en_pausa(request.method, request.url.path):
-        raise HTTPException(status_code=423, detail=mensaje_pausa())
+        raise HTTPException(status_code=423, detail=mensaje_pausa(sesion.get("motivo")))
     return sesion
 
 
@@ -371,9 +371,10 @@ def contacto_pausa() -> dict:
     return {"nombre": PAUSA_CONTACTO, "whatsapp": PAUSA_WHATSAPP or None, "link": f"https://wa.me/{numero}" if numero else None}
 
 
-def mensaje_pausa() -> str:
+def mensaje_pausa(motivo: str | None = None) -> str:
     c = contacto_pausa()
-    return f"Tu programa está en pausa. Para reanudarlo, escribile a {c['nombre']}" + (f" al {c['whatsapp']}." if c["whatsapp"] else ".")
+    inicio = "Tu cuenta está inactiva. Para reactivarla" if motivo == "inactivo" else "Tu programa está en pausa. Para reanudarlo"
+    return f"{inicio}, escribile a {c['nombre']}" + (f" al {c['whatsapp']}." if c["whatsapp"] else ".")
 
 
 def _validar_token(token: str) -> dict:
@@ -399,9 +400,11 @@ def _validar_token(token: str) -> dict:
             from src.models import Canal
 
             canal = Canal.get(cliente_id=cliente.id)
-            en_pausa = bool(canal and canal.pausa)
+            # Inactivos corta igual que Pausa (solo lee su canal); cambia el cartel que ve.
+            en_pausa = bool(canal and (canal.pausa or canal.inactivo))
+            motivo = "pausa" if canal and canal.pausa else ("inactivo" if en_pausa else None)
     else:
-        en_pausa = False
+        en_pausa, motivo = False, None
 
     return {
         "usuario_id": sesion["usuario_id"],
@@ -411,6 +414,7 @@ def _validar_token(token: str) -> dict:
         "miembro_id": sesion.get("miembro_id"),
         "miembro_rol": sesion.get("miembro_rol"),
         "pausa": en_pausa,
+        "motivo": motivo,
     }
 
 
@@ -465,6 +469,7 @@ def obtener_perfil_sesion(sesion: dict) -> dict:
             "rol": sesion["rol"],
             "pausa": bool(sesion.get("pausa")),
             "contacto_pausa": contacto_pausa() if sesion.get("pausa") else None,
+            "motivo_pausa": sesion.get("motivo"),
             "dias_restantes": _calcular_dias_restantes(fecha_vencimiento),
             "fecha_vencimiento": fecha_vencimiento.isoformat() if fecha_vencimiento else None,
             "foto_url": _foto_persona(sesion),

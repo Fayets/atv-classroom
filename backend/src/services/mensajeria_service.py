@@ -532,7 +532,7 @@ class MensajeriaServices:
                 # En pausa, de la comunidad solo ve el candado: los mensajes no salen del servidor.
                 from src.services.auth_service import mensaje_pausa
 
-                raise HTTPException(status_code=423, detail=mensaje_pausa())
+                raise HTTPException(status_code=423, detail=mensaje_pausa(sesion.get("motivo")))
             cid = canal.id
             hay_mas = False
             if despues_de is not None:
@@ -823,15 +823,17 @@ class MensajeriaServices:
                     canales[cid].orden = i
 
     def marcar_inactivo(self, sesion: dict, canal_id: int, inactivo: bool) -> dict:
-        """Pasa el chat de un cliente a "Inactivos" (o lo saca). Lo puede hacer cualquiera del equipo y
-        lo ven todos: es solo dónde se muestra el chat, no toca el acceso del cliente."""
-        if not es_equipo(sesion):
-            raise HTTPException(status_code=403, detail="Solo el equipo.")
+        """Pasa el chat de un cliente a "Inactivos" (o lo saca). Como Pausa, le corta el acceso (solo lee su
+        canal) con un cartel de cuenta inactiva; por eso lo mueven los mismos que pausan."""
+        if not ve_plata(sesion):
+            raise HTTPException(status_code=403, detail="Solo admins, Ventas o Sistemas pasan a un cliente a Inactivos.")
         with db_session:
             canal = _canal_visible(sesion, canal_id)
             if canal.tipo != "cliente":
                 raise HTTPException(status_code=422, detail="Solo los chats de clientes van a Inactivos.")
             canal.inactivo = bool(inactivo)
+            if inactivo:
+                canal.pausa = False  # está en un solo grupo a la vez
             return _info(canal)
 
     def marcar_pausa(self, sesion: dict, canal_id: int, pausa: bool) -> dict:

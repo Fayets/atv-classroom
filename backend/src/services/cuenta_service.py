@@ -76,8 +76,9 @@ class CuentaServices:
                 "LEFT JOIN clients.clientes_con_estado e ON e.id = k.id WHERE k.id = $id", {"id": c.id})
             inicio, duracion, estado = extra[0] if extra else (None, None, None)
             canal = Canal.get(cliente_id=c.id)
-            # "En pausa" solo si está en el grupo Pausa (ahí se le corta el acceso); la ficha sola no alcanza.
+            # "En pausa" / "Inactiva" solo si está en ese grupo de Mensajes (ahí se le corta el acceso).
             en_pausa = bool(canal and canal.pausa)
+            inactiva = bool(canal and canal.inactivo and not canal.pausa)
             hoy = date.today()
             vence = c.fecha_vencimiento
             ptipo, pid = persona(sesion)
@@ -99,8 +100,8 @@ class CuentaServices:
                 "fecha_vencimiento": vence.isoformat() if vence else None,
                 "dias_restantes": (vence - hoy).days if vence else None,
                 "duracion_dias": duracion or ((vence - inicio).days if vence and inicio else None),
-                "estado": "pausa" if en_pausa else estado,
-                "estado_texto": "En pausa" if en_pausa else _ESTADO_CLIENTE.get(estado, (estado or "").replace("_", " ").capitalize() or None),
+                "estado": "pausa" if en_pausa else ("inactivo" if inactiva else estado),
+                "estado_texto": "En pausa" if en_pausa else "Inactiva" if inactiva else _ESTADO_CLIENTE.get(estado, (estado or "").replace("_", " ").capitalize() or None),
                 "responsable": c.responsable,
                 "foto_url": foto_de(ptipo, pid),
                 "foto_propia": bool(fotos_de(ptipo, [pid])),

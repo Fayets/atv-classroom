@@ -153,8 +153,9 @@ async def ordenar_canales(body: OrdenCanales, sesion: dict = Depends(sesion_mens
 @router.put("/canales/{canal_id}/inactivo")
 async def marcar_inactivo(canal_id: int, body: CanalInactivo, sesion: dict = Depends(sesion_mensajes)):
     info = await run_in_threadpool(service.marcar_inactivo, sesion, canal_id, body.inactivo)
-    # Todo el equipo ve el chat moverse de grupo al instante.
+    # El equipo ve moverse el chat y el cliente, si está adentro, ve el cartel (o se le levanta) al instante.
     await hub.emitir({"tipo": "canal", "canal_id": canal_id}, info)
+    await hub.emitir({"tipo": "pausa", "canal_id": canal_id, "pausa": body.inactivo}, info)
     return {"ok": True, "inactivo": body.inactivo}
 
 

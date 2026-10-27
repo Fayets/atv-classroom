@@ -131,3 +131,29 @@ def test_en_pausa_la_comunidad_queda_con_candado(equipo, cliente):
         assert "mensajes" in svc.mensajes(sesion, cliente["canal_id"])
     finally:
         svc.marcar_pausa(equipo["ventas"], cliente["canal_id"], False)
+
+
+def test_inactivo_corta_como_pausa_con_otro_cartel(equipo, cliente):
+    from src.models import Canal
+
+    cid, token = cliente["canal_id"], cliente["token"]
+    with pytest.raises(HTTPException) as e:
+        svc.marcar_inactivo(equipo["fulfillment"], cid, True)
+    assert e.value.status_code == 403
+    svc.marcar_inactivo(equipo["ventas"], cid, True)
+    try:
+        perfil = auth.obtener_perfil_sesion(auth.obtener_sesion_desde_request(_pedido("GET", "/api/auth/me", token)))
+        assert perfil["pausa"] is True and perfil["motivo_pausa"] == "inactivo"
+        assert auth.obtener_sesion_desde_request(_pedido("GET", f"/api/mensajes/canales/{cid}/mensajes", token))["pausa"] is True
+        with pytest.raises(HTTPException) as e:
+            auth.obtener_sesion_desde_request(_pedido("POST", f"/api/mensajes/canales/{cid}/mensajes", token))
+        assert e.value.status_code == 423 and "inactiva" in e.value.detail
+        # Pasarlo de Inactivos a Pausa lo deja en un solo grupo y con el cartel de pausa.
+        svc.marcar_pausa(equipo["ventas"], cid, True)
+        with db_session:
+            assert Canal[cid].inactivo is False
+        assert auth.obtener_sesion_desde_request(_pedido("GET", "/api/auth/me", token))["motivo"] == "pausa"
+        svc.marcar_pausa(equipo["ventas"], cid, False)
+    finally:
+        svc.marcar_inactivo(equipo["ventas"], cid, False)
+    assert auth.obtener_sesion_desde_request(_pedido("POST", f"/api/mensajes/canales/{cid}/mensajes", token))["pausa"] is False
