@@ -260,6 +260,14 @@ def login(email: str, contrasena: str) -> dict:
         # la clave correcta y, entre esas, la que siga con acceso.
         validos = [c for c in _buscar_clientes_por_email(email_norm) if _clave_correcta(c, contrasena)]
         miembro = None
+        if validos:
+            # Un segundo mail de la ficha que el titular sumó a su equipo: entra como esa persona.
+            from src.models import MiembroCliente
+
+            del_equipo = MiembroCliente.get(email=email_norm)
+            if del_equipo is not None and any(c.id == del_equipo.cliente_id for c in validos):
+                miembro = del_equipo
+                validos = [c for c in validos if c.id == del_equipo.cliente_id]
         if not validos:
             # ¿Es alguien del equipo de un cliente? Entra con su mail y la clave del cliente.
             from src.models import MiembroCliente

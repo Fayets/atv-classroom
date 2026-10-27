@@ -66,8 +66,13 @@ def _mail_libre(email: str, cliente_id: int, miembro_id: int | None = None) -> N
 
     if _buscar_admin_por_email(email):
         raise HTTPException(status_code=409, detail="Ese mail es de alguien del equipo de ATV.")
-    if _buscar_clientes_por_email(email):
+    fichas = _buscar_clientes_por_email(email)
+    # Un segundo mail de la MISMA cuenta (ej. "Oscar Lina": los dos mails en una ficha) sí se puede sumar:
+    # así esa persona entra con su nombre y no como el titular. El mail principal de la cuenta, no.
+    if any(c.id != cliente_id for c in fichas):
         raise HTTPException(status_code=409, detail="Ese mail ya es de un cliente de ATV: entra con su propia cuenta.")
+    if any((c.email or "").strip().lower() == email for c in fichas):
+        raise HTTPException(status_code=409, detail="Ese es el mail principal de tu cuenta: con ese entrás vos.")
     otro = MiembroCliente.get(email=email)
     if otro and otro.id != miembro_id:
         detalle = "Esa persona ya está en tu equipo." if otro.cliente_id == cliente_id else "Ese mail ya está en el equipo de otro cliente."

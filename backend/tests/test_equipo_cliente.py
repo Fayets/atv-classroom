@@ -100,3 +100,46 @@ def test_cada_uno_edita_solo_sus_mensajes():
     del_setter = SimpleNamespace(autor_tipo="cliente", autor_id=CLIENTE_ID, miembro_id=7)
     assert _es_mio(del_titular, TITULAR) and not _es_mio(del_setter, TITULAR)
     assert _es_mio(del_setter, {**TITULAR, "miembro_id": 7}) and not _es_mio(del_titular, {**TITULAR, "miembro_id": 7})
+
+
+def test_un_segundo_mail_de_la_misma_ficha_se_suma_y_entra_con_su_nombre(monkeypatch):
+    # Como "Oscar Lina": los dos mails están en la ficha. Antes, el segundo entraba como el titular.
+    con_dos = SimpleNamespace(**{**vars(FALSO), "emails_json": '["titular@atvos-prueba.com", "lina@atvos-prueba.com"]'})
+
+    class _ConDos(_Clientes):
+        @staticmethod
+        def get(id=None, **_):
+            return con_dos if id == CLIENTE_ID else None
+
+        @staticmethod
+        def select(*_):
+            return [con_dos]
+
+    monkeypatch.setattr(auth, "ClienteExterno", _ConDos)
+    monkeypatch.setattr(eq, "ClienteExterno", _ConDos)
+    svc = eq.EquipoClienteServices()
+    antes = auth.login("lina@atvos-prueba.com", "prueba.equipo")
+    assert antes["nombre"] == "Cliente Equipo"  # sin estar en el equipo, entra como la cuenta
+    m = svc.agregar(TITULAR, "lina@atvos-prueba.com", "Lina Castillo", "socio")
+    r = auth.login("lina@atvos-prueba.com", "prueba.equipo")
+    assert r["usuario_id"] == CLIENTE_ID and r["nombre"] == "Lina Castillo" and r["miembro"]["rol"] == "socio"
+    assert auth._validar_token(r["token"])["miembro_id"] == m["id"]
+    # El mail principal sigue siendo del titular: no se suma.
+    with pytest.raises(HTTPException) as e:
+        svc.agregar(TITULAR, "titular@atvos-prueba.com", "Otro", "setter")
+    assert e.value.status_code == 409
+
+
+def test_el_mail_de_otro_cliente_no_se_suma(monkeypatch):
+    otro = SimpleNamespace(**{**vars(FALSO), "id": 999994002, "email": "otro@atvos-prueba.com", "emails_json": None})
+
+    class _ConOtro(_Clientes):
+        @staticmethod
+        def select(*_):
+            return [FALSO, otro]
+
+    monkeypatch.setattr(auth, "ClienteExterno", _ConOtro)
+    monkeypatch.setattr(eq, "ClienteExterno", _ConOtro)
+    with pytest.raises(HTTPException) as e:
+        eq.EquipoClienteServices().agregar(TITULAR, "otro@atvos-prueba.com", "Otro", "setter")
+    assert "otro cliente" not in e.value.detail and e.value.status_code == 409
