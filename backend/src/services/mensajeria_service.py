@@ -633,6 +633,13 @@ class MensajeriaServices:
                 # Alguien del equipo del cliente: la cuenta es la del cliente, la firma es la suya.
                 m.miembro_id = sesion["miembro_id"]
                 m.autor_nombre = sesion["nombre"]
+            elif yo[0] == "cliente":
+                # El titular firma con el nombre que se puso en Mi cuenta (si no, el de la ficha).
+                from src.services.auth_service import nombre_titular
+
+                propio = nombre_titular(yo[1])
+                if propio:
+                    m.autor_nombre = propio
             canal.ultimo_mensaje_en = datetime.utcnow()
             db.flush()
             for a in propios:

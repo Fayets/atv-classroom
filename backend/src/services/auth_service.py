@@ -96,6 +96,15 @@ def _buscar_clientes_por_email(email: str) -> list[ClienteExterno]:
     return encontrados
 
 
+def nombre_titular(cliente_id: int) -> str | None:
+    """El nombre que el titular se puso en Mi cuenta (None si no lo cambió: se usa el de la ficha)."""
+    from src.models import NombreTitular
+
+    with db_session:
+        fila = NombreTitular.get(cliente_id=cliente_id)
+        return fila.nombre if fila else None
+
+
 def clave_desde_canal(canal: str | None) -> str | None:
     """#ema-romero → ema.romero (misma regla que muestra atv-clients)."""
     if not canal:
@@ -292,7 +301,7 @@ def login(email: str, contrasena: str) -> dict:
         dias_restantes = _calcular_dias_restantes(cliente.fecha_vencimiento)
         session_data = {
             "usuario_id": cliente.id,
-            "nombre": cliente.nombre or cliente.email,
+            "nombre": nombre_titular(cliente.id) or cliente.nombre or cliente.email,
             "email": cliente.email,
             "rol": rol,
             "tipo": "cliente",
@@ -489,9 +498,11 @@ def obtener_perfil_sesion(sesion: dict) -> dict:
             raise HTTPException(status_code=404, detail="Cliente no encontrado.")
 
         fecha_vencimiento = cliente.fecha_vencimiento
+        # El titular puede haberse cambiado el nombre después de entrar: se lee siempre el actual.
+        nombre = sesion["nombre"] if sesion.get("miembro_id") else (nombre_titular(cliente.id) or sesion["nombre"])
         return {
             "usuario_id": sesion["usuario_id"],
-            "nombre": sesion["nombre"],
+            "nombre": nombre,
             "email": sesion["email"],
             "rol": sesion["rol"],
             "pausa": bool(sesion.get("pausa")),

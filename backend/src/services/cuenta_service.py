@@ -52,7 +52,36 @@ _ESTADO_CLIENTE = {
 }
 
 
+def _propio(cliente_id: int) -> str | None:
+    from src.models import NombreTitular
+
+    fila = NombreTitular.get(cliente_id=cliente_id)
+    return fila.nombre if fila else None
+
+
 class CuentaServices:
+    def cambiar_nombre(self, sesion: dict, nombre: str | None) -> dict:
+        """El titular elige cómo se llama él (no la cuenta ni el canal). Vacío vuelve al de la ficha."""
+        from src.models import NombreTitular
+
+        if es_equipo(sesion) or sesion.get("miembro_id"):
+            raise HTTPException(status_code=403, detail="Solo el titular de la cuenta cambia su nombre acá.")
+        nombre = " ".join((nombre or "").split())
+        if len(nombre) > 80:
+            raise HTTPException(status_code=422, detail="El nombre es muy largo.")
+        with db_session:
+            fila = NombreTitular.get(cliente_id=sesion["usuario_id"])
+            if not nombre:
+                if fila:
+                    fila.delete()
+                c = ClienteExterno.get(id=sesion["usuario_id"])
+                return {"nombre": (c.nombre or c.email) if c else sesion["nombre"], "propio": False}
+            if fila:
+                fila.set(nombre=nombre, actualizado_en=datetime.utcnow())
+            else:
+                NombreTitular(cliente_id=sesion["usuario_id"], nombre=nombre)
+        return {"nombre": nombre, "propio": True}
+
     def mi_cuenta(self, sesion: dict) -> dict:
         tipo = tipo_de_sesion(sesion)
         with db_session:
@@ -92,7 +121,8 @@ class CuentaServices:
             return {
                 "tipo": "cliente",
                 "miembro": miembro,
-                "nombre": sesion["nombre"] if miembro else (c.nombre or sesion["nombre"]),
+                "nombre": sesion["nombre"] if miembro else (_propio(c.id) or c.nombre or sesion["nombre"]),
+                "nombre_cuenta": c.nombre or c.email,
                 "email": sesion["email"] if miembro else c.email,
                 "plan": c.plan_actual,
                 "plan_nombre": nombre_rol(rol_de_plan(c.plan_actual)) if rol_de_plan(c.plan_actual) else (c.plan_actual or "").capitalize() or None,

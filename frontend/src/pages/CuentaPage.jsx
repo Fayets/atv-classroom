@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchCuenta, prepararFoto, quitarFoto, subirFoto } from '../api/cuenta'
+import { cambiarNombre, fetchCuenta, prepararFoto, quitarFoto, subirFoto } from '../api/cuenta'
 import AppHeader from '../components/AppHeader'
 import CuposEquipo from '../components/cuenta/CuposEquipo'
 import TuEquipo from '../components/cuenta/TuEquipo'
@@ -108,7 +108,17 @@ export default function CuentaPage() {
                   {c.foto_url ? <img src={c.foto_url} alt="" referrerPolicy="no-referrer" /> : <span>{getUserInitials(c.nombre)}</span>}
                 </div>
                 <div className="cuenta-perfil__texto">
-                  <p className="cuenta-perfil__nombre">{c.nombre}</p>
+                  {c.tipo === 'cliente' && !c.miembro ? (
+                    <NombreTitular
+                      cuenta={c}
+                      alGuardar={(nombre) => {
+                        setCuenta((x) => ({ ...x, nombre }))
+                        actualizarUsuario({ nombre })
+                      }}
+                    />
+                  ) : (
+                    <p className="cuenta-perfil__nombre">{c.nombre}</p>
+                  )}
                   <p className="cuenta-perfil__mail">{c.email}</p>
                   <div className="cuenta-perfil__botones">
                     <input ref={selector} type="file" accept="image/jpeg,image/png,image/webp,image/heic" hidden onChange={elegirFoto} />
@@ -190,5 +200,53 @@ export default function CuentaPage() {
         ) : null}
       </main>
     </div>
+  )
+}
+
+// El titular elige cómo se llama él. La cuenta y el canal mantienen el nombre del onboarding.
+function NombreTitular({ cuenta, alGuardar }) {
+  const [editando, setEditando] = useState(false)
+  const [valor, setValor] = useState(cuenta.nombre)
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState('')
+
+  async function guardar(e) {
+    e.preventDefault()
+    setGuardando(true)
+    setError('')
+    try {
+      const r = await cambiarNombre(valor)
+      alGuardar(r.nombre)
+      setEditando(false)
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar.')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  if (!editando) {
+    return (
+      <div className="cuenta-nombre">
+        <p className="cuenta-perfil__nombre">
+          {cuenta.nombre}
+          <button type="button" className="cuenta-nombre__editar" onClick={() => { setValor(cuenta.nombre); setEditando(true) }}>
+            Editar
+          </button>
+        </p>
+        {cuenta.nombre_cuenta && cuenta.nombre_cuenta !== cuenta.nombre ? <p className="cuenta-nombre__cuenta">Cuenta: {cuenta.nombre_cuenta}</p> : null}
+      </div>
+    )
+  }
+  return (
+    <form className="cuenta-nombre__form" onSubmit={guardar}>
+      <input value={valor} onChange={(e) => setValor(e.target.value)} maxLength={80} autoFocus aria-label="Tu nombre" placeholder={cuenta.nombre_cuenta} />
+      <p className="cuenta-nombre__ayuda">Así te ven en el chat. La cuenta se sigue llamando {cuenta.nombre_cuenta}.</p>
+      {error ? <p className="cuenta-equipo__error" role="alert">{error}</p> : null}
+      <div className="cuenta-nombre__botones">
+        <button type="button" className="cuenta-boton is-suave" onClick={() => setEditando(false)} disabled={guardando}>Cancelar</button>
+        <button type="submit" className="cuenta-boton" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</button>
+      </div>
+    </form>
   )
 }

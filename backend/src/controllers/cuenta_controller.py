@@ -18,6 +18,15 @@ async def mi_cuenta(sesion: dict = Depends(obtener_sesion_desde_request)):
     return await run_in_threadpool(service.mi_cuenta, sesion)
 
 
+class Nombre(BaseModel):
+    nombre: str | None = None
+
+
+@router.put("/nombre")
+async def cambiar_nombre(body: Nombre, sesion: dict = Depends(obtener_sesion_desde_request)):
+    return await run_in_threadpool(service.cambiar_nombre, sesion, body.nombre)
+
+
 @router.post("/foto")
 async def subir_foto(archivo: UploadFile = File(...), sesion: dict = Depends(obtener_sesion_desde_request)):
     datos = await archivo.read(MAX_FOTO + 1)

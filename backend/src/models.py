@@ -703,3 +703,14 @@ class PushAlertaEspera(db.Entity):
 
     canal_id = PrimaryKey(int)
     mensaje_id = Required(int)
+
+
+class NombreTitular(db.Entity):
+    """Cómo se llama la persona dueña de la cuenta (la del mail principal), aparte del nombre de la ficha y
+    del canal que pone Nick en el onboarding: "Oscar Lina" es la cuenta, "Oscar Triana" quien escribe."""
+
+    _table_ = (DB_SCHEMA, "nombres_titular")
+
+    cliente_id = PrimaryKey(int)
+    nombre = Required(str)
+    actualizado_en = Required(datetime, default=datetime.utcnow)
