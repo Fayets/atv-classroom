@@ -3,7 +3,6 @@ import { conEmojis } from '../../utils/emojis'
 import { normal } from '../../utils/mensajes'
 
 const URL = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g
-const MENCION = /(@[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)/g
 const NEGRITA = /\*\*([^*\n]+?)\*\*/g // **texto**, como en Discord (lo traído de allá y los anuncios del equipo)
 
 const PALABRA = /([A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9](?:…|\.\.\.)?)/g
@@ -31,15 +30,35 @@ function ConCanales({ texto, canales, onAbrirCanal }) {
   })
 }
 
-function ConMenciones({ texto, nombres, yo, canales, onAbrirCanal }) {
+const escapar = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+// Etiquetas con nombre completo ("@Franco Ascurra") primero, después las de una palabra.
+function patronDe(personas) {
+  const completos = [...new Set((personas || []).map((p) => (p.nombre || '').trim()).filter((n) => n.includes(' ')))]
+  completos.sort((a, b) => b.length - a.length)
+  const alternativas = [...completos.map(escapar), '[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+']
+  return new RegExp(`(@(?:${alternativas.join('|')}))`, 'gi')
+}
+
+function ConMenciones({ texto, nombres, personas, yo, canales, onAbrirCanal }) {
   if (!nombres?.size && !/@(everyone|todos)/i.test(texto)) return <ConCanales texto={texto} canales={canales} onAbrirCanal={onAbrirCanal} />
-  return texto.split(MENCION).map((parte, i) => {
+  const tipoDe = new Map((personas || []).map((p) => [normal(p.nombre || ''), p.tipo]))
+  const tiposPorNombre = new Map()
+  for (const p of personas || []) {
+    const n = normal((p.nombre || '').split(/\s+/)[0])
+    tiposPorNombre.set(n, new Set([...(tiposPorNombre.get(n) || []), p.tipo]))
+  }
+  return texto.split(patronDe(personas)).map((parte, i) => {
     const quien = i % 2 === 1 ? normal(parte.slice(1)) : ''
     const todos = quien === 'everyone' || quien === 'todos'
-    if (i % 2 === 1 && (todos || nombres.has(quien))) {
-      const esYo = todos || (yo && quien === normal(yo))
+    if (i % 2 === 1 && (todos || nombres.has(quien) || tipoDe.has(quien))) {
+      // yo solo llega cuando la etiqueta es mía: vale con el primer nombre o con el completo.
+      const esYo = todos || Boolean(yo && quien.split(' ')[0] === normal(yo))
+      // Cliente o equipo: por el nombre completo, o por el primero si no se repite entre los dos lados.
+      const tipos = tipoDe.has(quien) ? new Set([tipoDe.get(quien)]) : tiposPorNombre.get(quien) || new Set()
+      const deCliente = !esYo && tipos.size === 1 && tipos.has('cliente')
       return (
-        <span key={i} className={`msj-mencion${esYo ? ' is-yo' : ''}`}>
+        <span key={i} className={`msj-mencion${esYo ? ' is-yo' : ''}${deCliente ? ' is-cliente' : ''}`} title={deCliente ? 'Cliente' : tipos.has('equipo') && tipos.size === 1 ? 'Equipo ATV' : undefined}>
           {parte}
         </span>
       )
@@ -51,9 +70,9 @@ function ConMenciones({ texto, nombres, yo, canales, onAbrirCanal }) {
 // Pasa los :atajos: a emoji, respeta los saltos de línea, convierte los links en enlaces, pone en negrita lo que va
 // entre ** y resalta las @menciones y los canales de clientes nombrados por su slug (sin HTML del usuario).
 // Con `secciones` (canal #updates) cada párrafo que arranca con "@Persona" va con una barra a la izquierda.
-export default function TextoMensaje({ texto, nombres, yo, canales, onAbrirCanal, secciones = false }) {
+export default function TextoMensaje({ texto, nombres, personas, yo, canales, onAbrirCanal, secciones = false }) {
   const limpio = conEmojis(texto)
-  const linea = (t) => <Linea texto={t} nombres={nombres} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
+  const linea = (t) => <Linea texto={t} nombres={nombres} personas={personas} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
   if (!secciones || !/(^|\n)@/.test(limpio)) return <p className="msj-texto">{linea(limpio)}</p>
   const parrafos = limpio.split(/\n{2,}/)
   return (
@@ -67,7 +86,7 @@ export default function TextoMensaje({ texto, nombres, yo, canales, onAbrirCanal
   )
 }
 
-function Linea({ texto, nombres, yo, canales, onAbrirCanal }) {
+function Linea({ texto, nombres, personas, yo, canales, onAbrirCanal }) {
   const partes = texto.split(URL)
   return partes.map((parte, i) =>
     i % 2 === 1 ? (
@@ -78,10 +97,10 @@ function Linea({ texto, nombres, yo, canales, onAbrirCanal }) {
       parte.split(NEGRITA).map((trozo, j) =>
         j % 2 === 1 ? (
           <strong key={`${i}-${j}`}>
-            <ConMenciones texto={trozo} nombres={nombres} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
+            <ConMenciones texto={trozo} nombres={nombres} personas={personas} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
           </strong>
         ) : (
-          <ConMenciones key={`${i}-${j}`} texto={trozo} nombres={nombres} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
+          <ConMenciones key={`${i}-${j}`} texto={trozo} nombres={nombres} personas={personas} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
         ),
       )
     ),

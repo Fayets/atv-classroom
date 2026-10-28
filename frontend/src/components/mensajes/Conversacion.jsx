@@ -603,7 +603,10 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     const el = caja.current
     const caret = el?.selectionStart ?? texto.length
     const desde = sugerencias?.desde ?? caret
-    const marca = `@${primerNombre(miembro.nombre)}`
+    // Si el primer nombre se repite (Franco del equipo y Franco Ascurra cliente), va el nombre completo.
+    const primero = primerNombre(miembro.nombre)
+    const repetido = [...equipo, ...participantes].filter((p) => normal(primerNombre(p.nombre)) === normal(primero)).length > 1
+    const marca = `@${repetido && miembro.nombre.trim().includes(' ') ? miembro.nombre.trim() : primero}`
     const nuevo = `${texto.slice(0, desde)}${marca} ${texto.slice(caret)}`
     mencionados.current.set(marca, miembro.esCliente ? null : miembro.id) // al servidor solo van ids del equipo
     setTexto(nuevo)
@@ -800,6 +803,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const miUltimo = [...mensajes].reverse().find((m) => claveAutor(m.autor) === yo)
   const nombresEscribiendo = Object.keys(escriben).filter((n) => n !== user?.nombre)
   const nombresEquipo = new Set([...equipo, ...participantes].map((m) => normal(primerNombre(m.nombre))))
+  // Quién es quién en las etiquetas: nombre completo → equipo o cliente (para pintarlas distinto).
+  const personasChat = [...equipo.map((m) => ({ nombre: m.nombre, tipo: 'equipo' })), ...participantes.map((p) => ({ nombre: p.nombre, tipo: 'cliente' }))]
   const miPrimerNombre = primerNombre(user?.nombre) // al cliente también se le resalta cuando lo etiquetan
   // Al equipo, solo lo que el servidor guardó como etiqueta suya: "@Franco" puede ser el cliente Franco Ascurra.
   // Al cliente (no recibe etiquetas guardadas), por su nombre.
@@ -957,7 +962,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                       <Edicion texto={m.texto} onGuardar={(t) => guardarEdicion(m, t)} onCancelar={() => setEditando(null)} />
                     ) : (
                       <>
-                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} yo={meNombra(m) ? miPrimerNombre : null} canales={canales} onAbrirCanal={onAbrirCanal} secciones={esUpdates} /> : null}
+                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} personas={personasChat} yo={meNombra(m) ? miPrimerNombre : null} canales={canales} onAbrirCanal={onAbrirCanal} secciones={esUpdates} /> : null}
                         <Enlaces texto={m.texto} />
                         <Adjuntos adjuntos={m.adjuntos} alCargar={bajarSiEstabaAbajo} />
                       </>
