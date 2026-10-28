@@ -120,6 +120,9 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "canales", "inactivo", "BOOLEAN NOT NULL DEFAULT FALSE")
                 _agregar_columna(cur, "canales", "pausa", "BOOLEAN NOT NULL DEFAULT FALSE")
                 _agregar_columna(cur, "canales", "vencido", "BOOLEAN NOT NULL DEFAULT FALSE")
+                _agregar_columna(cur, "consultas_guia", "area", "TEXT")
+                _agregar_columna(cur, "consultas_guia", "modo", "TEXT")
+                _agregar_columna(cur, "consultas_guia", "resultados", "INTEGER")
                 _agregar_columna(cur, "canales", "participantes_json", "TEXT")
                 _agregar_columna(cur, "canales", "orden", "INTEGER")
                 # Dispositivos de cada sesión (para ver si comparten la cuenta).

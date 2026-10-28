@@ -103,14 +103,18 @@ def _guardar_consulta(sesion: dict, texto: str, respuesta: dict) -> None:
     """Queda registrada para el cerebro; si falla, la respuesta al cliente sale igual."""
     from src.models import ConsultaGuia
 
+    encontradas = respuesta.get("recomendaciones") or respuesta.get("sops") or []
     try:
         with db_session:
             ConsultaGuia(
                 usuario_id=sesion["usuario_id"],
                 tipo_usuario=_tipo(sesion),
                 texto=texto.strip()[:1500],
-                clases_json=json.dumps([r["clase_id"] for r in respuesta.get("recomendaciones") or respuesta.get("sops") or [] if r.get("clase_id")]),
+                clases_json=json.dumps([r["clase_id"] for r in encontradas if r.get("clase_id")]),
                 frente=(respuesta.get("frente") or {}).get("slug"),
+                area=(respuesta.get("coach") or {}).get("area"),
+                modo="sop" if respuesta.get("modo") == "sops" else "problema",
+                resultados=len(encontradas),
             )
     except Exception:
         logger.exception("Guía ATV: no se pudo guardar la consulta para el cerebro")

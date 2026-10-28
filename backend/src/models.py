@@ -329,6 +329,11 @@ class ConsultaGuia(db.Entity):
     texto = Required(str)
     clases_json = Required(str, default="[]")
     frente = Optional(str, nullable=True)
+    # Para medir qué se pregunta: el área que eligió la guía, si fue un problema o la búsqueda de un SOP,
+    # y cuántas clases o SOPs encontró (0 = no había material: ahí suele aparecer un SOP para crear).
+    area = Optional(str, nullable=True)
+    modo = Optional(str, nullable=True)  # "problema" | "sop"
+    resultados = Optional(int, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
 
 

@@ -86,8 +86,10 @@ VISTAS = {
         "Roadmaps que cada coach armó para un cliente, con sus pasos (pasos_json: texto, quien, hecho).",
     ),
     "consultas_guia": (
-        f'SELECT id, usuario_id AS cliente_id, texto, frente, creado_en FROM "{S}"."consultas_guia" WHERE tipo_usuario <> \'admin\'',
-        "Lo que los clientes le escribieron a la Guía ATV del inicio del classroom.",
+        f'SELECT id, usuario_id AS cliente_id, texto, frente, area, modo, resultados, creado_en FROM "{S}"."consultas_guia" WHERE tipo_usuario <> \'admin\'',
+        "Lo que los clientes le escribieron a la Guía ATV del inicio del classroom, textual (texto). area = el área "
+        "del tema (Ventas, Marketing, ...); modo = 'problema' (contó algo que le pasa) o 'sop' (buscó un SOP); "
+        "resultados = cuántas clases o SOPs encontró (0 = no había material). Las anteriores al 28-10-2026 no tienen area/modo.",
     ),
     "solicitudes_sop": (
         f'SELECT id, usuario_id AS cliente_id, nombre, area, entregable AS problema, consulta, estado, creado_en, resuelto_en FROM "{S}"."solicitud_sop"',
