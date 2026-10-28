@@ -85,3 +85,19 @@
   .bb-pagina { padding: 16px; }
   .bb-columnas { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Carpeta "Consultas de la guía" */
+.bb-carpeta { width: 16px; height: 13px; flex: none; fill: #6aa7f8; }
+.bb-consultas { display: flex; flex-direction: column; gap: 16px; }
+.bb-consultas__semana { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+.bb-consultas__semana > div:not(.bb-consultas__areas) { display: flex; flex-direction: column; gap: 2px; min-width: 110px; padding: 10px 14px; border-radius: 10px; background: rgba(0, 0, 0, 0.04); }
+.bb-consultas__semana b { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.bb-consultas__semana span { font-size: 11.5px; color: #6e6e73; }
+.bb-consultas__areas { display: flex; flex-wrap: wrap; gap: 6px; align-content: center; flex-basis: 100%; }
+.bb-consultas__areas span { padding: 4px 10px; border-radius: 999px; background: rgba(10, 132, 255, 0.1); color: #0a5ec2; font-size: 12px; font-weight: 600; }
+.bb-consultas__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.bb-consultas__lista li { padding: 12px 2px; border-top: 1px solid rgba(0, 0, 0, 0.07); }
+.bb-consultas__lista p { margin: 0 0 6px; font-size: 14px; line-height: 1.45; color: #1d1d1f; }
+.bb-consultas__meta { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 12px; color: #8e8e93; }
+.bb-consultas__meta button { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: #3a3a3c; cursor: default; }
+.bb-consultas__meta .is-sin { padding: 1px 8px; border-radius: 999px; background: #fff4e5; color: #b7791f; font-weight: 600; }

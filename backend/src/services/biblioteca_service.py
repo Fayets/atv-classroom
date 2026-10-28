@@ -133,3 +133,45 @@ class BibliotecaServices:
                     _cache["datos"] = _armar()
                     _cache["t"] = time.time()
         return _cache["datos"]
+
+
+def consultas_guia(sesion: dict, limite: int = 500) -> dict:
+    """La carpeta "Consultas de la guía": lo que los clientes escribieron, textual, con área y tipo, y un resumen
+    de la semana. Solo el equipo."""
+    from datetime import datetime, timedelta
+
+    from pony.orm import db_session
+
+    from src.db import DB_SCHEMA, db
+    from src.services.auth_service import es_equipo
+
+    if not es_equipo(sesion):
+        raise HTTPException(status_code=403, detail="Solo el equipo.")
+    with db_session:
+        filas = db.select(
+            f"""SELECT q.id, q.texto, q.usuario_id, coalesce(k.nombre, k.email), c.id, q.area, q.modo, q.resultados, q.creado_en
+            FROM "{DB_SCHEMA}"."consultas_guia" q
+            LEFT JOIN clients.clientes k ON k.id = q.usuario_id
+            LEFT JOIN "{DB_SCHEMA}"."canales" c ON c.cliente_id = q.usuario_id AND c.tipo = 'cliente'
+            WHERE q.tipo_usuario <> 'admin' ORDER BY q.creado_en DESC LIMIT $limite""",
+            {"limite": limite},
+        )
+    consultas = [
+        {"id": i, "texto": t, "cliente_id": cid, "cliente": nombre or "Cliente", "canal_id": canal, "area": area, "modo": modo,
+         "resultados": res, "creado_en": f.isoformat() + "Z"}
+        for i, t, cid, nombre, canal, area, modo, res, f in filas
+    ]
+    hace_7 = datetime.utcnow() - timedelta(days=7)
+    semana = [c for c, (_, _, _, _, _, _, _, _, f) in zip(consultas, filas) if f >= hace_7]
+    por_area: dict[str, int] = {}
+    for c in semana:
+        por_area[c["area"] or "Sin área"] = por_area.get(c["area"] or "Sin área", 0) + 1
+    return {
+        "consultas": consultas,
+        "semana": {
+            "total": len(semana),
+            "clientes": len({c["cliente_id"] for c in semana}),
+            "sin_material": sum(1 for c in semana if c["resultados"] == 0),
+            "por_area": sorted(por_area.items(), key=lambda x: -x[1]),
+        },
+    }

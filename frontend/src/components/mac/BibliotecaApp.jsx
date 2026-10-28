@@ -5,6 +5,8 @@ import '../../styles/biblioteca.css'
 // La Biblioteca: lo que el cerebro aprendió de cada nicho (chats, onboardings y roadmaps), como una app
 // de Mac en el escritorio de todo el equipo. Solo lectura: se arma sola con lo que va aprendiendo.
 const fetchBiblioteca = () => request('/api/biblioteca')
+const fetchConsultas = () => request('/api/biblioteca/consultas')
+const CONSULTAS = '__consultas' // la carpeta de lo que los clientes le escriben a la guía
 
 const ETAPA = { arrancando: 'Arrancando', validando: 'Validando', vendiendo: 'Vendiendo', escalando: 'Escalando' }
 // Cada nicho es un lomo de otro color, como los libros en un estante.
@@ -234,7 +236,8 @@ export default function BibliotecaApp({ abierta, alCerrar, alEnfocar, alFrente, 
   }, [abierta])
 
   const nichos = datos?.nichos || []
-  const actual = nichos.find((n) => n.slug === slug) || nichos[0]
+  const enConsultas = slug === CONSULTAS
+  const actual = enConsultas ? null : nichos.find((n) => n.slug === slug) || nichos[0]
   const q = normal(buscar.trim())
   const color = useMemo(() => Object.fromEntries(nichos.map((n, i) => [n.slug, LOMOS[i % LOMOS.length]])), [nichos])
 
@@ -286,26 +289,75 @@ export default function BibliotecaApp({ abierta, alCerrar, alEnfocar, alFrente, 
             <small>{n.clientes.length}</small>
           </button>
         ))}
+        <h5>Clientes</h5>
+        <button type="button" className={`fd-lado${enConsultas ? ' is-activo' : ''}`} onClick={() => elegir(CONSULTAS)}>
+          <svg className="bb-carpeta" viewBox="0 0 20 16" aria-hidden="true"><path d="M1 3a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2z" /></svg>
+          <span>Consultas de la guía</span>
+        </button>
       </aside>
 
       <div className="fd-principal">
         <header className="fd-barra" onPointerDown={arrastrar} onDoubleClick={(e) => !e.target.closest('button, input') && setGrande((g) => !g)}>
           <span />
-          <h3>{actual ? actual.nombre : 'Biblioteca'}</h3>
+          <h3>{enConsultas ? 'Consultas de la guía' : actual ? actual.nombre : 'Biblioteca'}</h3>
           <span />
           <label className="fd-buscar">
             <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-            <input type="search" placeholder="Buscar en el nicho" value={buscar} onChange={(e) => setBuscar(e.target.value)} />
+            <input type="search" placeholder={enConsultas ? 'Buscar en las consultas' : 'Buscar en el nicho'} value={buscar} onChange={(e) => setBuscar(e.target.value)} />
           </label>
         </header>
 
         <div ref={contenido} className="fd-contenido bb-contenido">
           {error ? <p className="fd-vacio">{error}</p> : null}
           {!datos && !error ? <p className="fd-vacio">Cargando…</p> : null}
-          {datos && !nichos.length ? <p className="fd-vacio">El cerebro todavía no ubicó a ningún cliente en un nicho.</p> : null}
+          {datos && !nichos.length && !enConsultas ? <p className="fd-vacio">El cerebro todavía no ubicó a ningún cliente en un nicho.</p> : null}
+          {enConsultas ? <ConsultasGuia q={q} alAbrirChat={alAbrirChat} /> : null}
           {actual ? <Nicho key={actual.slug} n={actual} q={q} alAbrirChat={alAbrirChat} /> : null}
         </div>
       </div>
+    </div>
+  )
+}
+
+// Lo que los clientes le escribieron a la guía, textual: arriba la semana (cuántas, por área, sin material),
+// abajo cada consulta con quién, cuándo, área y tipo. Doble clic en el cliente abre su chat.
+function ConsultasGuia({ q, alAbrirChat }) {
+  const [d, setD] = useState(null)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    fetchConsultas().then(setD).catch((e) => setError(e.message || 'No se pudieron cargar las consultas.'))
+  }, [])
+  if (error) return <p className="fd-vacio">{error}</p>
+  if (!d) return <p className="fd-vacio">Cargando…</p>
+  const lista = d.consultas.filter((c) => !q || normal(`${c.texto} ${c.cliente} ${c.area || ''}`).includes(q))
+  const fecha = (iso) => new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return (
+    <div className="bb-consultas">
+      <div className="bb-consultas__semana">
+        <div><b>{d.semana.total}</b><span>consultas esta semana</span></div>
+        <div><b>{d.semana.clientes}</b><span>clientes</span></div>
+        <div><b>{d.semana.sin_material}</b><span>sin material</span></div>
+        {d.semana.por_area.length ? (
+          <div className="bb-consultas__areas">
+            {d.semana.por_area.map(([area, n]) => <span key={area}>{area} · {n}</span>)}
+          </div>
+        ) : null}
+      </div>
+      {!lista.length ? <p className="fd-vacio">{q ? 'Ninguna consulta con eso.' : 'Todavía nadie le escribió a la guía.'}</p> : null}
+      <ul className="bb-consultas__lista">
+        {lista.map((c) => (
+          <li key={c.id}>
+            <p>“{c.texto}”</p>
+            <div className="bb-consultas__meta">
+              <button type="button" onDoubleClick={() => c.canal_id && alAbrirChat(`/mensajes?c=${c.canal_id}`)} title="Doble clic: abrir su chat">{c.cliente}</button>
+              <span>{fecha(c.creado_en)}</span>
+              {c.area ? <span>{c.area}</span> : null}
+              {c.modo ? <span>{c.modo === 'sop' ? 'Buscó un SOP' : 'Contó un problema'}</span> : null}
+              {c.resultados === 0 ? <span className="is-sin">Sin material</span> : null}
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
