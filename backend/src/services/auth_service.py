@@ -128,6 +128,11 @@ def _tiene_acceso(cliente: ClienteExterno) -> bool:
     return cliente.fecha_vencimiento is None or cliente.fecha_vencimiento >= date.today()
 
 
+def _vencido_por_fecha(cliente: ClienteExterno) -> bool:
+    """Se le pasó la fecha (no es un "inactivo" de atv-clients): entra con el cartel de extender la vigencia."""
+    return cliente.estado_cliente != "inactivo" and cliente.fecha_vencimiento is not None and cliente.fecha_vencimiento < date.today()
+
+
 def _permisos_de(plan: str | None) -> dict:
     from src.services.permisos_service import PERMISOS, valor
 
@@ -289,6 +294,10 @@ def login(email: str, contrasena: str) -> dict:
 
         cliente = next((c for c in validos if _tiene_acceso(c)), None)
         if cliente is None:
+            # Vencido por fecha: entra igual, como en Pausa (mira el inicio y lee su canal) con el cartel de
+            # extender la vigencia con Juampi. El que está "inactivo" en atv-clients no entra.
+            cliente = max((c for c in validos if _vencido_por_fecha(c)), key=lambda c: c.fecha_vencimiento, default=None)
+        if cliente is None:
             vencimiento = max((c.fecha_vencimiento for c in validos if c.fecha_vencimiento), default=None)
             detalle = (
                 f"Tu acceso venció el {vencimiento.strftime('%d/%m/%Y')}. Escribinos para renovarlo."
@@ -399,15 +408,19 @@ _CONTACTO_POR_PLAN = {
 }
 
 
-def contacto_pausa(plan: str | None = None) -> dict:
-    nombre, whatsapp = _CONTACTO_POR_PLAN.get((plan or "").lower(), (PAUSA_CONTACTO, PAUSA_WHATSAPP))
+def contacto_pausa(plan: str | None = None, motivo: str | None = None) -> dict:
+    # Extender la vigencia de un vencido es siempre con Juampi.
+    nombre, whatsapp = _JUAMPI if motivo == "vencido" else _CONTACTO_POR_PLAN.get((plan or "").lower(), (PAUSA_CONTACTO, PAUSA_WHATSAPP))
     numero = "".join(ch for ch in whatsapp if ch.isdigit())
     return {"nombre": nombre, "whatsapp": whatsapp or None, "link": f"https://wa.me/{numero}" if numero else None}
 
 
 def mensaje_pausa(motivo: str | None = None, plan: str | None = None) -> str:
-    c = contacto_pausa(plan)
-    inicio = "Tu cuenta está inactiva. Para reactivarla" if motivo == "inactivo" else "Tu programa está en pausa. Para reanudarlo"
+    c = contacto_pausa(plan, motivo)
+    inicio = {
+        "inactivo": "Tu cuenta está inactiva. Para reactivarla",
+        "vencido": "Tu acceso venció. Para extender tu vigencia",
+    }.get(motivo, "Tu programa está en pausa. Para reanudarlo")
     return f"{inicio}, escribile a {c['nombre']}" + (f" al {c['whatsapp']}." if c["whatsapp"] else ".")
 
 
@@ -420,7 +433,7 @@ def _validar_token(token: str) -> dict:
     if sesion.get("tipo") == "cliente":
         with db_session:
             cliente = ClienteExterno.get(id=sesion["usuario_id"])
-            if cliente is None or not _tiene_acceso(cliente):
+            if cliente is None or not (_tiene_acceso(cliente) or _vencido_por_fecha(cliente)):
                 cerrar_sesion(token)
                 raise HTTPException(status_code=401, detail="Tu acceso al Classroom venció.")
             if sesion.get("miembro_id"):
@@ -434,9 +447,11 @@ def _validar_token(token: str) -> dict:
             from src.models import Canal
 
             canal = Canal.get(cliente_id=cliente.id)
-            # Inactivos corta igual que Pausa (solo lee su canal); cambia el cartel que ve.
+            # Inactivos corta igual que Pausa (solo lee su canal); cambia el cartel que ve. Lo mismo el vencido.
             en_pausa = bool(canal and (canal.pausa or canal.inactivo))
             motivo = "pausa" if canal and canal.pausa else ("inactivo" if en_pausa else None)
+            if not _tiene_acceso(cliente):
+                en_pausa, motivo = True, "vencido"
             plan = cliente.plan_actual
     else:
         en_pausa, motivo, plan = False, None, None
@@ -506,7 +521,7 @@ def obtener_perfil_sesion(sesion: dict) -> dict:
             "email": sesion["email"],
             "rol": sesion["rol"],
             "pausa": bool(sesion.get("pausa")),
-            "contacto_pausa": contacto_pausa(cliente.plan_actual) if sesion.get("pausa") else None,
+            "contacto_pausa": contacto_pausa(cliente.plan_actual, sesion.get("motivo")) if sesion.get("pausa") else None,
             "motivo_pausa": sesion.get("motivo"),
             # Lo que su plan tiene encendido en la pantalla Permisos (la app esconde lo apagado).
             "permisos": _permisos_de(cliente.plan_actual),

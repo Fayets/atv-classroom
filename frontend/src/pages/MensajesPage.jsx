@@ -101,6 +101,7 @@ function conMensaje(lista, m, { mio, aLaVista }) {
 function CanalBloqueado({ item }) {
   const { user } = useAuth()
   const inactiva = user?.motivo_pausa === 'inactivo'
+  const vencida = user?.motivo_pausa === 'vencido'
   useEffect(() => {
     pedirCartelPausa()
   }, [item.id])
@@ -110,8 +111,8 @@ function CanalBloqueado({ item }) {
         <svg viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="7" rx="1.6" /><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
       </span>
       <b>#{item.nombre} está bloqueado</b>
-      <p>{inactiva ? 'Tu cuenta está inactiva' : 'Tu programa está en pausa'}: mientras tanto no podés ver lo que se habla en la comunidad.</p>
-      <button type="button" className="msj-bloqueado__boton" onClick={pedirCartelPausa}>{inactiva ? 'Ver cómo reactivarla' : 'Ver cómo reanudarlo'}</button>
+      <p>{vencida ? 'Tu acceso venció' : inactiva ? 'Tu cuenta está inactiva' : 'Tu programa está en pausa'}: mientras tanto no podés ver lo que se habla en la comunidad.</p>
+      <button type="button" className="msj-bloqueado__boton" onClick={pedirCartelPausa}>{vencida ? 'Ver cómo extenderlo' : inactiva ? 'Ver cómo reactivarla' : 'Ver cómo reanudarlo'}</button>
     </div>
   )
 }

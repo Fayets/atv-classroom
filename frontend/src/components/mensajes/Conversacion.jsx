@@ -990,7 +990,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
 
       {user?.pausa && !isEquipo ? (
         <button type="button" className="msj-pausa" onClick={pedirCartelPausa}>
-          <span>{user.motivo_pausa === 'inactivo' ? <>Tu cuenta está <b>inactiva</b></> : <>Tu programa está en <b>pausa</b></>}: para escribir, comunicate con {user.contacto_pausa?.nombre || 'Lucas'}.</span>
+          <span>{user.motivo_pausa === 'vencido' ? <>Tu acceso <b>venció</b></> : user.motivo_pausa === 'inactivo' ? <>Tu cuenta está <b>inactiva</b></> : <>Tu programa está en <b>pausa</b></>}: para escribir, comunicate con {user.contacto_pausa?.nombre || 'Lucas'}.</span>
           <span>Ver cómo</span>
         </button>
       ) : datos.puede_escribir ? (

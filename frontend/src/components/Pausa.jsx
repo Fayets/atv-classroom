@@ -13,9 +13,34 @@ import '../styles/pausa.css'
 export const EVENTO_PAUSA = 'atv-pausa' // el servidor cortó algo por pausa: refrescar el perfil y mostrar el cartel
 const VISTO = 'atv-pausa-visto'
 
-function Contacto({ contacto, motivo, onCanal }) {
+function fechaCorta(iso) {
+  if (!iso) return ''
+  const [a, m, d] = iso.slice(0, 10).split('-')
+  return `${d}/${m}/${a}`
+}
+
+function Contacto({ contacto, motivo, vence, onCanal }) {
   const nombre = contacto?.nombre || 'Lucas'
+  const primero = nombre.split(' ')[0]
   const inactiva = motivo === 'inactivo'
+  if (motivo === 'vencido') {
+    return (
+      <>
+        <span className="pausa-icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+        </span>
+        <h2 id="pausa-titulo">Tu acceso venció{vence ? ` el ${fechaCorta(vence)}` : ''}</h2>
+        <p>Para extender tu vigencia, comunicate con <b>{primero}</b>.</p>
+        {contacto?.whatsapp ? <p className="pausa-numero">{contacto.whatsapp}</p> : null}
+        <div className="pausa-acciones">
+          {contacto?.link ? (
+            <a className="pausa-boton is-whatsapp" href={contacto.link} target="_blank" rel="noreferrer">Extender mi vigencia con {primero}</a>
+          ) : null}
+          {onCanal ? <button type="button" className="pausa-boton is-suave" onClick={onCanal}>Ver mi canal</button> : null}
+        </div>
+      </>
+    )
+  }
   return (
     <>
       <span className="pausa-icono" aria-hidden="true">
@@ -52,7 +77,7 @@ export function CartelPausa({ abierto, alCerrar }) {
   return createPortal(
     <div className="pausa-fondo" onClick={(e) => e.target === e.currentTarget && alCerrar()}>
       <div className="pausa-tarjeta" role="dialog" aria-modal="true" aria-labelledby="pausa-titulo">
-        <Contacto contacto={user?.contacto_pausa} motivo={user?.motivo_pausa} onCanal={habilitada ? () => { alCerrar(); navigate('/mensajes') } : null} />
+        <Contacto contacto={user?.contacto_pausa} motivo={user?.motivo_pausa} vence={user?.fecha_vencimiento} onCanal={habilitada ? () => { alCerrar(); navigate('/mensajes') } : null} />
         <button type="button" className="pausa-cerrar" onClick={alCerrar}>Entendido</button>
       </div>
     </div>,
@@ -70,7 +95,7 @@ export function PausaSync() {
   const refrescar = useCallback(async (mostrar) => {
     try {
       const p = await fetchSessionProfile()
-      actualizarUsuario({ pausa: Boolean(p.pausa), contacto_pausa: p.contacto_pausa || null, motivo_pausa: p.motivo_pausa || null, permisos: p.permisos || null })
+      actualizarUsuario({ pausa: Boolean(p.pausa), contacto_pausa: p.contacto_pausa || null, motivo_pausa: p.motivo_pausa || null, permisos: p.permisos || null, fecha_vencimiento: p.fecha_vencimiento || null })
       if (p.pausa && mostrar) setAbierto(true)
     } catch {
       /* sin red: queda lo que había */
