@@ -1005,4 +1005,20 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 /* #updates: cada bloque "@Persona …" con su barra a la izquierda, como lo marcó Mauri. */
 .msj-texto--secciones > p { margin: 0; }
 .msj-texto--secciones > p + p { margin-top: 0.7em; }
-.msj-texto__bloque { padding-left: 10px; border-left: 3px solid var(--m-t1, #1d1d1f); }
+.msj-texto__bloque { padding-left: 10px; border-left: 1.5px solid var(--m-t1, #1d1d1f); }
+
+/* Tarjeta de perfil al tocar a alguien en el chat (como Discord). */
+.msj-m__quien { flex: none; align-self: flex-start; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.msj-m__nombre { cursor: pointer; }
+.msj-m__nombre:hover { text-decoration: underline; }
+.msj-perfil { --m-acento: #c0392b; position: fixed; z-index: 85; width: 260px; overflow: hidden; border-radius: 14px; background: #fff; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 18px 44px -12px rgba(0, 0, 0, 0.35); transition: opacity 120ms ease; }
+.msj-perfil__banda { height: 54px; background: #d9d9de; }
+.msj-perfil.is-equipo .msj-perfil__banda { background: var(--m-acento, #c0392b); }
+.msj-perfil__foto { margin: -40px 0 0 14px; width: fit-content; padding: 4px; border-radius: 50%; background: #fff; }
+.msj-perfil__foto .msj-av { display: grid; place-items: center; font-size: 22px !important; }
+.msj-perfil__cuerpo { display: flex; flex-direction: column; gap: 2px; padding: 6px 16px 16px; }
+.msj-perfil__cuerpo b { font-size: 17px; color: #1d1d1f; }
+.msj-perfil__cuerpo span { font-size: 13px; color: #6e6e73; }
+.msj-perfil__cuerpo span::first-letter { text-transform: uppercase; }
+.msj-perfil__cuerpo button { margin-top: 12px; padding: 9px 12px; border: 0; border-radius: 9px; background: #1d1d1f; color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.msj-perfil__cuerpo button:hover { background: #000; }

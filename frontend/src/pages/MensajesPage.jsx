@@ -674,6 +674,23 @@ export default function MensajesPage() {
       setError(err.message || 'No se pudo abrir el chat.')
     }
   }
+  // Lo que ofrece la tarjeta de perfil al tocar a alguien en un chat: al equipo, escribirle por privado o abrir
+  // el chat de ese cliente; a un cliente, su privado con otro cliente (al equipo no se le escribe por privado).
+  function perfilDe(a) {
+    if (!a) return null
+    if (isEquipo) {
+      if (a.tipo === 'equipo') {
+        if (a.id === user?.usuario_id) return null
+        return { texto: 'Enviar mensaje', hacer: () => abrirCon(personas.find((p) => p.id === a.id) || { id: a.id, canal: directos.find((c) => c.con?.id === a.id) || null }) }
+      }
+      const c = (canales || []).find((x) => x.tipo === 'cliente' && x.cliente?.id === a.id)
+      const plan = c?.cliente?.plan ? `Cliente · ${c.cliente.plan}` : null
+      return c ? { texto: 'Abrir su chat', hacer: () => abrir(c.id), detalle: a.miembro ? `Equipo de ${c.cliente.nombre}` : plan } : null
+    }
+    if (a.tipo === 'cliente' && a.id !== user?.usuario_id && !user?.pausa) return { texto: 'Enviar mensaje', hacer: () => escribirA({ id: a.id }) }
+    return null
+  }
+
   const seccionPrivados =
     !isEquipo && !user?.pausa ? (
       <section className="msj-grupo msj-directos" aria-label="Mensajes directos">
@@ -861,7 +878,7 @@ export default function MensajesPage() {
           ) : activo && item?.bloqueado ? (
             <CanalBloqueado item={item} />
           ) : activo ? (
-            <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} canales={porSlug} onAbrirCanal={(id) => setParams({ c: String(id) })} onVolver={() => setParams(vista === 'alertas' ? { v: 'alertas' } : {})} />
+            <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} canales={porSlug} perfilDe={perfilDe} onAbrirCanal={(id) => setParams({ c: String(id) })} onVolver={() => setParams(vista === 'alertas' ? { v: 'alertas' } : {})} />
           ) : (
             <div className="msj-vacio">
               {vista === 'alertas' ? 'Elegí una alerta para ir a la conversación.' : 'Elegí un canal para ver la conversación.'}

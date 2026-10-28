@@ -42,7 +42,7 @@ function agregarSinDuplicar(lista, nuevos) {
   return sumar.length ? [...lista, ...sumar].sort((a, b) => (a.id > b.id ? 1 : -1)) : lista
 }
 
-export default function Conversacion({ canalId, item, onVolver, oculta = false, canales, onAbrirCanal }) {
+export default function Conversacion({ canalId, item, onVolver, oculta = false, perfilDe, canales, onAbrirCanal }) {
   const { user, isEquipo, isAdmin } = useAuth()
   const { suscribir, avisarEscribiendo, conectado, avisarLeido, canalAbierto } = useMensajeria()
   const [datos, setDatos] = useState(null)
@@ -85,6 +85,11 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const yoReaccion = isEquipo ? yo : user?.miembro ? `miembro:${user.miembro.id}` : yo
   const [eligiendo, setEligiendo] = useState(null) // id del mensaje con el selector de emojis abierto
   const [opciones, setOpciones] = useState(null) // celu: mensaje que se mantuvo apretado (hoja de opciones)
+  const [perfil, setPerfil] = useState(null) // { autor, caja }: la tarjeta de quien escribió, como en Discord
+  const verPerfil = (e, autor) => {
+    e.stopPropagation()
+    setPerfil({ autor, caja: e.currentTarget.getBoundingClientRect() })
+  }
   const presion = useRef(null)
   const presionHecha = useRef(false)
   useEffect(() => {
@@ -917,11 +922,19 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                   </div>
                 ) : null}
                 <div className="msj-m__fila">
-                  {agrupado ? <time className="msj-m__hora-lateral">{hora(m.creado_en)}</time> : <Avatar persona={m.autor} />}
+                  {agrupado ? (
+                    <time className="msj-m__hora-lateral">{hora(m.creado_en)}</time>
+                  ) : (
+                    <button type="button" className="msj-m__quien" onClick={(e) => verPerfil(e, m.autor)} aria-label={`Ver el perfil de ${m.autor.nombre}`}>
+                      <Avatar persona={m.autor} />
+                    </button>
+                  )}
                   <div className="msj-m__cuerpo">
                     {agrupado ? null : (
                       <div className="msj-m__head">
-                        <b className={m.autor.tipo === 'equipo' ? 'is-equipo' : ''}>{m.autor.nombre}</b>
+                        <b className={`msj-m__nombre${m.autor.tipo === 'equipo' ? ' is-equipo' : ''}`} role="button" tabIndex={0} onClick={(e) => verPerfil(e, m.autor)} onKeyDown={(e) => e.key === 'Enter' && verPerfil(e, m.autor)}>
+                          {m.autor.nombre}
+                        </b>
                         {m.autor.tipo === 'equipo' ? <span className="msj-rol">ATV</span> : null}
                         <time dateTime={m.creado_en}>{hora(m.creado_en)}</time>
                         {m.origen === 'discord' ? <span className="msj-m__origen" title="Mensaje traído del historial de Discord">Discord</span> : null}
@@ -1246,6 +1259,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       ) : (
         <p className="msj-solo-lectura">En este canal publica solo el equipo de ATV.</p>
       )}
+      {perfil ? <TarjetaPerfil {...perfil} accion={perfilDe?.(perfil.autor)} onCerrar={() => setPerfil(null)} /> : null}
       {opciones ? (
         <HojaOpciones
           m={opciones}
@@ -1263,6 +1277,59 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
         />
       ) : null}
     </section>
+  )
+}
+
+// La tarjeta de quien escribió (tocando su foto o su nombre), como el perfil de Discord: foto grande, quién es
+// y, si se puede, el botón para escribirle por privado.
+function TarjetaPerfil({ autor, caja, accion, onCerrar }) {
+  const tarjeta = useRef(null)
+  const [pos, setPos] = useState({ left: caja.left, top: caja.bottom + 6, visible: false })
+  useLayoutEffect(() => {
+    const el = tarjeta.current
+    if (!el) return
+    const { width, height } = el.getBoundingClientRect()
+    const left = Math.max(12, Math.min(caja.left, window.innerWidth - width - 12))
+    const abajo = caja.bottom + 6 + height <= window.innerHeight - 12
+    setPos({ left, top: abajo ? caja.bottom + 6 : Math.max(12, caja.top - height - 6), visible: true })
+  }, [caja])
+  useEffect(() => {
+    const fuera = (e) => tarjeta.current && !tarjeta.current.contains(e.target) && onCerrar()
+    const esc = (e) => e.key === 'Escape' && onCerrar()
+    document.addEventListener('pointerdown', fuera)
+    document.addEventListener('keydown', esc)
+    window.addEventListener('resize', onCerrar)
+    return () => {
+      document.removeEventListener('pointerdown', fuera)
+      document.removeEventListener('keydown', esc)
+      window.removeEventListener('resize', onCerrar)
+    }
+  }, [onCerrar])
+  const equipo = autor.tipo === 'equipo'
+  const quien = equipo ? `Equipo ATV${autor.area ? ` · ${autor.area}` : ''}` : autor.miembro ? accion?.detalle || 'Equipo del cliente' : accion?.detalle || 'Cliente de ATV'
+  return createPortal(
+    <div ref={tarjeta} className={`msj-perfil${equipo ? ' is-equipo' : ''}`} role="dialog" aria-label={`Perfil de ${autor.nombre}`} style={{ left: pos.left, top: pos.top, opacity: pos.visible ? 1 : 0 }}>
+      <div className="msj-perfil__banda" />
+      <div className="msj-perfil__foto">
+        <Avatar persona={autor} size={76} />
+      </div>
+      <div className="msj-perfil__cuerpo">
+        <b>{autor.nombre}</b>
+        <span>{quien}</span>
+        {accion?.texto ? (
+          <button
+            type="button"
+            onClick={() => {
+              onCerrar()
+              accion.hacer()
+            }}
+          >
+            {accion.texto}
+          </button>
+        ) : null}
+      </div>
+    </div>,
+    document.body,
   )
 }
 
