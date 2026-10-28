@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { conEmojis } from '../../utils/emojis'
 import { normal } from '../../utils/mensajes'
 
 const URL = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g
@@ -47,10 +48,10 @@ function ConMenciones({ texto, nombres, yo, canales, onAbrirCanal }) {
   })
 }
 
-// Respeta los saltos de línea, convierte los links en enlaces, pone en negrita lo que va entre ** y resalta
+// Pasa los :atajos: a emoji, respeta los saltos de línea, convierte los links en enlaces, pone en negrita lo que va entre ** y resalta
 // las @menciones y los canales de clientes nombrados por su slug (sin HTML del usuario).
 export default function TextoMensaje({ texto, nombres, yo, canales, onAbrirCanal }) {
-  const partes = texto.split(URL)
+  const partes = conEmojis(texto).split(URL)
   return (
     <p className="msj-texto">
       {partes.map((parte, i) =>

@@ -10,7 +10,9 @@ import Alerta from './Alerta'
 import Avatar from './Avatar'
 import Enlaces from './Enlaces'
 import GrabarAudio, { puedeGrabar } from './GrabarAudio'
+import SelectorEmojis from './SelectorEmojis'
 import TextoMensaje from './TextoMensaje'
+import { buscarAtajos, conEmojis } from '../../utils/emojis'
 
 const AGRUPAR_MS = 5 * 60 * 1000
 // Sugerencias con la caja vacía ya pedidas, por chat: volver a un chat no paga otra.
@@ -58,6 +60,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const [aBorrar, setABorrar] = useState(null)
   const [equipo, setEquipo] = useState([])
   const [sugerencias, setSugerencias] = useState(null) // { lista, indice, desde }
+  const [atajos, setAtajos] = useState(null) // ":fu" → { lista, indice, desde }, como en Discord
+  const [verEmojis, setVerEmojis] = useState(false)
   const mencionados = useRef(new Map()) // "@Nombre" escrito → id del miembro
   const [archivos, setArchivos] = useState([]) // { clave, nombre, tamano, progreso, adjunto, error, vista }
   const [arrastrando, setArrastrando] = useState(false)
@@ -319,6 +323,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
 
   // Cambio de canal o se cierra: nada de sugerencias colgadas.
   useEffect(() => {
+    setAtajos(null)
+    setVerEmojis(false)
     setFantasma(null)
     vacioPedido.current = null
     descartadoIA.current = null
@@ -477,7 +483,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
 
   async function mandar(e) {
     e?.preventDefault()
-    const limpio = texto.trim()
+    const limpio = conEmojis(texto.trim())
     if (subiendo || (!limpio && !listos.length)) return
     const adjuntosIds = listos.map((a) => a.adjunto.id)
     const adjuntosVista = listos.map((a) => a.adjunto)
@@ -500,6 +506,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     })
     mencionados.current = new Map()
     setSugerencias(null)
+    setAtajos(null)
+    setVerEmojis(false)
     cancelarIA()
     setFantasma(null)
     setPendientes((p) => [...p, provisorio])
@@ -522,6 +530,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   // Nota de voz (solo clientes): se sube y se manda sola, con el mensaje provisorio mientras tanto.
   const [grabando, setGrabando] = useState(false)
   const cerrarGrabacion = useCallback(() => setGrabando(false), [])
+  const cerrarEmojis = useCallback(() => setVerEmojis(false), [])
   const mandarAudio = useCallback(
     async (archivo) => {
       setGrabando(false)
@@ -553,6 +562,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
 
   function buscarSugerencias(valor, caret) {
     const antes = valor.slice(0, caret)
+    const atajo = antes.match(/(^|\s):([a-z0-9_+-]{2,30})$/i)
+    const hayAtajos = atajo ? buscarAtajos(atajo[2]) : []
+    setAtajos(hayAtajos.length ? { lista: hayAtajos, indice: 0, desde: caret - atajo[2].length - 1 } : null)
     const hallado = antes.match(/(^|\s)@([A-Za-zÁÉÍÓÚÜÑáéíóúüñ]*)$/)
     if (!hallado || (!equipo.length && !participantes.length)) {
       setSugerencias(null)
@@ -590,6 +602,27 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     })
   }
 
+  function ponerEnElTexto(desde, hasta, emoji) {
+    const el = caja.current
+    setTexto((t) => `${t.slice(0, desde)}${emoji}${t.slice(hasta)}`)
+    requestAnimationFrame(() => {
+      const pos = desde + emoji.length
+      el?.focus()
+      el?.setSelectionRange(pos, pos)
+    })
+  }
+
+  function elegirAtajo(a) {
+    const caret = caja.current?.selectionStart ?? texto.length
+    ponerEnElTexto(atajos?.desde ?? caret, caret, a.emoji)
+    setAtajos(null)
+  }
+
+  function insertarEmoji(emoji) {
+    const el = caja.current
+    ponerEnElTexto(el?.selectionStart ?? texto.length, el?.selectionEnd ?? texto.length, emoji)
+  }
+
   function alEscribir(e) {
     const valor = e.target.value
     setTexto(valor)
@@ -618,6 +651,23 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   }
 
   function teclas(e) {
+    if (atajos) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        const paso = e.key === 'ArrowDown' ? 1 : -1
+        setAtajos((a) => ({ ...a, indice: (a.indice + paso + a.lista.length) % a.lista.length }))
+        return
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault()
+        elegirAtajo(atajos.lista[atajos.indice])
+        return
+      }
+      if (e.key === 'Escape') {
+        setAtajos(null)
+        return
+      }
+    }
     if (sugerencias) {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault()
@@ -655,7 +705,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   }
 
   async function guardarEdicion(m, nuevo) {
-    const limpio = nuevo.trim()
+    const limpio = conEmojis(nuevo.trim())
     setEditando(null)
     if (!limpio || limpio === m.texto) return
     try {
@@ -1010,6 +1060,26 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
               </button>
             </div>
           ) : null}
+          {atajos ? (
+            <ul className="msj-sugerencias is-emojis" role="listbox" aria-label="Emojis">
+              {atajos.lista.map((a, i) => (
+                <li key={a.codigo} role="option" aria-selected={i === atajos.indice}>
+                  <button
+                    type="button"
+                    className={i === atajos.indice ? 'is-on' : ''}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      elegirAtajo(a)
+                    }}
+                  >
+                    <i aria-hidden="true">{a.emoji}</i>
+                    <b>:{a.codigo}:</b>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {verEmojis ? <SelectorEmojis onElegir={insertarEmoji} onCerrar={cerrarEmojis} /> : null}
           {sugerencias ? (
             <ul className="msj-sugerencias" role="listbox" aria-label="Etiquetar a alguien">
               {sugerencias.lista.map((m, i) => (
@@ -1115,6 +1185,20 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 maxLength={4000}
               />
             </div>
+            <button
+              type="button"
+              className={`msj-clip msj-emoji-abrir${verEmojis ? ' is-on' : ''}`}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setVerEmojis((v) => !v)}
+              aria-label="Emojis"
+              aria-expanded={verEmojis}
+              title="Emojis"
+            >
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01" />
+              </svg>
+            </button>
             {!isEquipo && puedeGrabar() && !texto.trim() && !listos.length && !subiendo ? (
               <button type="button" className="msj-enviar is-mic" onClick={() => setGrabando(true)} aria-label="Grabar nota de voz" title="Grabar nota de voz">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

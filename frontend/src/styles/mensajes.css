@@ -945,3 +945,21 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-elegir__lista { max-height: 280px; overflow-y: auto; padding: 4px; }
 .msj-elegir__lista button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: 13.5px; color: var(--m-t1); text-align: left; cursor: pointer; }
 .msj-elegir__lista button:hover { background: var(--m-campo); }
+
+/* Emojis: sugerencias al escribir ":fu" y el selector del botón (solo PC: en el celu está el teclado del teléfono). */
+.msj-sugerencias.is-emojis button > i { font-style: normal; font-size: 18px; width: 24px; text-align: center; }
+.msj-sugerencias.is-emojis button > b { font-weight: 500; color: var(--m-t2); }
+.msj-emoji-abrir { margin-left: 0; }
+.msj-emoji-abrir.is-on { background: rgba(0, 0, 0, 0.06); color: var(--m-t1); }
+@media (hover: none), (max-width: 899px) { .msj-emoji-abrir { display: none; } }
+.msj-emojis { position: absolute; right: 22px; bottom: calc(100% - 2px); z-index: 6; width: 352px; max-width: calc(100% - 44px); height: 380px; display: flex; flex-direction: column; border-radius: 14px; background: #fafafc; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 18px 44px -12px rgba(0, 0, 0, 0.32); overflow: hidden; }
+.msj-emojis__buscar { margin: 10px 10px 6px; padding: 8px 11px; border: 0; border-radius: 8px; background: var(--m-campo); color: var(--m-t1); font: inherit; font-size: 13.5px; outline: none; }
+.msj-emojis__grupos { display: flex; justify-content: space-between; padding: 0 8px 6px; border-bottom: 1px solid var(--m-linea); }
+.msj-emojis__grupos button { width: 30px; height: 28px; border: 0; border-radius: 6px; background: transparent; font-size: 16px; cursor: pointer; filter: grayscale(0.6); opacity: 0.8; }
+.msj-emojis__grupos button:hover { background: rgba(0, 0, 0, 0.06); filter: none; opacity: 1; }
+.msj-emojis__grilla { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 8px 10px; overscroll-behavior: contain; }
+.msj-emojis__grilla h4 { position: sticky; top: 0; margin: 0; padding: 8px 4px 4px; background: #fafafc; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--m-t4); }
+.msj-emojis__fila { display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); }
+.msj-emojis__fila button { height: 36px; border: 0; border-radius: 8px; background: transparent; font-size: 22px; line-height: 1; cursor: pointer; }
+.msj-emojis__fila button:hover { background: rgba(0, 0, 0, 0.07); }
+.msj-emojis__vacio { margin: 18px 6px; color: var(--m-t3); font-size: 13px; text-align: center; }

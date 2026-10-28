@@ -1,3 +1,4 @@
+import { conEmojis } from '../utils/emojis'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchSenas } from '../api/altas'
@@ -119,7 +120,7 @@ function CanalBloqueado({ item }) {
 
 function FilaCanal({ c, activo, onAbrir, escribe, hash = false, onEditar, arrastrable = false }) {
   const nuevo = c.no_leidos > 0 && !activo
-  const ultimo = c.ultimo ? `${c.ultimo.autor_nombre}: ${c.ultimo.texto}` : 'Sin mensajes todavía'
+  const ultimo = c.ultimo ? `${c.ultimo.autor_nombre}: ${conEmojis(c.ultimo.texto)}` : 'Sin mensajes todavía'
   // Lo que antes era la sección "Esperan respuesta" ahora va en el tooltip, sin sacar el chat de su grupo.
   const titulo = c.esperando_desde ? `Espera respuesta · ${haceCuanto(c.esperando_desde)}\n${ultimo}` : ultimo
   return (
@@ -202,7 +203,7 @@ function ItemCanal({ c, activo, onAbrir, isEquipo, escribe }) {
           ) : isEquipo && c.esperando_desde ? (
             <em>Espera respuesta · {haceCuanto(c.esperando_desde)}</em>
           ) : c.ultimo ? (
-            `${c.ultimo.autor_nombre.split(' ')[0]}: ${c.ultimo.texto}`
+            `${c.ultimo.autor_nombre.split(' ')[0]}: ${conEmojis(c.ultimo.texto)}`
           ) : (
             'Sin mensajes todavía'
           )}
