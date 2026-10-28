@@ -24,7 +24,8 @@ from src.services.auth_service import es_equipo
 
 logger = logging.getLogger(__name__)
 
-MODELO = config("SUGERENCIAS_MODEL", default="claude-haiku-5-5")
+# Sonnet y no Haiku: Haiku le preguntaba al cliente lo que acababa de contar (28-10, chat de Kilian y Gabriel).
+MODELO = config("SUGERENCIAS_MODEL", default="claude-sonnet-5-5")
 TOPE_POR_MINUTO = 40
 _pedidos: dict[int, deque] = defaultdict(deque)
 _nicho_cache: dict[str, tuple[float, dict | None]] = {}
@@ -223,6 +224,23 @@ def _hace(cuando: str | None) -> str:
     return f" hace {dias} {'día' if dias == 1 else 'días'}"
 
 
+def _texto_con_archivos(m: dict) -> str:
+    """El texto del mensaje y, si mandó archivos, cuáles (la IA no los ve, pero tiene que saber que están)."""
+    tipos = m.get("archivos") or []
+    partes = []
+    if tipos:
+        imagenes = sum(1 for t in tipos if t.startswith("image/"))
+        audios = sum(1 for t in tipos if t.startswith("audio/"))
+        otros = len(tipos) - imagenes - audios
+        if imagenes:
+            partes.append("[mandó una captura/imagen que no podés ver]" if imagenes == 1 else f"[mandó {imagenes} capturas/imágenes que no podés ver]")
+        if audios:
+            partes.append("[mandó un audio que no podés escuchar]")
+        if otros:
+            partes.append("[mandó un archivo]")
+    return " ".join(([m["texto"]] if m.get("texto") else []) + partes)
+
+
 def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> tuple[str, str]:
     voz = ap.voz_para_ia(ctx.get("voz") or {})
     ejemplos = "\n".join(f"- {e[:400]}" for e in (voz.get("ejemplos") or [])[:16]) or "(sin ejemplos todavía)"
@@ -247,14 +265,16 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
         nicho_txt = f"\nEn su nicho ({nicho['nicho']}{', ' + sub['subnicho'] if sub else ''}) los dolores más comunes son: {dolores or 'sin datos'}.\n"
         if funciono:
             nicho_txt += "A otros clientes del mismo nicho les funcionó (no nombres a nadie):\n" + "\n".join(funciono) + "\n"
-    ultimos = [m for m in (ctx.get("conversacion") or [])[-15:] if m.get("texto")]
+    ultimos = [m for m in (ctx.get("conversacion") or [])[-15:] if m.get("texto") or m.get("archivos")]
     sin_responder = pendientes_del_cliente(ultimos)
     corte = len(ultimos) - len(sin_responder)
     lineas = []
     for i, m in enumerate(ultimos):
         if i == corte and sin_responder:
             lineas.append("--- lo que el cliente escribió después de la última respuesta del equipo ---")
-        lineas.append(f"{'CLIENTE' if m['de'] == 'cliente' else 'EQUIPO'}{_hace(m.get('cuando'))}: {m['texto']}")
+        lado = "CLIENTE" if m["de"] == "cliente" else "EQUIPO"
+        quien = f" ({m['quien']})" if m.get("quien") else ""
+        lineas.append(f"{lado}{quien}{_hace(m.get('cuando'))}: {_texto_con_archivos(m)}")
     conversacion = "\n".join(lineas)
     sistema = (
         f"Sos {nombre}, del equipo de ATV (mentoría para creadores y expertos que venden infoproductos). "
@@ -269,7 +289,12 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
         f"Escribís como {nombre} y nada más: NO copies el saludo, los apodos, las muletillas ni los emojis que "
         f"aparecen en la conversación, ni del cliente ni de otra persona del equipo. Esas palabras son de ellos, "
         f"no de {nombre}. Si el cliente saluda con una palabra que {nombre} no usa, saludá como saluda {nombre}. "
-        "Del mensaje del cliente retomás el tema, nunca su forma de escribir."
+        "Del mensaje del cliente retomás el tema, nunca su forma de escribir. "
+        # Preguntaba por lo que el cliente acababa de contar y le ofrecía hacer lo que dijo que ya hizo.
+        "Leé bien lo que contó el cliente: no le preguntes algo que ya respondió ahí ni le ofrezcas hacer algo que "
+        "dice que ya hizo o que está esperando. Si solo te está contando novedades, reconocelas y, como mucho, "
+        "preguntá por el paso siguiente. En la conversación figura entre paréntesis quién escribió cada mensaje; "
+        "si la charla la venía llevando otra persona del equipo, seguí ese hilo sin repetir lo que ya preguntó."
     )
     largo = round((voz.get("rasgos") or {}).get("palabras_promedio") or 25)
     ultimo = next((m for m in reversed(ctx.get("conversacion") or []) if m.get("texto")), None)
@@ -346,13 +371,14 @@ def _stream(sistema: str, usuario: str):
     with cliente.messages.stream(
         model=MODELO,
         max_tokens=260,
-        thinking={"type": "disabled"},
+        # Haiku apaga el razonamiento con "disabled"; Sonnet 5.5 pide "between_tools" (sin herramientas, no piensa).
+        thinking={"type": "disabled"} if "haiku" in MODELO else {"type": "between_tools"},
         system=sistema,
         messages=[{"role": "user", "content": usuario}],
     ) as st:
         yield from st.text_stream
         try:
-            gasto_ia.registrar("tab", st.get_final_message().usage)
+            gasto_ia.registrar("tab:sonnet" if "sonnet" in MODELO else "tab", st.get_final_message().usage)
         except Exception:  # el registro nunca corta una sugerencia
             pass
 

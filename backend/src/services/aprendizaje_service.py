@@ -711,8 +711,26 @@ def contexto_para_responder(canal_id: int, admin_id: int, incluir_nicho: bool = 
         cliente_id = canal.cliente_id
         c = ClienteExterno.get(id=cliente_id)
         ultimos = _del_canal(canal_id)[-20:]
-        conversacion = [{"de": "cliente" if m.autor_tipo == "cliente" else "equipo", "autor_id": m.autor_id, "texto": m.texto, "cuando": m.creado_en.isoformat(timespec="seconds") + "Z"} for m in ultimos]
         ficha = None if c is None else {"nombre": c.nombre, "plan": c.plan_actual, "vence": c.fecha_vencimiento.isoformat() if c.fecha_vencimiento else None}
+        # Quién escribió cada uno (el equipo del cliente y el de ATV son varias personas) y si mandó archivos:
+        # sin eso la IA no sabe a quién le contestaba quién ni que hubo una captura en el medio.
+        equipo = {a.id: (a.nombre or a.email or "").split(" ")[0] for a in list(Admin.select())}
+        archivos: dict[int, list[str]] = {}
+        if ultimos:
+            ids = ",".join(str(int(m.id)) for m in ultimos)
+            for mid, mime in db.select(f'SELECT mensaje_id, tipo_mime FROM "{DB_SCHEMA}"."adjuntos" WHERE mensaje_id IN ({ids})'):
+                archivos.setdefault(mid, []).append(mime)
+        conversacion = [
+            {
+                "de": "cliente" if m.autor_tipo == "cliente" else "equipo",
+                "autor_id": m.autor_id,
+                "quien": (getattr(m, "autor_nombre", None) or (c.nombre if c else None)) if m.autor_tipo == "cliente" else equipo.get(m.autor_id),
+                "texto": m.texto,
+                "archivos": archivos.get(m.id, []),
+                "cuando": m.creado_en.isoformat(timespec="seconds") + "Z",
+            }
+            for m in ultimos
+        ]
     aprendido = perfil_de(cliente_id)
     nicho = (aprendido["perfil"] or {}).get("nicho")
     return {

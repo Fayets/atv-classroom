@@ -23,8 +23,14 @@ def hoy():
     return datetime.utcnow().date()
 
 
+# Los precios de arriba son los de Haiku. Un uso que corre en Sonnet se guarda como "<uso>:sonnet" y cuesta 3 veces más
+# (US$ 3 / 15 por millón contra 1 / 5).
+FACTOR_MODELO = {"sonnet": 3.0}
+
+
 def costo(fila: dict) -> float:
-    return sum(fila.get(k, 0) * p for k, p in PRECIOS.items()) / 1_000_000
+    factor = FACTOR_MODELO.get((fila.get("uso") or "").partition(":")[2], 1.0)
+    return factor * sum(fila.get(k, 0) * p for k, p in PRECIOS.items()) / 1_000_000
 
 
 def registrar(uso: str, usage) -> None:
@@ -56,7 +62,7 @@ def gastado_hoy(uso: str) -> float:
             f'SELECT entrada, cache_escrita, cache_leida, salida FROM "{DB_SCHEMA}"."cerebro_gasto" WHERE fecha = $f AND uso = $uso',
             {"f": hoy(), "uso": uso},
         )
-    return sum(costo({"entrada": e, "cache_escrita": cw, "cache_leida": cr, "salida": s}) for e, cw, cr, s in filas)
+    return sum(costo({"uso": uso, "entrada": e, "cache_escrita": cw, "cache_leida": cr, "salida": s}) for e, cw, cr, s in filas)
 
 
 def resumen(dias: int = 30) -> list[dict]:
