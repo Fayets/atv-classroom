@@ -24,8 +24,7 @@ from src.services.auth_service import es_equipo
 
 logger = logging.getLogger(__name__)
 
-# Sonnet y no Haiku: Haiku le preguntaba al cliente lo que acababa de contar (28-10, chat de Kilian y Gabriel).
-MODELO = config("SUGERENCIAS_MODEL", default="claude-sonnet-5-5")
+MODELO = config("SUGERENCIAS_MODEL", default="claude-haiku-5-5")
 TOPE_POR_MINUTO = 40
 _pedidos: dict[int, deque] = defaultdict(deque)
 _nicho_cache: dict[str, tuple[float, dict | None]] = {}
@@ -250,6 +249,14 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
         correcciones_txt = (
             f"\nAsí corrigió sugerencias anteriores de la IA antes de mandarlas (es lo que más importa copiar):\n"
             + "\n".join(f'- La IA propuso: "{c["propuesto"][:300]}"\n  Mandó: "{c["enviado"][:300]}"' for c in correcciones[:6])
+            + "\n"
+        )
+    descartadas = voz.get("descartadas") or []
+    if descartadas:
+        # Lo que la IA propuso y no le sirvió, contra lo que escribió de verdad: qué responde y cómo.
+        correcciones_txt += (
+            f"\nSugerencias de la IA que {nombre} NO usó y lo que escribió en su lugar (así responde de verdad; no repitas esos errores):\n"
+            + "\n".join(f'- La IA propuso: "{c["propuesto"][:300]}"\n  Escribió: "{c["enviado"][:300]}"' for c in descartadas[:4])
             + "\n"
         )
     perfil = ctx.get("perfil") or {}

@@ -98,3 +98,54 @@ def test_sin_emojis_y_cierres():
     assert sg.sin_emojis("vamos! 🙌 a full 👍🏻") == "vamos! a full "
     assert sg.es_cierre([{"texto": "Mil gracias 🙏🏼"}]) and sg.es_cierre([{"texto": "🙂"}])
     assert not sg.es_cierre([{"texto": "gracias! y cuándo arrancamos?"}])
+
+
+def test_aprende_de_lo_que_escribio_en_vez_de_la_sugerencia():
+    """Una sugerencia que no usó y lo que mandó en su lugar va al pedido siguiente; quién escribió cada
+    mensaje y las capturas también."""
+    ctx = {
+        "voz": {
+            "rasgos": {"palabras_promedio": 20},
+            "ejemplos": ["dale"],
+            "descartadas": [{"propuesto": "ya le pasaron el loom?", "enviado": "bien ahi, mandale el loom al pendiente"}],
+        },
+        "conversacion": [
+            {"de": "equipo", "quien": "Alejandro", "texto": "que otros contactaron?"},
+            {"de": "cliente", "quien": "Gabriel Sabino", "texto": "", "archivos": ["image/png"]},
+            {"de": "cliente", "quien": "Gabriel Sabino", "texto": "en standby hasta que responda"},
+        ],
+    }
+    _, usuario = sg.armar_prompt("Franco", ctx, "", None)
+    assert "NO usó" in usuario and "mandale el loom al pendiente" in usuario
+    assert "EQUIPO (Alejandro)" in usuario and "CLIENTE (Gabriel Sabino)" in usuario
+    assert "captura" in usuario
+
+
+def test_registra_la_sugerencia_descartada():
+    import secrets
+    from types import SimpleNamespace
+
+    from pony.orm import db_session
+
+    from src.db import db, init_db
+    from src.models import SugerenciaIA
+    from src.services import aprendizaje_service as ap
+
+    if db.provider is None:
+        init_db()
+    admin_id, canal_id = 999_000_000 + secrets.randbelow(10_000), 999_000_001
+    try:
+        with db_session:
+            SugerenciaIA(admin_id=admin_id, canal_id=canal_id, sugerencia="ya le pasaron el loom a mr monopoly?")
+            SugerenciaIA(admin_id=admin_id, canal_id=canal_id + 1, sugerencia="genial")
+        with db_session:
+            # Casi igual a la sugerencia: la aceptó (lo marca enviada()), no es un descarte.
+            ap.registrar_descartada(admin_id, canal_id, SimpleNamespace(id=1, texto="ya le pasaron el loom a mr monopoly??"))
+        assert ap.descartadas_de(admin_id) == []
+        with db_session:
+            ap.registrar_descartada(admin_id, canal_id, SimpleNamespace(id=2, texto="bien ahi, mandale el loom al pendiente asi no se enfria"))
+        d = ap.descartadas_de(admin_id)
+        assert len(d) == 1 and d[0]["enviado"].startswith("bien ahi")
+    finally:
+        with db_session:
+            db.execute(f'DELETE FROM "classroom"."cerebro_sugerencias" WHERE admin_id = {admin_id}')

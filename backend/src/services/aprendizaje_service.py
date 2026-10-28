@@ -541,6 +541,43 @@ def _correcciones_sql(donde: str) -> list:
     ))
 
 
+# Una sugerencia que apareció y no usó: si en estos minutos mandó su propio mensaje, ese es el que la IA
+# tendría que haber escrito. Si se parece mucho a la sugerencia es que la aceptó (lo marca enviada()).
+DESCARTE_MIN = 15
+DESCARTE_CAMBIO_MIN = 30
+
+
+def registrar_descartada(admin_id: int, canal_id: int, mensaje) -> None:
+    """Dentro de un db_session, al mandar un mensaje del equipo en el chat de un cliente."""
+    from datetime import timedelta
+
+    s = SugerenciaIA.select_by_sql(
+        f'SELECT * FROM "{DB_SCHEMA}"."cerebro_sugerencias" WHERE admin_id = $admin_id AND canal_id = $canal_id '
+        "AND NOT usada AND enviado IS NULL AND sugerencia NOT IN ('…', '(vacía)') AND (voz_id IS NULL OR voz_id = admin_id) "
+        "AND creado_en >= $desde ORDER BY id DESC LIMIT 1",
+        globals={"admin_id": admin_id, "canal_id": canal_id, "desde": datetime.utcnow() - timedelta(minutes=DESCARTE_MIN)},
+    )
+    if not s:
+        return
+    s = s[0]
+    enviado = (mensaje.texto or "")[:4000]
+    cambio = cambio_pct(_propuesto(s), enviado)
+    if cambio < DESCARTE_CAMBIO_MIN:
+        return
+    s.enviado, s.mensaje_id, s.cambio_pct = enviado, mensaje.id, cambio
+
+
+def descartadas_de(admin_id: int, limite: int = 4) -> list[dict]:
+    """Las últimas sugerencias que no usó, con lo que escribió en su lugar."""
+    with db_session:
+        filas = list(SugerenciaIA.select_by_sql(
+            f'SELECT * FROM "{DB_SCHEMA}"."cerebro_sugerencias" WHERE admin_id = $admin_id AND NOT usada AND enviado IS NOT NULL '
+            "AND (voz_id IS NULL OR voz_id = admin_id) ORDER BY id DESC LIMIT $limite",
+            globals={"admin_id": admin_id, "limite": limite},
+        ))
+        return [{"propuesto": _propuesto(f), "enviado": f.enviado} for f in filas]
+
+
 def correcciones_de(admin_id: int, limite: int = 60) -> list[dict]:
     with db_session:
         filas = _correcciones_sql(f"AND admin_id = {int(admin_id)}")[:limite]
@@ -648,7 +685,7 @@ def voz_de(admin_id: int) -> dict:
         rasgos = json.loads(v.rasgos_json or "{}")
     # Las correcciones más recientes que cambiaron algo de verdad (ni tal cual ni reescritas enteras).
     correcciones = [c for c in correcciones_de(admin_id, 40) if 5 <= c["cambio"] <= 90][:6]
-    return {"rasgos": rasgos, "ejemplos": ejemplos, "correcciones": correcciones}
+    return {"rasgos": rasgos, "ejemplos": ejemplos, "correcciones": correcciones, "descartadas": descartadas_de(admin_id)}
 
 
 def _grupo(**datos) -> dict:
@@ -810,4 +847,5 @@ def voz_para_ia(voz: dict) -> dict:
         **voz,
         "ejemplos": [ocultar_nombres(e, nombres) for e in voz.get("ejemplos") or []],
         "correcciones": [{**c, "propuesto": ocultar_nombres(c.get("propuesto") or "", nombres), "enviado": ocultar_nombres(c.get("enviado") or "", nombres)} for c in voz.get("correcciones") or []],
+        "descartadas": [{"propuesto": ocultar_nombres(c.get("propuesto") or "", nombres), "enviado": ocultar_nombres(c.get("enviado") or "", nombres)} for c in voz.get("descartadas") or []],
     }

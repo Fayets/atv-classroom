@@ -685,6 +685,11 @@ class MensajeriaServices:
                     globals={"cid": canal.id, "aid": yo[1]},
                 )):
                     abierta.respondida_en = m.creado_en
+                if canal.tipo == "cliente" and texto:
+                    # Si le había aparecido una sugerencia y escribió otra cosa, eso también es su voz.
+                    from src.services.aprendizaje_service import registrar_descartada
+
+                    registrar_descartada(yo[1], canal.id, m)
             nuevas = []
             # En un privado entre clientes no se etiqueta al equipo: no tiene que enterarse de esa charla.
             etiquetados = set() if canal.tipo in ("privado", "dm") else _detectar_menciones(texto, menciones)
