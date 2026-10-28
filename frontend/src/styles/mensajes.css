@@ -507,7 +507,11 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 .msj-fila:hover { background: rgba(0, 0, 0, 0.05); color: #3a3a3c; }
 .msj-fila.is-nuevo { color: #1d1d1f; font-weight: 650; }
 .msj-fila.is-activo { background: var(--m-acento, #c0392b); color: #fff; font-weight: 600; }
-.msj-fila__punto { position: absolute; left: 3px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: #1d1d1f; }
+/* Sin leer, como en Discord: el nombre en negrita y un círculo a la derecha (si te etiquetaron, va el número). */
+.msj-fila__punto { order: 9; flex: none; width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: var(--m-acento, #c0392b); }
+.msj-fila:has(.msj-fila__menciones) .msj-fila__punto { display: none; }
+.msj-fila.is-activo .msj-fila__punto { background: #fff; }
+.msj-grupo__punto { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--m-acento, #c0392b); }
 .msj-fila__nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msj-fila__menciones { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #ff3b30; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
 .msj-fila.is-activo .msj-fila__menciones { background: #fff; color: var(--m-acento, #c0392b); }

@@ -573,11 +573,12 @@ export default function MensajesPage() {
     const novedades = g.canales.filter((c) => c.no_leidos > 0).length
     return (
       <section key={g.id} className={`msj-grupo${g.id === 'inactivos' ? ' is-inactivos' : ''}${g.id === 'pausa' ? ' is-pausa' : ''}${g.id === 'vencidos' ? ' is-vencidos' : ''}${soltandoEn === g.id ? ' is-soltar' : ''}`} aria-label={g.nombre} {...zonaDeSoltar(g.id)}>
-        <button type="button" className={`msj-grupo__titulo${abierto ? ' is-abierto' : ''}${!abierto && novedades ? ' con-novedades' : ''}`} onClick={() => alternarGrupo(g.id)} aria-expanded={abierto}>
+        <button type="button" className={`msj-grupo__titulo${abierto ? ' is-abierto' : ''}${novedades ? ' con-novedades' : ''}`} onClick={() => alternarGrupo(g.id)} aria-expanded={abierto}>
           <svg viewBox="0 0 10 10" aria-hidden="true">
             <path d="M3 2l4 3-4 3z" fill="currentColor" />
           </svg>
           <span>{g.nombre}</span>
+          {novedades ? <i className="msj-grupo__punto" aria-label={`${novedades} con mensajes sin leer`} /> : null}
           <small>{g.canales.length || ''}</small>
         </button>
         {visibles.map((c) => (
