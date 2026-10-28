@@ -272,7 +272,6 @@
 /* ---------- @menciones ---------- */
 .msj-mencion { padding: 0 3px; border-radius: 4px; background: rgba(10, 102, 214, 0.1); color: #0a66d6; font-weight: 600; }
 .msj-mencion.is-yo { background: rgba(192, 57, 43, 0.12); color: var(--m-acento); }
-.msj-mencion.is-cliente { background: rgba(0, 0, 0, 0.07); color: var(--m-t1); }
 .msj-m.is-mencion { background: rgba(255, 196, 0, 0.09); box-shadow: inset 3px 0 0 #f5b400; }
 .msj-redactar { position: relative; }
 .msj-sugerencias { position: absolute; left: 22px; width: min(360px, calc(100% - 44px)); bottom: calc(100% - 2px); margin: 0; padding: 6px; list-style: none; border-radius: 12px; background: #fafafc; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 14px 36px -10px rgba(0, 0, 0, 0.3); z-index: 5; }
