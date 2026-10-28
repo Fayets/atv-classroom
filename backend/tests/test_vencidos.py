@@ -73,3 +73,12 @@ def test_un_solo_grupo_y_solo_quien_ve_la_plata(mundo):
         svc.marcar_vencido(mundo["mkt"], mundo["canal_id"], False)
     assert e.value.status_code == 403
     svc.marcar_vencido(mundo["ventas"], mundo["canal_id"], False)
+
+
+def test_pasarlo_de_vencidos_a_inactivos_no_lo_esconde(mundo):
+    svc.marcar_vencido(mundo["ventas"], mundo["canal_id"], True)
+    svc.marcar_inactivo(mundo["ventas"], mundo["canal_id"], True)
+    item = _en_bandeja(mundo["ventas"], mundo["canal_id"])
+    assert item is not None and item["inactivo"] is True and item["vencido"] is False
+    svc.marcar_inactivo(mundo["ventas"], mundo["canal_id"], False)
+    assert _en_bandeja(mundo["ventas"], mundo["canal_id"]) is None  # sin grupo y sin acceso: no está

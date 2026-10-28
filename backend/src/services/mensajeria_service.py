@@ -459,8 +459,11 @@ def _canales_visibles(sesion: dict, equipo: bool, del_equipo: dict[int, dict]) -
                 otro_id = next((i for i in ids if i != sesion["usuario_id"]), None)
                 otro = {"id": otro_id, "nombre": nombres.get(otro_id) or "Cliente", "foto_url": None}
         cliente = clientes.get(canal.cliente_id) if canal.cliente_id else None
-        if equipo and canal.tipo == "cliente" and (cliente is None or (not _tiene_acceso(cliente) and not canal.vencido)):
-            continue  # clientes sin acceso fuera de la bandeja, salvo los que el equipo puso en Vencidos
+        # Clientes sin acceso fuera de la bandeja, salvo los que el equipo acomodó en Pausa, Vencidos o Inactivos:
+        # moverlos de un grupo a otro no los puede hacer desaparecer.
+        acomodado = canal.vencido or canal.inactivo or canal.pausa
+        if equipo and canal.tipo == "cliente" and (cliente is None or (not _tiene_acceso(cliente) and not acomodado)):
+            continue
         visibles.append((canal, otro, cliente))
     return visibles
 
