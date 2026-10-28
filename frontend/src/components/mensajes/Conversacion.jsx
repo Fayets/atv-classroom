@@ -608,7 +608,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     // Si el primer nombre se repite (Franco del equipo y Franco Ascurra cliente), va el nombre completo.
     const primero = primerNombre(miembro.nombre)
     const repetido = [...equipo, ...participantes].filter((p) => normal(primerNombre(p.nombre)) === normal(primero)).length > 1
-    const marca = `@${repetido && miembro.nombre.trim().includes(' ') ? miembro.nombre.trim() : primero}`
+    // Del lado del cliente va el nombre como aparece ("@Pedro Gamez"); del equipo, el primero salvo que se repita.
+    const completo = miembro.nombre.trim()
+    const marca = `@${(miembro.esCliente || repetido) && completo.includes(' ') ? completo : primero}`
     const nuevo = `${texto.slice(0, desde)}${marca} ${texto.slice(caret)}`
     mencionados.current.set(marca, miembro.esCliente ? null : miembro.id) // al servidor solo van ids del equipo
     setTexto(nuevo)
