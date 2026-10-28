@@ -436,6 +436,16 @@ def _nombre_cuenta(cliente_id: int, cache: dict) -> str:
     return ((c.nombre or c.email) if c else None) or "Cliente"
 
 
+def _escribio_donde_lo_ves(sesion: dict, cliente_id: int) -> bool:
+    """Si ese cliente escribió en algún canal de la comunidad que esta sesión ve (general, presentaciones…)."""
+    canales = db.select(
+        f'SELECT DISTINCT m.canal FROM "{DB_SCHEMA}"."mensajes_canal" m JOIN "{DB_SCHEMA}"."canales" c ON c.id = m.canal '
+        "WHERE m.autor_tipo = 'cliente' AND m.autor_id = $cid AND NOT m.borrado AND c.tipo IN ('grupo', 'anuncios')",
+        {"cid": int(cliente_id)},
+    )
+    return any((c := Canal.get(id=i)) is not None and _ve(sesion, _info(c)) for i in canales)
+
+
 def _canales_visibles(sesion: dict, equipo: bool, del_equipo: dict[int, dict]) -> list[tuple]:
     """Los canales que van en la bandeja de esta sesión, con la otra persona (directos) y el cliente."""
     clientes = {c.id: c for c in list(ClienteExterno.select())} if equipo else {}
@@ -850,25 +860,13 @@ class MensajeriaServices:
             a, b = sorted((yo, cliente_id))
             clave = f"dmc:{a}:{b}"
             canal = Canal.get(tipo="privado", nombre=clave)
+            # Solo a quien se ve en la comunidad: así nadie puede recorrer la lista de clientes de ATV.
+            if canal is None and not _escribio_donde_lo_ves(sesion, cliente_id):
+                raise HTTPException(status_code=404, detail="No encontramos a ese cliente.")
             if canal is None:
                 canal = Canal(tipo="privado", nombre=clave, participantes_json=json.dumps([a, b]), creado_por=yo)
                 canal.flush()
             return {"id": canal.id, "tipo": "privado", "con": cliente_id}
-
-    def directorio_clientes(self, sesion: dict) -> list[dict]:
-        """A quién le puede escribir un cliente: los demás clientes con acceso (solo nombre, nada de mails)."""
-        if es_equipo(sesion):
-            raise HTTPException(status_code=403, detail="Esto es para clientes.")
-        from src.services.plan_acceso import sin_chat
-
-        with db_session:
-            lista = [
-                {"id": c.id, "nombre": (c.nombre or "").strip()}
-                for c in list(ClienteExterno.select())
-                if c.id != sesion["usuario_id"] and (c.nombre or "").strip() and _tiene_acceso(c)
-                and not sin_chat({"rol": c.plan_actual})
-            ]
-        return sorted(lista, key=lambda x: x["nombre"].lower())
 
     def crear_canal_grupo(self, sesion: dict, nombre: str, descripcion: str | None, roles: list[str] | None) -> dict:
         """Cualquiera del equipo crea un canal grupal, como en Discord: nombre y roles que lo ven."""

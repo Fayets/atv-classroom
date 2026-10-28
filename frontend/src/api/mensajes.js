@@ -15,10 +15,6 @@ export function abrirDm(clienteId) {
   return request('/api/mensajes/dm', { method: 'POST', body: JSON.stringify({ cliente_id: clienteId }) })
 }
 
-export function fetchDirectorio() {
-  return request('/api/mensajes/directorio')
-}
-
 export function abrirDirecto(adminId) {
   return request('/api/mensajes/directos', { method: 'POST', body: JSON.stringify({ admin_id: adminId }) })
 }

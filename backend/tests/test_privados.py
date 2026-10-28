@@ -3,7 +3,7 @@ equipos): el equipo de ATV no, ni en la bandeja, ni el cerebro, ni por menciones
 
 import json
 import secrets
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import pytest
 from fastapi import HTTPException
@@ -12,6 +12,7 @@ from pony.orm import db_session
 from src.db import db, init_db
 from src.services import push_service
 from src.services.mensajeria_service import MensajeriaServices
+from src.services.roles_canal import rol_de_plan
 
 _P = f"test-privados-{secrets.token_hex(3)}"
 svc = MensajeriaServices()
@@ -35,6 +36,14 @@ def mundo():
                 (f"{_P}-{letra}", f"{_P}-{letra}@atvos-prueba.com", date.today() + timedelta(days=30), f"#{_P}-{letra}"),
             )
             ids.append(cur.fetchone()[0])
+        # Un canal de la comunidad propio donde B escribió: desde ahí A lo puede encontrar.
+        comunidad = Canal(tipo="grupo", nombre=f"{_P}-general", roles_json=json.dumps([rol_de_plan("boost")]), creado_en=datetime.utcnow())
+        comunidad.flush()
+        db.execute(
+            'INSERT INTO "classroom"."mensajes_canal" (canal, autor_tipo, autor_id, texto, borrado, creado_en) '
+            "VALUES ($c, 'cliente', $b, 'hola comunidad', false, now())",
+            {"c": comunidad.id, "b": ids[1]},
+        )
         for cid in ids:
             PushSuscripcion(tipo="cliente", usuario_id=cid, endpoint=f"https://push.invalid/{_P}/{cid}", p256dh="x", auth="y")
         datos = {
@@ -55,6 +64,9 @@ def mundo():
                 c.delete()
             elif c.cliente_id in ids:
                 c.delete()
+            elif c.nombre == f"{_P}-general":
+                db.execute('DELETE FROM "classroom"."mensajes_canal" WHERE canal = $c', {"c": c.id})
+                c.delete()
         for a in list(Admin.select()):
             if a.email.startswith(_P):
                 a.delete()
@@ -64,7 +76,6 @@ def mundo():
 
 def test_un_cliente_le_escribe_a_otro_y_el_equipo_no_lo_ve(mundo):
     a, b, admin = mundo["a"], mundo["b"], mundo["admin"]
-    assert any(x["id"] == b["usuario_id"] for x in svc.directorio_clientes(dict(a)))
     canal_id = svc.abrir_privado(dict(a), b["usuario_id"])["id"]
     assert svc.abrir_privado(dict(b), a["usuario_id"])["id"] == canal_id  # el mismo chat, lo abra quien lo abra
     mensaje, canal = svc.enviar(dict(a), canal_id, f"Hola @Jefeprueba, che {b['nombre']}", None, [admin["usuario_id"]])
@@ -88,3 +99,22 @@ def test_el_equipo_no_abre_privados(mundo):
         svc.abrir_privado(dict(mundo["admin"]), mundo["a"]["usuario_id"])
     with pytest.raises(HTTPException):
         svc.abrir_privado(dict(mundo["a"]), mundo["a"]["usuario_id"])
+
+
+def test_solo_a_quien_se_ve_en_la_comunidad(mundo):
+    """B escribió en un canal que A ve: A le puede escribir. A no escribió en ningún lado: B no puede abrirle
+    un privado nuevo por id (así nadie recorre la lista de clientes)."""
+    from src.models import Canal
+
+    with db_session:
+        for c in list(Canal.select()):
+            if c.tipo == "privado" and set(json.loads(c.participantes_json or "[]")) == set(mundo["ids"]):
+                db.execute('DELETE FROM "classroom"."mensajes_canal" WHERE canal = $c', {"c": c.id})
+                db.execute('DELETE FROM "classroom"."lecturas_canal" WHERE canal_id = $c', {"c": c.id})
+                c.delete()
+    with pytest.raises(HTTPException) as e:
+        svc.abrir_privado(dict(mundo["b"]), mundo["a"]["usuario_id"])
+    assert e.value.status_code == 404
+    assert svc.abrir_privado(dict(mundo["a"]), mundo["b"]["usuario_id"])["id"]
+    # Una vez abierto, el otro también lo puede abrir.
+    assert svc.abrir_privado(dict(mundo["b"]), mundo["a"]["usuario_id"])["id"]
