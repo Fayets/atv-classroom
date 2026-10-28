@@ -418,6 +418,19 @@ def _detectar_menciones(texto: str, ids_enviados: list[int] | None, ambiguos: se
     return ids
 
 
+def _compacto(nombre: str) -> str:
+    """'PedroGámez' y 'Pedro Gamez' son lo mismo: sin tildes, sin espacios ni signos."""
+    return re.sub(r"[^a-z0-9]", "", _normal(nombre or ""))
+
+
+def _mismo_nombre(a: str, b: str) -> bool:
+    """La misma persona escrita distinto (Carlos Gonzales / Carlos González, PedroGámez / Pedro Gamez)."""
+    from difflib import SequenceMatcher
+
+    ca, cb = _compacto(a), _compacto(b)
+    return bool(ca and cb) and (ca == cb or SequenceMatcher(None, ca, cb).ratio() >= 0.88)
+
+
 def _nombres_del_cliente(canal: Canal) -> set[str]:
     """Primeros nombres de quienes escriben del lado del cliente en este chat: el titular (y el nombre que se
     puso) y su equipo; en un canal de la comunidad, los clientes que escribieron ahí."""
@@ -1131,6 +1144,29 @@ class MensajeriaServices:
             lista = [{"clave": f"c{canal.cliente_id}", "nombre": (c.nombre or c.email) if c else canal.nombre, "detalle": "Cliente", "foto_url": foto_de("cliente", canal.cliente_id)}]
             for m in list(MiembroCliente.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."miembros_cliente" WHERE cliente_id = $cid ORDER BY id', {"cid": canal.cliente_id})):
                 lista.append({"clave": f"m{m.id}", "nombre": m.nombre, "detalle": nombre_rol(m.rol), "foto_url": foto_de("miembro", m.id)})
+            # Las personas que escriben de verdad del lado del cliente: el nombre que se puso el titular y quienes
+            # escribieron en el chat (el historial de Discord trae a cada uno con su nombre, ej. Pedro Gamez en Scale Boost).
+            from src.models import NombreTitular
+
+            vistos = {x["nombre"] or "" for x in lista}
+            t = NombreTitular.get(cliente_id=canal.cliente_id)
+            nombres = [t.nombre] if t and t.nombre else []
+            filas = db.select(
+                f'SELECT autor_nombre FROM "{DB_SCHEMA}"."mensajes_canal" WHERE canal = $c AND autor_tipo = \'cliente\' '
+                "AND miembro_id IS NULL AND autor_nombre IS NOT NULL AND NOT borrado GROUP BY autor_nombre ORDER BY max(creado_en) DESC LIMIT 12",
+                {"c": canal.id},
+            )
+            nombres += list(filas)
+            # Gente de ATV sin cuenta que el historial dejó con su nombre (ej. Walter Mauricio): no son del cliente.
+            del_equipo = {_compacto(n) for n in db.select(
+                f'SELECT DISTINCT autor_nombre FROM "{DB_SCHEMA}"."mensajes_canal" WHERE autor_tipo = \'admin\' AND autor_nombre IS NOT NULL'
+            )} | {_compacto(m["nombre"]) for m in equipo_para_mencionar()}
+            for i, n in enumerate(nombres):
+                n = (n or "").strip()
+                if not n or _compacto(n) in del_equipo or any(_mismo_nombre(n, v) for v in vistos):
+                    continue
+                vistos.add(n)
+                lista.append({"clave": f"p{canal.cliente_id}-{i}", "nombre": n, "detalle": "Cliente", "foto_url": None})
             return lista
 
     def subir_adjunto(self, sesion: dict, canal_id: int, nombre: str, partes) -> dict:
