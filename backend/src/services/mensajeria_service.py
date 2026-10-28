@@ -436,6 +436,10 @@ def _nombre_cuenta(cliente_id: int, cache: dict) -> str:
     return ((c.nombre or c.email) if c else None) or "Cliente"
 
 
+BUSCAR_MIN_LETRAS = 3
+BUSCAR_MAX = 5
+
+
 def _escribio_donde_lo_ves(sesion: dict, cliente_id: int) -> bool:
     """Si ese cliente escribió en algún canal de la comunidad que esta sesión ve (general, presentaciones…)."""
     canales = db.select(
@@ -867,6 +871,34 @@ class MensajeriaServices:
                 canal = Canal(tipo="privado", nombre=clave, participantes_json=json.dumps([a, b]), creado_por=yo)
                 canal.flush()
             return {"id": canal.id, "tipo": "privado", "con": cliente_id}
+
+    def buscar_clientes(self, sesion: dict, q: str) -> list[dict]:
+        """Para abrir un privado: clientes que escribieron en un canal de la comunidad que esta sesión ve, por
+        nombre. Nunca la lista entera: desde 3 letras y hasta 5 resultados."""
+        if es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Esto es para clientes.")
+        buscado = _normal(q or "").strip()
+        if len(buscado) < BUSCAR_MIN_LETRAS:
+            return []
+        yo = sesion["usuario_id"]
+        with db_session:
+            vistos = [c.id for c in list(Canal.select()) if c.tipo in ("grupo", "anuncios") and _ve(sesion, _info(c))]
+            if not vistos:
+                return []
+            autores = db.select(
+                f'SELECT DISTINCT autor_id FROM "{DB_SCHEMA}"."mensajes_canal" WHERE autor_tipo = \'cliente\' AND NOT borrado '
+                f"AND canal IN ({','.join(str(int(i)) for i in vistos)})"
+            )
+            salida = []
+            for cid in autores:
+                if cid == yo:
+                    continue
+                c = ClienteExterno.get(id=cid)
+                nombre = ((c.nombre or "") if c else "").strip()
+                if c and nombre and _tiene_acceso(c) and buscado in _normal(nombre):
+                    salida.append({"id": c.id, "nombre": nombre})
+        salida.sort(key=lambda x: (not _normal(x["nombre"]).startswith(buscado), x["nombre"].lower()))
+        return salida[:BUSCAR_MAX]
 
     def crear_canal_grupo(self, sesion: dict, nombre: str, descripcion: str | None, roles: list[str] | None) -> dict:
         """Cualquiera del equipo crea un canal grupal, como en Discord: nombre y roles que lo ven."""

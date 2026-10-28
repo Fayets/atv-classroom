@@ -1019,3 +1019,9 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-perfil__cuerpo button + button { margin-top: 6px; }
 .msj-perfil__cuerpo button.is-secundaria { background: #f0f0f3; color: #1d1d1f; }
 .msj-perfil__cuerpo button.is-secundaria:hover { background: #e6e6ea; }
+
+.msj-buscar-cliente { margin: 4px 6px 8px; }
+.msj-buscar-cliente input { width: 100%; height: 30px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--m-campo); color: var(--m-t1); font: inherit; font-size: 13px; outline: none; }
+.msj-buscar-cliente button { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 2px; padding: 6px 8px; border: 0; border-radius: 6px; background: none; color: var(--m-t1); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+.msj-buscar-cliente button:hover { background: var(--m-campo); }
+.msj-buscar-cliente .msj-privados__vacio { margin: 6px 4px 0; }

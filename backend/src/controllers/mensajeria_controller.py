@@ -88,6 +88,12 @@ def abrir_directo(body: Directo, sesion: dict = Depends(sesion_mensajes)):
     return service.abrir_directo(sesion, body.admin_id)
 
 
+@router.get("/buscar-clientes")
+def buscar_clientes(q: str = "", sesion: dict = Depends(sesion_mensajes)):
+    """Clientes de la comunidad por nombre, para escribirles por privado (desde 3 letras, hasta 5)."""
+    return service.buscar_clientes(sesion, q)
+
+
 class Privado(BaseModel):
     cliente_id: int
 

@@ -118,3 +118,14 @@ def test_solo_a_quien_se_ve_en_la_comunidad(mundo):
     assert svc.abrir_privado(dict(mundo["a"]), mundo["b"]["usuario_id"])["id"]
     # Una vez abierto, el otro también lo puede abrir.
     assert svc.abrir_privado(dict(mundo["b"]), mundo["a"]["usuario_id"])["id"]
+
+
+def test_buscador_no_tira_la_lista(mundo):
+    a, b = mundo["a"], mundo["b"]
+    assert svc.buscar_clientes(dict(a), "te") == []  # menos de 3 letras: nada
+    assert [x["id"] for x in svc.buscar_clientes(dict(a), f"{_P}-b")] == [b["usuario_id"]]
+    # A no escribió en ningún canal: B no lo encuentra aunque sepa el nombre.
+    assert svc.buscar_clientes(dict(b), f"{_P}-a") == []
+    assert len(svc.buscar_clientes(dict(a), "a a")) <= 5
+    with pytest.raises(HTTPException):
+        svc.buscar_clientes(dict(mundo["admin"]), "algo")

@@ -4,7 +4,7 @@ import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchSenas } from '../api/altas'
 import { pedirCartelPausa } from '../components/Pausa'
 import { NotificacionesCartel } from '../components/Notificaciones'
-import { abrirDirecto, abrirDm, abrirPrivado, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, marcarVencido, ordenarCanales } from '../api/mensajes'
+import { abrirDirecto, abrirDm, abrirPrivado, buscarClientes, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, marcarVencido, ordenarCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
@@ -114,6 +114,48 @@ function CanalBloqueado({ item }) {
       <b>#{item.nombre} está bloqueado</b>
       <p>{vencida ? 'Tu acceso venció' : inactiva ? 'Tu cuenta está inactiva' : 'Tu programa está en pausa'}: mientras tanto no podés ver lo que se habla en la comunidad.</p>
       <button type="button" className="msj-bloqueado__boton" onClick={pedirCartelPausa}>{vencida ? 'Ver cómo extenderlo' : inactiva ? 'Ver cómo reactivarla' : 'Ver cómo reanudarlo'}</button>
+    </div>
+  )
+}
+
+// Buscar a otro cliente para escribirle: no muestra nada hasta 3 letras y trae como mucho 5 (el servidor solo
+// devuelve gente que escribió en un canal que vos ves). Nunca la lista de clientes.
+function BuscarCliente({ onElegir }) {
+  const [q, setQ] = useState('')
+  const [lista, setLista] = useState([])
+  useEffect(() => {
+    const texto = q.trim()
+    if (texto.length < 3) {
+      setLista([])
+      return undefined
+    }
+    let vivo = true
+    const t = setTimeout(() => {
+      buscarClientes(texto).then((r) => vivo && setLista(r)).catch(() => vivo && setLista([]))
+    }, 250)
+    return () => {
+      vivo = false
+      clearTimeout(t)
+    }
+  }, [q])
+  return (
+    <div className="msj-buscar-cliente">
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Escribirle a un cliente…" aria-label="Buscar un cliente por nombre" />
+      {lista.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          onClick={() => {
+            setQ('')
+            setLista([])
+            onElegir(c)
+          }}
+        >
+          <Avatar persona={{ tipo: 'cliente', nombre: c.nombre }} size={20} />
+          <span>{c.nombre}</span>
+        </button>
+      ))}
+      {q.trim().length >= 3 && !lista.length ? <p className="msj-privados__vacio">Nadie con ese nombre en tus canales.</p> : null}
     </div>
   )
 }
@@ -754,7 +796,7 @@ export default function MensajesPage() {
             </button>
           )
         })}
-        {!privados.length && !buscar.trim() ? <p className="msj-privados__vacio">Para escribirle a otro cliente, tocá su nombre en un canal de la comunidad. Solo lo ven ustedes dos.</p> : null}
+        <BuscarCliente onElegir={escribirA} />
       </section>
     ) : null
 
