@@ -963,3 +963,10 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-emojis__fila button { height: 36px; border: 0; border-radius: 8px; background: transparent; font-size: 22px; line-height: 1; cursor: pointer; }
 .msj-emojis__fila button:hover { background: rgba(0, 0, 0, 0.07); }
 .msj-emojis__vacio { margin: 18px 6px; color: var(--m-t3); font-size: 13px; text-align: center; }
+
+/* En el celu el campo va a 16px (si no, el iPhone hace zoom): la capa de atrás, que le da el alto y dibuja la
+   sugerencia, tiene que ir igual. Si no, el texto queda más alto que la caja, se recorta y el cursor no se
+   puede mover manteniendo el espacio. */
+@media (hover: none) and (pointer: coarse) {
+  .msj-campo > .msj-fantasma { font-size: 16px !important; }
+}
