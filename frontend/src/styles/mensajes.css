@@ -494,12 +494,13 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 
 /* grupos por plan, como las categorías de Discord */
 .msj-grupo { margin-top: 6px; }
-.msj-grupo__titulo { display: flex; align-items: center; gap: 5px; width: 100%; margin: 8px 0 2px; padding: 3px 8px; border: 0; background: none; color: #8e8e93; font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; text-align: left; cursor: pointer; border-radius: 6px; }
+/* El nombre del grupo va más grande que los chats de adentro: se lee primero la categoría. */
+.msj-grupo__titulo { display: flex; align-items: center; gap: 7px; width: 100%; margin: 12px 0 3px; padding: 4px 8px; border: 0; background: none; color: #8e8e93; font: inherit; font-size: 15px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; text-align: left; cursor: pointer; border-radius: 6px; }
 .msj-grupo__titulo:hover { color: var(--m-t1, #1d1d1f); }
-.msj-grupo__titulo svg { width: 9px; height: 9px; flex: none; transition: transform 160ms ease; }
+.msj-grupo__titulo svg { width: 10px; height: 10px; flex: none; transition: transform 160ms ease; }
 .msj-grupo__titulo.is-abierto svg { transform: rotate(90deg); }
 .msj-grupo__titulo span { flex: 1; }
-.msj-grupo__titulo small { font-weight: 600; font-variant-numeric: tabular-nums; }
+.msj-grupo__titulo small { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { .msj-grupo__titulo svg { transition: none; } }
 
 /* filas tipo canal de Discord */
