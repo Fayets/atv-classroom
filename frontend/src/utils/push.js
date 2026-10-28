@@ -53,13 +53,27 @@ async function guardar(sub) {
 
 // Hay que llamarla directo desde el toque del botón: el iPhone solo pide permiso así.
 export async function activarAvisos() {
-  const permiso = await Notification.requestPermission()
+  // Si ya lo había permitido, no se vuelve a preguntar.
+  const permiso = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission()
   if (permiso !== 'granted') return estadoAvisos()
   const reg = await navigator.serviceWorker.register('/sw.js')
   await navigator.serviceWorker.ready
   const { clave } = await request('/api/push/clave')
   let sub = await reg.pushManager.getSubscription()
-  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: aBytes(clave) })
+  if (!sub) {
+    try {
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: aBytes(clave) })
+    } catch {
+      // El permiso está, pero el navegador no se pudo anotar en su servicio de avisos. Antes no se decía
+      // nada y el cartel quedaba igual: parecía un bucle de "Activar".
+      const brave = navigator.brave && (await navigator.brave.isBrave().catch(() => false))
+      throw new Error(
+        brave
+          ? 'Brave trae los avisos apagados: entrá a brave://settings/privacy, prendé "Usar los servicios de Google para mensajería push", reiniciá Brave y volvé a activarlas.'
+          : 'Tu navegador no dejó activar los avisos. Probá con Chrome o Edge, o revisá que las notificaciones de este sitio no estén bloqueadas.',
+      )
+    }
+  }
   await guardar(sub)
   return 'activas'
 }

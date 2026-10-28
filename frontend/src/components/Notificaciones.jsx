@@ -83,6 +83,7 @@ export function NotificacionesCartel() {
     }
   })
   const [ocupado, setOcupado] = useState(false)
+  const [fallo, setFallo] = useState('')
   if (cerrado || !['apagadas', 'ios-sin-anclar'].includes(estado)) return null
 
   function cerrar() {
@@ -99,17 +100,20 @@ export function NotificacionesCartel() {
       <svg viewBox="0 0 20 20" aria-hidden="true">
         <path d="M10 2.5a5 5 0 0 0-5 5v3.2L3.5 13.5h13L15 10.7V7.5a5 5 0 0 0-5-5zM8 15.5a2 2 0 0 0 4 0" />
       </svg>
-      <p>{estado === 'apagadas' ? 'Activá las notificaciones para enterarte apenas te escriben.' : TEXTO['ios-sin-anclar']}</p>
+      <p>{fallo || (estado === 'apagadas' ? 'Activá las notificaciones para enterarte apenas te escriben.' : TEXTO['ios-sin-anclar'])}</p>
       {estado === 'apagadas' ? (
         <button type="button" disabled={ocupado} onClick={async () => {
           setOcupado(true)
+          setFallo('')
           try {
             setEstado(await activarAvisos())
+          } catch (err) {
+            setFallo(err.message || 'No se pudieron activar. Probá de nuevo.')
           } finally {
             setOcupado(false)
           }
         }}>
-          {ocupado ? 'Activando…' : 'Activar'}
+          {ocupado ? 'Activando…' : fallo ? 'Reintentar' : 'Activar'}
         </button>
       ) : null}
       <button type="button" className="msj-avisos__x" onClick={cerrar} aria-label="Cerrar">×</button>
