@@ -20,6 +20,9 @@ import '../styles/mensajes.css'
 import ContextoCliente from '../components/mensajes/ContextoCliente'
 import '../styles/contexto.css'
 
+// "martin zuniga" encuentra "Martín Zúñiga": sin tildes, sin ñ y sin mayúsculas.
+const sinTildes = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
 // Como las categorías de Discord: un grupo por plan, en este orden.
 const GRUPOS = [
   { id: 'high', nombre: 'High Level', planes: ['high', 'advantage'] },
@@ -492,9 +495,9 @@ export default function MensajesPage() {
 
   const filtrados = useMemo(() => {
     if (!canales) return []
-    const q = buscar.trim().toLowerCase()
+    const q = sinTildes(buscar.trim())
     if (!q) return canales
-    return canales.filter((c) => `${c.nombre} ${c.cliente?.nombre || ''}`.toLowerCase().includes(q))
+    return canales.filter((c) => sinTildes(`${c.nombre} ${c.cliente?.nombre || ''}`).includes(q))
   }, [canales, buscar])
 
   const canalesGrupo = filtrados.filter((c) => c.tipo === 'anuncios' || c.tipo === 'grupo')
@@ -577,7 +580,7 @@ export default function MensajesPage() {
 
   const abrirSena = (id) => setParams({ s: String(id) })
   const seccionSenas = isEquipo ? (
-    <SeccionSenas key="senas" senas={buscar.trim() ? senas?.filter((x) => x.nombre.toLowerCase().includes(buscar.trim().toLowerCase())) : senas} abierta={senasAbiertas || Boolean(buscar.trim())} alAlternar={() => setSenasAbiertas((a) => !a)} activa={senaActiva} alAbrir={abrirSena} />
+    <SeccionSenas key="senas" senas={buscar.trim() ? senas?.filter((x) => sinTildes(x.nombre).includes(sinTildes(buscar.trim()))) : senas} abierta={senasAbiertas || Boolean(buscar.trim())} alAlternar={() => setSenasAbiertas((a) => !a)} activa={senaActiva} alAbrir={abrirSena} />
   ) : null
   const sena = senas?.find((x) => x.id === senaActiva)
 
@@ -590,7 +593,7 @@ export default function MensajesPage() {
   const personas = delEquipo
     .filter((m) => m.id !== user?.usuario_id)
     .map((m) => ({ ...m, canal: directos.find((c) => c.con?.id === m.id) || null }))
-    .filter((m) => !buscar.trim() || m.nombre.toLowerCase().includes(buscar.trim().toLowerCase()))
+    .filter((m) => !buscar.trim() || sinTildes(m.nombre).includes(sinTildes(buscar.trim())))
     .sort((x, y) => (y.canal?.ultimo?.creado_en || '').localeCompare(x.canal?.ultimo?.creado_en || '') || x.nombre.localeCompare(y.nombre))
   async function abrirCon(persona) {
     if (persona.canal) return abrir(persona.canal.id)
