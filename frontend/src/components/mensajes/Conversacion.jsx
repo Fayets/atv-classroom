@@ -720,7 +720,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   // 2K: su chat es solo para pedir las sesiones 1 a 1 (los coaches no dan consultas por acá).
   const solo1a1 = esPrivado && !isEquipo && (user?.permisos?.chat ?? (user?.rol === '2k' ? '1a1' : 'si')) === '1a1'
   const esGrupo = canal.tipo === 'grupo'
-  const esDirecto = canal.tipo === 'directo'
+  // Privado entre clientes: se ve como un directo, pero con otro cliente (y el equipo de ATV no lo ve).
+  const entreClientes = canal.tipo === 'privado'
+  const esDirecto = canal.tipo === 'directo' || entreClientes
   // "Visto": hasta dónde leyó el otro lado, sobre mi último mensaje.
   const leidoPorElOtro = isEquipo ? datos.lecturas.cliente : datos.lecturas.equipo
   const miUltimo = [...mensajes].reverse().find((m) => claveAutor(m.autor) === yo)
@@ -755,7 +757,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
           </button>
         ) : null}
         {esDirecto ? (
-          <Avatar persona={{ tipo: 'equipo', nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={30} />
+          <Avatar persona={{ tipo: entreClientes ? 'cliente' : 'equipo', nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={30} />
         ) : (
           <span className="msj-hash" aria-hidden="true">
             #
@@ -764,7 +766,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
         <div className="msj-conv__titulo">
           <b>{canal.nombre}</b>
           <span>
-            {esDirecto
+            {entreClientes
+              ? 'Mensaje privado · solo lo ven ustedes dos'
+              : esDirecto
               ? 'Mensaje directo · solo lo ven ustedes dos'
               : esPrivado
               ? isEquipo
@@ -787,13 +791,15 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
         ) : (
           <div className="msj-inicio">
             {esDirecto ? (
-              <Avatar persona={{ tipo: 'equipo', nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={56} />
+              <Avatar persona={{ tipo: entreClientes ? 'cliente' : 'equipo', nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={56} />
             ) : (
               <span className="msj-inicio__hash">#</span>
             )}
             <b>{esDirecto ? `Este es el comienzo de tu conversación con ${canal.nombre}` : `Este es el comienzo de #${canal.nombre}`}</b>
             <span>
-              {esDirecto
+              {entreClientes
+                ? 'Solo lo ven ustedes dos (y sus equipos). El equipo de ATV no lo ve.'
+                : esDirecto
                 ? 'Solo lo ven ustedes dos: ni el resto del equipo ni los clientes.'
                 : esPrivado
                 ? isEquipo

@@ -5,6 +5,15 @@ export function fetchHabilitada() {
 }
 
 /** El mensaje directo con otra persona del equipo (como un DM de Discord); se crea la primera vez. */
+// Privado con otro cliente: lo ven solo ellos dos (el equipo de ATV no).
+export function abrirPrivado(clienteId) {
+  return request('/api/mensajes/privados', { method: 'POST', body: JSON.stringify({ cliente_id: clienteId }) })
+}
+
+export function fetchDirectorio() {
+  return request('/api/mensajes/directorio')
+}
+
 export function abrirDirecto(adminId) {
   return request('/api/mensajes/directos', { method: 'POST', body: JSON.stringify({ admin_id: adminId }) })
 }

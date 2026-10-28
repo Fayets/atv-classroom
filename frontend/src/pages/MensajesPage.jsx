@@ -3,7 +3,7 @@ import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchSenas } from '../api/altas'
 import { pedirCartelPausa } from '../components/Pausa'
 import { NotificacionesCartel } from '../components/Notificaciones'
-import { abrirDirecto, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, marcarVencido, ordenarCanales } from '../api/mensajes'
+import { abrirDirecto, abrirPrivado, fetchCanales, fetchDirectorio, fetchEquipoChat, marcarInactivo, marcarPausa, marcarVencido, ordenarCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
@@ -656,6 +656,52 @@ export default function MensajesPage() {
       </section>
     ) : null
 
+  // Privados entre clientes: cada cliente le escribe a otro. Los ven solo ellos dos.
+  const privados = (canales || []).filter((c) => c.tipo === 'privado' && (!buscar.trim() || sinTildes(c.nombre).includes(sinTildes(buscar.trim()))))
+  const [eligiendo, setEligiendo] = useState(false)
+  async function escribirA(cliente) {
+    setEligiendo(false)
+    const ya = privados.find((c) => c.con?.id === cliente.id)
+    if (ya) return abrir(ya.id)
+    try {
+      const d = await abrirPrivado(cliente.id)
+      cargar()
+      abrir(d.id)
+    } catch (err) {
+      setError(err.message || 'No se pudo abrir el chat.')
+    }
+  }
+  const seccionPrivados =
+    !isEquipo && !user?.pausa ? (
+      <section className="msj-grupo msj-directos" aria-label="Mensajes directos">
+        <div className="msj-privados__cabeza">
+          <p className="msj-seccion">Mensajes directos</p>
+          <button type="button" className="msj-grupo__mas" onClick={() => setEligiendo(true)} aria-label="Escribirle a otro cliente" title="Escribirle a otro cliente">
+            +
+          </button>
+        </div>
+        {privados.map((c) => {
+          const nuevo = c.no_leidos > 0 && c.id !== activo
+          return (
+            <button
+              key={c.id}
+              type="button"
+              className={`msj-fila msj-fila--persona${c.id === activo ? ' is-activo' : ''}${nuevo ? ' is-nuevo' : ''}`}
+              onClick={() => abrir(c.id)}
+              title={c.ultimo ? `${c.ultimo.autor_nombre}: ${c.ultimo.texto}` : `Escribile a ${c.nombre}`}
+            >
+              {nuevo ? <i className="msj-fila__punto" aria-label="Mensajes sin leer" /> : null}
+              <Avatar persona={{ tipo: 'cliente', nombre: c.nombre }} size={20} />
+              <span className="msj-fila__nombre">{c.nombre}</span>
+              {escriben[c.id] ? <span className="msj-fila__escribe" aria-label={`${c.nombre} está escribiendo`}><i /><i /><i /></span> : null}
+            </button>
+          )
+        })}
+        {!privados.length && !buscar.trim() ? <p className="msj-privados__vacio">Escribile a otro cliente de ATV con el +. Solo lo ven ustedes dos.</p> : null}
+        {eligiendo ? <ElegirCliente onElegir={escribirA} onCerrar={() => setEligiendo(false)} /> : null}
+      </section>
+    ) : null
+
   // Como en Discord, un admin acomoda los canales manteniéndolos apretados y arrastrándolos.
   const [moviendoCanal, setMoviendoCanal] = useState(null)
   const [soltarCanal, setSoltarCanal] = useState(null) // { id, lado: 'arriba' | 'abajo' }
@@ -765,6 +811,7 @@ export default function MensajesPage() {
 
           {seccionCanales}
           {seccionDirectos}
+          {seccionPrivados}
 
           {isEquipo
             ? grupos.flatMap((g) => (g.id === 'inactivos' ? [seccionSenas, grupoDe(g)] : [grupoDe(g)]))
@@ -839,6 +886,34 @@ export default function MensajesPage() {
             }}
           />
         ) : null}
+      </div>
+    </div>
+  )
+}
+
+// A qué cliente escribirle: los demás clientes con acceso, con buscador (solo nombres).
+function ElegirCliente({ onElegir, onCerrar }) {
+  const [lista, setLista] = useState(null)
+  const [q, setQ] = useState('')
+  useEffect(() => {
+    fetchDirectorio().then(setLista).catch(() => setLista([]))
+  }, [])
+  const filtrados = (lista || []).filter((c) => !q.trim() || sinTildes(c.nombre).includes(sinTildes(q.trim())))
+  return (
+    <div className="msj-elegir" role="dialog" aria-label="Escribirle a otro cliente">
+      <div className="msj-elegir__cabeza">
+        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar cliente" aria-label="Buscar cliente" />
+        <button type="button" onClick={onCerrar} aria-label="Cerrar">×</button>
+      </div>
+      <div className="msj-elegir__lista">
+        {!lista ? <p className="msj-privados__vacio">Cargando…</p> : null}
+        {lista && !filtrados.length ? <p className="msj-privados__vacio">No hay clientes con ese nombre.</p> : null}
+        {filtrados.map((c) => (
+          <button key={c.id} type="button" onClick={() => onElegir(c)}>
+            <Avatar persona={{ tipo: 'cliente', nombre: c.nombre }} size={22} />
+            <span>{c.nombre}</span>
+          </button>
+        ))}
       </div>
     </div>
   )

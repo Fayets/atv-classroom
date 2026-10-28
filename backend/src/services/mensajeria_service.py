@@ -87,7 +87,7 @@ def _participantes(canal: Canal) -> list[int]:
 def _info(canal: Canal) -> dict:
     return {
         "id": canal.id, "tipo": canal.tipo, "cliente_id": canal.cliente_id, "roles": _roles_de(canal), "creado_por": canal.creado_por,
-        "participantes": _participantes(canal) if canal.tipo == "directo" else None,
+        "participantes": _participantes(canal) if canal.tipo in ("directo", "privado") else None,
     }
 
 
@@ -431,6 +431,11 @@ def _mencion_dict(men: Mencion, autores: "_Autores", ahora: datetime) -> dict | 
     }
 
 
+def _nombre_cuenta(cliente_id: int, cache: dict) -> str:
+    c = cache.get(cliente_id) or ClienteExterno.get(id=cliente_id)
+    return ((c.nombre or c.email) if c else None) or "Cliente"
+
+
 def _canales_visibles(sesion: dict, equipo: bool, del_equipo: dict[int, dict]) -> list[tuple]:
     """Los canales que van en la bandeja de esta sesión, con la otra persona (directos) y el cliente."""
     clientes = {c.id: c for c in list(ClienteExterno.select())} if equipo else {}
@@ -444,6 +449,15 @@ def _canales_visibles(sesion: dict, equipo: bool, del_equipo: dict[int, dict]) -
             otro = del_equipo.get(otro_id)
             if otro is None:
                 continue  # la otra persona ya no está en el equipo
+        elif canal.tipo == "privado":
+            # Entre clientes: al cliente se le muestra el otro; al equipo, los dos.
+            ids = _participantes(canal)
+            nombres = {i: _nombre_cuenta(i, clientes) for i in ids}
+            if equipo:
+                otro = {"id": None, "nombre": " ↔ ".join(nombres[i] for i in ids), "clientes": ids}
+            else:
+                otro_id = next((i for i in ids if i != sesion["usuario_id"]), None)
+                otro = {"id": otro_id, "nombre": nombres.get(otro_id) or "Cliente", "foto_url": None}
         cliente = clientes.get(canal.cliente_id) if canal.cliente_id else None
         if equipo and canal.tipo == "cliente" and (cliente is None or (not _tiene_acceso(cliente) and not canal.vencido)):
             continue  # clientes sin acceso fuera de la bandeja, salvo los que el equipo puso en Vencidos
@@ -522,7 +536,7 @@ class MensajeriaServices:
         resto.sort(key=lambda c: c["nombre"].lower())
         resto.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
         # Mensajes directos: el último con movimiento arriba, como en Discord.
-        directos = [c for c in items if c["tipo"] == "directo"]
+        directos = [c for c in items if c["tipo"] in ("directo", "privado")]
         directos.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
         return anuncios + directos + esperando + resto
 
@@ -585,6 +599,10 @@ class MensajeriaServices:
             return True
         if canal.tipo == "grupo":
             return True  # si llegó acá es porque lo ve (ver _canal_visible)
+        if canal.tipo == "privado":
+            from src.services.permisos_service import permite
+
+            return sesion["usuario_id"] in _participantes(canal) and permite(sesion, "chat")
         if canal.tipo != "cliente" or canal.cliente_id != sesion["usuario_id"]:
             return False
         from src.services.permisos_service import permite
@@ -654,7 +672,8 @@ class MensajeriaServices:
                 )):
                     abierta.respondida_en = m.creado_en
             nuevas = []
-            etiquetados = _detectar_menciones(texto, menciones)
+            # En un privado entre clientes no se etiqueta al equipo: no tiene que enterarse de esa charla.
+            etiquetados = set() if canal.tipo == "privado" else _detectar_menciones(texto, menciones)
             if es_equipo(sesion) and _EVERYONE.search(texto):
                 etiquetados |= _equipo_que_ve(canal, sesion["usuario_id"])
             for admin_id in etiquetados:
@@ -776,6 +795,44 @@ class MensajeriaServices:
                 canal = Canal(tipo="directo", nombre=clave, participantes_json=json.dumps([a, b]), creado_por=yo)
                 canal.flush()
             return {"id": canal.id, "tipo": "directo", "con": admin_id}
+
+    def abrir_privado(self, sesion: dict, cliente_id: int) -> dict:
+        """El chat privado con otro cliente (se crea la primera vez). Lo ven solo ellos dos: el equipo de ATV no."""
+        from src.services.permisos_service import permite
+
+        if es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Los privados entre clientes los abren los clientes.")
+        yo = sesion["usuario_id"]
+        if cliente_id == yo:
+            raise HTTPException(status_code=422, detail="Elegí a otro cliente.")
+        if sesion.get("pausa") or not permite(sesion, "chat"):
+            raise HTTPException(status_code=403, detail="Tu plan no incluye mensajes con otros clientes.")
+        with db_session:
+            otro = ClienteExterno.get(id=cliente_id)
+            if otro is None or not _tiene_acceso(otro):
+                raise HTTPException(status_code=404, detail="No encontramos a ese cliente.")
+            a, b = sorted((yo, cliente_id))
+            clave = f"dmc:{a}:{b}"
+            canal = Canal.get(tipo="privado", nombre=clave)
+            if canal is None:
+                canal = Canal(tipo="privado", nombre=clave, participantes_json=json.dumps([a, b]), creado_por=yo)
+                canal.flush()
+            return {"id": canal.id, "tipo": "privado", "con": cliente_id}
+
+    def directorio_clientes(self, sesion: dict) -> list[dict]:
+        """A quién le puede escribir un cliente: los demás clientes con acceso (solo nombre, nada de mails)."""
+        if es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Esto es para clientes.")
+        from src.services.plan_acceso import sin_chat
+
+        with db_session:
+            lista = [
+                {"id": c.id, "nombre": (c.nombre or "").strip()}
+                for c in list(ClienteExterno.select())
+                if c.id != sesion["usuario_id"] and (c.nombre or "").strip() and _tiene_acceso(c)
+                and not sin_chat({"rol": c.plan_actual})
+            ]
+        return sorted(lista, key=lambda x: x["nombre"].lower())
 
     def crear_canal_grupo(self, sesion: dict, nombre: str, descripcion: str | None, roles: list[str] | None) -> dict:
         """Cualquiera del equipo crea un canal grupal, como en Discord: nombre y roles que lo ven."""

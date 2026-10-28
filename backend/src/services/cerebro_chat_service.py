@@ -49,7 +49,7 @@ VISTAS = {
         "pausa, inactivo, etc. dias_restantes de programa.",
     ),
     "canales": (
-        f'SELECT id, tipo, cliente_id, nombre, pausa, inactivo, creado_en FROM "{S}"."canales" WHERE tipo <> \'directo\'',
+        f'SELECT id, tipo, cliente_id, nombre, pausa, inactivo, creado_en FROM "{S}"."canales" WHERE tipo NOT IN (\'directo\', \'privado\')',
         "Chats. tipo 'cliente' = el canal privado de un cliente con el equipo (cliente_id); 'grupo' = canales de la comunidad.",
     ),
     "mensajes": (
@@ -57,7 +57,8 @@ VISTAS = {
         f"m.autor_id, coalesce(m.autor_nombre, a.nombre) AS autor_nombre, m.texto, m.creado_en, (m.id < 0) AS de_discord "
         f'FROM "{S}"."mensajes_canal" m JOIN "{S}"."canales" c ON c.id = m.canal '
         f"LEFT JOIN \"{S}\".\"admins\" a ON m.autor_tipo <> 'cliente' AND a.id = m.autor_id "
-        f"WHERE NOT m.borrado AND c.tipo <> 'directo'",
+        # Los directos del equipo y los privados entre clientes no los lee nadie más que sus participantes.
+        f"WHERE NOT m.borrado AND c.tipo NOT IN ('directo', 'privado')",
         "Todos los mensajes de los chats con clientes y de la comunidad (incluye el historial importado de Discord, "
         "de_discord = true). autor_tipo: 'cliente' o 'equipo'. ~66 mil mensajes desde 2025.",
     ),

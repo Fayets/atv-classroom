@@ -88,6 +88,22 @@ def abrir_directo(body: Directo, sesion: dict = Depends(sesion_mensajes)):
     return service.abrir_directo(sesion, body.admin_id)
 
 
+class Privado(BaseModel):
+    cliente_id: int
+
+
+@router.post("/privados")
+def abrir_privado(body: Privado, sesion: dict = Depends(sesion_mensajes)):
+    """El chat privado con otro cliente (se crea la primera vez). Solo lo ven ellos dos."""
+    return service.abrir_privado(sesion, body.cliente_id)
+
+
+@router.get("/directorio")
+def directorio(sesion: dict = Depends(sesion_mensajes)):
+    """Los clientes a los que se les puede escribir (solo nombres)."""
+    return service.directorio_clientes(sesion)
+
+
 @router.post("/canales", status_code=201)
 async def crear_canal(body: CanalNuevo, sesion: dict = Depends(sesion_mensajes)):
     if body.tipo == "anuncios":
