@@ -19,6 +19,7 @@ from src.controllers.alta_controller import router as alta_router
 from src.controllers.onboardings_controller import router as onboardings_router
 from src.controllers.contratos_controller import router as contratos_router
 from src.controllers.llamadas_controller import router as llamadas_router
+from src.controllers.live_sessions_controller import router as live_sessions_router
 from src.controllers.sops_controller import router as sops_router
 from src.controllers.push_controller import router as push_router
 from src.controllers.consultas_controller import router as consultas_router
@@ -220,6 +221,7 @@ app.include_router(alta_router)
 app.include_router(onboardings_router)
 app.include_router(contratos_router)
 app.include_router(llamadas_router)
+app.include_router(live_sessions_router)
 app.include_router(sops_router)
 app.include_router(push_router)
 app.include_router(consultas_router)

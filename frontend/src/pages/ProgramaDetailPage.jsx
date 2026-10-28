@@ -12,6 +12,8 @@ import '../styles/material.css'
 import '../styles/clase.css'
 import BarraModulo from '../components/clase/BarraModulo'
 import MesaClase from '../components/clase/MesaClase'
+import SubirLiveSession from '../components/clase/SubirLiveSession'
+import { useAuth } from '../context/AuthContext'
 import { Chevron } from '../components/frentes/piezas'
 import { flattenClases, navegacionClase } from '../utils/programa'
 
@@ -56,6 +58,8 @@ export default function ProgramaDetailPage() {
   const [cargandoClase, setCargandoClase] = useState(false)
   const [guardandoProgreso, setGuardandoProgreso] = useState(false)
   const [error, setError] = useState('')
+  const [recarga, setRecarga] = useState(0)
+  const { isEquipo } = useAuth()
 
   const claseActivaId = searchParams.get('clase')
     ? Number(searchParams.get('clase'))
@@ -98,7 +102,7 @@ export default function ProgramaDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [programaId])
+  }, [programaId, recarga])
 
   useEffect(() => {
     if (!programa?.secciones?.length) return
@@ -193,6 +197,20 @@ export default function ProgramaDetailPage() {
     }
   }
 
+  // Live sessions: el equipo sube la grabación y queda como clase nueva, abierta.
+  const subirLive =
+    isEquipo && (programa?.slug || '').startsWith('live-sessions') ? (
+      <SubirLiveSession
+        programaId={programa.id}
+        onSubida={(clase) => {
+          if (clase.programa_id === programa.id) {
+            setRecarga((n) => n + 1)
+            handleSelectClase(clase.id)
+          }
+        }}
+      />
+    ) : null
+
   const clasesFlat = programa ? flattenClases(programa.secciones) : []
   const nav = navegacionClase(clasesFlat, claseActivaId)
 
@@ -211,6 +229,7 @@ export default function ProgramaDetailPage() {
         </main>
       ) : tieneContenido ? (
         <main className="ms-page">
+          {subirLive ? <div className="ls-barra">{subirLive}</div> : null}
           <BarraModulo
             titulo={programa.titulo}
             secciones={programa.secciones}
@@ -248,6 +267,7 @@ export default function ProgramaDetailPage() {
           </Link>
           <h1>{programa?.titulo || 'Módulo'}</h1>
           <p className="pc-muted">{programa?.descripcion || 'Las clases de este módulo se publican pronto.'}</p>
+          {subirLive}
         </main>
       )}
     </div>

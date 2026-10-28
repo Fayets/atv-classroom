@@ -41,6 +41,18 @@ export function getVideoEmbedInfo(url) {
     }
   }
 
+  // Fathom: el link para compartir (fathom.video/share/…) tiene su versión para insertar.
+  const fathomMatch = trimmed.match(/fathom\.video\/(?:share|embed)\/([\w-]+)/)
+  if (fathomMatch?.[1]) {
+    return { type: 'iframe', src: `https://fathom.video/embed/${fathomMatch[1]}` }
+  }
+
+  // Google Drive: el archivo compartido se ve con /preview.
+  const driveMatch = trimmed.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]+)/)
+  if (driveMatch?.[1]) {
+    return { type: 'iframe', src: `https://drive.google.com/file/d/${driveMatch[1]}/preview` }
+  }
+
   const wistiaMatch = trimmed.match(
     /wistia\.(?:net|com)\/(?:embed\/iframe|medias)\/([a-zA-Z0-9]+)/,
   )
