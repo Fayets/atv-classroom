@@ -998,3 +998,6 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 @media (hover: none) and (pointer: coarse) {
   .msj-m .msj-reac.msj-reac-abrir { opacity: 1; }
 }
+
+.msj-aviso-corto { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 90; transform: translateX(-50%); padding: 9px 16px; border-radius: 999px; background: rgba(29, 29, 31, 0.92); color: #fff; font-size: 14px; pointer-events: none; animation: msj-aviso-corto 1.6s ease forwards; }
+@keyframes msj-aviso-corto { 0% { opacity: 0; transform: translate(-50%, 6px); } 12%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }

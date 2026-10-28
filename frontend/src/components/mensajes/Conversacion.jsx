@@ -1264,6 +1264,15 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   )
 }
 
+// Un aviso de un segundo y medio abajo de todo ("Texto copiado").
+function avisoCorto(texto) {
+  const el = document.createElement('div')
+  el.className = 'msj-aviso-corto'
+  el.textContent = texto
+  document.body.appendChild(el)
+  setTimeout(() => el.remove(), 1600)
+}
+
 // Celu: lo que abre mantener apretado un mensaje, como una hoja que sube desde abajo.
 function HojaOpciones({ m, mio, puedeEscribir, puedeBorrar, onCerrar, onReaccionar, onResponder, onEditar, onBorrar }) {
   const abierta = useRef(Date.now())
@@ -1272,7 +1281,29 @@ function HojaOpciones({ m, mio, puedeEscribir, puedeBorrar, onCerrar, onReaccion
     onCerrar()
     accion()
   }
-  const copiar = () => navigator.clipboard?.writeText(conEmojis(m.texto)).catch(() => {})
+  const imagen = (m.adjuntos || []).find((a) => a.tipo_mime?.startsWith('image/') && a.tipo_mime !== 'image/heic')
+  const copiar = () =>
+    navigator.clipboard
+      ?.writeText(conEmojis(m.texto))
+      .then(() => avisoCorto('Texto copiado'))
+      .catch(() => avisoCorto('No se pudo copiar'))
+  // El portapapeles solo acepta PNG: se pasa por un canvas. La promesa va directo al ClipboardItem para no
+  // perder el permiso del toque (Safari).
+  const copiarImagen = () => {
+    const png = fetch(imagen.url)
+      .then((r) => r.blob())
+      .then((b) => (b.type === 'image/png' ? b : createImageBitmap(b).then((bmp) => {
+        const lienzo = document.createElement('canvas')
+        lienzo.width = bmp.width
+        lienzo.height = bmp.height
+        lienzo.getContext('2d').drawImage(bmp, 0, 0)
+        return new Promise((ok) => lienzo.toBlob(ok, 'image/png'))
+      })))
+    Promise.resolve()
+      .then(() => navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]))
+      .then(() => avisoCorto('Imagen copiada'))
+      .catch(() => avisoCorto('No se pudo copiar la imagen'))
+  }
   return createPortal(
     <div className="msj-hoja-fondo" onClick={() => Date.now() - abierta.current > 350 && onCerrar()}>
       <div className="msj-hoja" role="menu" aria-label="Opciones del mensaje" onClick={(e) => e.stopPropagation()}>
@@ -1280,6 +1311,7 @@ function HojaOpciones({ m, mio, puedeEscribir, puedeBorrar, onCerrar, onReaccion
         <button type="button" role="menuitem" onClick={hacer(onReaccionar)}>Reaccionar</button>
         {puedeEscribir ? <button type="button" role="menuitem" onClick={hacer(onResponder)}>Responder</button> : null}
         {m.texto ? <button type="button" role="menuitem" onClick={hacer(copiar)}>Copiar texto</button> : null}
+        {imagen && window.ClipboardItem ? <button type="button" role="menuitem" onClick={hacer(copiarImagen)}>Copiar imagen</button> : null}
         {mio && m.texto && puedeEscribir ? <button type="button" role="menuitem" onClick={hacer(onEditar)}>Editar</button> : null}
         {puedeBorrar ? <button type="button" role="menuitem" className="is-peligro" onClick={hacer(onBorrar)}>Eliminar</button> : null}
         <button type="button" className="msj-hoja__cancelar" onClick={onCerrar}>Cancelar</button>
