@@ -283,6 +283,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const aceptadaIA = useRef(null)
   const campo = useRef(null)
   const iaActiva = Boolean(isEquipo && datos?.canal?.tipo === 'cliente')
+  // En #updates cada bloque "@Persona …" lleva una barra a la izquierda (lo pidió Mauri; en los chats no).
+  const esUpdates = datos?.canal?.tipo === 'grupo' && /updates/i.test(datos?.canal?.nombre || '')
 
   // Con la voz de quién sugiere (se elige en Mi cuenta): si es de otro, la etiqueta lo dice.
   const [vozAjena, setVozAjena] = useState(null)
@@ -876,7 +878,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
           </div>
         )}
 
-        {todos.map((m, i) => {
+        {todos.map((m, i, lista) => {
           const previo = todos[i - 1]
           const nuevoDia = !previo || !mismoDia(previo.creado_en, m.creado_en)
           const agrupado =
@@ -887,6 +889,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
             new Date(m.creado_en) - new Date(previo.creado_en) < AGRUPAR_MS
           const mio = claveAutor(m.autor) === yo
           const real = typeof m.id === 'number'
+          // En la PC los bloques (un mensaje con sus seguidos) se alternan con un fondo apenas distinto.
+          lista.bloque = i === 0 ? 0 : lista.bloque + (agrupado ? 0 : 1)
+          const par = lista.bloque % 2 === 1
           return (
             <Fragment key={m.id}>
               {nuevoDia ? (
@@ -900,7 +905,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 onTouchEnd={soltarPresion}
                 onTouchCancel={soltarPresion}
                 onContextMenu={TACTIL ? (e) => e.preventDefault() : undefined}
-                className={`msj-m${eligiendo === m.id ? ' is-eligiendo' : ''}${agrupado ? ' is-agrupado' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${
+                className={`msj-m${eligiendo === m.id ? ' is-eligiendo' : ''}${agrupado ? ' is-agrupado' : ''}${par ? ' is-par' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${
                   !mio && m.texto && ((miPrimerNombre && normal(m.texto).includes(`@${normal(miPrimerNombre)}`)) || (m.autor?.tipo === 'equipo' && ES_EVERYONE.test(m.texto))) ? ' is-mencion' : ''
                 }`}
               >
@@ -928,7 +933,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                       <Edicion texto={m.texto} onGuardar={(t) => guardarEdicion(m, t)} onCancelar={() => setEditando(null)} />
                     ) : (
                       <>
-                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} yo={miPrimerNombre} canales={canales} onAbrirCanal={onAbrirCanal} /> : null}
+                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} yo={miPrimerNombre} canales={canales} onAbrirCanal={onAbrirCanal} secciones={esUpdates} /> : null}
                         <Enlaces texto={m.texto} />
                         <Adjuntos adjuntos={m.adjuntos} alCargar={bajarSiEstabaAbajo} />
                       </>

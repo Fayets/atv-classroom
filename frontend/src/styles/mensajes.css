@@ -111,17 +111,16 @@
 .msj-m:not(.is-agrupado) { margin-top: 10px; }
 .msj-m:hover { background: rgba(0, 0, 0, 0.025); }
 .msj-m.is-enviando { opacity: 0.5; }
-/* En la PC cada mensaje va en su propia burbuja con un fondo apenas distinto (el contraste es del mensaje, no
-   de una franja de lado a lado): los textos largos, como los updates, no se pegan. En el celu queda como estaba. */
+/* En la PC cada mensaje nuevo (no los seguidos de la misma persona) arranca con aire y los bloques se alternan
+   con un fondo apenas distinto: los textos largos, como los updates, no se pegan. Sin línea entre mensajes. En el
+   celu ya se lee bien y queda como estaba. */
 @media (min-width: 900px) and (hover: hover) {
-  .msj-m { padding-top: 3px; padding-bottom: 3px; }
-  .msj-m:not(.is-agrupado) { margin-top: 0; padding-top: 12px; }
+  .msj-m { padding-bottom: 6px; }
+  .msj-m:not(.is-agrupado) { margin-top: 0; padding-top: 14px; }
   .msj-dia + .msj-m { padding-top: 4px; }
-  .msj-m:hover { background: none; }
-  .msj-m .msj-m__cuerpo { flex: 0 1 auto; width: fit-content; min-width: 0; max-width: min(820px, 100%); padding: 8px 14px 9px; border-radius: 12px; background: #f4f4f6; transition: background-color 120ms ease; }
-  .msj-m:hover .msj-m__cuerpo { background: #ececf0; }
-  .msj-m__cuerpo .msj-rol { background: #fff; }
-  .msj-m.is-agrupado .msj-m__hora-lateral { padding-top: 11px; }
+  .msj-m.is-par { background: rgba(0, 0, 0, 0.022); }
+  .msj-m.is-par:hover { background: rgba(0, 0, 0, 0.045); }
+  .msj-m:hover { background: rgba(0, 0, 0, 0.035); }
 }
 .msj-m__fila { display: flex; gap: 14px; }
 .msj-m__cuerpo { flex: 1; min-width: 0; }
@@ -1002,3 +1001,8 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 
 .msj-aviso-corto { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 90; transform: translateX(-50%); padding: 9px 16px; border-radius: 999px; background: rgba(29, 29, 31, 0.92); color: #fff; font-size: 14px; pointer-events: none; animation: msj-aviso-corto 1.6s ease forwards; }
 @keyframes msj-aviso-corto { 0% { opacity: 0; transform: translate(-50%, 6px); } 12%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
+
+/* #updates: cada bloque "@Persona …" con su barra a la izquierda, como lo marcó Mauri. */
+.msj-texto--secciones > p { margin: 0; }
+.msj-texto--secciones > p + p { margin-top: 0.7em; }
+.msj-texto__bloque { padding-left: 10px; border-left: 3px solid var(--m-t1, #1d1d1f); }

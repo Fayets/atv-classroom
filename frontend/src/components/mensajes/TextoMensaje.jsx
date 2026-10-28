@@ -48,29 +48,42 @@ function ConMenciones({ texto, nombres, yo, canales, onAbrirCanal }) {
   })
 }
 
-// Pasa los :atajos: a emoji, respeta los saltos de línea, convierte los links en enlaces, pone en negrita lo que va entre ** y resalta
-// las @menciones y los canales de clientes nombrados por su slug (sin HTML del usuario).
-export default function TextoMensaje({ texto, nombres, yo, canales, onAbrirCanal }) {
-  const partes = conEmojis(texto).split(URL)
+// Pasa los :atajos: a emoji, respeta los saltos de línea, convierte los links en enlaces, pone en negrita lo que va
+// entre ** y resalta las @menciones y los canales de clientes nombrados por su slug (sin HTML del usuario).
+// Con `secciones` (canal #updates) cada párrafo que arranca con "@Persona" va con una barra a la izquierda.
+export default function TextoMensaje({ texto, nombres, yo, canales, onAbrirCanal, secciones = false }) {
+  const limpio = conEmojis(texto)
+  const linea = (t) => <Linea texto={t} nombres={nombres} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
+  if (!secciones || !/(^|\n)@/.test(limpio)) return <p className="msj-texto">{linea(limpio)}</p>
+  const parrafos = limpio.split(/\n{2,}/)
   return (
-    <p className="msj-texto">
-      {partes.map((parte, i) =>
-        i % 2 === 1 ? (
-          <a key={i} href={parte} target="_blank" rel="noopener noreferrer">
-            {parte}
-          </a>
+    <div className="msj-texto msj-texto--secciones">
+      {parrafos.map((par, i) => (
+        <p key={i} className={par.trimStart().startsWith('@') ? 'msj-texto__bloque' : undefined}>
+          {linea(par)}
+        </p>
+      ))}
+    </div>
+  )
+}
+
+function Linea({ texto, nombres, yo, canales, onAbrirCanal }) {
+  const partes = texto.split(URL)
+  return partes.map((parte, i) =>
+    i % 2 === 1 ? (
+      <a key={i} href={parte} target="_blank" rel="noopener noreferrer">
+        {parte}
+      </a>
+    ) : (
+      parte.split(NEGRITA).map((trozo, j) =>
+        j % 2 === 1 ? (
+          <strong key={`${i}-${j}`}>
+            <ConMenciones texto={trozo} nombres={nombres} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
+          </strong>
         ) : (
-          parte.split(NEGRITA).map((trozo, j) =>
-            j % 2 === 1 ? (
-              <strong key={`${i}-${j}`}>
-                <ConMenciones texto={trozo} nombres={nombres} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
-              </strong>
-            ) : (
-              <ConMenciones key={`${i}-${j}`} texto={trozo} nombres={nombres} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
-            ),
-          )
+          <ConMenciones key={`${i}-${j}`} texto={trozo} nombres={nombres} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
         ),
-      )}
-    </p>
+      )
+    ),
   )
 }
