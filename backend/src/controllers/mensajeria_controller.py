@@ -159,6 +159,17 @@ async def marcar_inactivo(canal_id: int, body: CanalInactivo, sesion: dict = Dep
     return {"ok": True, "inactivo": body.inactivo}
 
 
+class CanalVencido(BaseModel):
+    vencido: bool
+
+
+@router.put("/canales/{canal_id}/vencido")
+async def marcar_vencido(canal_id: int, body: CanalVencido, sesion: dict = Depends(sesion_mensajes)):
+    info = await run_in_threadpool(service.marcar_vencido, sesion, canal_id, body.vencido)
+    await hub.emitir({"tipo": "canal", "canal_id": canal_id}, info)
+    return {"ok": True, "vencido": body.vencido}
+
+
 @router.put("/canales/{canal_id}/pausa")
 async def marcar_pausa(canal_id: int, body: CanalPausa, sesion: dict = Depends(sesion_mensajes)):
     info = await run_in_threadpool(service.marcar_pausa, sesion, canal_id, body.pausa)

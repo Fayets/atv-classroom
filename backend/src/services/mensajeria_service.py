@@ -445,8 +445,8 @@ def _canales_visibles(sesion: dict, equipo: bool, del_equipo: dict[int, dict]) -
             if otro is None:
                 continue  # la otra persona ya no está en el equipo
         cliente = clientes.get(canal.cliente_id) if canal.cliente_id else None
-        if equipo and canal.tipo == "cliente" and (cliente is None or not _tiene_acceso(cliente)):
-            continue  # clientes vencidos fuera de la bandeja
+        if equipo and canal.tipo == "cliente" and (cliente is None or (not _tiene_acceso(cliente) and not canal.vencido)):
+            continue  # clientes sin acceso fuera de la bandeja, salvo los que el equipo puso en Vencidos
         visibles.append((canal, otro, cliente))
     return visibles
 
@@ -507,6 +507,7 @@ class MensajeriaServices:
                         "orden": canal.orden,
                         "inactivo": bool(canal.inactivo) if equipo else False,
                         "pausa": bool(canal.pausa) if equipo else False,
+                        "vencido": bool(canal.vencido) if equipo else False,
                         "puede_administrar": self._puede_administrar(sesion, canal),
                     }
                 )
@@ -846,7 +847,21 @@ class MensajeriaServices:
                 raise HTTPException(status_code=422, detail="Solo los chats de clientes van a Inactivos.")
             canal.inactivo = bool(inactivo)
             if inactivo:
-                canal.pausa = False  # está en un solo grupo a la vez
+                canal.pausa = canal.vencido = False  # está en un solo grupo a la vez
+            return _info(canal)
+
+    def marcar_vencido(self, sesion: dict, canal_id: int, vencido: bool) -> dict:
+        """Pasa el chat de un cliente a "Vencidos" (o lo saca). Solo ordena la bandeja: el acceso lo sigue
+        decidiendo la fecha de la ficha en atv-clients. Lo mueven los mismos que pausan."""
+        if not ve_plata(sesion):
+            raise HTTPException(status_code=403, detail="Solo admins, Ventas o Sistemas pasan a un cliente a Vencidos.")
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            if canal.tipo != "cliente":
+                raise HTTPException(status_code=422, detail="Solo los chats de clientes van a Vencidos.")
+            canal.vencido = bool(vencido)
+            if vencido:
+                canal.pausa = canal.inactivo = False  # está en un solo grupo a la vez
             return _info(canal)
 
     def marcar_pausa(self, sesion: dict, canal_id: int, pausa: bool) -> dict:
@@ -860,7 +875,7 @@ class MensajeriaServices:
                 raise HTTPException(status_code=422, detail="Solo los chats de clientes van a Pausa.")
             canal.pausa = bool(pausa)
             if pausa:
-                canal.inactivo = False  # está en un solo grupo a la vez
+                canal.inactivo = canal.vencido = False  # está en un solo grupo a la vez
             return _info(canal)
 
     def borrar_canal(self, sesion: dict, canal_id: int) -> dict:

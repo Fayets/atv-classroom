@@ -82,6 +82,11 @@ export function marcarPausa(canalId, pausa) {
   return request(`/api/mensajes/canales/${canalId}/pausa`, { method: 'PUT', body: JSON.stringify({ pausa }) })
 }
 
+// Vencidos: ordena la bandeja (el acceso lo sigue decidiendo la fecha de la ficha). Admins, Ventas y Sistemas.
+export function marcarVencido(canalId, vencido) {
+  return request(`/api/mensajes/canales/${canalId}/vencido`, { method: 'PUT', body: JSON.stringify({ vencido }) })
+}
+
 export function borrarCanal(canalId) {
   return request(`/api/mensajes/canales/${canalId}`, { method: 'DELETE' })
 }

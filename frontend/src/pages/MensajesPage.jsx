@@ -3,7 +3,7 @@ import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchSenas } from '../api/altas'
 import { pedirCartelPausa } from '../components/Pausa'
 import { NotificacionesCartel } from '../components/Notificaciones'
-import { abrirDirecto, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, ordenarCanales } from '../api/mensajes'
+import { abrirDirecto, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, marcarVencido, ordenarCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
@@ -40,13 +40,16 @@ function agrupar(lista) {
   const inactivos = { id: 'inactivos', nombre: 'Inactivos', canales: [], fijo: true }
   // Pausa: como Inactivos, pero corta el acceso del cliente (solo lee su canal) hasta que lo reanuden.
   const pausa = { id: 'pausa', nombre: 'Pausa', canales: [], fijo: true }
+  // Vencidos: solo ordena la bandeja (el acceso lo decide la fecha de la ficha en atv-clients).
+  const vencidos = { id: 'vencidos', nombre: 'Vencidos', canales: [], fijo: true }
   for (const c of lista) {
     const plan = (c.cliente?.plan || '').toLowerCase()
     if (c.pausa) pausa.canales.push(c)
+    else if (c.vencido) vencidos.canales.push(c)
     else if (c.inactivo) inactivos.canales.push(c)
     else (grupos.find((g) => g.planes.includes(plan)) || sinPlan).canales.push(c)
   }
-  return [...grupos, sinPlan].filter((g) => g.canales.length).concat(pausa, inactivos)
+  return [...grupos, sinPlan].filter((g) => g.canales.length).concat(pausa, vencidos, inactivos)
 }
 
 const comparar = (x, y) => (x < y ? -1 : x > y ? 1 : 0)
@@ -529,12 +532,18 @@ export default function MensajesPage() {
     if (!canal) return
     const pausa = grupoId === 'pausa'
     const inactivo = grupoId === 'inactivos'
-    if (Boolean(canal.pausa) === pausa && Boolean(canal.inactivo) === inactivo) return
-    const antes = { pausa: Boolean(canal.pausa), inactivo: Boolean(canal.inactivo) }
-    setCanales((l) => l.map((c) => (c.id === id ? { ...c, pausa, inactivo } : c)))
+    const vencido = grupoId === 'vencidos'
+    if (Boolean(canal.pausa) === pausa && Boolean(canal.inactivo) === inactivo && Boolean(canal.vencido) === vencido) return
+    const antes = { pausa: Boolean(canal.pausa), inactivo: Boolean(canal.inactivo), vencido: Boolean(canal.vencido) }
+    setCanales((l) => l.map((c) => (c.id === id ? { ...c, pausa, inactivo, vencido } : c)))
     try {
-      if (antes.pausa !== pausa) await marcarPausa(id, pausa)
-      if (antes.inactivo !== inactivo) await marcarInactivo(id, inactivo)
+      // Primero se apaga el grupo de antes y después se prende el nuevo (el servidor deja uno solo).
+      if (antes.pausa && !pausa) await marcarPausa(id, false)
+      if (antes.inactivo && !inactivo) await marcarInactivo(id, false)
+      if (antes.vencido && !vencido) await marcarVencido(id, false)
+      if (pausa && !antes.pausa) await marcarPausa(id, true)
+      if (inactivo && !antes.inactivo) await marcarInactivo(id, true)
+      if (vencido && !antes.vencido) await marcarVencido(id, true)
     } catch (err) {
       setCanales((l) => l.map((c) => (c.id === id ? { ...c, ...antes } : c)))
       setError(err.message || 'No se pudo mover el chat.')
@@ -561,7 +570,7 @@ export default function MensajesPage() {
     const visibles = abierto ? g.canales : g.canales.filter((c) => c.id === activo || c.no_leidos > 0 || c.menciones > 0 || escriben[c.id])
     const novedades = g.canales.filter((c) => c.no_leidos > 0).length
     return (
-      <section key={g.id} className={`msj-grupo${g.id === 'inactivos' ? ' is-inactivos' : ''}${g.id === 'pausa' ? ' is-pausa' : ''}${soltandoEn === g.id ? ' is-soltar' : ''}`} aria-label={g.nombre} {...zonaDeSoltar(g.id)}>
+      <section key={g.id} className={`msj-grupo${g.id === 'inactivos' ? ' is-inactivos' : ''}${g.id === 'pausa' ? ' is-pausa' : ''}${g.id === 'vencidos' ? ' is-vencidos' : ''}${soltandoEn === g.id ? ' is-soltar' : ''}`} aria-label={g.nombre} {...zonaDeSoltar(g.id)}>
         <button type="button" className={`msj-grupo__titulo${abierto ? ' is-abierto' : ''}${!abierto && novedades ? ' con-novedades' : ''}`} onClick={() => alternarGrupo(g.id)} aria-expanded={abierto}>
           <svg viewBox="0 0 10 10" aria-hidden="true">
             <path d="M3 2l4 3-4 3z" fill="currentColor" />
@@ -574,6 +583,7 @@ export default function MensajesPage() {
         ))}
         {g.id === 'inactivos' && !g.canales.length && soltandoEn === g.id ? <p className="msj-grupo__vacio">Soltalo acá: queda inactivo y solo va a poder leer su canal</p> : null}
         {g.id === 'pausa' && !g.canales.length && soltandoEn === g.id ? <p className="msj-grupo__vacio">Soltalo acá: solo va a poder leer su canal</p> : null}
+        {g.id === 'vencidos' && !g.canales.length && soltandoEn === g.id ? <p className="msj-grupo__vacio">Soltalo acá: se ordena con los vencidos</p> : null}
       </section>
     )
   }

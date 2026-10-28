@@ -228,6 +228,9 @@ class Canal(db.Entity):
     inactivo = Required(bool, default=False)
     # Cliente en pausa (arrastrado a "Pausa"): solo puede leer su canal; para reanudar habla con Ventas.
     pausa = Required(bool, default=False)
+    # Cliente vencido, arrastrado a "Vencidos": solo ordena la bandeja (el acceso lo decide la fecha de la ficha)
+    # y hace que su chat se siga viendo aunque ya no tenga acceso.
+    vencido = Required(bool, default=False)
     ultimo_mensaje_en = Optional(datetime, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
     mensajes = Set("MensajeCanal")
