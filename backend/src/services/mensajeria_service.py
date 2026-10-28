@@ -623,11 +623,20 @@ class MensajeriaServices:
                     f"SELECT * FROM {tabla} WHERE canal = $cid AND NOT borrado AND id > $desde ORDER BY id LIMIT $tope"
                 ))
             else:
-                hasta = int(antes_de) if antes_de is not None else 2**31 - 1
+                # Por hora y no por id: lo que se importa de Discord tiene ids negativos y puede ser más nuevo
+                # que lo escrito en el classroom (cuando se escribe en los dos lados durante la migración).
                 tope = _PAGINA + 1
-                lista = list(MensajeCanal.select_by_sql(
-                    f"SELECT * FROM {tabla} WHERE canal = $cid AND NOT borrado AND id < $hasta ORDER BY id DESC LIMIT $tope"
-                ))
+                cursor = MensajeCanal.get(id=int(antes_de)) if antes_de is not None else None
+                if cursor is not None:
+                    t, hasta = cursor.creado_en, cursor.id
+                    lista = list(MensajeCanal.select_by_sql(
+                        f"SELECT * FROM {tabla} WHERE canal = $cid AND NOT borrado AND (creado_en, id) < ($t, $hasta) "
+                        "ORDER BY creado_en DESC, id DESC LIMIT $tope"
+                    ))
+                else:
+                    lista = list(MensajeCanal.select_by_sql(
+                        f"SELECT * FROM {tabla} WHERE canal = $cid AND NOT borrado ORDER BY creado_en DESC, id DESC LIMIT $tope"
+                    ))
                 hay_mas = len(lista) > _PAGINA
                 lista = list(reversed(lista[:_PAGINA]))
             autores = _Autores()

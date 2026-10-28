@@ -39,7 +39,9 @@ function quitarMensaje(lista, id) {
 function agregarSinDuplicar(lista, nuevos) {
   const ids = new Set(lista.map((m) => m.id))
   const sumar = nuevos.filter((m) => !ids.has(m.id))
-  return sumar.length ? [...lista, ...sumar].sort((a, b) => (a.id > b.id ? 1 : -1)) : lista
+  // Por hora, como el servidor: el historial de Discord tiene ids negativos y puede ser más nuevo.
+  const orden = (a, b) => (a.creado_en === b.creado_en ? a.id - b.id : a.creado_en < b.creado_en ? -1 : 1)
+  return sumar.length ? [...lista, ...sumar].sort(orden) : lista
 }
 
 export default function Conversacion({ canalId, item, onVolver, oculta = false, perfilDe, canales, onAbrirCanal }) {
