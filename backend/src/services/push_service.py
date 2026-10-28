@@ -190,6 +190,14 @@ def destinatarios(mensaje: dict, canal_id: int) -> list[tuple[list[PushSuscripci
                      if canal_id in canales_de_coach(i) or (responsable and n and n.split(" ")[0].lower() == responsable.split(" ")[0])]
             quien = nombre_cliente if nombre_autor == nombre_cliente else f"{nombre_autor} ({nombre_cliente})"
             sumar(de_admins(suyos), quien, texto)
+    elif canal.tipo == "dm":
+        # Equipo ↔ cliente: le llega al otro (al cliente, a todos los de su cuenta).
+        ids = _participantes(canal)
+        if len(ids) == 2:
+            if del_equipo:
+                sumar([s for s in list(PushSuscripcion.select()) if s.tipo == "cliente" and s.usuario_id == ids[1]], f"{nombre_autor} · ATV", texto)
+            else:
+                sumar(de_admins([ids[0]]), nombre_autor, texto)
     elif canal.tipo == "privado" and not del_equipo:
         # Entre clientes: le llega al otro (a todos los de su cuenta). Al equipo de ATV, nunca.
         otros = [i for i in _participantes(canal) if i != autor.get("id")]

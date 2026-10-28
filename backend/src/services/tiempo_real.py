@@ -32,6 +32,15 @@ def puede_ver(sesion: dict, canal: dict) -> bool:
     if canal["tipo"] == "directo":
         # Un mensaje directo lo ven solo sus dos participantes: ni siquiera un admin.
         return rol in ("admin", "coach") and not sesion.get("miembro_id") and sesion.get("usuario_id") in (canal.get("participantes") or [])
+    if canal["tipo"] == "dm":
+        # Alguien del equipo con un cliente, [admin_id, cliente_id]: lo ven solo ellos dos (del lado del cliente,
+        # también su equipo, que comparte la cuenta). Ni un admin ve el de otro.
+        ids = canal.get("participantes") or []
+        if len(ids) != 2:
+            return False
+        if rol in ("admin", "coach") and not sesion.get("miembro_id"):
+            return sesion.get("usuario_id") == ids[0]
+        return not sin_chat(sesion) and sesion.get("usuario_id") == ids[1]
     if canal["tipo"] == "privado":
         # Entre dos clientes: lo ven solo ellos dos (y sus equipos, que comparten la cuenta). El equipo de ATV no.
         if rol in ("admin", "coach") and not sesion.get("miembro_id"):

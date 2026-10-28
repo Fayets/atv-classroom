@@ -4,7 +4,7 @@ import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchSenas } from '../api/altas'
 import { pedirCartelPausa } from '../components/Pausa'
 import { NotificacionesCartel } from '../components/Notificaciones'
-import { abrirDirecto, abrirPrivado, fetchCanales, fetchDirectorio, fetchEquipoChat, marcarInactivo, marcarPausa, marcarVencido, ordenarCanales } from '../api/mensajes'
+import { abrirDirecto, abrirDm, abrirPrivado, fetchCanales, fetchDirectorio, fetchEquipoChat, marcarInactivo, marcarPausa, marcarVencido, ordenarCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
@@ -65,7 +65,7 @@ function recorte(texto, largo) {
 // con movimiento arriba, quien espera respuesta (el que más espera primero) y después lo más reciente.
 function ordenarBandeja(lista) {
   const anuncios = lista.filter((c) => c.tipo === 'anuncios' || c.tipo === 'grupo')
-  const directos = lista.filter((c) => c.tipo === 'directo').sort((a, b) => comparar(fechaUltimo(b), fechaUltimo(a)))
+  const directos = lista.filter((c) => ['directo', 'privado', 'dm'].includes(c.tipo)).sort((a, b) => comparar(fechaUltimo(b), fechaUltimo(a)))
   const esperando = lista
     .filter((c) => c.tipo === 'cliente' && c.esperando_desde)
     .sort((a, b) => comparar(a.esperando_desde, b.esperando_desde))
@@ -623,7 +623,23 @@ export default function MensajesPage() {
   const personasVisibles = directosAbiertos
     ? personas
     : personas.filter((p) => p.canal && (p.canal.id === activo || p.canal.no_leidos > 0 || escriben[p.canal.id]))
-  const directosNuevos = personas.filter((p) => p.canal && p.canal.no_leidos > 0).length
+  // Privados del equipo con clientes (dm): van en la misma sección, como en Discord.
+  const conClientes = (canales || [])
+    .filter((c) => c.tipo === 'dm' && (!buscar.trim() || sinTildes(c.nombre).includes(sinTildes(buscar.trim()))))
+    .sort((x, y) => (y.ultimo?.creado_en || '').localeCompare(x.ultimo?.creado_en || ''))
+  const conClientesVisibles = directosAbiertos ? conClientes : conClientes.filter((c) => c.id === activo || c.no_leidos > 0 || escriben[c.id])
+  const directosNuevos = personas.filter((p) => p.canal && p.canal.no_leidos > 0).length + conClientes.filter((c) => c.no_leidos > 0).length
+  async function escribirACliente(clienteId) {
+    const ya = conClientes.find((c) => c.con?.id === clienteId) || (canales || []).find((c) => c.tipo === 'dm' && c.con?.id === clienteId)
+    if (ya) return abrir(ya.id)
+    try {
+      const d = await abrirDm(clienteId)
+      cargar()
+      abrir(d.id)
+    } catch (err) {
+      setError(err.message || 'No se pudo abrir el mensaje privado.')
+    }
+  }
   const seccionDirectos =
     isEquipo && personas.length ? (
       <section className="msj-grupo msj-directos" aria-label="Mensajes directos">
@@ -656,15 +672,33 @@ export default function MensajesPage() {
             </button>
           )
         })}
+        {conClientesVisibles.map((c) => {
+          const nuevo = c.no_leidos > 0 && c.id !== activo
+          return (
+            <button
+              key={c.id}
+              type="button"
+              className={`msj-fila msj-fila--persona${c.id === activo ? ' is-activo' : ''}${nuevo ? ' is-nuevo' : ''}`}
+              onClick={() => abrir(c.id)}
+              title={c.ultimo ? `${c.ultimo.autor_nombre}: ${c.ultimo.texto}` : `Escribile a ${c.nombre}`}
+            >
+              {nuevo ? <i className="msj-fila__punto" aria-label="Mensajes sin leer" /> : null}
+              <Avatar persona={{ tipo: 'cliente', nombre: c.nombre, foto_url: c.con?.foto_url }} size={20} />
+              <span className="msj-fila__nombre">{c.nombre}</span>
+              {escriben[c.id] ? <span className="msj-fila__escribe" aria-label={`${c.nombre} está escribiendo`}><i /><i /><i /></span> : null}
+            </button>
+          )
+        })}
       </section>
     ) : null
 
   // Privados entre clientes: cada cliente le escribe a otro. Los ven solo ellos dos.
-  const privados = (canales || []).filter((c) => c.tipo === 'privado' && (!buscar.trim() || sinTildes(c.nombre).includes(sinTildes(buscar.trim()))))
+  // Del lado del cliente también van acá los privados que le abrió alguien del equipo (dm).
+  const privados = (canales || []).filter((c) => (c.tipo === 'privado' || c.tipo === 'dm') && (!buscar.trim() || sinTildes(c.nombre).includes(sinTildes(buscar.trim()))))
   const [eligiendo, setEligiendo] = useState(false)
   async function escribirA(cliente) {
     setEligiendo(false)
-    const ya = privados.find((c) => c.con?.id === cliente.id)
+    const ya = privados.find((c) => c.tipo === 'privado' && c.con?.id === cliente.id)
     if (ya) return abrir(ya.id)
     try {
       const d = await abrirPrivado(cliente.id)
@@ -681,14 +715,22 @@ export default function MensajesPage() {
     if (isEquipo) {
       if (a.tipo === 'equipo') {
         if (a.id === user?.usuario_id) return null
-        return { texto: 'Enviar mensaje', hacer: () => abrirCon(personas.find((p) => p.id === a.id) || { id: a.id, canal: directos.find((c) => c.con?.id === a.id) || null }) }
+        return { acciones: [{ texto: 'Enviar mensaje', hacer: () => abrirCon(personas.find((p) => p.id === a.id) || { id: a.id, canal: directos.find((c) => c.con?.id === a.id) || null }) }] }
       }
       const c = (canales || []).find((x) => x.tipo === 'cliente' && x.cliente?.id === a.id)
       const plan = c?.cliente?.plan ? `Cliente · ${c.cliente.plan}` : null
-      return c ? { texto: 'Abrir su chat', hacer: () => abrir(c.id), detalle: a.miembro ? `Equipo de ${c.cliente.nombre}` : plan } : null
+      return {
+        detalle: a.miembro && c ? `Equipo de ${c.cliente.nombre}` : plan,
+        acciones: [
+          { texto: 'Enviar mensaje', hacer: () => escribirACliente(a.id) },
+          ...(c ? [{ texto: 'Abrir su chat', hacer: () => abrir(c.id), secundaria: true }] : []),
+        ],
+      }
     }
-    if (a.tipo === 'cliente' && a.id !== user?.usuario_id && !user?.pausa) return { texto: 'Enviar mensaje', hacer: () => escribirA({ id: a.id }) }
-    return null
+    if (a.tipo === 'cliente' && a.id !== user?.usuario_id && !user?.pausa) return { acciones: [{ texto: 'Enviar mensaje', hacer: () => escribirA({ id: a.id }) }] }
+    // Al equipo el cliente no le abre privados; si alguien del equipo ya le escribió, lo lleva a ese chat.
+    const dm = a.tipo === 'equipo' ? (canales || []).find((x) => x.tipo === 'dm' && x.con?.id === a.id) : null
+    return dm ? { acciones: [{ texto: 'Enviar mensaje', hacer: () => abrir(dm.id) }] } : null
   }
 
   const seccionPrivados =
@@ -711,7 +753,7 @@ export default function MensajesPage() {
               title={c.ultimo ? `${c.ultimo.autor_nombre}: ${c.ultimo.texto}` : `Escribile a ${c.nombre}`}
             >
               {nuevo ? <i className="msj-fila__punto" aria-label="Mensajes sin leer" /> : null}
-              <Avatar persona={{ tipo: 'cliente', nombre: c.nombre }} size={20} />
+              <Avatar persona={{ tipo: c.con?.tipo === 'equipo' ? 'equipo' : 'cliente', nombre: c.nombre, foto_url: c.con?.foto_url }} size={20} />
               <span className="msj-fila__nombre">{c.nombre}</span>
               {escriben[c.id] ? <span className="msj-fila__escribe" aria-label={`${c.nombre} está escribiendo`}><i /><i /><i /></span> : null}
             </button>

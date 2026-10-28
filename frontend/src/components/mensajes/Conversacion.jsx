@@ -791,7 +791,10 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const esGrupo = canal.tipo === 'grupo'
   // Privado entre clientes: se ve como un directo, pero con otro cliente (y el equipo de ATV no lo ve).
   const entreClientes = canal.tipo === 'privado'
-  const esDirecto = canal.tipo === 'directo' || entreClientes
+  // dm: alguien del equipo con un cliente, solo ellos dos.
+  const conCliente = canal.tipo === 'dm'
+  const esDirecto = canal.tipo === 'directo' || entreClientes || conCliente
+  const tipoDelOtro = entreClientes ? 'cliente' : conCliente ? item?.con?.tipo || (isEquipo ? 'cliente' : 'equipo') : 'equipo'
   // "Visto": hasta dónde leyó el otro lado, sobre mi último mensaje.
   const leidoPorElOtro = isEquipo ? datos.lecturas.cliente : datos.lecturas.equipo
   const miUltimo = [...mensajes].reverse().find((m) => claveAutor(m.autor) === yo)
@@ -826,7 +829,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
           </button>
         ) : null}
         {esDirecto ? (
-          <Avatar persona={{ tipo: entreClientes ? 'cliente' : 'equipo', nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={30} />
+          <Avatar persona={{ tipo: tipoDelOtro, nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={30} />
         ) : (
           <span className="msj-hash" aria-hidden="true">
             #
@@ -835,7 +838,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
         <div className="msj-conv__titulo">
           <b>{canal.nombre}</b>
           <span>
-            {entreClientes
+            {entreClientes || conCliente
               ? 'Mensaje privado · solo lo ven ustedes dos'
               : esDirecto
               ? 'Mensaje directo · solo lo ven ustedes dos'
@@ -860,13 +863,17 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
         ) : (
           <div className="msj-inicio">
             {esDirecto ? (
-              <Avatar persona={{ tipo: entreClientes ? 'cliente' : 'equipo', nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={56} />
+              <Avatar persona={{ tipo: tipoDelOtro, nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={56} />
             ) : (
               <span className="msj-inicio__hash">#</span>
             )}
             <b>{esDirecto ? `Este es el comienzo de tu conversación con ${canal.nombre}` : `Este es el comienzo de #${canal.nombre}`}</b>
             <span>
-              {entreClientes
+              {conCliente
+                ? isEquipo
+                  ? 'Solo lo ven ustedes dos (y el equipo del cliente, que comparte su cuenta). El resto del equipo de ATV no.'
+                  : 'Solo lo ven ustedes dos (y tu equipo). El resto del equipo de ATV no.'
+                : entreClientes
                 ? 'Solo lo ven ustedes dos (y sus equipos). El equipo de ATV no lo ve.'
                 : esDirecto
                 ? 'Solo lo ven ustedes dos: ni el resto del equipo ni los clientes.'
@@ -1316,17 +1323,19 @@ function TarjetaPerfil({ autor, caja, accion, onCerrar }) {
       <div className="msj-perfil__cuerpo">
         <b>{autor.nombre}</b>
         <span>{quien}</span>
-        {accion?.texto ? (
+        {(accion?.acciones || []).map((a) => (
           <button
+            key={a.texto}
             type="button"
+            className={a.secundaria ? 'is-secundaria' : undefined}
             onClick={() => {
               onCerrar()
-              accion.hacer()
+              a.hacer()
             }}
           >
-            {accion.texto}
+            {a.texto}
           </button>
-        ) : null}
+        ))}
       </div>
     </div>,
     document.body,

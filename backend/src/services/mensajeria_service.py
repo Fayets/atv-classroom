@@ -87,7 +87,7 @@ def _participantes(canal: Canal) -> list[int]:
 def _info(canal: Canal) -> dict:
     return {
         "id": canal.id, "tipo": canal.tipo, "cliente_id": canal.cliente_id, "roles": _roles_de(canal), "creado_por": canal.creado_por,
-        "participantes": _participantes(canal) if canal.tipo in ("directo", "privado") else None,
+        "participantes": _participantes(canal) if canal.tipo in ("directo", "privado", "dm") else None,
     }
 
 
@@ -449,6 +449,15 @@ def _canales_visibles(sesion: dict, equipo: bool, del_equipo: dict[int, dict]) -
             otro = del_equipo.get(otro_id)
             if otro is None:
                 continue  # la otra persona ya no está en el equipo
+        elif canal.tipo == "dm":
+            # Alguien del equipo con un cliente: [admin_id, cliente_id]. Cada uno ve al otro.
+            ids = _participantes(canal)
+            if len(ids) != 2:
+                continue
+            if equipo:
+                otro = {"id": ids[1], "nombre": _nombre_cuenta(ids[1], clientes), "foto_url": foto_de("cliente", ids[1]), "tipo": "cliente"}
+            else:
+                otro = {**_Autores().de("admin", ids[0]), "tipo": "equipo"}
         elif canal.tipo == "privado":
             # Entre clientes: al cliente se le muestra el otro; al equipo, los dos.
             ids = _participantes(canal)
@@ -539,7 +548,7 @@ class MensajeriaServices:
         resto.sort(key=lambda c: c["nombre"].lower())
         resto.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
         # Mensajes directos: el último con movimiento arriba, como en Discord.
-        directos = [c for c in items if c["tipo"] in ("directo", "privado")]
+        directos = [c for c in items if c["tipo"] in ("directo", "privado", "dm")]
         directos.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
         return anuncios + directos + esperando + resto
 
@@ -606,6 +615,8 @@ class MensajeriaServices:
             from src.services.permisos_service import permite
 
             return sesion["usuario_id"] in _participantes(canal) and permite(sesion, "chat")
+        if canal.tipo == "dm":
+            return _participantes(canal)[1:] == [sesion["usuario_id"]]
         if canal.tipo != "cliente" or canal.cliente_id != sesion["usuario_id"]:
             return False
         from src.services.permisos_service import permite
@@ -676,7 +687,7 @@ class MensajeriaServices:
                     abierta.respondida_en = m.creado_en
             nuevas = []
             # En un privado entre clientes no se etiqueta al equipo: no tiene que enterarse de esa charla.
-            etiquetados = set() if canal.tipo == "privado" else _detectar_menciones(texto, menciones)
+            etiquetados = set() if canal.tipo in ("privado", "dm") else _detectar_menciones(texto, menciones)
             if es_equipo(sesion) and _EVERYONE.search(texto):
                 etiquetados |= _equipo_que_ve(canal, sesion["usuario_id"])
             for admin_id in etiquetados:
@@ -798,6 +809,23 @@ class MensajeriaServices:
                 canal = Canal(tipo="directo", nombre=clave, participantes_json=json.dumps([a, b]), creado_por=yo)
                 canal.flush()
             return {"id": canal.id, "tipo": "directo", "con": admin_id}
+
+    def abrir_dm(self, sesion: dict, cliente_id: int) -> dict:
+        """Mensaje privado de alguien del equipo con un cliente (se crea la primera vez). Lo ven solo ellos dos:
+        ni el resto del equipo ni el canal del cliente."""
+        if not es_equipo(sesion) or sesion.get("miembro_id"):
+            raise HTTPException(status_code=403, detail="El mensaje privado con un cliente lo abre el equipo.")
+        yo = sesion["usuario_id"]
+        with db_session:
+            cliente = ClienteExterno.get(id=cliente_id)
+            if cliente is None:
+                raise HTTPException(status_code=404, detail="No encontramos a ese cliente.")
+            clave = f"dm:{yo}:{cliente_id}"
+            canal = Canal.get(tipo="dm", nombre=clave)
+            if canal is None:
+                canal = Canal(tipo="dm", nombre=clave, participantes_json=json.dumps([yo, cliente_id]), creado_por=yo)
+                canal.flush()
+            return {"id": canal.id, "tipo": "dm", "con": cliente_id}
 
     def abrir_privado(self, sesion: dict, cliente_id: int) -> dict:
         """El chat privado con otro cliente (se crea la primera vez). Lo ven solo ellos dos: el equipo de ATV no."""

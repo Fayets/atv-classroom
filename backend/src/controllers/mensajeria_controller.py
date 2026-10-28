@@ -92,6 +92,12 @@ class Privado(BaseModel):
     cliente_id: int
 
 
+@router.post("/dm")
+def abrir_dm(body: Privado, sesion: dict = Depends(sesion_mensajes)):
+    """Mensaje privado de alguien del equipo con un cliente (se crea la primera vez). Solo lo ven ellos dos."""
+    return service.abrir_dm(sesion, body.cliente_id)
+
+
 @router.post("/privados")
 def abrir_privado(body: Privado, sesion: dict = Depends(sesion_mensajes)):
     """El chat privado con otro cliente (se crea la primera vez). Solo lo ven ellos dos."""
@@ -301,7 +307,7 @@ async def leido(canal_id: int, body: Leido, sesion: dict = Depends(sesion_mensaj
     evento, canal = await run_in_threadpool(service.marcar_leido, sesion, canal_id, body.ultimo_id)
     # El "visto" solo existe en los chats de a dos; en un grupo, avisar cada lectura a todos
     # los que lo ven era una tormenta de eventos (cada uno recargaba su bandeja).
-    if canal["tipo"] in ("cliente", "directo"):
+    if canal["tipo"] in ("cliente", "directo", "dm"):
         await hub.emitir({"tipo": "leido", **evento}, canal)
     return evento
 

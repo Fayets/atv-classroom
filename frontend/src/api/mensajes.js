@@ -10,6 +10,11 @@ export function abrirPrivado(clienteId) {
   return request('/api/mensajes/privados', { method: 'POST', body: JSON.stringify({ cliente_id: clienteId }) })
 }
 
+// Privado de alguien del equipo con un cliente: lo ven solo ellos dos (ni el resto del equipo).
+export function abrirDm(clienteId) {
+  return request('/api/mensajes/dm', { method: 'POST', body: JSON.stringify({ cliente_id: clienteId }) })
+}
+
 export function fetchDirectorio() {
   return request('/api/mensajes/directorio')
 }
