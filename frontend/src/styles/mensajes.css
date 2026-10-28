@@ -111,6 +111,13 @@
 .msj-m:not(.is-agrupado) { margin-top: 10px; }
 .msj-m:hover { background: rgba(0, 0, 0, 0.025); }
 .msj-m.is-enviando { opacity: 0.5; }
+/* En la PC cada mensaje nuevo (no los seguidos de la misma persona) arranca con una línea y aire: los
+   textos largos, como los updates, no se pegan. En el celu ya se lee bien y queda como estaba. */
+@media (min-width: 900px) and (hover: hover) {
+  .msj-m:not(.is-agrupado) { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--m-linea); }
+  .msj-dia + .msj-m { border-top: 0; padding-top: 4px; }
+  .msj-m:hover { background: rgba(0, 0, 0, 0.035); }
+}
 .msj-m__fila { display: flex; gap: 14px; }
 .msj-m__cuerpo { flex: 1; min-width: 0; }
 .msj-m__head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
