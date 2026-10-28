@@ -51,8 +51,15 @@ export function iniciales(nombre) {
   return ((partes[0]?.[0] || '') + (partes[1]?.[0] || '')).toUpperCase() || '?'
 }
 
+// Quién escribió: el equipo del cliente (setter, socio) entra con la clave del titular, así que cada uno se
+// distingue por su id de miembro y no por la cuenta.
 export function claveAutor(autor) {
-  return `${autor.tipo}:${autor.id}`
+  return autor.miembro?.id ? `miembro:${autor.miembro.id}` : `${autor.tipo}:${autor.id}`
+}
+
+// Para agrupar mensajes seguidos: además, en el historial de Discord una misma cuenta tiene varios nombres.
+export function claveGrupo(autor) {
+  return autor.tipo === 'cliente' && !autor.miembro?.id ? `${claveAutor(autor)}:${autor.nombre || ''}` : claveAutor(autor)
 }
 
 /** 25 → "25 min"; 130 → "2 h 10 min"; 3000 → "2 d 2 h". */

@@ -4,7 +4,7 @@ import { fetchVoz } from '../../api/cuenta'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
 import { pedirCartelPausa } from '../Pausa'
-import { ACEPTA_ADJUNTOS, ES_EVERYONE, claveAutor, etiquetaDia, hora, mismoDia, nombreRol, normal, peso, primerNombre } from '../../utils/mensajes'
+import { ACEPTA_ADJUNTOS, ES_EVERYONE, claveAutor, claveGrupo, etiquetaDia, hora, mismoDia, nombreRol, normal, peso, primerNombre } from '../../utils/mensajes'
 import Adjuntos from './Adjuntos'
 import Alerta from './Alerta'
 import Avatar from './Avatar'
@@ -76,7 +76,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const traerAnteriores = useRef(null)
   const leidoEnviado = useRef(0)
   const ultimoAvisoEscribiendo = useRef(0)
-  const yo = isEquipo ? `equipo:${user?.usuario_id}` : `cliente:${user?.usuario_id}`
+  // El equipo del cliente comparte la cuenta del titular: cada uno es "yo" por su id de miembro.
+  const yo = isEquipo ? `equipo:${user?.usuario_id}` : user?.miembro ? `miembro:${user.miembro.id}` : `cliente:${user?.usuario_id}`
   // Quién reacciona: cada persona del equipo del cliente por su lado (comparten cuenta, no reacción).
   const yoReaccion = isEquipo ? yo : user?.miembro ? `miembro:${user.miembro.id}` : yo
   const [eligiendo, setEligiendo] = useState(null) // id del mensaje con el selector de emojis abierto
@@ -871,7 +872,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
             previo &&
             !nuevoDia &&
             !m.respuesta_a &&
-            claveAutor(previo.autor) === claveAutor(m.autor) &&
+            claveGrupo(previo.autor) === claveGrupo(m.autor) &&
             new Date(m.creado_en) - new Date(previo.creado_en) < AGRUPAR_MS
           const mio = claveAutor(m.autor) === yo
           const real = typeof m.id === 'number'
