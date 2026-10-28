@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { borrarMensaje, editarMensaje, reaccionar, enviarMensaje, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaEnviada, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto } from '../../api/mensajes'
 import { fetchVoz } from '../../api/cuenta'
@@ -22,7 +23,9 @@ let temporal = 0
 
 // Las reacciones de un toque, como las frecuentes de Discord.
 const EMOJIS = ['👍', '❤️', '🔥', '🙌', '👏', '😂', '🎉', '💪', '👀', '🙏', '✅', '🚀']
-const PRESION_MS = 450 // en el celular, mantener apretado un mensaje abre las reacciones
+const PRESION_MS = 450 // en el celular, mantener apretado un mensaje abre sus opciones; las reacciones van por su botón
+// Celu/tablet: ahí mantener apretado es nuestro menú, no la selección de texto del sistema.
+const TACTIL = typeof window !== 'undefined' && window.matchMedia?.('(hover: none) and (pointer: coarse)').matches
 
 // Etiqueta a todos los que ven el canal (solo lo puede usar el equipo).
 const EVERYONE = { id: 0, nombre: 'everyone', area: 'Etiqueta a todos en este canal' }
@@ -81,11 +84,13 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   // Quién reacciona: cada persona del equipo del cliente por su lado (comparten cuenta, no reacción).
   const yoReaccion = isEquipo ? yo : user?.miembro ? `miembro:${user.miembro.id}` : yo
   const [eligiendo, setEligiendo] = useState(null) // id del mensaje con el selector de emojis abierto
+  const [opciones, setOpciones] = useState(null) // celu: mensaje que se mantuvo apretado (hoja de opciones)
   const presion = useRef(null)
+  const presionHecha = useRef(false)
   useEffect(() => {
     if (eligiendo == null) return undefined
     const cerrar = (e) => {
-      if (!e.target.closest?.('.msj-reac-elegir, .msj-reac-abrir')) setEligiendo(null)
+      if (!e.target.closest?.('.msj-reac-elegir, .msj-reac-abrir, .msj-m__acciones')) setEligiendo(null)
     }
     document.addEventListener('pointerdown', cerrar)
     return () => document.removeEventListener('pointerdown', cerrar)
@@ -742,10 +747,16 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     clearTimeout(presion.current)
     presion.current = setTimeout(() => {
       navigator.vibrate?.(10)
-      setEligiendo(m.id)
+      presionHecha.current = true
+      setOpciones(m)
     }, PRESION_MS)
   }
-  const soltarPresion = () => clearTimeout(presion.current)
+  const soltarPresion = (e) => {
+    clearTimeout(presion.current)
+    // Al soltar después de abrir la hoja, el toque no tiene que caer en un botón de la hoja.
+    if (presionHecha.current && e?.type === 'touchend') e.preventDefault()
+    presionHecha.current = false
+  }
 
   async function borrar(m) {
     setABorrar(null)
@@ -891,6 +902,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 onTouchMove={soltarPresion}
                 onTouchEnd={soltarPresion}
                 onTouchCancel={soltarPresion}
+                onContextMenu={TACTIL ? (e) => e.preventDefault() : undefined}
                 className={`msj-m${eligiendo === m.id ? ' is-eligiendo' : ''}${agrupado ? ' is-agrupado' : ''}${par ? ' is-par' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${
                   !mio && m.texto && ((miPrimerNombre && normal(m.texto).includes(`@${normal(miPrimerNombre)}`)) || (m.autor?.tipo === 'equipo' && ES_EVERYONE.test(m.texto))) ? ' is-mencion' : ''
                 }`}
@@ -975,6 +987,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                         <button
                           type="button"
                           onClick={() => {
+                            setEligiendo(null)
                             setRespondiendo(m)
                             caja.current?.focus()
                           }}
@@ -983,12 +996,24 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                         </button>
                       ) : null}
                       {mio && m.texto && datos.puede_escribir ? (
-                        <button type="button" onClick={() => setEditando(m.id)}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEligiendo(null)
+                            setEditando(m.id)
+                          }}
+                        >
                           Editar
                         </button>
                       ) : null}
                       {(mio || isAdmin) && datos.puede_escribir ? (
-                        <button type="button" onClick={() => setABorrar(m)}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEligiendo(null)
+                            setABorrar(m)
+                          }}
+                        >
                           Eliminar
                         </button>
                       ) : null}
@@ -1219,7 +1244,48 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       ) : (
         <p className="msj-solo-lectura">En este canal publica solo el equipo de ATV.</p>
       )}
+      {opciones ? (
+        <HojaOpciones
+          m={opciones}
+          mio={claveAutor(opciones.autor) === yo}
+          puedeEscribir={datos.puede_escribir}
+          puedeBorrar={(claveAutor(opciones.autor) === yo || isAdmin) && datos.puede_escribir}
+          onCerrar={() => setOpciones(null)}
+          onReaccionar={() => setEligiendo(opciones.id)}
+          onResponder={() => {
+            setRespondiendo(opciones)
+            caja.current?.focus()
+          }}
+          onEditar={() => setEditando(opciones.id)}
+          onBorrar={() => setABorrar(opciones)}
+        />
+      ) : null}
     </section>
+  )
+}
+
+// Celu: lo que abre mantener apretado un mensaje, como una hoja que sube desde abajo.
+function HojaOpciones({ m, mio, puedeEscribir, puedeBorrar, onCerrar, onReaccionar, onResponder, onEditar, onBorrar }) {
+  const abierta = useRef(Date.now())
+  const hacer = (accion) => () => {
+    if (Date.now() - abierta.current < 350) return
+    onCerrar()
+    accion()
+  }
+  const copiar = () => navigator.clipboard?.writeText(conEmojis(m.texto)).catch(() => {})
+  return createPortal(
+    <div className="msj-hoja-fondo" onClick={() => Date.now() - abierta.current > 350 && onCerrar()}>
+      <div className="msj-hoja" role="menu" aria-label="Opciones del mensaje" onClick={(e) => e.stopPropagation()}>
+        {m.texto ? <p className="msj-hoja__cita">{conEmojis(m.texto)}</p> : null}
+        <button type="button" role="menuitem" onClick={hacer(onReaccionar)}>Reaccionar</button>
+        {puedeEscribir ? <button type="button" role="menuitem" onClick={hacer(onResponder)}>Responder</button> : null}
+        {m.texto ? <button type="button" role="menuitem" onClick={hacer(copiar)}>Copiar texto</button> : null}
+        {mio && m.texto && puedeEscribir ? <button type="button" role="menuitem" onClick={hacer(onEditar)}>Editar</button> : null}
+        {puedeBorrar ? <button type="button" role="menuitem" className="is-peligro" onClick={hacer(onBorrar)}>Eliminar</button> : null}
+        <button type="button" className="msj-hoja__cancelar" onClick={onCerrar}>Cancelar</button>
+      </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -1245,7 +1311,8 @@ function Edicion({ texto, onGuardar, onCancelar }) {
         value={valor}
         onChange={(e) => setValor(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
+          // En el celu Enter baja de línea (los updates tienen varias): se guarda con el botón.
+          if (e.key === 'Enter' && !e.shiftKey && !TACTIL) {
             e.preventDefault()
             onGuardar(valor)
           } else if (e.key === 'Escape') onCancelar()
@@ -1253,7 +1320,13 @@ function Edicion({ texto, onGuardar, onCancelar }) {
         maxLength={4000}
       />
       <span>
-        Enter guarda · Esc cancela{' '}
+        {TACTIL ? (
+          <button type="button" onClick={onCancelar}>
+            Cancelar
+          </button>
+        ) : (
+          'Enter guarda · Esc cancela '
+        )}
         <button type="button" onClick={() => onGuardar(valor)}>
           Guardar
         </button>
