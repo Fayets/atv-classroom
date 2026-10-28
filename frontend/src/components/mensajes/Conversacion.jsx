@@ -439,6 +439,26 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     }
   }
 
+  // Tocar la cita lleva al mensaje original: si es viejo y no está cargado, va trayendo los anteriores
+  // hasta encontrarlo (con tope), lo centra y lo resalta un momento.
+  const [resaltado, setResaltado] = useState(null)
+  const hayMasRef = useRef(false)
+  hayMasRef.current = Boolean(datos?.hay_mas)
+  async function irAlMensaje(id) {
+    for (let intento = 0; intento < 15; intento++) {
+      const el = lista.current?.querySelector(`[data-mid="${id}"]`)
+      if (el) {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        setResaltado(id)
+        setTimeout(() => setResaltado((r) => (r === id ? null : r)), 2000)
+        return
+      }
+      if (!hayMasRef.current) return
+      await traerAnteriores.current?.()
+      await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)))
+    }
+  }
+
   // Siempre la última versión de la función, para que el observador no haya que rearmarlo
   // en cada mensaje nuevo (y no quede llamando a una versión vieja).
   useEffect(() => {
@@ -925,17 +945,25 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 </div>
               ) : null}
               <article
+                data-mid={m.id}
                 onTouchStart={real && !m.borrado ? () => empezarPresion(m) : undefined}
                 onTouchMove={soltarPresion}
                 onTouchEnd={soltarPresion}
                 onTouchCancel={soltarPresion}
                 onContextMenu={TACTIL ? (e) => e.preventDefault() : undefined}
-                className={`msj-m${eligiendo === m.id ? ' is-eligiendo' : ''}${agrupado ? ' is-agrupado' : ''}${par ? ' is-par' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${
+                className={`msj-m${resaltado === m.id ? ' is-resaltado' : ''}${eligiendo === m.id ? ' is-eligiendo' : ''}${agrupado ? ' is-agrupado' : ''}${par ? ' is-par' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${
                   !mio && m.texto && (meNombra(m) || (m.autor?.tipo === 'equipo' && ES_EVERYONE.test(m.texto))) ? ' is-mencion' : ''
                 }`}
               >
                 {m.respuesta_a ? (
-                  <div className="msj-m__cita">
+                  <div
+                    className="msj-m__cita is-link"
+                    role="button"
+                    tabIndex={0}
+                    title="Ir al mensaje"
+                    onClick={() => irAlMensaje(m.respuesta_a.id)}
+                    onKeyDown={(e) => e.key === 'Enter' && irAlMensaje(m.respuesta_a.id)}
+                  >
                     <span className="msj-m__codo" aria-hidden="true" />
                     <b>@{m.respuesta_a.autor_nombre}</b>
                     <span className={m.respuesta_a.texto == null ? 'is-eliminado' : ''}>{m.respuesta_a.texto ?? 'Mensaje original eliminado'}</span>
