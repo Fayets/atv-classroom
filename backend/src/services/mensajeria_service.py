@@ -8,6 +8,7 @@ import json
 import re
 import time
 import unicodedata
+from types import SimpleNamespace
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
 
@@ -257,7 +258,7 @@ def _autor(m, autores: _Autores) -> dict:
     return base
 
 
-def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[dict]] | None = None, reacciones: dict[int, list[dict]] | None = None) -> dict:
+def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[dict]] | None = None, reacciones: dict[int, list[dict]] | None = None, menciones: dict[int, list[int]] | None = None) -> dict:
     respuesta = None
     if m.respuesta_a:
         original = MensajeCanal.get(id=m.respuesta_a)
@@ -279,6 +280,7 @@ def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[d
         "reacciones": [] if m.borrado else (reacciones if reacciones is not None else _reacciones_de([m.id], autores)).get(m.id, []),
         "creado_en": _iso(m.creado_en),
         "origen": "discord" if m.id < 0 else None,
+        "menciones": (menciones if menciones is not None else _menciones_de([m.id])).get(m.id, []),
     }
 
 
@@ -389,9 +391,12 @@ def equipo_para_mencionar() -> list[dict]:
     return equipo
 
 
-def _detectar_menciones(texto: str, ids_enviados: list[int] | None) -> set[int]:
+def _detectar_menciones(texto: str, ids_enviados: list[int] | None, ambiguos: set[str] | None = None) -> set[int]:
     """Los ids que marcó el autocompletado (si siguen escritos) más cualquier @Nombre que coincida
-    con un solo miembro activo del equipo, por nombre completo o por primer nombre."""
+    con un solo miembro activo del equipo, por nombre completo o por primer nombre.
+    ambiguos: primeros nombres de gente del lado del cliente en ese chat ("@Franco" puede ser el cliente
+    Franco Ascurra): esos solo cuentan si se eligieron del autocompletado."""
+    ambiguos = ambiguos or set()
     equipo = equipo_para_mencionar()
     texto_n = _normal(texto)
     ids = set()
@@ -402,13 +407,45 @@ def _detectar_menciones(texto: str, ids_enviados: list[int] | None) -> set[int]:
     por_primer_nombre = defaultdict(list)
     for m in equipo:
         por_primer_nombre[_normal(m["nombre"].split()[0])].append(m["id"])
-        if f"@{_normal(m['nombre'])}" in texto_n:
+        if f"@{_normal(m['nombre'])}" in texto_n and len(m["nombre"].split()) > 1:
             ids.add(m["id"])
     for palabra in re.findall(r"@([\w]+)", texto_n):
+        if palabra in ambiguos:
+            continue
         candidatos = por_primer_nombre.get(palabra, [])
         if len(candidatos) == 1:
             ids.add(candidatos[0])
     return ids
+
+
+def _nombres_del_cliente(canal: Canal) -> set[str]:
+    """Primeros nombres de quienes escriben del lado del cliente en este chat: el titular (y el nombre que se
+    puso) y su equipo; en un canal de la comunidad, los clientes que escribieron ahí."""
+    from src.models import MiembroCliente, NombreTitular
+
+    nombres = []
+    if canal.tipo == "cliente" and canal.cliente_id:
+        c = ClienteExterno.get(id=canal.cliente_id)
+        t = NombreTitular.get(cliente_id=canal.cliente_id)
+        nombres += [c.nombre if c else None, t.nombre if t else None]
+        nombres += [m.nombre for m in list(MiembroCliente.select()) if m.cliente_id == canal.cliente_id]
+    elif canal.tipo == "grupo":
+        ids = db.select(
+            f'SELECT DISTINCT autor_id FROM "{DB_SCHEMA}"."mensajes_canal" WHERE canal = $c AND autor_tipo = \'cliente\'', {"c": canal.id}
+        )
+        nombres += [(ClienteExterno.get(id=i) or SimpleNamespace(nombre=None)).nombre for i in ids]
+    return {_normal(n.split()[0]) for n in nombres if n and n.strip()}
+
+
+def _menciones_de(mensaje_ids: list[int]) -> dict[int, list[int]]:
+    """A quién del equipo etiqueta cada mensaje (lo que guardó el servidor, no la coincidencia de nombre)."""
+    if not mensaje_ids:
+        return {}
+    ids = ",".join(str(int(i)) for i in mensaje_ids)
+    salida: dict[int, list[int]] = defaultdict(list)
+    for mid, admin_id in db.select(f'SELECT mensaje_id, admin_id FROM "{DB_SCHEMA}"."menciones" WHERE mensaje_id IN ({ids})'):
+        salida[mid].append(admin_id)
+    return salida
 
 
 def _mencion_dict(men: Mencion, autores: "_Autores", ahora: datetime) -> dict | None:
@@ -596,9 +633,10 @@ class MensajeriaServices:
             autores = _Autores()
             adjuntos = _adjuntos_de([m.id for m in lista])
             reacciones = _reacciones_de([m.id for m in lista], autores)
+            menciones = _menciones_de([m.id for m in lista])
             salida = []
             for m in lista:
-                salida.append(_mensaje_dict(m, autores, adjuntos, reacciones))
+                salida.append(_mensaje_dict(m, autores, adjuntos, reacciones, menciones))
             return {
                 "canal": {"id": canal.id, "tipo": canal.tipo, "nombre": canal.nombre, "descripcion": canal.descripcion},
                 "mensajes": salida,
@@ -706,7 +744,7 @@ class MensajeriaServices:
                     registrar_descartada(yo[1], canal.id, m)
             nuevas = []
             # En un privado entre clientes no se etiqueta al equipo: no tiene que enterarse de esa charla.
-            etiquetados = set() if canal.tipo in ("privado", "dm") else _detectar_menciones(texto, menciones)
+            etiquetados = set() if canal.tipo in ("privado", "dm") else _detectar_menciones(texto, menciones, _nombres_del_cliente(canal))
             if es_equipo(sesion) and _EVERYONE.search(texto):
                 etiquetados |= _equipo_que_ve(canal, sesion["usuario_id"])
             for admin_id in etiquetados:

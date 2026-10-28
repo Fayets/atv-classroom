@@ -801,6 +801,10 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const nombresEscribiendo = Object.keys(escriben).filter((n) => n !== user?.nombre)
   const nombresEquipo = new Set([...equipo, ...participantes].map((m) => normal(primerNombre(m.nombre))))
   const miPrimerNombre = primerNombre(user?.nombre) // al cliente también se le resalta cuando lo etiquetan
+  // Al equipo, solo lo que el servidor guardó como etiqueta suya: "@Franco" puede ser el cliente Franco Ascurra.
+  // Al cliente (no recibe etiquetas guardadas), por su nombre.
+  const meNombra = (m) =>
+    isEquipo ? (m.menciones || []).includes(user?.usuario_id) : Boolean(miPrimerNombre && normal(m.texto || '').includes(`@${normal(miPrimerNombre)}`))
 
   return (
     <section
@@ -918,7 +922,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 onTouchCancel={soltarPresion}
                 onContextMenu={TACTIL ? (e) => e.preventDefault() : undefined}
                 className={`msj-m${eligiendo === m.id ? ' is-eligiendo' : ''}${agrupado ? ' is-agrupado' : ''}${par ? ' is-par' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${
-                  !mio && m.texto && ((miPrimerNombre && normal(m.texto).includes(`@${normal(miPrimerNombre)}`)) || (m.autor?.tipo === 'equipo' && ES_EVERYONE.test(m.texto))) ? ' is-mencion' : ''
+                  !mio && m.texto && (meNombra(m) || (m.autor?.tipo === 'equipo' && ES_EVERYONE.test(m.texto))) ? ' is-mencion' : ''
                 }`}
               >
                 {m.respuesta_a ? (
@@ -953,7 +957,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                       <Edicion texto={m.texto} onGuardar={(t) => guardarEdicion(m, t)} onCancelar={() => setEditando(null)} />
                     ) : (
                       <>
-                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} yo={miPrimerNombre} canales={canales} onAbrirCanal={onAbrirCanal} secciones={esUpdates} /> : null}
+                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} yo={meNombra(m) ? miPrimerNombre : null} canales={canales} onAbrirCanal={onAbrirCanal} secciones={esUpdates} /> : null}
                         <Enlaces texto={m.texto} />
                         <Adjuntos adjuntos={m.adjuntos} alCargar={bajarSiEstabaAbajo} />
                       </>
