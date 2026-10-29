@@ -116,6 +116,22 @@ function IconoLapiz() {
 // alCrearRoadmap: la primera acción, fija, abre el formulario del roadmap (empieza por el Fathom).
 const sinTildes = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
+// Las clases se piden una vez por sesión, apenas se abre un chat: así el buscador abre al instante.
+let clasesGuardadas = null
+let pidiendoClases = null
+function cargarClases() {
+  if (clasesGuardadas) return Promise.resolve(clasesGuardadas)
+  pidiendoClases ??= fetchClasesParaEnviar()
+    .then((c) => {
+      clasesGuardadas = c
+      return c
+    })
+    .finally(() => {
+      pidiendoClases = null
+    })
+  return pidiendoClases
+}
+
 // Elegir una clase para mandársela al cliente, como en el classroom: primero los módulos con su portada; tocás uno y
 // salen sus clases. Si escribís, busca entre todas las clases por título o módulo.
 function Portada({ src, titulo, chica = false }) {
@@ -129,7 +145,7 @@ function Portada({ src, titulo, chica = false }) {
 }
 
 function ElegirClase({ onCerrar, onElegir }) {
-  const [clases, setClases] = useState(null)
+  const [clases, setClases] = useState(clasesGuardadas)
   const [q, setQ] = useState('')
   const [modulo, setModulo] = useState(null)
   const [error, setError] = useState('')
@@ -138,7 +154,7 @@ function ElegirClase({ onCerrar, onElegir }) {
   cerrar.current = onCerrar
   // Una sola vez al abrir (el panel se redibuja seguido y no hay que volver a pedir las clases).
   useEffect(() => {
-    fetchClasesParaEnviar()
+    cargarClases()
       .then(setClases)
       .catch((e) => setError(e.message || 'No se pudieron traer las clases.'))
     campo.current?.focus()
@@ -239,6 +255,10 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
     fetchAcciones()
       .then(setDatos)
       .catch(() => setDatos({ acciones: [], sugeridas: [] }))
+  }, [])
+
+  useEffect(() => {
+    cargarClases().catch(() => null)
   }, [])
 
   // Cambiar de chat cancela lo que estaba por salir: nunca se manda al cliente equivocado.
@@ -361,7 +381,9 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
           onCerrar={() => setEligiendoClase(false)}
           onElegir={(c) => {
             setEligiendoClase(false)
-            disparar('clase', { nombre: c.titulo, texto: `{nombre}, te dejo esta clase: ${c.titulo}\n${c.url}` })
+            // Sin espera para deshacer: la clase sale en el acto.
+            setError('')
+            mandar({ clave: 'clase', canalId, texto: conNombre(`{nombre}, te dejo esta clase: ${c.titulo}\n${c.url}`, cliente) })
           }}
         />
       ) : null}

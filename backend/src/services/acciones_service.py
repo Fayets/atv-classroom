@@ -6,6 +6,7 @@ El texto puede llevar {nombre}: al mandarlo se cambia por el nombre del cliente.
 """
 
 import re
+import time
 from collections import Counter
 
 from fastapi import HTTPException
@@ -71,6 +72,9 @@ def _de(admin_id: int) -> list[AccionRapida]:
     return list(AccionRapida.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."acciones_rapidas" WHERE admin_id = $admin_id ORDER BY orden, id'))
 
 
+_PORTADAS = {"en": 0.0, "modulos": {}}
+
+
 class AccionesServices:
     def listar(self, sesion: dict) -> dict:
         yo = _yo(sesion)
@@ -120,12 +124,15 @@ class AccionesServices:
 
         if not es_equipo(sesion):
             raise HTTPException(status_code=403, detail="Solo para el equipo.")
-        # La portada y el orden de cada módulo, para elegir primero el módulo como en el classroom.
-        with db_session:
-            modulos = {
-                titulo: {"portada": portada, "orden": orden}
-                for titulo, portada, orden in db.select(f'SELECT titulo, cover_url, orden FROM "{DB_SCHEMA}"."programa"')
-            }
+        # La portada y el orden de cada módulo, para elegir primero el módulo como en el classroom (10 min en memoria).
+        if time.time() - _PORTADAS["en"] > 600:
+            with db_session:
+                _PORTADAS["modulos"] = {
+                    titulo: {"portada": portada, "orden": orden}
+                    for titulo, portada, orden in db.select(f'SELECT titulo, cover_url, orden FROM "{DB_SCHEMA}"."programa"')
+                }
+            _PORTADAS["en"] = time.time()
+        modulos = _PORTADAS["modulos"]
         return [
             {
                 "id": c["id"], "titulo": c["titulo"], "modulo": c["modulo"], "url": c["url"], "fuente": c["fuente"],
