@@ -16,6 +16,10 @@ export function abrirDm(clienteId) {
 }
 
 // Clientes de la comunidad por nombre (desde 3 letras, hasta 5): nunca la lista entera.
+export function vistaPreviaFathom(url) {
+  return request(`/api/mensajes/vista-previa?url=${encodeURIComponent(url)}`)
+}
+
 export function buscarClientes(q) {
   return request(`/api/mensajes/buscar-clientes?q=${encodeURIComponent(q)}`)
 }

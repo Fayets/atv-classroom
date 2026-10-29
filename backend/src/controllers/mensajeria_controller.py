@@ -20,6 +20,7 @@ from src.services.mensajeria_service import (
     habilitada_para,
 )
 from src.services import push_service
+from src.services.vista_previa_service import VistaPreviaServices
 from src.services.tiempo_real import hub
 from src.storage import adjuntos as almacen
 
@@ -27,6 +28,7 @@ router = APIRouter(prefix="/api/mensajes", tags=["mensajes"])
 _avisos_en_curso: set = set()
 ws_router = APIRouter(tags=["mensajes"])
 service = MensajeriaServices()
+vista_previa = VistaPreviaServices()
 
 
 def sesion_mensajes(sesion: dict = Depends(obtener_sesion_desde_request)) -> dict:
@@ -86,6 +88,12 @@ class Directo(BaseModel):
 def abrir_directo(body: Directo, sesion: dict = Depends(sesion_mensajes)):
     """El mensaje directo con otra persona del equipo (se crea la primera vez)."""
     return service.abrir_directo(sesion, body.admin_id)
+
+
+@router.get("/vista-previa")
+def vista_previa_fathom(url: str, _sesion: dict = Depends(sesion_mensajes)):
+    """Título, participantes y portada de un link de Fathom, para mostrarlo como tarjeta."""
+    return vista_previa.fathom(url)
 
 
 @router.get("/buscar-clientes")

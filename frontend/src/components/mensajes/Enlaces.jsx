@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { vistaPreviaFathom } from '../../api/mensajes'
 import { getVideoEmbedInfo } from '../../utils/video'
 
 const URL = /https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"]/g
@@ -92,12 +93,47 @@ function VideoEnlace({ url, src }) {
   )
 }
 
+const FATHOM = /fathom\.video\/(?:share|embed)\/[\w-]+/
+// Título y participantes de cada grabación, una vez por link.
+const fathoms = new Map()
+
+// Una llamada de Fathom se muestra como en Discord: título, quiénes estuvieron y la portada.
+// El reproductor no se carga: pesa varios MB y la grabación se mira en Fathom.
+function FathomEnlace({ url }) {
+  const [datos, setDatos] = useState(null)
+  const [sinPortada, setSinPortada] = useState(false)
+  useEffect(() => {
+    let vivo = true
+    if (!fathoms.has(url)) fathoms.set(url, vistaPreviaFathom(url).catch(() => ({})))
+    fathoms.get(url).then((d) => vivo && setDatos(d))
+    return () => {
+      vivo = false
+    }
+  }, [url])
+  return (
+    <a href={datos?.url || url} target="_blank" rel="noopener noreferrer" className="msj-link-fathom">
+      <span className="msj-link-fathom__txt">
+        <small>Fathom</small>
+        <b>{datos?.titulo || 'Grabación de Fathom'}</b>
+        {datos?.descripcion && <span>{datos.descripcion}</span>}
+      </span>
+      {datos?.imagen && !sinPortada && (
+        <img src={datos.imagen} alt="" loading="lazy" decoding="async" onError={() => setSinPortada(true)} />
+      )}
+    </a>
+  )
+}
+
 /** Vista previa de los links del mensaje: video que se reproduce adentro o tarjeta del servicio. */
 export default function Enlaces({ texto }) {
   if (!texto) return null
   const urls = [...new Set(texto.match(URL) || [])].slice(0, 4)
   const piezas = []
   urls.forEach((url) => {
+    if (FATHOM.test(url)) {
+      piezas.push(<FathomEnlace key={url} url={url} />)
+      return
+    }
     const video = getVideoEmbedInfo(url)
     if (video?.type === 'iframe') {
       piezas.push(<VideoEnlace key={url} url={url} src={video.src} />)
