@@ -208,3 +208,21 @@ html[data-modo="azul"] .msj-av--ini:not(.is-equipo) { background: linear-gradien
 html[data-modo="azul"] .mac-nav { background: rgba(255, 255, 255, 0.07); }
 html[data-modo="azul"] .mac-nav a.is-on { background: #344463; box-shadow: none; }
 html[data-modo="azul"] .trabado__caja button { background: #eef2f8; color: #202b41; }
+
+/* ---------- Consultas al cerebro ---------- */
+html[data-modo="azul"] .cq-root {
+  --q-bg: #26324a;
+  --q-panel: #2f3d5a;
+  --q-linea: rgba(255, 255, 255, 0.1);
+  --q-t1: #eef2f8;
+  --q-t2: #c3ccda;
+  --q-t3: #97a3b7;
+  --q-acento: #ec6457;
+}
+html[data-modo="azul"] .cq-campo { background: #2f3d5a; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 6px 18px -12px rgba(0, 0, 0, 0.5); }
+html[data-modo="azul"] .cq-campo button { background: #eef2f8; color: #26324a; }
+html[data-modo="azul"] .cq-como pre { background: #222d44; color: #c3ccda; }
+html[data-modo="azul"] .cq-pensando__cab i { border-color: rgba(255, 255, 255, 0.15); border-top-color: #ec6457; }
+html[data-modo="azul"] .cq-md a { color: #9cc2ff; }
+html[data-modo="azul"] .cq-md strong, html[data-modo="azul"] .cq-md b { color: #ffffff; }
+@media (hover: hover) and (pointer: fine) { html[data-modo="azul"] .cq-sugeridas button:hover { background: #344463; } }
