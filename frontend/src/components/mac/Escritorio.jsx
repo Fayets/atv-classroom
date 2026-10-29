@@ -10,6 +10,7 @@ import LlamadasCarpeta from './LlamadasCarpeta'
 import SopsCarpeta from './SopsCarpeta'
 import OnboardingsCarpeta from './OnboardingsCarpeta'
 import BibliotecaApp, { IconoBiblioteca } from './BibliotecaApp'
+import NuevaClase from './NuevaClase'
 import NuevoCliente from '../mensajes/NuevoCliente'
 import '../../styles/escritorio.css'
 import '../../styles/finder.css'
@@ -168,6 +169,7 @@ export default function Escritorio({ children }) {
   const [sops, setSops] = useState(false)
   const [biblioteca, setBiblioteca] = useState(false)
   const [dandoAlta, setDandoAlta] = useState(false)
+  const [dandoClase, setDandoClase] = useState(false)
   const fijo = visible !== 'abierta' && !finder && !onboardings && !contratos && !llamadas && !sops && !biblioteca
 
   // Solo el teclado (Tab) deja el Dock fijo: un clic no tiene que dejarlo trabado arriba.
@@ -281,6 +283,7 @@ export default function Escritorio({ children }) {
           { id: 'sops', nombre: 'SOPs solicitados', abrir: abrirSops },
           { id: 'biblioteca', nombre: 'Biblioteca', abrir: abrirBiblioteca, icono: <IconoBiblioteca tamano={58} /> },
           { id: 'alta', nombre: 'Nuevo onboarding', abrir: () => { setDandoAlta(true); setIconoSel(null) }, mas: true },
+          ...(isAdmin ? [{ id: 'clase', nombre: 'Nueva clase', abrir: () => { setDandoClase(true); setIconoSel(null) }, mas: true }] : []),
         ].map((ic) => (
           <button
             key={ic.id}
@@ -325,6 +328,15 @@ export default function Escritorio({ children }) {
       <SopsCarpeta abierta={sops} alFrente={finderFrente === 'sops'} alEnfocar={() => setFinderFrente('sops')} alCerrar={() => setSops(false)} alAbrirChat={abrirChat} />
       <LlamadasCarpeta abierta={llamadas} alFrente={finderFrente === 'llamadas'} alEnfocar={() => setFinderFrente('llamadas')} alCerrar={() => setLlamadas(false)} alAbrirChat={abrirChat} />
       <OnboardingsCarpeta abierta={onboardings} alFrente={finderFrente === 'onboardings'} alEnfocar={() => setFinderFrente('onboardings')} alCerrar={() => setOnboardings(false)} alAbrirChat={abrirChat} />
+      {dandoClase ? (
+        <NuevaClase
+          onCerrar={() => setDandoClase(false)}
+          onVerModulo={(id) => {
+            setDandoClase(false)
+            abrirChat(`/classroom/${id}`)
+          }}
+        />
+      ) : null}
       {dandoAlta ? (
         <NuevoCliente
           onCerrar={() => setDandoAlta(false)}

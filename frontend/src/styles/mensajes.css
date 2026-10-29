@@ -1077,3 +1077,12 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .qp__reglas li span { flex: 1; min-width: 0; }
 .qp__reglas li button { flex: none; padding: 0; border: 0; background: none; font: inherit; font-size: 11px; color: var(--m-t4); cursor: pointer; }
 .qp button:focus-visible, .qp__nota:focus-visible { outline: 2px solid var(--m-link, #0a64d6); outline-offset: 2px; }
+
+/* Nueva clase (escritorio del admin): mismos campos que el alta, con selector, link y descripción */
+.msj-modal__campo input[type="url"], .msj-modal__campo select { width: 100%; box-sizing: border-box; height: 34px; padding: 0 10px; border: 1px solid var(--m-borde, #d2d2d7); border-radius: 8px; background: var(--m-tarjeta, #fff); font: inherit; color: inherit; }
+.msj-modal__campo textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--m-borde, #d2d2d7); border-radius: 8px; background: var(--m-tarjeta, #fff); font: inherit; color: inherit; resize: vertical; }
+.msj-modal__campo input[type="url"]:focus, .msj-modal__campo select:focus, .msj-modal__campo textarea:focus { outline: none; border-color: var(--m-acento, #c0392b); box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18); }
+.nc-lugar { display: inline-flex; gap: 2px; margin: 0 0 14px; padding: 2px; border-radius: 9px; background: var(--m-campo, rgba(0, 0, 0, 0.055)); }
+.nc-lugar button { padding: 5px 12px; border: 0; border-radius: 7px; background: none; color: var(--m-t2, #3a3a3c); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.nc-lugar button.is-on { background: var(--m-tarjeta, #fff); color: var(--m-t1, #1d1d1f); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+.nc-lugar button:focus-visible { outline: 2px solid var(--m-link, #0a64d6); outline-offset: 2px; }
