@@ -199,3 +199,30 @@ def test_la_fecha_dice_el_dia_de_la_semana():
     from src.services import sugerencias_service as sg
 
     assert sg.hoy_argentina(datetime(2026, 10, 29, 16, 6)) == "jueves 29/10/2026, 16:06"
+
+
+def test_si_el_cliente_etiqueto_a_otro_no_se_contesta_por_el():
+    from src.services import sugerencias_service as sg
+
+    equipo = ["Franco", "Alejandro", "Juan Cruz"]
+    pend = [{"de": "cliente", "texto": "Ayudo a personas... con el método Umbral. Qué opinas ahí? @Alejandro"}]
+    assert sg.para_otro(pend, equipo, "Franco") == "Alejandro"
+    assert sg.para_otro(pend, equipo, "Alejandro") is None  # si escribe Alejandro, le contesta él
+    assert sg.para_otro([{"de": "cliente", "texto": "@Franco y @Alejandro miren esto"}], equipo, "Franco") is None
+    ctx = {"conversacion": pend, "equipo": equipo, "voz_nombre": "Franco"}
+    _, usuario = sg.armar_prompt("Franco", ctx, "", None)
+    assert "No respondas por Alejandro" in usuario
+    assert sg.entendimiento(ctx, "")["modo"] == "para-otro"
+
+
+def test_corta_las_marcas_de_formato_que_cuela_la_ia():
+    from src.db import db, init_db
+    from src.services import sugerencias_service as sg
+
+    if db.provider is None:
+        init_db()  # al terminar busca la sugerencia -1, que no existe: no escribe nada
+    servicio = sg.SugerenciasServices()
+    sg._emojis_ok[-1] = None
+    partes = ["buenas laura, lo ve ", "alejandro y te responde\n\n(cite", ' index="">']
+    texto = "".join(servicio.transmitir("s", "u", "", -1, stream=lambda s, u: iter(partes)))
+    assert texto == "buenas laura, lo ve alejandro y te responde"

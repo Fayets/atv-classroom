@@ -612,6 +612,9 @@ def actualizar_voces() -> int:
             textos = [_sin_relleno(m.texto) for m in recientes]
             # Ejemplos: los más recientes con contenido real, variados en largo (cortos, medios y largos).
             utiles = [m for m in reversed(recientes) if len(m.texto.split()) >= 4 and not re.fullmatch(r"\s*https?://\S+\s*", m.texto) and not RELLENO.search(m.texto)]
+            # Sin repetidos: un anuncio pegado en 6 canales no son 6 ejemplos de cómo escribe.
+            vistos = set()
+            utiles = [m for m in utiles if not (" ".join(m.texto.lower().split())[:120] in vistos or vistos.add(" ".join(m.texto.lower().split())[:120]))]
             cortos = [m.id for m in utiles if len(m.texto.split()) <= 12][:8]
             medios = [m.id for m in utiles if 12 < len(m.texto.split()) <= 40][:10]
             largos = [m.id for m in utiles if len(m.texto.split()) > 40][:6]

@@ -234,6 +234,22 @@ def pregunta_abierta(conversacion: list[dict]) -> str | None:
     return None
 
 
+def para_otro(pendientes: list[dict], equipo: list[str], yo: str | None) -> str | None:
+    """Si el cliente etiquetó a otra persona del equipo (y no a quien escribe), a quién: no se contesta por ella."""
+    texto = " ".join(m.get("texto") or "" for m in pendientes).lower()
+    if "@" not in texto:
+        return None
+    mio = (yo or "").split()[0].lower() if yo else ""
+    nombrados = []
+    for n in equipo or []:
+        primero = n.split()[0].lower()
+        if f"@{n.lower()}" in texto or f"@{primero}" in texto:
+            nombrados.append(n.split()[0])
+    if not nombrados or (mio and any(x.lower() == mio for x in nombrados)):
+        return None
+    return nombrados[0]
+
+
 def entendimiento(ctx: dict, borrador: str, reglas: int = 0, voz_ajena: str | None = None) -> dict:
     """Lo que el Tab entendió antes de escribir, para mostrarlo al costado. Lo calcula el código con lo
     mismo que va en el pedido (no le pregunta nada a la IA): cero tokens extra."""
@@ -257,6 +273,13 @@ def entendimiento(ctx: dict, borrador: str, reglas: int = 0, voz_ajena: str | No
             que=f"Es un seguimiento: {'los últimos ' + str(del_equipo) + ' mensajes son' if del_equipo > 1 else 'el último mensaje es'} del equipo y el cliente no contestó{_hace(ultimo.get('cuando')) or ''}.",
             retoma=corto(ultimo.get("texto")),
             pregunta_abierta=pregunta_abierta(conv),
+        )
+    elif para_otro(pendientes, ctx.get("equipo") or [], ctx.get("voz_nombre")):
+        otro = para_otro(pendientes, ctx.get("equipo") or [], ctx.get("voz_nombre"))
+        salida.update(
+            modo="para-otro",
+            que=f"La pregunta es para {otro} (lo etiquetó): no contesta por {otro}, solo acusa recibo.",
+            retoma=corto(" ".join(m.get("texto") or "" for m in pendientes[-2:])),
         )
     elif es_cierre(pendientes):
         salida.update(modo="cierre", que="El cliente solo agradeció o confirmó: un cierre corto, sin temas nuevos.", retoma=corto(pendientes[-1].get("texto")))
@@ -408,6 +431,14 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
                 f"\nTu pregunta \"{pregunta[:200]}\" sigue sin respuesta: NO la repitas ni la reformules. "
                 "Empujá con una propuesta concreta (lo que vos harías) o pedí una respuesta corta. No inventes fechas."
             )
+    elif para_otro(sin_responder, ctx.get("equipo") or [], ctx.get("voz_nombre")):
+        # Le contestaba a la clienta lo que ella le había preguntado a Alejandro, con una opinión que no era suya.
+        otro = para_otro(sin_responder, ctx.get("equipo") or [], ctx.get("voz_nombre"))
+        tarea = (
+            f"Todavía no escribió nada. El cliente le escribió a {otro} (lo etiquetó), no a {nombre}. No respondas por {otro} "
+            f"ni des una opinión sobre lo que le preguntó: si {nombre} escribe algo, es corto, como avisar que {otro} lo ve "
+            "o acusar recibo. Hasta 12 palabras."
+        )
     elif es_cierre(pendientes_del_cliente(ctx.get("conversacion") or [])):
         tarea = (
             "Todavía no escribió nada. El cliente solo agradeció o confirmó: no pide nada. Devolvé un cierre "
@@ -494,6 +525,9 @@ def _stream(sistema: str, usuario: str):
             pass
 
 
+_MARCA = re.compile(r"\s*[(<]\s*/?\s*cite\b", re.I)
+
+
 class _Recorte:
     """Va recibiendo el mensaje completo de a pedazos y devuelve solo lo que va después del borrador."""
 
@@ -553,7 +587,10 @@ class SugerenciasServices:
             nombre = (voz.nombre or "el coach") if voz else "el coach"
         ctx = ap.contexto_para_responder(canal["id"], voz_id, incluir_nicho=False)
         ctx["cliente_nombre"] = canal.get("nombre")
+        ctx["voz_nombre"] = nombre
         with db_session:
+            # Para saber si el cliente le habló a otra persona del equipo (lo etiquetó).
+            ctx["equipo"] = [a.nombre for a in Admin.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."admins" WHERE activo AND nombre IS NOT NULL')]
             ctx["reglas"] = [r.texto for r in ReglaVoz.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."cerebro_reglas_voz" WHERE voz_id = $voz_id ORDER BY id DESC')]
         nicho = _nicho((ctx.get("perfil") or {}).get("nicho"))
         with db_session:
@@ -575,6 +612,14 @@ class SugerenciasServices:
         try:
             for pedazo in stream(sistema, usuario):
                 nuevo = recorte.agregar(pedazo)
+                # A veces la IA cuela marcas de formato ("<cite index=…>"): ahí termina el mensaje.
+                marca = _MARCA.search(total + nuevo)
+                if marca:
+                    nuevo = (total + nuevo)[: marca.start()][len(total):].rstrip()
+                    if nuevo:
+                        total += nuevo
+                        yield nuevo
+                    break
                 if nuevo:
                     nuevo = filtrar_emojis(nuevo, permitidos)
                     if not total:
