@@ -116,10 +116,22 @@ function IconoLapiz() {
 // alCrearRoadmap: la primera acción, fija, abre el formulario del roadmap (empieza por el Fathom).
 const sinTildes = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
-// Elegir una clase del classroom para mandársela al cliente: buscador por título o módulo.
+// Elegir una clase para mandársela al cliente, como en el classroom: primero los módulos con su portada; tocás uno y
+// salen sus clases. Si escribís, busca entre todas las clases por título o módulo.
+function Portada({ src, titulo, chica = false }) {
+  return src ? (
+    <img className={chica ? 'ec-mini' : 'ec-portada'} src={src} alt="" loading="lazy" />
+  ) : (
+    <span className={`${chica ? 'ec-mini' : 'ec-portada'} is-vacia`} aria-hidden="true">
+      {(titulo || '?').slice(0, 1)}
+    </span>
+  )
+}
+
 function ElegirClase({ onCerrar, onElegir }) {
   const [clases, setClases] = useState(null)
   const [q, setQ] = useState('')
+  const [modulo, setModulo] = useState(null)
   const [error, setError] = useState('')
   const campo = useRef(null)
   const cerrar = useRef(onCerrar)
@@ -134,34 +146,56 @@ function ElegirClase({ onCerrar, onElegir }) {
     window.addEventListener('keydown', tecla)
     return () => window.removeEventListener('keydown', tecla)
   }, [])
-  const palabras = sinTildes(q).split(/\s+/).filter(Boolean)
-  const lista = (clases || []).filter((c) => palabras.every((w) => sinTildes(`${c.titulo} ${c.modulo}`).includes(w)))
-  const porModulo = []
-  lista.slice(0, 80).forEach((c) => {
-    const g = porModulo.find((x) => x.modulo === c.modulo)
-    if (g) g.clases.push(c)
-    else porModulo.push({ modulo: c.modulo, clases: [c] })
+
+  const modulos = []
+  ;(clases || []).forEach((c) => {
+    const m = modulos.find((x) => x.titulo === c.modulo)
+    if (m) m.cantidad += 1
+    else modulos.push({ titulo: c.modulo, portada: c.portada, orden: c.orden ?? 999, cantidad: 1 })
   })
+  modulos.sort((a, b) => a.orden - b.orden)
+  const palabras = sinTildes(q).split(/\s+/).filter(Boolean)
+  const buscando = palabras.length > 0
+  const lista = buscando
+    ? (clases || []).filter((c) => palabras.every((w) => sinTildes(`${c.titulo} ${c.modulo}`).includes(w))).slice(0, 60)
+    : modulo
+      ? (clases || []).filter((c) => c.modulo === modulo.titulo)
+      : []
+
   return createPortal(
     <div className="msj-modal__fondo" onMouseDown={(e) => e.target === e.currentTarget && onCerrar()}>
       <div className="msj-modal ec" role="dialog" aria-modal="true" aria-labelledby="ec-titulo">
         <h2 id="ec-titulo">Enviar una clase</h2>
-        <input ref={campo} className="ec-buscar" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscá por título o módulo" aria-label="Buscar clase" />
+        <input ref={campo} className="ec-buscar" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscá una clase por título o módulo" aria-label="Buscar clase" />
         {error ? <p className="msj-modal__error" role="alert">{error}</p> : null}
         <div className="ec-lista">
           {!clases && !error ? <p className="ec-vacio">Cargando clases…</p> : null}
-          {clases && !lista.length ? <p className="ec-vacio">No hay clases con eso.</p> : null}
-          {porModulo.map((g) => (
-            <section key={g.modulo}>
-              <p className="ec-modulo">{g.modulo}</p>
-              {g.clases.map((c) => (
-                <button key={`${c.fuente}-${c.id}`} type="button" className="ec-clase" onClick={() => onElegir(c)}>
-                  {c.titulo}
+          {clases && !buscando && !modulo ? (
+            <div className="ec-modulos">
+              {modulos.map((m) => (
+                <button key={m.titulo} type="button" className="ec-modulo-tarjeta" onClick={() => setModulo(m)}>
+                  <Portada src={m.portada} titulo={m.titulo} />
+                  <span className="ec-modulo-nombre">{m.titulo}</span>
+                  <small>{m.cantidad} {m.cantidad === 1 ? 'clase' : 'clases'}</small>
                 </button>
               ))}
-            </section>
+            </div>
+          ) : null}
+          {!buscando && modulo ? (
+            <button type="button" className="ec-volver" onClick={() => setModulo(null)}>
+              ← Módulos · <b>{modulo.titulo}</b>
+            </button>
+          ) : null}
+          {buscando && clases && !lista.length ? <p className="ec-vacio">No hay clases con eso.</p> : null}
+          {lista.map((c) => (
+            <button key={`${c.fuente}-${c.id}`} type="button" className="ec-clase" onClick={() => onElegir(c)}>
+              <Portada src={c.portada} titulo={c.modulo} chica />
+              <span>
+                {c.titulo}
+                {buscando ? <small>{c.modulo}</small> : null}
+              </span>
+            </button>
           ))}
-          {lista.length > 80 ? <p className="ec-vacio">Y {lista.length - 80} más: escribí para filtrar.</p> : null}
         </div>
         <div className="msj-modal__botones">
           <button type="button" onClick={onCerrar}>Cancelar</button>

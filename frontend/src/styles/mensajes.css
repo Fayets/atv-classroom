@@ -1106,12 +1106,24 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .nv__avance { position: absolute; left: 0; right: 0; top: 6px; height: 4px; border-radius: 2px; background: var(--m-acento, #c0392b); transform: scaleX(0); transform-origin: left; will-change: transform; }
 .nv__tiempo { flex: none; min-width: 34px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--m-t3, #6e6e73); text-align: right; }
 
-/* Enviar una clase (Acciones rápidas): buscador y lista por módulo */
-.msj-modal.ec { width: min(520px, calc(100vw - 32px)); }
-.ec-buscar { width: 100%; box-sizing: border-box; height: 38px; padding: 0 12px; margin: 4px 0 10px; border: 1px solid var(--m-borde, #d2d2d7); border-radius: 9px; background: var(--m-tarjeta, #fff); color: inherit; font: inherit; font-size: 14px; }
+/* Enviar una clase (Acciones rápidas): módulos con su portada, después sus clases; o búsqueda directa */
+.msj-modal.ec { width: min(620px, calc(100vw - 32px)); }
+.ec-buscar { width: 100%; box-sizing: border-box; height: 38px; padding: 0 12px; margin: 4px 0 12px; border: 1px solid var(--m-borde, #d2d2d7); border-radius: 9px; background: var(--m-tarjeta, #fff); color: inherit; font: inherit; font-size: 14px; }
 .ec-buscar:focus { outline: none; border-color: var(--m-acento, #c0392b); box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.18); }
-.ec-lista { max-height: min(420px, 55vh); overflow-y: auto; margin: 0 -6px 12px; padding: 0 6px; }
-.ec-modulo { margin: 10px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--m-t4, #8e8e93); }
-.ec-clase { display: block; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: none; color: var(--m-t1, #1d1d1f); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
-.ec-clase:hover, .ec-clase:focus-visible { background: var(--m-relleno, #f2f2f7); outline: none; }
+.ec-lista { max-height: min(460px, 58vh); overflow-y: auto; margin: 0 -6px 12px; padding: 2px 6px; }
+.ec-modulos { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.ec-modulo-tarjeta { display: flex; flex-direction: column; gap: 6px; padding: 0 0 10px; border: 0; border-radius: 12px; overflow: hidden; background: var(--m-tarjeta, #fff); box-shadow: 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.14), 0 1px 2px rgba(0, 0, 0, 0.05); color: var(--m-t1, #1d1d1f); font: inherit; text-align: left; cursor: pointer; transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1); }
+.ec-modulo-tarjeta:hover { transform: translateY(-2px); }
+.ec-modulo-tarjeta:focus-visible, .ec-clase:focus-visible, .ec-volver:focus-visible { outline: 2px solid var(--m-link, #0a64d6); outline-offset: 2px; }
+.ec-portada { display: block; width: 100%; aspect-ratio: 1280 / 659; object-fit: cover; background: var(--m-relleno, #f2f2f7); }
+.ec-portada.is-vacia, .ec-mini.is-vacia { display: grid; place-items: center; font-weight: 700; color: var(--m-t3, #6e6e73); }
+.ec-modulo-nombre { padding: 0 10px; font-size: 13.5px; font-weight: 600; line-height: 1.25; }
+.ec-modulo-tarjeta small { padding: 0 10px; font-size: 11.5px; color: var(--m-t4, #8e8e93); }
+.ec-volver { display: block; margin: 0 0 8px; padding: 4px 2px; border: 0; background: none; color: var(--m-link, #0a64d6); font: inherit; font-size: 13px; cursor: pointer; }
+.ec-volver b { color: var(--m-t1, #1d1d1f); font-weight: 600; }
+.ec-clase { display: flex; align-items: center; gap: 12px; width: 100%; padding: 7px 8px; border: 0; border-radius: 10px; background: none; color: var(--m-t1, #1d1d1f); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+.ec-clase:hover { background: var(--m-relleno, #f2f2f7); }
+.ec-clase > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ec-clase small { font-size: 11.5px; color: var(--m-t4, #8e8e93); }
+.ec-mini { flex: none; width: 64px; aspect-ratio: 1280 / 659; border-radius: 6px; object-fit: cover; background: var(--m-relleno, #f2f2f7); }
 .ec-vacio { margin: 8px 4px; font-size: 13px; color: var(--m-t3, #6e6e73); }

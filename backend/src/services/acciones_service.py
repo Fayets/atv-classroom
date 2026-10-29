@@ -120,4 +120,16 @@ class AccionesServices:
 
         if not es_equipo(sesion):
             raise HTTPException(status_code=403, detail="Solo para el equipo.")
-        return [{"id": c["id"], "titulo": c["titulo"], "modulo": c["modulo"], "url": c["url"], "fuente": c["fuente"]} for c in sops_service.catalogo()]
+        # La portada y el orden de cada módulo, para elegir primero el módulo como en el classroom.
+        with db_session:
+            modulos = {
+                titulo: {"portada": portada, "orden": orden}
+                for titulo, portada, orden in db.select(f'SELECT titulo, cover_url, orden FROM "{DB_SCHEMA}"."programa"')
+            }
+        return [
+            {
+                "id": c["id"], "titulo": c["titulo"], "modulo": c["modulo"], "url": c["url"], "fuente": c["fuente"],
+                "portada": (modulos.get(c["modulo"]) or {}).get("portada"), "orden": (modulos.get(c["modulo"]) or {}).get("orden", 999),
+            }
+            for c in sops_service.catalogo()
+        ]
