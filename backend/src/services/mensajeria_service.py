@@ -1124,13 +1124,16 @@ class MensajeriaServices:
                 return None
 
     def menciones(self, sesion: dict, dias: int = 30) -> dict:
-        """Alertas de quien pregunta: dónde lo etiquetaron, hace cuánto y cuánto tardó en responder."""
+        """Alertas de quien pregunta: dónde lo etiquetaron en el chat privado de un cliente, hace cuánto y cuánto
+        tardó en responder. Lo de los canales del equipo y la comunidad (#updates, #general, @everyone) no es una
+        alerta: queda como el número rojo en ese canal."""
         admin_id = sesion["usuario_id"]
         desde = datetime.utcnow() - timedelta(days=dias)
         ahora = datetime.utcnow()
         with db_session:
             filas = list(Mencion.select_by_sql(
-                f'SELECT * FROM "{DB_SCHEMA}"."menciones" WHERE admin_id = $admin_id AND creado_en >= $desde ORDER BY id DESC'
+                f'SELECT m.* FROM "{DB_SCHEMA}"."menciones" m JOIN "{DB_SCHEMA}"."canales" c ON c.id = m.canal_id '
+                "WHERE m.admin_id = $admin_id AND m.creado_en >= $desde AND c.tipo = 'cliente' ORDER BY m.id DESC"
             ))
             autores = _Autores()
             items = []
