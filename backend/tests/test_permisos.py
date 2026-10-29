@@ -1,4 +1,4 @@
-"""Pantalla Permisos: qué parte del classroom ve cada plan. Base local; se borra lo que se guarda."""
+"""Pantalla Permisos: qué parte del classroom ve cada plan. Lo que había antes se devuelve al terminar."""
 
 import pytest
 from fastapi import HTTPException
@@ -11,11 +11,22 @@ from src.services.plan_acceso import sin_chat, sin_ia
 
 @pytest.fixture(autouse=True)
 def limpio():
+    # La base es compartida con producción: los permisos de verdad se guardan antes y se devuelven tal cual.
+    # (El 29-10-2026 este fixture vació permisos_plan en producción y todos los planes pasaron a ver todo.)
+    from src.db import DB_SCHEMA
+
     if db.provider is None:
         init_db()
+    with db_session:
+        guardados = list(db.select(f'SELECT plan, clave, valor FROM "{DB_SCHEMA}"."permisos_plan"'))
     yield
     with db_session:
-        db.execute('DELETE FROM "%s"."permisos_plan"' % __import__("src.db", fromlist=["DB_SCHEMA"]).DB_SCHEMA)
+        db.execute(f'DELETE FROM "{DB_SCHEMA}"."permisos_plan"')
+        for plan, clave, valor in guardados:
+            db.execute(
+                f'INSERT INTO "{DB_SCHEMA}"."permisos_plan" (plan, clave, valor) VALUES ($plan, $clave, $valor)',
+                {"plan": plan, "clave": clave, "valor": valor},
+            )
     p._CACHE["hasta"] = 0.0
 
 
