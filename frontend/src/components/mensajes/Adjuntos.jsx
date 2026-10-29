@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { peso } from '../../utils/mensajes'
+import NotaDeVoz from './NotaDeVoz'
 
 function extension(nombre) {
   return (nombre.split('.').pop() || '').slice(0, 4).toUpperCase()
@@ -70,7 +71,7 @@ export default function Adjuntos({ adjuntos, alCargar }) {
       {resto.map((a) =>
         a.tipo_mime.startsWith('audio/') ? (
           <div key={a.id} className="msj-adj__media">
-            <audio controls preload="metadata" src={a.url} />
+            <NotaDeVoz src={a.url} />
             {/^nota-de-voz/.test(a.nombre) ? null : <span>{a.nombre}</span>}
           </div>
         ) : a.tipo_mime.startsWith('video/') ? (
