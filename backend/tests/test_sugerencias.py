@@ -161,3 +161,32 @@ def test_registra_la_sugerencia_descartada():
     finally:
         with db_session:
             db.execute(f'DELETE FROM "classroom"."cerebro_sugerencias" WHERE admin_id = {admin_id}')
+
+
+def test_seguimiento_no_repite_la_pregunta_sin_respuesta():
+    from src.services import sugerencias_service as sg
+
+    ctx = {"conversacion": [
+        {"de": "cliente", "texto": "La clienta no quiere que menciones el %"},
+        {"de": "equipo", "texto": "goats todo muy bien, me gusta el ICP"},
+        {"de": "equipo", "texto": "que de eso se puede quitar? tipo que de eso SI o SI se tiene que quedar"},
+        {"de": "equipo", "texto": "yo pondría:\n-ceo y host\n-oferta\n-CTA"},
+    ]}
+    assert sg.pregunta_abierta(ctx["conversacion"]).startswith("que de eso se puede quitar? tipo")
+    _, usuario = sg.armar_prompt("Juan", ctx, "", None)
+    assert "sigue sin respuesta: NO la repitas" in usuario
+    e = sg.entendimiento(ctx, "")
+    assert e["modo"] == "seguimiento" and "los últimos 3 mensajes son del equipo" in e["que"]
+    assert e["retoma"].startswith("yo pondría") and e["pregunta_abierta"]
+
+
+def test_las_reglas_entran_en_el_pedido_y_el_entendimiento_no_gasta_ia():
+    from src.services import sugerencias_service as sg
+
+    ctx = {"conversacion": [{"de": "cliente", "texto": "cómo arranco con los ads?"}], "reglas": ["No uses 'me dices'."],
+           "voz": {"rasgos": {"todo_minuscula_pct": 72, "palabras_promedio": 10, "varios_seguidos_pct": 74}, "ejemplos": ["a", "b"]}}
+    _, usuario = sg.armar_prompt("Juan", ctx, "", None)
+    assert "Reglas que Juan te dio" in usuario and "No uses 'me dices'." in usuario
+    e = sg.entendimiento(ctx, "", reglas=1)
+    assert e["modo"] == "preguntas" and e["voz"]["seguidos"] and e["voz"]["reglas"] == 1 and e["voz"]["ejemplos"] == 2
+    assert sg.entendimiento(ctx, "dale")["modo"] == "completa"

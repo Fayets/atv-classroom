@@ -146,12 +146,23 @@ export function marcarLeido(canalId, ultimoId) {
   })
 }
 
+// Lo que el Tab entendió antes de escribir: viene en un encabezado como base64 de JSON (con tildes).
+function leerPorque(valor) {
+  if (!valor) return null
+  try {
+    const bytes = Uint8Array.from(atob(valor), (c) => c.charCodeAt(0))
+    return JSON.parse(new TextDecoder().decode(bytes))
+  } catch {
+    return null
+  }
+}
+
 /**
  * Sugerencia de la IA para seguir el mensaje (o la respuesta entera si el borrador está vacío).
  * Llega de a pedazos: alPedazo recibe el texto acumulado a medida que la IA lo escribe.
  * Devuelve { id, texto } al terminar. Se corta con signal (cuando la persona sigue escribiendo).
  */
-export async function pedirSugerencia(canalId, borrador, { signal, alPedazo } = {}) {
+export async function pedirSugerencia(canalId, borrador, { signal, alPedazo, alPorque } = {}) {
   const token = getStoredToken()
   const res = await fetch(`/api/mensajes/canales/${canalId}/sugerir`, {
     method: 'POST',
@@ -161,6 +172,8 @@ export async function pedirSugerencia(canalId, borrador, { signal, alPedazo } = 
   })
   if (!res.ok || !res.body) throw new Error(`sugerencia ${res.status}`)
   const id = Number(res.headers.get('X-Sugerencia-Id')) || null
+  const porque = leerPorque(res.headers.get('X-Sugerencia-Porque'))
+  alPorque?.(porque)
   const lector = res.body.getReader()
   const deco = new TextDecoder()
   let texto = ''
@@ -170,7 +183,7 @@ export async function pedirSugerencia(canalId, borrador, { signal, alPedazo } = 
     texto += deco.decode(value, { stream: true })
     alPedazo?.(texto)
   }
-  return { id, texto }
+  return { id, texto, porque }
 }
 
 /** Lo que se mandó después de aceptar una sugerencia: la corrección le enseña la voz a la IA. */
@@ -184,4 +197,17 @@ export function marcarSugerenciaUsada(id) {
 
 export function fetchParticipantes(canalId) {
   return request(`/api/mensajes/canales/${canalId}/participantes`)
+}
+
+// Reglas de tu voz: lo que le dijiste al Tab corrigiéndolo. Entran en todas tus sugerencias.
+export function fetchReglasVoz() {
+  return request('/api/mensajes/reglas-voz')
+}
+
+export function agregarReglaVoz(texto, sugerenciaId = null) {
+  return request('/api/mensajes/reglas-voz', { method: 'POST', body: JSON.stringify({ texto, sugerencia_id: sugerenciaId }) })
+}
+
+export function borrarReglaVoz(id) {
+  return request(`/api/mensajes/reglas-voz/${id}`, { method: 'DELETE' })
 }

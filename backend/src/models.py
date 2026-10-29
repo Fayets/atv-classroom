@@ -549,6 +549,20 @@ class CierreCompromiso(db.Entity):
     cerrado_en = Required(datetime, default=datetime.utcnow)
 
 
+class ReglaVoz(db.Entity):
+    """Una regla que alguien del equipo le dio al Tab corrigiendo una sugerencia ("no repitas una pregunta
+    que ya hice"). Es de su voz: entra en todas las sugerencias que se escriban con esa voz."""
+
+    _table_ = (DB_SCHEMA, "cerebro_reglas_voz")
+
+    id = PrimaryKey(int, auto=True)
+    voz_id = Required(int, index=True)  # admins.id de quien es la voz
+    texto = Required(str)
+    creado_por = Required(int)
+    sugerencia_id = Optional(int, nullable=True)  # la sugerencia que la originó
+    creado_en = Required(datetime, default=datetime.utcnow)
+
+
 class AltaCliente(db.Entity):
     """Un alta hecha desde el classroom: crea la sesión de onboarding, el canal de Discord (contingencia)
     y la ficha en clients.clientes. El mail de onboarding sale aparte, una sola vez, con un botón."""

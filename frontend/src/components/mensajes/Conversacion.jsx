@@ -44,7 +44,7 @@ function agregarSinDuplicar(lista, nuevos) {
   return sumar.length ? [...lista, ...sumar].sort(orden) : lista
 }
 
-export default function Conversacion({ canalId, item, onVolver, oculta = false, perfilDe, canales, onAbrirCanal }) {
+export default function Conversacion({ canalId, item, onVolver, oculta = false, perfilDe, canales, onAbrirCanal, alPensar }) {
   const { user, isEquipo, isAdmin } = useAuth()
   const { suscribir, avisarEscribiendo, conectado, avisarLeido, canalAbierto } = useMensajeria()
   const [datos, setDatos] = useState(null)
@@ -324,10 +324,11 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       const mismo = (f) => f && f.base === base && pedidoIA.current === ctrl
       pedirSugerencia(canalId, base, {
         signal: ctrl.signal,
+        alPorque: (porque) => setFantasma((f) => (mismo(f) ? { ...f, porque } : f)),
         alPedazo: (t) => setFantasma((f) => (mismo(f) ? { ...f, texto: t } : f)),
       })
-        .then(({ id, texto: t }) => {
-          const lista = { id, base, texto: t, cargando: false }
+        .then(({ id, texto: t, porque }) => {
+          const lista = { id, base, texto: t, cargando: false, porque }
           if (!base && t) cacheVacio.set(canalId, { mensaje: vacioPedido.current, fantasma: lista })
           setFantasma((f) => (mismo(f) ? lista : f))
         })
@@ -367,6 +368,28 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   }, [iaActiva, oculta, texto, fantasma, ultimoMensaje, pedirIA, canalId])
 
   // Lo que falta de la sugerencia: si seguís escribiendo lo mismo que proponía, se va achicando.
+  // El panel de la derecha muestra qué pensó el Tab y deja corregirlo; "otra" pide una sugerencia nueva
+  // (ya con la regla nueva) para lo que esté escrito ahora.
+  const textoActual = useRef('')
+  textoActual.current = texto
+  useEffect(() => {
+    if (!alPensar) return
+    if (!fantasma?.porque) {
+      alPensar(null)
+      return
+    }
+    alPensar({
+      ...fantasma.porque,
+      sugerencia: fantasma.base + fantasma.texto,
+      cargando: fantasma.cargando,
+      otra: () => {
+        cacheVacio.delete(canalId)
+        pedirIA(textoActual.current)
+      },
+    })
+  }, [fantasma, alPensar, canalId, pedirIA])
+  useEffect(() => () => alPensar?.(null), [alPensar])
+
   const completoIA = fantasma ? fantasma.base + fantasma.texto : ''
   const restoIA = fantasma && fantasma.texto && texto.startsWith(fantasma.base) && completoIA.startsWith(texto) ? completoIA.slice(texto.length) : ''
 

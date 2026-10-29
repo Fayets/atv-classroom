@@ -16,7 +16,8 @@ from decouple import config
 from fastapi import HTTPException
 from pony.orm import db_session
 
-from src.models import Admin, Clase, MensajeCanal, SugerenciaIA
+from src.db import DB_SCHEMA
+from src.models import Admin, Clase, MensajeCanal, ReglaVoz, SugerenciaIA
 from src.services.cerebro_service import CONCEPTOS, _bonito
 from src.services import aprendizaje_service as ap
 from src.services import gasto_ia
@@ -208,6 +209,69 @@ def _titulos_de_clases() -> dict[int, str]:
     return _titulos[1]
 
 
+def pregunta_abierta(conversacion: list[dict]) -> str | None:
+    """La última pregunta del equipo que el cliente todavía no contestó (si lo último son mensajes del equipo)."""
+    seguidos = []
+    for m in reversed([x for x in conversacion or [] if x.get("texto")]):
+        if m.get("de") == "cliente":
+            break
+        seguidos.append(m)
+    for m in seguidos:
+        t = (m.get("texto") or "").strip()
+        if "?" in t:
+            return " ".join(t.split())
+    return None
+
+
+def entendimiento(ctx: dict, borrador: str, reglas: int = 0, voz_ajena: str | None = None) -> dict:
+    """Lo que el Tab entendió antes de escribir, para mostrarlo al costado. Lo calcula el código con lo
+    mismo que va en el pedido (no le pregunta nada a la IA): cero tokens extra."""
+    conv = [m for m in ctx.get("conversacion") or [] if m.get("texto") or m.get("archivos")]
+    ultimo = conv[-1] if conv else None
+    pendientes = pendientes_del_cliente(conv)
+    corto = lambda t, n=120: (" ".join((t or "").split())[: n - 1] + "…") if len(" ".join((t or "").split())) > n else " ".join((t or "").split())  # noqa: E731
+    salida: dict = {"modo": "responde", "que": "", "retoma": None, "pregunta_abierta": None}
+    if borrador.strip():
+        salida.update(modo="completa", que="Termina el mensaje que empezaste a escribir.")
+    elif ultimo is None:
+        salida.update(modo="primero", que="No hay mensajes todavía: abre la conversación.")
+    elif ultimo.get("de") != "cliente":
+        del_equipo = 0
+        for m in reversed(conv):
+            if m.get("de") == "cliente":
+                break
+            del_equipo += 1
+        salida.update(
+            modo="seguimiento",
+            que=f"Es un seguimiento: {'los últimos ' + str(del_equipo) + ' mensajes son' if del_equipo > 1 else 'el último mensaje es'} del equipo y el cliente no contestó{_hace(ultimo.get('cuando')) or ''}.",
+            retoma=corto(ultimo.get("texto")),
+            pregunta_abierta=pregunta_abierta(conv),
+        )
+    elif es_cierre(pendientes):
+        salida.update(modo="cierre", que="El cliente solo agradeció o confirmó: un cierre corto, sin temas nuevos.", retoma=corto(pendientes[-1].get("texto")))
+    else:
+        preguntas = "?" in " ".join(m.get("texto") or "" for m in pendientes)
+        salida.update(
+            modo="preguntas" if preguntas else "responde",
+            que=("El cliente hizo preguntas: contesta la más importante con una postura." if preguntas else "Responde lo que escribió el cliente después de la última respuesta del equipo.")
+            + (f" Son {len(pendientes)} mensajes suyos." if len(pendientes) > 1 else ""),
+            retoma=corto(" ".join(m.get("texto") or "" for m in pendientes[-2:])),
+        )
+    voz = ctx.get("voz") or {}
+    rasgos = voz.get("rasgos") or {}
+    salida["voz"] = {
+        "de": voz_ajena,
+        "minusculas": rasgos.get("todo_minuscula_pct"),
+        "palabras": round(rasgos.get("palabras_promedio") or 0) or None,
+        "seguidos": (rasgos.get("varios_seguidos_pct") or 0) >= 50,
+        "ejemplos": len(voz.get("ejemplos") or []),
+        "correcciones": len(voz.get("correcciones") or []) + len(voz.get("descartadas") or []),
+        "mensajes": rasgos.get("mensajes"),
+        "reglas": reglas,
+    }
+    return salida
+
+
 def _hace(cuando: str | None) -> str:
     """ " hace 3 días" a partir de la fecha ISO del mensaje (vacío si no se sabe)."""
     if not cuando:
@@ -257,6 +321,14 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
         correcciones_txt += (
             f"\nSugerencias de la IA que {nombre} NO usó y lo que escribió en su lugar (así responde de verdad; no repitas esos errores):\n"
             + "\n".join(f'- La IA propuso: "{c["propuesto"][:300]}"\n  Escribió: "{c["enviado"][:300]}"' for c in descartadas[:4])
+            + "\n"
+        )
+    reglas = ctx.get("reglas") or []
+    if reglas:
+        # Lo que la persona le dijo a mano al corregir: manda sobre los ejemplos y los rasgos.
+        correcciones_txt += (
+            f"\nReglas que {nombre} te dio corrigiendo sugerencias (obedecelas SIEMPRE, mandan sobre los ejemplos):\n"
+            + "\n".join(f"- {r}" for r in reglas[:20])
             + "\n"
         )
     perfil = ctx.get("perfil") or {}
@@ -317,6 +389,13 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
             f"Devolvé un mensaje corto de seguimiento, como lo mandaría {nombre}: que retome lo último que se habló sin repetirlo "
             f"y que invite a responder. Alrededor de {largo} palabras."
         )
+        pregunta = pregunta_abierta(ctx.get("conversacion") or [])
+        if pregunta:
+            # Le volvía a hacer la misma pregunta con otras palabras ("me decís qué se queda…").
+            tarea += (
+                f"\nTu pregunta \"{pregunta[:200]}\" sigue sin respuesta: NO la repitas ni la reformules. "
+                "Empujá con una propuesta concreta (lo que vos harías) o pedí una respuesta corta. No inventes fechas."
+            )
     elif es_cierre(pendientes_del_cliente(ctx.get("conversacion") or [])):
         tarea = (
             "Todavía no escribió nada. El cliente solo agradeció o confirmó: no pide nada. Devolvé un cierre "
@@ -437,11 +516,11 @@ class SugerenciasServices:
     def sugerir(self, sesion: dict, canal: dict, borrador: str, stream=_stream) -> dict:
         """La sugerencia entera de una vez (para pruebas y para usos sin streaming)."""
         a = time.time()
-        sistema, usuario, sid = self.preparar(sesion, canal, borrador)
+        sistema, usuario, sid, porque = self.preparar(sesion, canal, borrador)
         texto = "".join(self.transmitir(sistema, usuario, borrador, sid, stream=stream))
-        return {"id": sid, "texto": texto, "ms": int((time.time() - a) * 1000)}
+        return {"id": sid, "texto": texto, "ms": int((time.time() - a) * 1000), "porque": porque}
 
-    def preparar(self, sesion: dict, canal: dict, borrador: str) -> tuple[str, str, int]:
+    def preparar(self, sesion: dict, canal: dict, borrador: str) -> tuple[str, str, int, dict]:
         """Valida, arma el pedido para la IA y deja registrada la sugerencia (se completa al terminar)."""
         if not es_equipo(sesion):
             raise HTTPException(status_code=403, detail="Solo para el equipo.")
@@ -460,6 +539,8 @@ class SugerenciasServices:
             nombre = (voz.nombre or "el coach") if voz else "el coach"
         ctx = ap.contexto_para_responder(canal["id"], voz_id, incluir_nicho=False)
         ctx["cliente_nombre"] = canal.get("nombre")
+        with db_session:
+            ctx["reglas"] = [r.texto for r in ReglaVoz.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."cerebro_reglas_voz" WHERE voz_id = $voz_id ORDER BY id DESC')]
         nicho = _nicho((ctx.get("perfil") or {}).get("nicho"))
         with db_session:
             s = SugerenciaIA(admin_id=admin_id, canal_id=canal["id"], borrador=borrador[-2000:] or None, sugerencia="…", modelo=MODELO, voz_id=voz_id)
@@ -467,7 +548,9 @@ class SugerenciasServices:
             sid = s.id
         sistema, usuario = armar_prompt(nombre.split()[0], ctx, borrador, nicho)
         _emojis_ok[sid] = emojis_de((ctx.get("voz") or {}).get("rasgos") or {})
-        return sistema, usuario, sid
+        porque = entendimiento(ctx, borrador, len(ctx["reglas"]), None if voz_id == admin_id else nombre.split()[0])
+        porque.update(id=sid, voz_id=voz_id, propia=voz_id == admin_id)
+        return sistema, usuario, sid, porque
 
     def transmitir(self, sistema: str, usuario: str, borrador: str, sid: int, stream=_stream):
         """Generador de texto: lo que sigue después del borrador, a medida que la IA lo escribe."""
@@ -516,4 +599,48 @@ class SugerenciasServices:
             if s is None or not es_equipo(sesion) or s.admin_id != sesion["usuario_id"]:
                 raise HTTPException(status_code=404, detail="Sugerencia no encontrada.")
             s.usada = True
+        return {"ok": True}
+
+    # ---------- reglas de la voz (lo que se corrige desde "Qué pensó") ----------
+    def _voz_de(self, sesion: dict) -> int:
+        with db_session:
+            yo = Admin.get(id=sesion["usuario_id"])
+            voz = Admin.get(id=yo.voz_tab) if yo and yo.voz_tab else None
+            return voz.id if voz and voz.activo else sesion["usuario_id"]
+
+    def reglas(self, sesion: dict) -> dict:
+        if not es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Solo para el equipo.")
+        voz_id = self._voz_de(sesion)
+        with db_session:
+            filas = list(ReglaVoz.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."cerebro_reglas_voz" WHERE voz_id = $voz_id ORDER BY id DESC'))
+            return {
+                "propia": voz_id == sesion["usuario_id"],
+                "reglas": [{"id": r.id, "texto": r.texto, "creado_en": r.creado_en.isoformat(timespec="seconds") + "Z"} for r in filas],
+            }
+
+    def agregar_regla(self, sesion: dict, texto: str, sugerencia_id: int | None = None) -> dict:
+        """Solo sobre la voz propia: si usás la voz de otro, sus reglas las pone esa persona."""
+        if not es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Solo para el equipo.")
+        texto = " ".join((texto or "").split())[:300]
+        if len(texto) < 4:
+            raise HTTPException(status_code=422, detail="Escribí qué tiene que hacer distinto.")
+        if self._voz_de(sesion) != sesion["usuario_id"]:
+            raise HTTPException(status_code=403, detail="Estás usando la voz de otra persona: sus reglas las pone ella.")
+        with db_session:
+            existe = next(iter(ReglaVoz.select_by_sql(
+                f'SELECT * FROM "{DB_SCHEMA}"."cerebro_reglas_voz" WHERE voz_id = $voz AND lower(texto) = lower($texto)',
+                globals={"voz": sesion["usuario_id"], "texto": texto},
+            )), None)
+            r = existe or ReglaVoz(voz_id=sesion["usuario_id"], texto=texto, creado_por=sesion["usuario_id"], sugerencia_id=sugerencia_id)
+            r.flush()
+            return {"id": r.id, "texto": r.texto, "creado_en": r.creado_en.isoformat(timespec="seconds") + "Z"}
+
+    def borrar_regla(self, sesion: dict, regla_id: int) -> dict:
+        with db_session:
+            r = ReglaVoz.get(id=regla_id)
+            if r is None or not es_equipo(sesion) or r.voz_id != sesion["usuario_id"]:
+                raise HTTPException(status_code=404, detail="Regla no encontrada.")
+            r.delete()
         return {"ok": True}

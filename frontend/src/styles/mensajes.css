@@ -1045,3 +1045,35 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-m.is-resaltado::after { content: ''; position: absolute; inset: 0; background: rgba(255, 196, 0, 0.22); pointer-events: none; animation: msj-resaltar 2s ease-out forwards; }
 @keyframes msj-resaltar { 0%, 35% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .msj-m.is-resaltado::after { animation-duration: 0.01s; } }
+
+/* "Qué pensó" el Tab, abajo del panel del cliente */
+.qp { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+.qp__titulo { display: flex; justify-content: space-between; align-items: baseline; }
+.qp__titulo span { color: var(--m-acento); }
+.qp__titulo em { font-style: normal; font-size: 11px; font-weight: 500; color: var(--m-t4); text-transform: none; letter-spacing: 0; }
+.qp__bloque { display: flex; flex-direction: column; gap: 7px; padding: 11px 12px; border-radius: 12px; background: var(--m-tarjeta); box-shadow: 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.1); }
+.qp__que { margin: 0; font-size: 13px; line-height: 1.4; color: var(--m-t1); font-weight: 550; }
+.qp__dato { margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--m-t3); }
+.qp__dato q { font-style: italic; color: var(--m-t2); line-height: 1.4; }
+.qp__dato.is-aviso { padding-left: 9px; box-shadow: inset 2px 0 0 var(--m-aviso); }
+.qp__dato small { font-size: 11.5px; color: var(--m-ok); font-weight: 600; }
+.qp__eti { margin: 0; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--m-t4); }
+.qp__chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.qp__chips span { padding: 2px 8px; border-radius: 999px; background: var(--m-campo); color: var(--m-t2); font-size: 11.5px; font-weight: 600; }
+.qp__chips .is-azul { background: rgba(10, 100, 214, 0.12); color: var(--m-link, #0a64d6); }
+.qp__chips .is-verde { background: rgba(31, 157, 85, 0.13); color: var(--m-ok); }
+.qp__chips.is-botones button { padding: 4px 10px; border: 0; border-radius: 999px; background: var(--m-campo); color: var(--m-t1); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.qp__chips.is-botones button.is-on { background: var(--m-acento); color: #fff; }
+.qp__nota { width: 100%; resize: vertical; min-height: 44px; padding: 7px 9px; border: 0; border-radius: 9px; background: var(--m-panel); color: var(--m-t1); font: inherit; font-size: 12.5px; box-shadow: inset 0 0 0 1px var(--m-linea); }
+.qp__guardar { align-self: flex-start; padding: 6px 11px; border: 0; border-radius: 9px; background: var(--m-t1); color: var(--m-tarjeta, #fff); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+.qp__guardar:disabled { opacity: 0.45; cursor: default; }
+.qp__error { margin: 0; font-size: 12px; color: var(--m-acento); }
+.qp__ajena { margin: 0; font-size: 12px; color: var(--m-t3); }
+.qp__ver { display: flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: var(--m-t1); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; text-align: left; }
+.qp__ver b { padding: 0 6px; border-radius: 999px; background: var(--m-campo); font-size: 11px; }
+.qp__ver span { margin-left: auto; font-size: 11.5px; color: var(--m-link, #0a64d6); }
+.qp__reglas { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.qp__reglas li { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; line-height: 1.4; color: var(--m-t2); }
+.qp__reglas li span { flex: 1; min-width: 0; }
+.qp__reglas li button { flex: none; padding: 0; border: 0; background: none; font: inherit; font-size: 11px; color: var(--m-t4); cursor: pointer; }
+.qp button:focus-visible, .qp__nota:focus-visible { outline: 2px solid var(--m-link, #0a64d6); outline-offset: 2px; }

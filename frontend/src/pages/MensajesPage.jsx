@@ -9,6 +9,7 @@ import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alertas from '../components/mensajes/Alertas'
 import AccionesRapidas from '../components/mensajes/AccionesRapidas'
+import QuePenso from '../components/mensajes/QuePenso'
 import Avatar from '../components/mensajes/Avatar'
 import RoadmapCliente from '../components/mensajes/RoadmapCliente'
 import Conversacion from '../components/mensajes/Conversacion'
@@ -313,7 +314,7 @@ function PanelSena({ sena, alHacerOnboarding }) {
   )
 }
 
-function PanelCliente({ item, alVerFicha, llamadaId = null, onLlamadaUsada }) {
+function PanelCliente({ item, alVerFicha, llamadaId = null, onLlamadaUsada, pensamiento = null }) {
   const [pedidoRoadmap, setPedidoRoadmap] = useState(0)
   const [contexto, setContexto] = useState(false)
   const cerrarContexto = useCallback(() => setContexto(false), [])
@@ -364,6 +365,7 @@ function PanelCliente({ item, alVerFicha, llamadaId = null, onLlamadaUsada }) {
       <AccionesRapidas canalId={item.id} cliente={cliente.nombre} plan={cliente.plan} alCrearRoadmap={() => setPedidoRoadmap((n) => n + 1)} />
       <ContextoCliente clienteId={cliente.id} abierto={contexto} alCerrar={cerrarContexto} />
       <RoadmapCliente key={cliente.id} clienteId={cliente.id} canalId={item.id} cliente={cliente.nombre.split(' ')[0]} pedido={pedidoRoadmap} llamadaId={llamadaId} onLlamadaUsada={onLlamadaUsada} />
+      <QuePenso info={pensamiento} />
     </aside>
   )
 }
@@ -404,6 +406,7 @@ export default function MensajesPage() {
   const [canales, setCanales] = useState(null)
   const [error, setError] = useState('')
   const [buscar, setBuscar] = useState('')
+  const [pensamiento, setPensamiento] = useState(null) // lo que pensó el Tab, para el panel de la derecha
   const recarga = useRef(null)
   const { user } = useAuth()
   const [escriben, setEscriben] = useState({})
@@ -959,7 +962,7 @@ export default function MensajesPage() {
           ) : activo && item?.bloqueado ? (
             <CanalBloqueado item={item} />
           ) : activo ? (
-            <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} canales={porSlug} perfilDe={perfilDe} onAbrirCanal={(id) => setParams({ c: String(id) })} onVolver={() => setParams(vista === 'alertas' ? { v: 'alertas' } : {})} />
+            <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} canales={porSlug} perfilDe={perfilDe} onAbrirCanal={(id) => setParams({ c: String(id) })} onVolver={() => setParams(vista === 'alertas' ? { v: 'alertas' } : {})} alPensar={isEquipo ? setPensamiento : undefined} />
           ) : (
             <div className="msj-vacio">
               {vista === 'alertas' ? 'Elegí una alerta para ir a la conversación.' : 'Elegí un canal para ver la conversación.'}
@@ -972,6 +975,7 @@ export default function MensajesPage() {
             alVerFicha={isAdmin && escritorio ? escritorio.verFicha : null}
             llamadaId={enMensajes ? Number(params.get('roadmap')) || null : null}
             onLlamadaUsada={() => setParams({ c: String(item.id) }, { replace: true })}
+            pensamiento={pensamiento}
           /> : null}
         {onboardingDe ? (
           <NuevoCliente
