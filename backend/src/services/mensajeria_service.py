@@ -667,6 +667,33 @@ class MensajeriaServices:
                 "puede_escribir": self._puede_escribir(sesion, canal),
             }
 
+    def texto_completo(self, sesion: dict, canal_id: int) -> dict:
+        """Toda la conversación del canal en texto plano, para que el coach la descargue (Acciones rápidas)."""
+        from zoneinfo import ZoneInfo
+
+        if not es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Solo para el equipo.")
+        ar, utc = ZoneInfo("America/Argentina/Buenos_Aires"), ZoneInfo("UTC")
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            cid = canal.id
+            lista = list(MensajeCanal.select_by_sql(
+                f'SELECT * FROM "{DB_SCHEMA}"."mensajes_canal" WHERE canal = $cid AND NOT borrado ORDER BY creado_en, id'
+            ))
+            autores = _Autores()
+            adjuntos = _adjuntos_de([m.id for m in lista])
+            lineas = []
+            for m in lista:
+                autor = _autor(m, autores)
+                cuando = m.creado_en.replace(tzinfo=utc).astimezone(ar).strftime("%d/%m/%Y %H:%M")
+                quien = autor["nombre"] + (" (ATV)" if autor.get("tipo") == "equipo" else "")
+                partes = [m.texto.strip()] if (m.texto or "").strip() else []
+                partes += [f"[adjunto: {a.get('nombre') or 'archivo'}]" for a in adjuntos.get(m.id, [])]
+                lineas.append(f"[{cuando}] {quien}: " + "\n".join(partes))
+            nombre = canal.nombre or f"canal-{cid}"
+        cabecera = f"Conversación: {nombre}\nMensajes: {len(lineas)}\n\n"
+        return {"nombre": nombre, "texto": cabecera + "\n\n".join(lineas) + "\n"}
+
     def _lecturas(self, canal: Canal) -> dict:
         """Hasta dónde leyó el cliente y hasta dónde leyó alguien del equipo (para el "visto")."""
         cid = canal.id

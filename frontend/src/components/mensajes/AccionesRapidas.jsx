@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { borrarAccion, crearAccion, editarAccion, fetchAcciones } from '../../api/acciones'
-import { enviarMensaje } from '../../api/mensajes'
+import { enviarMensaje, fetchTextoCanal } from '../../api/mensajes'
 
 const ESPERA = 4 // segundos para deshacer antes de que salga el mensaje
 
@@ -120,6 +120,27 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
   const [pendiente, setPendiente] = useState(null) // { clave, nombre, texto, canalId, queda }
   const [hecho, setHecho] = useState(null)
   const [error, setError] = useState('')
+  const [bajando, setBajando] = useState(false)
+
+  async function descargarTexto() {
+    setBajando(true)
+    setError('')
+    try {
+      const { nombre, texto } = await fetchTextoCanal(canalId)
+      const url = URL.createObjectURL(new Blob([texto], { type: 'text/plain;charset=utf-8' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${(nombre || cliente || 'chat').replace(/[\\/:*?"<>|]+/g, '-').trim()}.txt`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (err) {
+      setError(err.message || 'No se pudo descargar el chat')
+    } finally {
+      setBajando(false)
+    }
+  }
 
   useEffect(() => {
     fetchAcciones()
@@ -229,6 +250,12 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
               </button>
             </li>
           ) : null}
+          <li className="msj-accion is-fija is-contexto">
+            <button type="button" className="msj-accion__boton" onClick={descargarTexto} disabled={bajando} title="Baja toda la conversación de este chat en un .txt">
+              <span>Descargar texto</span>
+              <em>{bajando ? 'Bajando…' : '.txt'}</em>
+            </button>
+          </li>
           {acciones.map((a) => fila(`a${a.id}`, a))}
           {sugeridas.map((s, i) => fila(`s${i}`, s, { sugerida: true }))}
       </ul>

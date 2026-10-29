@@ -137,6 +137,11 @@ def mensajes(
     return service.mensajes(sesion, canal_id, antes_de=antes_de, despues_de=despues_de)
 
 
+@router.get("/canales/{canal_id}/texto")
+def texto_completo(canal_id: int, sesion: dict = Depends(sesion_mensajes)):
+    return service.texto_completo(sesion, canal_id)
+
+
 class CanalEdicion(BaseModel):
     nombre: str | None = Field(default=None, min_length=1, max_length=60)
     descripcion: str | None = Field(default=None, max_length=300)

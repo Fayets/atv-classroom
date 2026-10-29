@@ -24,6 +24,11 @@ export function abrirDirecto(adminId) {
   return request('/api/mensajes/directos', { method: 'POST', body: JSON.stringify({ admin_id: adminId }) })
 }
 
+// Toda la conversación en texto plano (solo equipo), para descargarla como .txt.
+export function fetchTextoCanal(canalId) {
+  return request(`/api/mensajes/canales/${canalId}/texto`)
+}
+
 export function fetchCanales() {
   return request('/api/mensajes/canales')
 }
