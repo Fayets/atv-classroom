@@ -575,7 +575,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       const respuestaA = respondiendo ? { id: respondiendo.id, autor_nombre: respondiendo.autor.nombre, texto: respondiendo.texto } : null
       setPendientes((p) => [
         ...p,
-        { id, texto: '🎙️ Nota de voz…', autor: { tipo: 'cliente', id: user.usuario_id, nombre: user.nombre, foto_url: user.foto_url }, respuesta_a: respuestaA, adjuntos: [], creado_en: new Date().toISOString(), enviando: true },
+        { id, texto: '🎙️ Nota de voz…', autor: { tipo: isEquipo ? 'equipo' : 'cliente', id: user.usuario_id, nombre: user.nombre, foto_url: user.foto_url }, respuesta_a: respuestaA, adjuntos: [], creado_en: new Date().toISOString(), enviando: true },
       ])
       setRespondiendo(null)
       pegadoAbajo.current = true
@@ -588,7 +588,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
         setPendientes((p) => p.map((x) => (x.id === id ? { ...x, enviando: false, fallo: err.message || 'No se envió la nota de voz' } : x)))
       }
     },
-    [canalId, respondiendo, user],
+    [canalId, respondiendo, user, isEquipo],
   )
 
   function reintentar(p) {
