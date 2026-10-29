@@ -152,6 +152,13 @@ _AGENDA = re.compile(r"reuni|llamad|horario|agend|reprogram|posterg|almuerzo|a l
 _REUNION = re.compile(r"reuni|llamad|horario|agend|reprogram|posterg|meet\.google|zoom\.us|calendly", re.I)
 # El extractor escribe "se compromete" cuando la promesa es del cliente y no un pedido a ATV.
 _PROMETE = re.compile(r"\bse compromet|\bva a (mandar|enviar|pasar)|\bmandar[aá]\b|\benviar[aá]\b", re.I)
+# En #wins un mensaje del cliente es logro si habla de plata o de un resultado (o trae captura);
+# "felicitaciones crack" no.
+_RESULTADO = re.compile(
+    r"\$\s?\d|\d[\d.,]*\s?(k|mil|usd|us\$|d[oó]lares|euros|€|m)\b|\bfactur|\bvend[ií]|\bventas?\b|\bcerr[eé]|"
+    r"\bcash\b|\bingres|r[eé]cord|\bclientes? nuev|\bseguidores\b|\bprimer (cierre|cliente|venta)",
+    re.I,
+)
 _SEMANA = {"lunes": 0, "martes": 1, "miercoles": 2, "jueves": 3, "viernes": 4, "sabado": 5, "domingo": 6}
 _NUMEROS = {"un": 1, "una": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5}
 _VACIAS = set("que con para por una uno los las del sus como pero mas este esta esto eso ese sobre entre hacer tiene cliente equipo pide quiere".split())
@@ -265,6 +272,32 @@ def _nombres_equipo() -> dict[int, str]:
     return {a.id: (a.nombre or a.email).split()[0] if (a.nombre or a.email) else "Equipo" for a in list(Admin.select())}
 
 
+def _wins_de(cliente_id: int, desde: datetime) -> list[dict]:
+    """Lo que el cliente contó en #wins (y #wins-personales). Lo escrito en el classroom ya trae su ficha;
+    lo traído de Discord se ata por el nombre con el que escribió en su propio chat, solo si ese nombre
+    no aparece en el chat de otro cliente."""
+    canales = [c.id for c in Canal.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."canales" WHERE tipo IN (\'grupo\', \'anuncios\')') if "wins" in (c.nombre or "").lower()]
+    if not canales:
+        return []
+    nombres = list(db.select(
+        f'SELECT m.autor_nombre FROM "{DB_SCHEMA}"."mensajes_canal" m JOIN "{DB_SCHEMA}"."canales" c ON c.id = m.canal '
+        f"WHERE c.tipo = 'cliente' AND m.autor_tipo = 'cliente' AND m.autor_nombre IS NOT NULL AND m.autor_nombre <> '' "
+        "GROUP BY m.autor_nombre HAVING count(DISTINCT c.cliente_id) = 1 AND min(c.cliente_id) = $cliente_id"
+    ))
+    lista = ",".join(str(i) for i in canales)
+    filas = db.select(
+        f'SELECT m.id, m.texto, m.creado_en, EXISTS (SELECT 1 FROM "{DB_SCHEMA}"."adjuntos" a WHERE a.mensaje_id = m.id AND a.tipo_mime LIKE \'image/%\') '
+        f'FROM "{DB_SCHEMA}"."mensajes_canal" m WHERE m.canal IN ({lista}) AND m.autor_tipo = \'cliente\' AND NOT m.borrado AND m.creado_en >= $desde '
+        "AND (m.autor_id = $cliente_id OR (m.autor_id = 0 AND m.autor_nombre = ANY($nombres))) ORDER BY m.creado_en"
+    )
+    return [
+        {"id": i, "texto": t or "", "creado_en": cuando, "imagen": bool(img)}
+        for i, t, cuando, img in filas
+        # Con una cifra: "más tráfico = más ventas" es charla, "345k/mes" es un win.
+        if img or (_RESULTADO.search(t or "") and re.search(r"\d", t or ""))
+    ]
+
+
 def _paso_hecho_en(p: dict) -> date | None:
     try:
         return _dia(datetime.fromisoformat(str(p.get("hecho_en")).replace("Z", "+00:00")))
@@ -291,7 +324,7 @@ def armar(cliente_id: int, llamar=_llamar, ahora: datetime | None = None) -> dic
         hechos = list(HechoCerebro.select_by_sql(
             f'SELECT * FROM "{DB_SCHEMA}"."cerebro_hechos" WHERE cliente_id = $cliente_id AND dicho_en >= $desde ORDER BY dicho_en'
         ))
-        riesgo_msgs, dias_cliente, ultimo_cliente, del_equipo, migracion = [], set(), None, [], None
+        riesgo_msgs, dias_cliente, ultimo_cliente, del_equipo, migracion, wins = [], set(), None, [], None, []
         if canal is not None:
             cid = canal.id
             for m in MensajeCanal.select_by_sql(
@@ -310,6 +343,7 @@ def armar(cliente_id: int, llamar=_llamar, ahora: datetime | None = None) -> dic
             )
             if fila and fila[0][0] and fila[0][1]:
                 migracion = fila[0][1]
+        wins = _wins_de(cliente_id, desde)
         llamadas = sorted(_llamadas_de(cliente_id), key=lambda x: x.inicio or x.creado_en)
         llamadas_info = [(ll.id, ll.admin_id, ll.inicio or ll.creado_en, ll.duracion_min, ll.share_url or ll.url, bool(ll.puntos_json), bool((ll.transcripcion or "").strip()), ll.titulo) for ll in llamadas]
         docs = list(RoadmapDoc.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."roadmap_docs" WHERE cliente_id = $cliente_id ORDER BY fecha, id'))
@@ -399,6 +433,29 @@ def armar(cliente_id: int, llamar=_llamar, ahora: datetime | None = None) -> dic
             )
             if not resuelto and (hoy - d).days <= PEDIDOS_SIN_FECHA_DIAS:
                 compromisos.append({"clave": f"ch:{h.id}", "lado": lado, "texto": h.texto, "cita": [h.cita[:220]], "plazo": None, "desde": d, "fuente": ["chat"], "cerrable": True})
+
+    # Lo que contó en #wins: si ya estaba como logro del chat, se suma esa fuente; si no, es un logro nuevo.
+    # Varios mensajes el mismo día (un hilo contando el win) son un solo logro.
+    logros = [e for e in eventos if e["tipo"] == "logro"]
+    por_dia: OrderedDict[date, list] = OrderedDict()
+    for w in wins:
+        por_dia.setdefault(_dia(w["creado_en"]), []).append(w)
+    for d, ws in por_dia.items():
+        frases = [_frase(w["texto"], _RESULTADO) if _RESULTADO.search(w["texto"]) else (w["texto"].strip().splitlines() or ["Compartió un win"])[0] for w in ws]
+        # El título: la frase con plata, si hay; si no, la primera.
+        titulo = next((f for f in frases if re.search(r"\$|usd|€|\d\s?(k|m|mil)\b", f, re.I)), frases[0])
+        todo = " ".join(w["texto"] for w in ws)
+        igual = next((e for e in logros if abs((date.fromisoformat(e["fecha"]) - d).days) <= 14 and similitud(e["titulo"], todo) >= 0.6), None)
+        if igual is not None:
+            if "wins" not in igual["fuente"]:
+                igual["fuente"] = igual["fuente"] + ["wins"]
+                igual["cita"].append(titulo[:220])
+            continue
+        eventos.append({
+            "id": f"wi:{ws[0]['id']}", "tipo": "logro", "fecha": d.isoformat(), "momento": _iso(ws[0]["creado_en"]), "titulo": titulo[:160] or "Compartió un win",
+            "cita": [w["texto"].strip()[:400] for w in ws[:4]], "fuente": ["wins"], "riesgo": False,
+            "adjuntos": [{"tipo": "mensaje", "mensaje_id": ws[0]["id"], "etiqueta": "En #wins"}] + ([{"tipo": "imagen", "etiqueta": "Captura"}] if any(w["imagen"] for w in ws) else []),
+        })
 
     # Compromisos del roadmap vigente y de la última llamada si es posterior (el lado ya viene marcado).
     ultimo = roadmaps[-1] if roadmaps else None

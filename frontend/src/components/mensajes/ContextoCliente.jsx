@@ -27,6 +27,13 @@ const corto = (t, n = 110) => {
   return limpio.length > n ? `${limpio.slice(0, n - 1).trimEnd()}…` : limpio
 }
 const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`
+const FUENTE = { chat: 'el chat', llamada: 'una llamada', wins: '#wins' }
+// De dónde sale un logro u objeción cuando no es solo del chat: "en #wins", "chat y #wins"…
+const deDonde = (e) => {
+  const f = (e.fuente || []).filter((x) => FUENTE[x])
+  if (!f.length || (f.length === 1 && f[0] === 'chat')) return ''
+  return f.length === 1 ? ` · en ${FUENTE[f[0]]}` : ` · ${f.map((x) => (x === 'chat' ? 'chat' : x === 'llamada' ? 'llamada' : '#wins')).join(' y ')}`
+}
 
 // Un compromiso con su origen, su plazo y el botón para darlo por cumplido (los del roadmap se tildan allá).
 function Compromiso({ c, alCambiar }) {
@@ -95,7 +102,7 @@ function Tarjeta({ e, activa, alElegir, cliente }) {
         <span className="ctx-tarjeta__tipo">
           {e.tipo === 'compromiso' ? `Compromiso de ${e.lado === 'atv' ? 'ATV' : cliente}` : TIPO[e.tipo]}
           {e.tipo === 'llamada' && e.duracion ? ` · ${e.duracion} min` : ''}
-          {e.fuente?.length > 1 ? ' · chat y llamada' : ''}
+          {e.tipo === 'logro' || e.tipo === 'objecion' ? deDonde(e) : ''}
         </span>
         <b>{corto(e.titulo, 120)}</b>
         {e.tipo === 'roadmap' ? (
@@ -203,7 +210,7 @@ function Detalle({ e, cliente }) {
           ))}
         </ul>
       ) : null}
-      {e.fuente?.length > 1 ? <p className="ctx-detalle__texto">Lo dijo en el chat y en una llamada.</p> : null}
+      {e.fuente?.length > 1 ? <p className="ctx-detalle__texto">Lo contó en {e.fuente.filter((x) => FUENTE[x]).map((x) => FUENTE[x]).join(' y ')}.</p> : null}
     </div>
   )
 }

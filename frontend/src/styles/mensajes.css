@@ -218,6 +218,11 @@
 .msj-panel__datos div + div { box-shadow: inset 0 1px 0 var(--m-linea); }
 .msj-panel__datos dt { font-size: 13px; color: var(--m-t1); }
 .msj-panel__datos dd { margin: 0; font-size: 13px; color: var(--m-t3); text-align: right; text-transform: capitalize; }
+/* El timeline del cliente, pegado a su ficha */
+.msj-panel__contexto { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-top: 8px; padding: 11px 14px; border: 0; border-radius: 12px; background: var(--m-tarjeta); box-shadow: 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.1), 0 1px 2px rgba(0, 0, 0, 0.04); color: var(--m-t1); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.msj-panel__contexto:hover { background: var(--m-relleno, #fafafa); }
+.msj-panel__contexto:focus-visible { outline: 2px solid var(--m-link, #0a64d6); outline-offset: 2px; }
+.msj-panel__contexto em { font-style: normal; font-size: 12.5px; font-weight: 600; color: var(--m-link, #0a64d6); }
 .msj-panel__datos dd.is-alerta { color: var(--m-aviso); font-weight: 600; text-transform: none; }
 
 /* ---------- responsive ---------- */
