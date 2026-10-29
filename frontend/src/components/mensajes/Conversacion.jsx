@@ -547,6 +547,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     setFantasma(null)
     setPendientes((p) => [...p, provisorio])
     setTexto('')
+    // En el celular el teclado queda abierto para seguir escribiendo (antes se cerraba con cada envío).
+    caja.current?.focus()
     ultimoAvisoEscribiendo.current = 0
     setRespondiendo(null)
     pegadoAbajo.current = true
@@ -562,7 +564,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     }
   }
 
-  // Nota de voz (solo clientes): se sube y se manda sola, con el mensaje provisorio mientras tanto.
+  // Nota de voz: se sube y se manda sola, con el mensaje provisorio mientras tanto.
   const [grabando, setGrabando] = useState(false)
   const cerrarGrabacion = useCallback(() => setGrabando(false), [])
   const cerrarEmojis = useCallback(() => setVerEmojis(false), [])
@@ -1288,15 +1290,15 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 <path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01" />
               </svg>
             </button>
-            {!isEquipo && puedeGrabar() && !texto.trim() && !listos.length && !subiendo ? (
-              <button type="button" className="msj-enviar is-mic" onClick={() => setGrabando(true)} aria-label="Grabar nota de voz" title="Grabar nota de voz">
+            {puedeGrabar() && !texto.trim() && !listos.length && !subiendo ? (
+              <button type="button" className="msj-enviar is-mic" onMouseDown={(e) => e.preventDefault()} onPointerDown={(e) => e.preventDefault()} onClick={() => setGrabando(true)} aria-label="Grabar nota de voz" title="Grabar nota de voz">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <rect x="9" y="3" width="6" height="11" rx="3" />
                   <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
                 </svg>
               </button>
             ) : (
-              <button type="submit" className="msj-enviar" disabled={subiendo || (!texto.trim() && !listos.length)} aria-label={subiendo ? 'Esperá a que terminen de subir los archivos' : 'Enviar'}>
+              <button type="submit" className="msj-enviar" onMouseDown={(e) => e.preventDefault()} onPointerDown={(e) => e.preventDefault()} disabled={subiendo || (!texto.trim() && !listos.length)} aria-label={subiendo ? 'Esperá a que terminen de subir los archivos' : 'Enviar'}>
               ➤
             </button>
             )}

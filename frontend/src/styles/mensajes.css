@@ -370,6 +370,14 @@
 .msj-links { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; max-width: 520px; }
 .msj-link-video { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 12px; background: #000; box-shadow: 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.12); }
 .msj-link-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.msj-link-video.is-portada { display: block; padding: 0; border: 0; cursor: pointer; background: #1c1c1e; font: inherit; color: #fff; text-align: left; }
+.msj-link-video.is-portada img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.msj-link-video__play { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; display: grid; place-items: center; border-radius: 50%; background: rgba(0, 0, 0, 0.62); box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.85); transition: transform 0.15s ease; }
+.msj-link-video__play svg { margin-left: 3px; }
+.msj-link-video.is-portada:hover .msj-link-video__play { transform: scale(1.06); }
+.msj-link-video__pie { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 8px; align-items: baseline; padding: 22px 12px 9px; font-size: 12.5px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.66)); }
+.msj-link-video__pie b { flex: none; font-weight: 600; }
+.msj-link-video__pie span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; opacity: 0.85; }
 .msj-link-card { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--m-tarjeta, #fff); color: var(--m-t1); text-decoration: none; box-shadow: 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.12), 0 1px 2px rgba(0, 0, 0, 0.04); max-width: 420px; }
 .msj-link-card:hover { background: var(--m-relleno, #fafafa); }
 .msj-link-card__marca { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 9px; color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.02em; background: #8e8e93; }

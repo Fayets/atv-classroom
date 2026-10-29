@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { getVideoEmbedInfo } from '../../utils/video'
 
 const URL = /https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"]/g
@@ -25,6 +26,72 @@ function corto(url) {
   }
 }
 
+// Portada y título de cada video, una vez por link (el chat se vuelve a pintar seguido).
+const portadas = new Map()
+
+function servicioDeVideo(src) {
+  if (/youtube\.com/.test(src)) return 'YouTube'
+  if (/loom\.com/.test(src)) return 'Loom'
+  if (/fathom\.video/.test(src)) return 'Fathom'
+  if (/vimeo\.com/.test(src)) return 'Vimeo'
+  if (/drive\.google\.com/.test(src)) return 'Drive'
+  return 'Video'
+}
+
+function buscarPortada(url, src) {
+  if (!portadas.has(url)) {
+    const yt = src.match(/youtube\.com\/embed\/([\w-]{11})/)
+    const loom = src.match(/loom\.com\/embed\/([a-zA-Z0-9]+)/)
+    portadas.set(
+      url,
+      yt
+        ? Promise.resolve({ imagen: `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg` })
+        : loom
+          ? fetch(`https://www.loom.com/v1/oembed?url=${encodeURIComponent(`https://www.loom.com/share/${loom[1]}`)}`)
+              .then((r) => (r.ok ? r.json() : {}))
+              // La portada en jpg pesa ~20 KB; el gif animado, cientos.
+              .then((d) => ({ imagen: d.thumbnail_url?.replace(/\.gif$/, '.jpg'), titulo: d.title }))
+              .catch(() => ({}))
+          : Promise.resolve({}),
+    )
+  }
+  return portadas.get(url)
+}
+
+// El reproductor de Loom/YouTube pesa varios MB: hasta que no tocan play, solo se muestra la portada.
+function VideoEnlace({ url, src }) {
+  const [abierto, setAbierto] = useState(false)
+  const [portada, setPortada] = useState(null)
+  useEffect(() => {
+    let vivo = true
+    buscarPortada(url, src).then((p) => vivo && setPortada(p))
+    return () => {
+      vivo = false
+    }
+  }, [url, src])
+  if (abierto) {
+    const conPlay = /youtube\.com|loom\.com|vimeo\.com/.test(src) ? `${src}${src.includes('?') ? '&' : '?'}autoplay=1` : src
+    return (
+      <div className="msj-link-video is-portada">
+        {portada?.imagen && <img src={portada.imagen} alt="" />}
+        <iframe src={conPlay} title={portada?.titulo || 'Video compartido'} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
+      </div>
+    )
+  }
+  return (
+    <button type="button" className="msj-link-video is-portada" onClick={() => setAbierto(true)} aria-label={`Reproducir ${portada?.titulo || 'video'}`}>
+      {portada?.imagen && <img src={portada.imagen} alt="" loading="lazy" decoding="async" />}
+      <span className="msj-link-video__play" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z" /></svg>
+      </span>
+      <span className="msj-link-video__pie">
+        <b>{servicioDeVideo(src)}</b>
+        {portada?.titulo && <span>{portada.titulo}</span>}
+      </span>
+    </button>
+  )
+}
+
 /** Vista previa de los links del mensaje: video que se reproduce adentro o tarjeta del servicio. */
 export default function Enlaces({ texto }) {
   if (!texto) return null
@@ -33,11 +100,7 @@ export default function Enlaces({ texto }) {
   urls.forEach((url) => {
     const video = getVideoEmbedInfo(url)
     if (video?.type === 'iframe') {
-      piezas.push(
-        <div key={url} className="msj-link-video">
-          <iframe src={video.src} title="Video compartido" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
-        </div>,
-      )
+      piezas.push(<VideoEnlace key={url} url={url} src={video.src} />)
       return
     }
     const servicio = SERVICIOS.find((s) => s.re.test(url))

@@ -78,6 +78,18 @@ def test_con_la_caja_vacia_y_el_equipo_ultimo_pide_un_seguimiento():
     ctx["conversacion"].append({"de": "cliente", "texto": "una duda, cuándo arrancamos con el setter?"})
     _, usuario = sg.armar_prompt("Franco", ctx, "", None)
     assert "solo agradeció" not in usuario and "después de la última respuesta del equipo ---" in usuario
+    # Con preguntas, contesta con postura; quien manda varios mensajes seguidos puede partirlo en renglones.
+    assert "postura concreta" in usuario and "renglones" not in usuario
+    ctx["voz"] = {"rasgos": {"palabras_promedio": 10, "varios_seguidos_pct": 74}}
+    _, usuario = sg.armar_prompt("Juan", ctx, "", None)
+    assert "2 o 3 renglones" in usuario and "hasta 30 palabras" in usuario
+
+
+def test_los_carteles_de_discord_no_son_la_voz_de_nadie():
+    from src.services.aprendizaje_service import _sin_relleno
+
+    assert _sin_relleno("📎 0074-fernando.pdf (archivo de Discord que no quedó guardado)") == ""
+    assert _sin_relleno("🎙️ Audio de Discord (no quedó guardado)\nmirá esto") == "mirá esto"
 
 
 def test_cada_uno_lleva_solo_sus_emojis():

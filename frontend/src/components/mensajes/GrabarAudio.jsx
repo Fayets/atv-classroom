@@ -13,7 +13,6 @@ const reloj = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 export const puedeGrabar = () => typeof window !== 'undefined' && Boolean(window.MediaRecorder && navigator.mediaDevices?.getUserMedia)
 
 // Nota de voz como en WhatsApp: se graba, se ve el tiempo, y se cancela o se manda.
-// Solo para clientes (el equipo responde escribiendo).
 export default function GrabarAudio({ onMandar, onCerrar }) {
   const [segundos, setSegundos] = useState(0)
   const [error, setError] = useState('')

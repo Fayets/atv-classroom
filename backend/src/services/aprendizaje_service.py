@@ -584,6 +584,14 @@ def correcciones_de(admin_id: int, limite: int = 60) -> list[dict]:
         return [{"propuesto": _propuesto(f), "enviado": f.enviado, "cambio": f.cambio_pct or 0} for f in filas]
 
 
+# Carteles que dejó la migración de Discord en lugar de archivos y audios: no son forma de escribir de nadie.
+RELLENO = re.compile(r"^\s*(?:📎|🎙️?).*(?:Discord|no quedó guardad).*$", re.M)
+
+
+def _sin_relleno(texto: str) -> str:
+    return RELLENO.sub("", texto or "").strip()
+
+
 def actualizar_voces() -> int:
     """Rasgos y mensajes de ejemplo de cada persona del equipo que escribió a clientes
     (incluye el historial traído de Discord de quienes tienen cuenta)."""
@@ -600,10 +608,10 @@ def actualizar_voces() -> int:
                 corregidas[f.admin_id].append((_propuesto(f), f.enviado))
         for admin_id, ms in por_admin.items():
             ms.sort(key=lambda m: (m.creado_en, m.id))
-            recientes = ms[-1500:]
-            textos = [m.texto for m in recientes]
+            recientes = [m for m in ms[-1500:] if _sin_relleno(m.texto)]
+            textos = [_sin_relleno(m.texto) for m in recientes]
             # Ejemplos: los más recientes con contenido real, variados en largo (cortos, medios y largos).
-            utiles = [m for m in reversed(recientes) if len(m.texto.split()) >= 4 and not re.fullmatch(r"\s*https?://\S+\s*", m.texto) and "Discord (no quedó" not in m.texto]
+            utiles = [m for m in reversed(recientes) if len(m.texto.split()) >= 4 and not re.fullmatch(r"\s*https?://\S+\s*", m.texto) and not RELLENO.search(m.texto)]
             cortos = [m.id for m in utiles if len(m.texto.split()) <= 12][:8]
             medios = [m.id for m in utiles if 12 < len(m.texto.split()) <= 40][:10]
             largos = [m.id for m in utiles if len(m.texto.split()) > 40][:6]

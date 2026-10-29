@@ -328,6 +328,17 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
             "Todavía no escribió nada. Devolvé la respuesta que mandaría ahora a lo que el cliente escribió después "
             f"de la última respuesta del equipo, de hasta {largo} palabras (menos si alcanza)."
         )
+        # Ante varias preguntas el tope del promedio lo dejaba sin decir nada ("leí todo… lo vemos hoy?").
+        if "?" in " ".join(m.get("texto") or "" for m in sin_responder):
+            seguidos = ((voz.get("rasgos") or {}).get("varios_seguidos_pct") or 0) >= 50
+            tarea = (
+                "Todavía no escribió nada. El cliente hizo preguntas después de la última respuesta del equipo: "
+                f"contestá la más importante con una postura concreta, como la daría {nombre} (qué hacer, qué no, o en qué orden). "
+                "No le devuelvas la pregunta ni propongas verlo más tarde, y no abras con algo que solo acuse recibo "
+                "(\"leí todo\", \"uff\", \"buenísimo\"). "
+                + (f"Podés partirlo en 2 o 3 renglones cortos, uno debajo del otro, como manda {nombre} varios mensajes seguidos; "
+                   f"en total hasta {largo * 3} palabras." if seguidos else f"Hasta {largo * 2} palabras.")
+            )
     tarea += f"\nEscribís vos, {nombre}, del lado del EQUIPO y para el cliente: nunca escribas como el cliente ni le hables a otra persona del equipo."
     cliente = (ctx.get("cliente_nombre") or "").split()
     tarea += (
