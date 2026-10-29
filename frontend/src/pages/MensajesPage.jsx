@@ -66,13 +66,11 @@ function recorte(texto, largo) {
 function ordenarBandeja(lista) {
   const anuncios = lista.filter((c) => c.tipo === 'anuncios' || c.tipo === 'grupo')
   const directos = lista.filter((c) => ['directo', 'privado', 'dm'].includes(c.tipo)).sort((a, b) => comparar(fechaUltimo(b), fechaUltimo(a)))
-  const esperando = lista
-    .filter((c) => c.tipo === 'cliente' && c.esperando_desde)
-    .sort((a, b) => comparar(a.esperando_desde, b.esperando_desde))
-  const resto = lista
-    .filter((c) => c.tipo === 'cliente' && !c.esperando_desde)
-    .sort((a, b) => comparar(fechaUltimo(b), fechaUltimo(a)) || comparar(a.nombre.toLowerCase(), b.nombre.toLowerCase()))
-  return [...anuncios, ...directos, ...esperando, ...resto]
+  // Los clientes, de la A a la Z dentro de cada grupo: lo que espera respuesta se ve por el punto, no por el orden.
+  const clientes = lista
+    .filter((c) => c.tipo === 'cliente')
+    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }))
+  return [...anuncios, ...directos, ...clientes]
 }
 
 // Un mensaje nuevo cambia su fila (último mensaje, sin leer, si espera respuesta) y el orden: se
