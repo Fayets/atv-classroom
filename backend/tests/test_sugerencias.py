@@ -185,8 +185,17 @@ def test_las_reglas_entran_en_el_pedido_y_el_entendimiento_no_gasta_ia():
 
     ctx = {"conversacion": [{"de": "cliente", "texto": "cómo arranco con los ads?"}], "reglas": ["No uses 'me dices'."],
            "voz": {"rasgos": {"todo_minuscula_pct": 72, "palabras_promedio": 10, "varios_seguidos_pct": 74}, "ejemplos": ["a", "b"]}}
-    _, usuario = sg.armar_prompt("Juan", ctx, "", None)
-    assert "Reglas que Juan te dio" in usuario and "No uses 'me dices'." in usuario
+    sistema, usuario = sg.armar_prompt("Juan", ctx, "", None)
+    assert "REGLAS QUE JUAN TE DIO" in sistema and "No uses 'me dices'." in sistema and "Hoy es " in sistema
+    assert "revisá que cumpla TODAS las reglas" in usuario
     e = sg.entendimiento(ctx, "", reglas=1)
     assert e["modo"] == "preguntas" and e["voz"]["seguidos"] and e["voz"]["reglas"] == 1 and e["voz"]["ejemplos"] == 2
     assert sg.entendimiento(ctx, "dale")["modo"] == "completa"
+
+
+def test_la_fecha_dice_el_dia_de_la_semana():
+    from datetime import datetime
+
+    from src.services import sugerencias_service as sg
+
+    assert sg.hoy_argentina(datetime(2026, 10, 29, 16, 6)) == "jueves 29/10/2026, 16:06"

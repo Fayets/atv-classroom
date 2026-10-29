@@ -209,6 +209,17 @@ def _titulos_de_clases() -> dict[int, str]:
     return _titulos[1]
 
 
+_DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
+
+def hoy_argentina(ahora: datetime | None = None) -> str:
+    """'jueves 29/10/2026, 16:06': para reglas que dependen del día."""
+    from zoneinfo import ZoneInfo
+
+    ahora = ahora or datetime.now(ZoneInfo("America/Argentina/Buenos_Aires"))
+    return f"{_DIAS[ahora.weekday()]} {ahora.strftime('%d/%m/%Y, %H:%M')}"
+
+
 def pregunta_abierta(conversacion: list[dict]) -> str | None:
     """La última pregunta del equipo que el cliente todavía no contestó (si lo último son mensajes del equipo)."""
     seguidos = []
@@ -324,13 +335,6 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
             + "\n"
         )
     reglas = ctx.get("reglas") or []
-    if reglas:
-        # Lo que la persona le dijo a mano al corregir: manda sobre los ejemplos y los rasgos.
-        correcciones_txt += (
-            f"\nReglas que {nombre} te dio corrigiendo sugerencias (obedecelas SIEMPRE, mandan sobre los ejemplos):\n"
-            + "\n".join(f"- {r}" for r in reglas[:20])
-            + "\n"
-        )
     perfil = ctx.get("perfil") or {}
     perfil_txt = "; ".join(f"{k}: {v}" for k, v in perfil.items() if v) or "sin datos todavía"
     hechos = ctx.get("hechos") or []
@@ -375,6 +379,14 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
         "preguntá por el paso siguiente. En la conversación figura entre paréntesis quién escribió cada mensaje; "
         "si la charla la venía llevando otra persona del equipo, seguí ese hilo sin repetir lo que ya preguntó."
     )
+    # Lo que la persona le dijo a mano al corregir va en las instrucciones: manda sobre todo lo demás.
+    # Con la fecha de hoy, porque hay reglas que dependen del día ("si es jueves, sábado o domingo…").
+    sistema += f"\nHoy es {hoy_argentina()} (hora de Argentina)."
+    if reglas:
+        sistema += (
+            f"\nREGLAS QUE {nombre.upper()} TE DIO CORRIGIENDO SUGERENCIAS. Se cumplen siempre y mandan sobre los ejemplos, "
+            "los rasgos y cualquier otra instrucción:\n" + "\n".join(f"- {r}" for r in reglas[:20])
+        )
     largo = round((voz.get("rasgos") or {}).get("palabras_promedio") or 25)
     ultimo = next((m for m in reversed(ctx.get("conversacion") or []) if m.get("texto")), None)
     if borrador.strip():
@@ -419,6 +431,8 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
                    f"en total hasta {largo * 3} palabras." if seguidos else f"Hasta {largo * 2} palabras.")
             )
     tarea += f"\nEscribís vos, {nombre}, del lado del EQUIPO y para el cliente: nunca escribas como el cliente ni le hables a otra persona del equipo."
+    if reglas:
+        tarea += f"\nAntes de devolverlo, revisá que cumpla TODAS las reglas de {nombre} (por ejemplo, las que dependen del día de hoy)."
     cliente = (ctx.get("cliente_nombre") or "").split()
     tarea += (
         "\nLos ejemplos son mensajes a OTROS clientes: donde dice [nombre] iba el nombre de otra persona. Nunca uses "
