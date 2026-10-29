@@ -1,0 +1,200 @@
+/* Modo azul (azul pizarra, elegido por Franco en la maqueta del 28-10-2026). Se activa con
+   <html data-modo="azul"> (ver utils/modo.js) y le gana al tema claro por especificidad.
+   Los colores fijos de Mensajes, Cuenta y los paneles del chat son variables --m-* con el valor claro
+   de respaldo: acá solo se redefinen. Mismos colores que la maqueta. */
+
+html[data-modo="azul"],
+html[data-modo="azul"] .msj-root {
+  color-scheme: dark;
+  --m-bg: #26324a;
+  --m-lateral: #202b41;
+  --m-panel: #2b3852;
+  --m-tarjeta: #2f3d5a;
+  --m-relleno: #344463;
+  --m-borde: #46567a;
+  --m-linea: rgba(255, 255, 255, 0.09);
+  --m-linea2: rgba(255, 255, 255, 0.16);
+  --m-t1: #eef2f8;
+  --m-t2: #c3ccda;
+  --m-t3: #97a3b7;
+  --m-t4: #7d8aa0;
+  --m-acento: #ec6457;
+  --m-acento-suave: rgba(236, 100, 87, 0.16);
+  --m-ok: #3dbb7a;
+  --m-aviso: #e0a24a;
+  --m-campo: rgba(255, 255, 255, 0.07);
+  --m-link: #9cc2ff;
+  --m-osc: 255, 255, 255;
+  --m-vidrio: rgba(43, 56, 82, 0.97);
+}
+
+html[data-modo="azul"]:root {
+  --bg: #26324a;
+  --surface: #2f3d5a;
+  --border: rgba(255, 255, 255, 0.1);
+  --text: #eef2f8;
+  --text-muted: #97a3b7;
+  --accent: #ec6457;
+  --accent-hover: #f07a6e;
+  --progress: #3dbb7a;
+  --error: #ec6457;
+}
+html[data-modo="azul"] body,
+html[data-modo="azul"] .app-shell { background: #26324a; color: #eef2f8; }
+html[data-modo="azul"] .app-shell { scrollbar-color: rgba(255, 255, 255, 0.22) transparent; }
+
+/* Inicio, material, clases y roadmap: los tokens --pc-* */
+html[data-modo="azul"] .im-root {
+  --pc-bg: #26324a;
+  --pc-s1: #2b3852;
+  --pc-s2: #2f3d5a;
+  --pc-s3: #344463;
+  --pc-line: rgba(255, 255, 255, 0.09);
+  --pc-line2: rgba(255, 255, 255, 0.16);
+  --pc-t1: #eef2f8;
+  --pc-t2: #c3ccda;
+  --pc-t3: #97a3b7;
+  --pc-t4: #7d8aa0;
+  --pc-red: #ec6457;
+  --pc-red2: #f07a6e;
+  --pc-red-soft: rgba(236, 100, 87, 0.16);
+  --pc-ok: #3dbb7a;
+  background: #26324a;
+}
+html[data-modo="azul"] .im-root ::selection { background: rgba(236, 100, 87, 0.35); color: #fff; }
+
+/* Encabezado y menú del avatar */
+html[data-modo="azul"] .app-header { background: #202b41; border-bottom-color: rgba(255, 255, 255, 0.08); box-shadow: none; }
+html[data-modo="azul"] .app-header__nav { background: rgba(255, 255, 255, 0.07); box-shadow: none; }
+html[data-modo="azul"] .app-header__navlink,
+html[data-modo="azul"] .app-header__mensajes { color: #c3ccda; }
+html[data-modo="azul"] .app-header__navlink:hover,
+html[data-modo="azul"] .app-header__mensajes:hover { color: #eef2f8; }
+html[data-modo="azul"] .app-header__navlink.is-active,
+html[data-modo="azul"] .app-header__mensajes.is-on { background: #344463; color: #eef2f8; box-shadow: none; }
+html[data-modo="azul"] .app-header__avatar { color: #eef2f8; background: #344463; border-color: transparent; }
+html[data-modo="azul"] .app-header__menu { background: rgba(43, 56, 82, 0.98); border-color: transparent; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 16px 40px -8px rgba(0, 0, 0, 0.5); }
+html[data-modo="azul"] .app-header__menu-name { color: #eef2f8; }
+html[data-modo="azul"] .app-header__menu-email,
+html[data-modo="azul"] .app-header__menu-link,
+html[data-modo="azul"] .app-header__menu-logout { color: #c3ccda; }
+html[data-modo="azul"] .app-header__menu-link:hover,
+html[data-modo="azul"] .app-header__menu-logout:hover { background: rgba(255, 255, 255, 0.06); }
+
+/* Botones y controles */
+html[data-modo="azul"] .pc-btn--light { background: #eef2f8; color: #202b41; }
+html[data-modo="azul"] .pc-btn--light:hover:not(:disabled) { background: #fff; }
+html[data-modo="azul"] .pc-btn--ghost { background: #2f3d5a; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); color: #eef2f8; }
+html[data-modo="azul"] .pc-btn--ghost:hover:not(:disabled) { background: #344463; }
+html[data-modo="azul"] .pc-check { border-color: #46567a; }
+html[data-modo="azul"] .pc-tag--pdf { color: #f07a6e; }
+html[data-modo="azul"] .pc-tag--miro { background: rgba(224, 162, 74, 0.18); color: #f0c27c; }
+html[data-modo="azul"] .pc-complete:not(.is-done):hover,
+html[data-modo="azul"] .ms-implementar:not(.is-done):hover:not(:disabled),
+html[data-modo="azul"] .mt-nav__btn--next:hover .mt-nav__ico { background: #f07a6e; }
+
+/* Inicio: guía, recomendaciones y frentes */
+html[data-modo="azul"] .im-ask__form { background: #2f3d5a; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 8px 30px -18px rgba(0, 0, 0, 0.5); }
+html[data-modo="azul"] .im-ask__hints button:hover,
+html[data-modo="azul"] .im-chatbar__new:hover:not(:disabled),
+html[data-modo="azul"] .im-open__x:hover,
+html[data-modo="azul"] .im-sol__areas label:not(.is-on):hover { background: rgba(255, 255, 255, 0.06); }
+html[data-modo="azul"] .im-route { background: linear-gradient(140deg, rgba(236, 100, 87, 0.16), rgba(236, 100, 87, 0.03) 55%), #2f3d5a; box-shadow: inset 0 0 0 1px rgba(236, 100, 87, 0.35); }
+html[data-modo="azul"] .im-route--coach { background: #2b3852; }
+html[data-modo="azul"] .im-rec,
+html[data-modo="azul"] .im-route__steps li { background: #2f3d5a; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09); }
+html[data-modo="azul"] .im-burbuja,
+html[data-modo="azul"] .im-user { background: #344463; }
+html[data-modo="azul"] .im-open__row:hover { background: rgba(255, 255, 255, 0.03); }
+html[data-modo="azul"] .im-steps__s i { background: rgba(255, 255, 255, 0.1); }
+html[data-modo="azul"] .im-error { color: #f07a6e; }
+html[data-modo="azul"] .im-sol__field input,
+html[data-modo="azul"] .im-sol__field textarea { background: #2f3d5a; color: #eef2f8; }
+
+/* Material y clases */
+html[data-modo="azul"] .mt-card { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09), 0 8px 24px -16px rgba(0, 0, 0, 0.5); }
+html[data-modo="azul"] .mt-bar,
+html[data-modo="azul"] .ms-seg { background: rgba(255, 255, 255, 0.1); }
+html[data-modo="azul"] .ms-indice__fondo { background: rgba(0, 0, 0, 0.45); }
+html[data-modo="azul"] .ms-indice__panel { background: rgba(43, 56, 82, 0.98); }
+html[data-modo="azul"] .ms-indice__item:hover,
+html[data-modo="azul"] .ms-indice__item:focus-visible,
+html[data-modo="azul"] .ms-claves label:not(.is-done):hover { background: rgba(255, 255, 255, 0.05); }
+html[data-modo="azul"] .ms-claves label.is-done { background: rgba(61, 187, 122, 0.12); }
+html[data-modo="azul"] .ms-claves label.is-done span { text-decoration-color: rgba(255, 255, 255, 0.35); }
+html[data-modo="azul"] .mt-nav__btn--prev,
+html[data-modo="azul"] .mt-nav__btn { color: #c3ccda; }
+html[data-modo="azul"] .mt-nav__btn--prev:hover,
+html[data-modo="azul"] .mt-nav__ico { background: #344463; }
+html[data-modo="azul"] .mt-nav__btn--next { background: linear-gradient(120deg, rgba(236, 100, 87, 0.18), rgba(236, 100, 87, 0.04) 70%), #2f3d5a; }
+html[data-modo="azul"] .mt-nav__btn--next .mt-nav__txt small { color: #f07a6e; }
+
+/* Mensajes: los avisos amarillos claros y el estado */
+html[data-modo="azul"] .msj-avisos { background: #3a3a2c; border-bottom-color: rgba(224, 162, 74, 0.35); }
+html[data-modo="azul"] .msj-mencion { background: rgba(110, 165, 255, 0.18); }
+html[data-modo="azul"] .msj-m.is-mencion { background: rgba(255, 196, 0, 0.08); }
+html[data-modo="azul"] .msj-m.is-par { background: rgba(255, 255, 255, 0.03); }
+html[data-modo="azul"] .msj-m:hover { background: rgba(255, 255, 255, 0.04); }
+
+/* Panel de admin y equipo */
+html[data-modo="azul"] .admin-input,
+html[data-modo="azul"] .admin-block { background: #2f3d5a; color: #eef2f8; }
+html[data-modo="azul"] .admin-btn--ghost { background: #2f3d5a; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); color: #eef2f8; }
+html[data-modo="azul"] .admin-list__item:hover { background: rgba(255, 255, 255, 0.05); }
+html[data-modo="azul"] .eq-avatar--ini { background: #344463; color: #c3ccda; }
+
+/* Encabezado del cliente (paleta hueso del rediseño A) */
+html[data-modo="azul"] .app-header.app-header--cliente { background: #202b41; border-bottom-color: rgba(255, 255, 255, 0.08); }
+html[data-modo="azul"] .app-header__logo-img { color: #eef2f8; }
+html[data-modo="azul"] .app-header__rotulo { color: #97a3b7; }
+html[data-modo="azul"] .cliente-nav a { color: #c3ccda; }
+html[data-modo="azul"] .cliente-nav a:hover { background: rgba(255, 255, 255, 0.07); color: #eef2f8; }
+html[data-modo="azul"] .cliente-nav a.is-on { background: #eef2f8; color: #202b41; }
+html[data-modo="azul"] .app-header--cliente .app-header__avatar { background: #344463; color: #eef2f8; }
+html[data-modo="azul"] .cliente-tabs { background: #202b41; border-top-color: rgba(255, 255, 255, 0.09); }
+html[data-modo="azul"] .cliente-tabs a { color: #7d8aa0; }
+html[data-modo="azul"] .cliente-tabs a.is-on { color: #eef2f8; }
+html[data-modo="azul"] .trabado { background: #26324a; color: #eef2f8; }
+
+/* Inicio: tarjetas de hoy, guía, barras */
+html[data-modo="azul"] .im-paso,
+html[data-modo="azul"] .im-seguir,
+html[data-modo="azul"] .im-chat-ult,
+html[data-modo="azul"] .im-acceso { background: #2f3d5a; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09); }
+html[data-modo="azul"] .im-paso__coach i { background: #344463; color: #eef2f8; }
+html[data-modo="azul"] .im-barra { background: rgba(255, 255, 255, 0.12); }
+html[data-modo="azul"] .im-barra i { background: #ec6457; }
+html[data-modo="azul"] .im-barra.is-oscura i { background: #eef2f8; }
+html[data-modo="azul"] .im-ask__ir { background: #eef2f8; color: #202b41; }
+html[data-modo="azul"] .im-root .im-ask__hints button { background: #2f3d5a; }
+@media (hover: hover) and (pointer: fine) {
+  html[data-modo="azul"] .im-paso:hover,
+  html[data-modo="azul"] .im-seguir:hover,
+  html[data-modo="azul"] .im-chat-ult:hover,
+  html[data-modo="azul"] .im-acceso:hover { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 14px 30px -20px rgba(0, 0, 0, 0.6); }
+}
+html[data-modo="azul"] .pc-btn--light:hover:not(:disabled) { background: #fff; }
+
+/* Material: tapas de SOPs y portadas */
+html[data-modo="azul"] .mt-card__cover { background: #2b3852; }
+html[data-modo="azul"] .mt-tapa.is-roja.is-on { outline-color: #eef2f8; }
+
+/* Roadmap: sus tokens y lo fijo */
+html[data-modo="azul"] .rm-root { --rm-bg: #26324a; --rm-panel: #202b41; --rm-card: #2f3d5a; --rm-t1: #eef2f8; --rm-t2: #97a3b7; --rm-t3: #7d8aa0; --rm-linea: rgba(255, 255, 255, 0.09); --rm-rojo: #ec6457; }
+html[data-modo="azul"] .rm-cara--ini { background: #344463; color: #c3ccda; }
+html[data-modo="azul"] .rm-ahora { background: rgba(236, 100, 87, 0.12); }
+html[data-modo="azul"] .rm-lienzo,
+html[data-modo="azul"] .rm-root [class*="rm-lienzo"] { background-color: #232e45; background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px); }
+html[data-modo="azul"] .rm-flechas { color: #7d8aa0; }
+html[data-modo="azul"] .rm-hoja { background: #344463; }
+html[data-modo="azul"] .rm-hoja::after,
+html[data-modo="azul"] .rm-hoja i { background: #46567a; }
+html[data-modo="azul"] .rm-zoom,
+html[data-modo="azul"] .rm-ficha dl,
+html[data-modo="azul"] .rm-pasos,
+html[data-modo="azul"] .rm-boton.is-suave { background: #2f3d5a; }
+
+/* Mensajes: barra de la conversación y botones oscuros que en azul pasan a claros */
+html[data-modo="azul"] .msj-conv__barra { background: #26324a; }
+html[data-modo="azul"] .msj-avisos button,
+html[data-modo="azul"] .ctx-filtros button.is-on { color: #202b41; }

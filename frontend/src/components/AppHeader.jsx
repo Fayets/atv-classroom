@@ -7,6 +7,7 @@ import { useMensajeria } from '../context/MensajeriaContext'
 import '../styles/mensajes.css'
 import { getUserInitials } from '../utils/user'
 import Isotipo from './marca/Isotipo'
+import { elegirModo, modoActual } from '../utils/modo'
 
 
 const PLANES = { advantage: 'High Level', high: 'High Level', boost: 'Boost', mid: 'Mid level', entry: 'Entry level', mentoria: 'Mentoria', '2k': '2K' }
@@ -25,6 +26,11 @@ export default function AppHeader() {
   useLocation()
   const hayAtras = (window.history.state?.idx ?? 0) > 0
   const [menuOpen, setMenuOpen] = useState(false)
+  const [modo, setModo] = useState(modoActual)
+  const cambiarModo = (m) => {
+    elegirModo(m)
+    setModo(m)
+  }
   const menuRef = useRef(null)
   const initials = getUserInitials(user?.nombre)
 
@@ -229,6 +235,16 @@ export default function AppHeader() {
               </div>
             ) : null}
             <div className="app-header__menu-sep" />
+            <div className="app-header__modo" role="group" aria-label="Modo de color">
+              <span>Modo</span>
+              <div>
+                {['claro', 'azul'].map((m) => (
+                  <button key={m} type="button" className={modo === m ? 'is-on' : ''} aria-pressed={modo === m} onClick={() => cambiarModo(m)}>
+                    {m === 'claro' ? 'Claro' : 'Azul'}
+                  </button>
+                ))}
+              </div>
+            </div>
             <Link to="/cuenta" className="app-header__menu-link" role="menuitem" onClick={() => setMenuOpen(false)}>
               Mi cuenta
             </Link>

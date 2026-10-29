@@ -1082,3 +1082,9 @@ html { -webkit-text-size-adjust: 100%; }
 
 /* Texto sombreado: rojo suave de ATV en todo el classroom (antes salía blanco sobre blanco). */
 ::selection { background: rgba(192, 57, 43, 0.22); }
+
+/* Selector de modo (claro / azul) en el menú del avatar */
+.app-header__modo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 12px 8px; font-size: 13px; color: var(--m-t2, #3a3a3c); }
+.app-header__modo > div { display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: rgba(var(--m-osc, 0, 0, 0), 0.07); }
+.app-header__modo button { border: 0; padding: 5px 12px; border-radius: 7px; background: transparent; color: var(--m-t3, #6e6e73); font: inherit; font-size: 12.5px; cursor: pointer; }
+.app-header__modo button.is-on { background: var(--m-tarjeta, #fff); color: var(--m-t1, #1d1d1f); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15); }

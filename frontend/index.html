@@ -18,6 +18,15 @@
       rel="stylesheet"
     />
     <title>ATV Classroom</title>
+    <script>
+      // El modo (claro / azul) antes de pintar, para que no parpadee. Ver src/utils/modo.js.
+      try {
+        if (localStorage.getItem('atv_modo') === 'azul') {
+          document.documentElement.dataset.modo = 'azul'
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#202b41')
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
