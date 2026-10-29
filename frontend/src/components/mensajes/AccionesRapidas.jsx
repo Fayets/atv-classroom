@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { borrarAccion, crearAccion, editarAccion, fetchAcciones } from '../../api/acciones'
+import { borrarAccion, crearAccion, editarAccion, fetchAcciones, fetchClasesParaEnviar } from '../../api/acciones'
 import { enviarMensaje, fetchTextoCanal } from '../../api/mensajes'
 
 const ESPERA = 4 // segundos para deshacer antes de que salga el mensaje
@@ -114,6 +114,64 @@ function IconoLapiz() {
 
 // Acciones rápidas del coach en el panel derecho: un clic manda el mensaje armado al chat abierto.
 // alCrearRoadmap: la primera acción, fija, abre el formulario del roadmap (empieza por el Fathom).
+const sinTildes = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
+// Elegir una clase del classroom para mandársela al cliente: buscador por título o módulo.
+function ElegirClase({ onCerrar, onElegir }) {
+  const [clases, setClases] = useState(null)
+  const [q, setQ] = useState('')
+  const [error, setError] = useState('')
+  const campo = useRef(null)
+  const cerrar = useRef(onCerrar)
+  cerrar.current = onCerrar
+  // Una sola vez al abrir (el panel se redibuja seguido y no hay que volver a pedir las clases).
+  useEffect(() => {
+    fetchClasesParaEnviar()
+      .then(setClases)
+      .catch((e) => setError(e.message || 'No se pudieron traer las clases.'))
+    campo.current?.focus()
+    const tecla = (e) => e.key === 'Escape' && cerrar.current()
+    window.addEventListener('keydown', tecla)
+    return () => window.removeEventListener('keydown', tecla)
+  }, [])
+  const palabras = sinTildes(q).split(/\s+/).filter(Boolean)
+  const lista = (clases || []).filter((c) => palabras.every((w) => sinTildes(`${c.titulo} ${c.modulo}`).includes(w)))
+  const porModulo = []
+  lista.slice(0, 80).forEach((c) => {
+    const g = porModulo.find((x) => x.modulo === c.modulo)
+    if (g) g.clases.push(c)
+    else porModulo.push({ modulo: c.modulo, clases: [c] })
+  })
+  return createPortal(
+    <div className="msj-modal__fondo" onMouseDown={(e) => e.target === e.currentTarget && onCerrar()}>
+      <div className="msj-modal ec" role="dialog" aria-modal="true" aria-labelledby="ec-titulo">
+        <h2 id="ec-titulo">Enviar una clase</h2>
+        <input ref={campo} className="ec-buscar" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscá por título o módulo" aria-label="Buscar clase" />
+        {error ? <p className="msj-modal__error" role="alert">{error}</p> : null}
+        <div className="ec-lista">
+          {!clases && !error ? <p className="ec-vacio">Cargando clases…</p> : null}
+          {clases && !lista.length ? <p className="ec-vacio">No hay clases con eso.</p> : null}
+          {porModulo.map((g) => (
+            <section key={g.modulo}>
+              <p className="ec-modulo">{g.modulo}</p>
+              {g.clases.map((c) => (
+                <button key={`${c.fuente}-${c.id}`} type="button" className="ec-clase" onClick={() => onElegir(c)}>
+                  {c.titulo}
+                </button>
+              ))}
+            </section>
+          ))}
+          {lista.length > 80 ? <p className="ec-vacio">Y {lista.length - 80} más: escribí para filtrar.</p> : null}
+        </div>
+        <div className="msj-modal__botones">
+          <button type="button" onClick={onCerrar}>Cancelar</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
 export default function AccionesRapidas({ canalId, cliente, plan = null, alCrearRoadmap = null }) {
   const [datos, setDatos] = useState(null)
   const [editando, setEditando] = useState(null) // {} = nueva
@@ -121,6 +179,7 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
   const [hecho, setHecho] = useState(null)
   const [error, setError] = useState('')
   const [bajando, setBajando] = useState(false)
+  const [eligiendoClase, setEligiendoClase] = useState(false)
 
   async function descargarTexto() {
     setBajando(true)
@@ -243,6 +302,12 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
             </li>
           ) : null}
           <li className="msj-accion is-fija is-contexto">
+            <button type="button" className="msj-accion__boton" onClick={() => setEligiendoClase(true)} disabled={Boolean(pendiente)} title="Elegí una clase del classroom y le llega el link en el chat">
+              <span>Enviar clase</span>
+              {hecho === 'clase' ? <em className="is-ok">Enviado</em> : <em>Classroom</em>}
+            </button>
+          </li>
+          <li className="msj-accion is-fija is-contexto">
             <button type="button" className="msj-accion__boton" onClick={descargarTexto} disabled={bajando} title="Baja toda la conversación de este chat en un .txt">
               <span>Descargar chat</span>
               <em>{bajando ? 'Bajando…' : '.txt'}</em>
@@ -257,6 +322,15 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
         </button>
       ) : null}
 
+      {eligiendoClase ? (
+        <ElegirClase
+          onCerrar={() => setEligiendoClase(false)}
+          onElegir={(c) => {
+            setEligiendoClase(false)
+            disparar('clase', { nombre: c.titulo, texto: `{nombre}, te dejo esta clase: ${c.titulo}\n${c.url}` })
+          }}
+        />
+      ) : null}
       {editando ? (
         <EditarAccion
           accion={editando}

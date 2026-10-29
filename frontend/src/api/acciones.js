@@ -15,3 +15,8 @@ export function editarAccion(id, nombre, texto) {
 export function borrarAccion(id) {
   return request(`/api/acciones/${id}`, { method: 'DELETE' })
 }
+
+// Las clases que se le pueden mandar a un cliente desde el chat (con su módulo y el link directo).
+export function fetchClasesParaEnviar() {
+  return request('/api/acciones/clases')
+}

@@ -112,3 +112,12 @@ class AccionesServices:
         with db_session:
             self._propia(yo, accion_id).delete()
         return {"ok": True}
+
+    def clases(self, sesion: dict) -> list[dict]:
+        """Las clases que el coach puede mandarle a un cliente desde Acciones rápidas: las mismas que usa la Guía
+        (con contenido, sin "Próximamente"), con su módulo y el link directo."""
+        from src.services import sops_service
+
+        if not es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Solo para el equipo.")
+        return [{"id": c["id"], "titulo": c["titulo"], "modulo": c["modulo"], "url": c["url"], "fuente": c["fuente"]} for c in sops_service.catalogo()]

@@ -19,6 +19,12 @@ async def listar(sesion: dict = Depends(obtener_sesion_desde_request)):
     return await run_in_threadpool(service.listar, sesion)
 
 
+@router.get("/clases")
+async def clases(sesion: dict = Depends(obtener_sesion_desde_request)):
+    """Las clases para mandarle a un cliente desde el chat."""
+    return await run_in_threadpool(service.clases, sesion)
+
+
 @router.post("")
 async def crear(datos: Accion, sesion: dict = Depends(obtener_sesion_desde_request)):
     return await run_in_threadpool(service.crear, sesion, datos.nombre, datos.texto)
