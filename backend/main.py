@@ -25,6 +25,7 @@ from src.controllers.push_controller import router as push_router
 from src.controllers.consultas_controller import router as consultas_router
 from src.controllers.biblioteca_controller import router as biblioteca_router
 from src.controllers.contexto_controller import router as contexto_router
+from src.controllers.errores_controller import router as errores_router
 from src.controllers.fathom_webhook_controller import router as fathom_webhook_router
 from src.controllers.chat_controller import router as chat_router
 from src.controllers.clase_controller import router as clase_router
@@ -209,6 +210,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(errores_router)
 app.include_router(admin_router)
 app.include_router(equipo_router)
 app.include_router(cerebro_router)

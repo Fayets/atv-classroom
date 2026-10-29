@@ -20,6 +20,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { EscritorioProvider, useEscritorio } from './context/EscritorioContext'
 import { MensajeriaProvider } from './context/MensajeriaContext'
 import Actualizaciones from './components/Actualizaciones'
+import VigiaPantalla from './components/VigiaPantalla'
 import AdminPage from './pages/AdminPage'
 import CerebroPage from './pages/CerebroPage'
 import EquipoPage from './pages/EquipoPage'
@@ -214,6 +215,7 @@ export default function App() {
           <AppRoutes />
         </MensajeriaProvider>
         <Actualizaciones />
+        <VigiaPantalla />
       </AuthProvider>
     </BrowserRouter>
   )

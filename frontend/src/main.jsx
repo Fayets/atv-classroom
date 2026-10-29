@@ -7,8 +7,10 @@ import App from './App.jsx'
 import Trabado from './components/Trabado'
 import { avisoConsola } from './utils/avisoConsola'
 import { registrarServiceWorker } from './utils/push'
+import { escucharErrores } from './utils/errores'
 
 avisoConsola()
+escucharErrores()
 // Después de una actualización la URL trae ?_v=…: se saca para que no quede a la vista.
 if (new URLSearchParams(window.location.search).has('_v')) {
   const url = new URL(window.location.href)

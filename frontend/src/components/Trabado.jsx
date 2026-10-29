@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { reportarError } from '../utils/errores'
 
 const CLAVE = 'atv-trabado'
 
@@ -17,6 +18,7 @@ export default class Trabado extends Component {
 
   componentDidCatch(error, info) {
     console.error('ATV Classroom se trabó:', error, info?.componentStack)
+    reportarError('render', error, { componentes: info?.componentStack })
     let ultimo = 0
     try {
       ultimo = Number(sessionStorage.getItem(CLAVE)) || 0

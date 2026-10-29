@@ -563,6 +563,24 @@ class ReglaVoz(db.Entity):
     creado_en = Required(datetime, default=datetime.utcnow)
 
 
+class ErrorFront(db.Entity):
+    """Lo que falla en el navegador (o una pantalla que quedó vacía al navegar): ruta, quién, dispositivo y
+    el error. Sin esto los cuelgues no dejan rastro: Trabado recarga sola y nadie ve qué pasó."""
+
+    _table_ = (DB_SCHEMA, "errores_front")
+
+    id = PrimaryKey(int, auto=True)
+    tipo = Required(str)  # error | promesa | render | pantalla-vacia
+    mensaje = Required(str)
+    pila = Optional(str, nullable=True)
+    ruta = Optional(str, nullable=True)
+    desde = Optional(str, nullable=True)  # la pantalla anterior
+    version = Optional(str, nullable=True)
+    agente = Optional(str, nullable=True)
+    usuario = Optional(str, nullable=True)  # "admin:62", "cliente:89", "miembro:3"
+    creado_en = Required(datetime, default=datetime.utcnow)
+
+
 class AltaCliente(db.Entity):
     """Un alta hecha desde el classroom: crea la sesión de onboarding, el canal de Discord (contingencia)
     y la ficha en clients.clientes. El mail de onboarding sale aparte, una sola vez, con un botón."""
