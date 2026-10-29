@@ -252,7 +252,7 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
           ) : null}
           <li className="msj-accion is-fija is-contexto">
             <button type="button" className="msj-accion__boton" onClick={descargarTexto} disabled={bajando} title="Baja toda la conversación de este chat en un .txt">
-              <span>Descargar texto</span>
+              <span>Descargar chat</span>
               <em>{bajando ? 'Bajando…' : '.txt'}</em>
             </button>
           </li>
