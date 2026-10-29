@@ -350,13 +350,15 @@ def main() -> None:
         else:
             # Lo importado antes se reemplaza entero (adjuntos, mensajes) y lo aprendido de esos canales se rehace.
             borrados_adj = 0
-            for a in Adjunto.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."adjuntos" WHERE mensaje_id < 0'):
+            # Solo lo de los chats de clientes: lo importado a canales de comunidad (#wins) no se toca.
+            de_clientes = f'(SELECT id FROM "{DB_SCHEMA}"."canales" WHERE tipo = \'cliente\')'
+            for a in Adjunto.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."adjuntos" WHERE mensaje_id < 0 AND canal_id IN {de_clientes}'):
                 ruta = almacen.ruta_de(a.archivo)
                 if ruta and ruta.exists():
                     ruta.unlink()
                 a.delete()
                 borrados_adj += 1
-            previos = db.execute(f'DELETE FROM "{DB_SCHEMA}"."mensajes_canal" WHERE id < 0').rowcount
+            previos = db.execute(f'DELETE FROM "{DB_SCHEMA}"."mensajes_canal" WHERE id < 0 AND canal IN {de_clientes}').rowcount
             canales_afectados = set(canal_de.values())
             for h in list(HechoCerebro.select()):
                 if h.canal_id in canales_afectados:

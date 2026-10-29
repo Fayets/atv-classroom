@@ -537,6 +537,18 @@ class RoadmapDoc(db.Entity):
     creado_en = Required(datetime, default=datetime.utcnow)
 
 
+class CierreCompromiso(db.Entity):
+    """Un compromiso del contexto (del chat o de una llamada) que alguien del equipo marcó como cumplido.
+    La clave es la del compromiso en el contexto ("ch:<hecho>", "ll:<llamada>:<lado>:<i>")."""
+
+    _table_ = (DB_SCHEMA, "contexto_cierres")
+
+    clave = PrimaryKey(str)
+    cliente_id = Required(int, index=True)
+    admin_id = Required(int)
+    cerrado_en = Required(datetime, default=datetime.utcnow)
+
+
 class AltaCliente(db.Entity):
     """Un alta hecha desde el classroom: crea la sesión de onboarding, el canal de Discord (contingencia)
     y la ficha en clients.clientes. El mail de onboarding sale aparte, una sola vez, con un botón."""

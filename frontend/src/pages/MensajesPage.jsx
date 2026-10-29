@@ -751,7 +751,8 @@ export default function MensajesPage() {
   // Lo que ofrece la tarjeta de perfil al tocar a alguien en un chat: al equipo, escribirle por privado o abrir
   // el chat de ese cliente; a un cliente, su privado con otro cliente (al equipo no se le escribe por privado).
   function perfilDe(a) {
-    if (!a) return null
+    // Lo traído del Discord de alguien sin cuenta ni ficha (id 0) no tiene a quién escribirle.
+    if (!a || !a.id) return null
     if (isEquipo) {
       if (a.tipo === 'equipo') {
         if (a.id === user?.usuario_id) return null

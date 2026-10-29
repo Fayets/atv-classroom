@@ -2,81 +2,103 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { request } from '../../api/client'
 
 // El contexto del cliente para el que agarra la próxima 1 a 1 (el "pase de guardia"): se abre a un clic
-// desde el panel del chat. Arriba, un tablero tipo Miro con el timeline en horizontal (de lo más viejo a
-// lo más nuevo, arranca mostrando lo último); abajo, todo el contexto: lo que no puede faltar, lo que
-// le debe ATV y lo que quedó de su lado. Lo arma el backend con el chat, el onboarding, Fathom y los roadmaps.
+// desde el panel del chat. En 10 segundos: dónde está, qué le falta entregar, qué le debemos y qué se trabó.
+// Arriba lo pendiente (Trabado y los tres paneles); abajo el historial en el tablero tipo Miro, un post-it
+// por mes que se despliega en sus eventos. Lo arma el backend con el chat, el onboarding, Fathom y los roadmaps.
 const fetchContexto = (clienteId) => request(`/api/contexto/clientes/${clienteId}`)
+const cerrarCompromiso = (clienteId, clave, cerrado) =>
+  request('/api/contexto/compromisos/cierre', { method: 'POST', body: JSON.stringify({ cliente_id: clienteId, clave, cerrado }) })
 
 const ETAPA = { arrancando: 'Arrancando', validando: 'Validando', vendiendo: 'Vendiendo', escalando: 'Escalando' }
-const TIPO = { llamada: '1 a 1', roadmap: 'Roadmap', alta: 'Ingreso', cliente: 'Cliente', equipo: 'Equipo', riesgo: 'Alerta' }
+const TIPO = { llamada: '1 a 1', roadmap: 'Roadmap', alta: 'Ingreso', logro: 'Logro', objecion: 'Objeción', compromiso: 'Compromiso', silencio: 'Silencio', entrega: 'Entregó', migracion: 'Migración' }
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+const FILTROS = [
+  ['todo', 'Todo', () => true],
+  ['llamada', 'Llamadas', (e) => e.tipo === 'llamada'],
+  ['logro', 'Logros', (e) => e.tipo === 'logro'],
+  ['objecion', 'Objeciones', (e) => e.tipo === 'objecion'],
+  ['compromiso', 'Compromisos', (e) => e.tipo === 'compromiso'],
+]
 const fecha = (iso) => (iso ? new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '')
 const diasDesde = (iso) => (iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)) : null)
+const hoyIso = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
 const corto = (t, n = 110) => {
   const limpio = (t || '').split(/[:(]/)[0].trim() || t || ''
   return limpio.length > n ? `${limpio.slice(0, n - 1).trimEnd()}…` : limpio
 }
-const claseDe = (e) => (e.tipo === 'chat' ? (e.riesgo ? 'riesgo' : e.de === 'cliente' ? 'cliente' : 'equipo') : e.tipo)
+const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`
 
-function Lista({ titulo, items, tono }) {
-  const [todas, setTodas] = useState(false)
-  if (!items.length) return null
-  const visibles = todas ? items : items.slice(0, 4)
+// Un compromiso con su origen, su plazo y el botón para darlo por cumplido (los del roadmap se tildan allá).
+function Compromiso({ c, alCambiar }) {
+  const cerrado = c.estado === 'cerrado'
   return (
-    <section className="ctx-lista">
-      <p className="ctx-eti">{titulo}</p>
-      <ul className={`ctx-grupo is-${tono}`}>
-        {visibles.map((x, i) => (
-          <li key={i}>
-            <i aria-hidden="true" />
-            <div>
-              <span>{corto(x.texto, 160)}</span>
-              {x.fuente ? <small>{x.fuente} · {fecha(x.desde)}</small> : null}
-            </div>
-          </li>
-        ))}
-      </ul>
-      {items.length > 4 ? (
+    <li className={`ctx-cp is-${c.estado}`}>
+      <div>
+        <span>{corto(c.texto, 170)}</span>
+        <small>
+          {c.origen} · {fecha(c.desde)}
+          {c.plazo ? (c.estado === 'vencido' ? ` · vencía el ${fecha(c.plazo)}` : ` · vence el ${fecha(c.plazo)}`) : ''}
+          {cerrado && c.cerrado_por ? ` · cerrado por ${c.cerrado_por}` : ''}
+        </small>
+      </div>
+      {c.cerrable ? (
+        <button type="button" className="ctx-cp__boton" onClick={() => alCambiar(c, !cerrado)}>
+          {cerrado ? 'Deshacer' : 'Cumplido'}
+        </button>
+      ) : null}
+    </li>
+  )
+}
+
+function Panel({ titulo, items, vacio, alCambiar, children }) {
+  const [todas, setTodas] = useState(false)
+  const visibles = todas ? items : items.slice(0, 5)
+  const abiertos = items.filter((c) => c.estado !== 'cerrado').length
+  return (
+    <section className="ctx-panel">
+      <p className="ctx-eti">
+        {titulo}
+        {items.length ? <span className="ctx-eti__n">{abiertos}</span> : null}
+      </p>
+      {items.length ? (
+        <ul className="ctx-cps">
+          {visibles.map((c) => (
+            <Compromiso key={c.clave} c={c} alCambiar={alCambiar} />
+          ))}
+        </ul>
+      ) : (
+        <p className="ctx-panel__vacio">{vacio}</p>
+      )}
+      {items.length > 5 ? (
         <button type="button" className="ctx-mas" onClick={() => setTodas((t) => !t)}>
           {todas ? 'Ver menos' : `Ver los ${items.length}`}
         </button>
       ) : null}
+      {children}
     </section>
   )
 }
 
-// Lo que se ve en la tarjeta del tablero: corto, para leer de un vistazo.
+// Lo que se ve en el post-it de un evento: corto, para leer de un vistazo.
 function resumen(e) {
   if (e.tipo === 'llamada') return e.resumida ? e.temas.slice(0, 3) : ['Todavía sin resumir']
-  if (e.tipo === 'chat') return (e.destacados || []).slice(0, 2)
-  if (e.tipo === 'alta') return (e.items || []).slice(0, 2)
+  if (e.tipo === 'alta' || e.tipo === 'entrega') return (e.items || []).slice(0, 2)
   return []
 }
 
-const esImportante = (e) => e.tipo !== 'chat' || e.importante
-const FILTROS = [
-  ['importante', 'Lo importante', esImportante],
-  ['todo', 'Todo', () => true],
-  ['llamada', 'Llamadas', (e) => e.tipo === 'llamada'],
-  ['roadmap', 'Roadmaps', (e) => e.tipo === 'roadmap'],
-  ['cliente', 'Lo que dijo el cliente', (e) => e.tipo === 'chat' && e.importante],
-]
-
-function Tarjeta({ e, activa, alElegir }) {
-  const clase = claseDe(e)
-  const menor = e.tipo === 'chat' && !e.importante
+function Tarjeta({ e, activa, alElegir, cliente }) {
   return (
-    <li className={`ctx-paso is-${clase}${menor ? ' is-menor' : ''}`}>
+    <li className={`ctx-paso is-${e.tipo}${e.riesgo ? ' is-riesgo' : ''}`}>
       <span className="ctx-paso__fecha">{fecha(e.fecha)}</span>
       <span className="ctx-paso__punto" aria-hidden="true" />
       <button type="button" className={`ctx-tarjeta${activa ? ' is-activa' : ''}`} onClick={alElegir} aria-pressed={activa}>
         <span className="ctx-tarjeta__tipo">
-          {TIPO[clase]}
+          {e.tipo === 'compromiso' ? `Compromiso de ${e.lado === 'atv' ? 'ATV' : cliente}` : TIPO[e.tipo]}
           {e.tipo === 'llamada' && e.duracion ? ` · ${e.duracion} min` : ''}
+          {e.fuente?.length > 1 ? ' · chat y llamada' : ''}
         </span>
-        <b>{e.titulo}</b>
-        {menor ? (
-          <small className="ctx-tarjeta__menor">{e.items.length + (e.mas || 0)} cosas · tocá para ver</small>
-        ) : e.tipo === 'roadmap' ? (
+        <b>{corto(e.titulo, 120)}</b>
+        {e.tipo === 'roadmap' ? (
           <span className="ctx-avance">
             <i>
               <b style={{ transform: `scaleX(${e.total ? e.hechos / e.total : 0})` }} />
@@ -85,49 +107,38 @@ function Tarjeta({ e, activa, alElegir }) {
               {e.hechos}/{e.total}
             </small>
           </span>
+        ) : e.tipo === 'compromiso' ? (
+          <span className={`ctx-estado is-${e.estado}`}>
+            {e.estado === 'vencido' ? `Vencía el ${fecha(e.plazo)}` : e.estado === 'cerrado' ? 'Cumplido' : e.plazo ? `Vence el ${fecha(e.plazo)}` : 'Abierto'}
+          </span>
+        ) : e.tipo === 'silencio' ? (
+          <span className={`ctx-estado is-${e.estado}`}>{e.estado === 'abierto' ? 'Sigue sin escribir' : 'Volvió a escribir'}</span>
         ) : (
           <ul>
-            {resumen(e).map((t, i) =>
-              typeof t === 'string' ? (
-                <li key={i}>{corto(t, 90)}</li>
-              ) : (
-                <li key={i} className={`is-${t.tipo}`}>
-                  <b>{t.etiqueta}</b> {corto(t.texto, 80)}
-                </li>
-              ),
-            )}
+            {resumen(e).map((t, i) => (
+              <li key={i}>{corto(t, 90)}</li>
+            ))}
           </ul>
         )}
+        {e.tipo === 'llamada' && e.coordinacion ? <small className="ctx-tarjeta__menor">{plural(e.coordinacion, 'mensaje', 'mensajes')} para coordinarla</small> : null}
       </button>
     </li>
   )
 }
 
-// El detalle de la tarjeta elegida: todo lo que se habló, con las citas.
-function Detalle({ e }) {
+// El detalle del post-it elegido: todo lo que se habló, con las citas.
+function Detalle({ e, cliente }) {
   return (
-    <div className={`ctx-detalle is-${claseDe(e)}`}>
+    <div className={`ctx-detalle is-${e.tipo}`}>
       <h4>
-        {fecha(e.fecha)} · {e.titulo}
+        {fecha(e.fecha)} · {e.tipo === 'compromiso' ? `Compromiso de ${e.lado === 'atv' ? 'ATV' : cliente}: ` : ''}
+        {e.titulo}
         {e.tipo === 'llamada' && e.url ? (
           <a href={e.url} target="_blank" rel="noopener noreferrer">
             Grabación ↗
           </a>
         ) : null}
       </h4>
-      {e.tipo === 'chat' ? (
-        <ul className="ctx-hechos">
-          {e.items.map((h, i) => (
-            <li key={i} className={`is-${h.tipo}`}>
-              <span className={`ctx-quien-dijo is-${h.de}`}>{h.quien}</span>{' '}
-              {/* "Se le recomendó" sobra cuando el que habla es del equipo: el texto ya lo dice. */}
-              {h.de === 'equipo' && h.tipo === 'recomendacion' ? null : <b>{h.etiqueta}</b>} {h.texto}
-              {h.cita ? <q>{h.cita}</q> : null}
-            </li>
-          ))}
-          {e.mas ? <li className="ctx-hechos__mas">y {e.mas} más ese día</li> : null}
-        </ul>
-      ) : null}
       {e.tipo === 'llamada' ? (
         e.resumida ? (
           <div className="ctx-detalle__columnas">
@@ -170,26 +181,77 @@ function Detalle({ e }) {
           <p className="ctx-vacio">Todavía sin resumir: se resume la próxima vez que abras el contexto.</p>
         )
       ) : null}
+      {e.cita?.length ? (
+        <ul className="ctx-hechos">
+          {e.cita.map((c, i) => (
+            <li key={i}>
+              <q>{c}</q>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {e.tipo === 'roadmap' ? (
         <p className="ctx-detalle__texto">
           {e.quien ? `Lo armó ${e.quien}` : 'Roadmap'}
           {e.area ? ` · ${e.area}` : ''} · {e.hechos} de {e.total} pasos hechos
         </p>
       ) : null}
-      {e.tipo === 'alta' && e.items?.length ? (
+      {(e.tipo === 'alta' || e.tipo === 'entrega') && e.items?.length ? (
         <ul className="ctx-hechos">
           {e.items.map((t, i) => (
             <li key={i}>{t}</li>
           ))}
         </ul>
       ) : null}
+      {e.fuente?.length > 1 ? <p className="ctx-detalle__texto">Lo dijo en el chat y en una llamada.</p> : null}
     </div>
+  )
+}
+
+function porMes(eventos) {
+  const meses = new Map()
+  eventos.forEach((e) => {
+    const clave = e.fecha.slice(0, 7)
+    if (!meses.has(clave)) meses.set(clave, [])
+    meses.get(clave).push(e)
+  })
+  return [...meses.entries()].sort(([a], [b]) => (a < b ? -1 : 1))
+}
+
+// El post-it del mes: sus números y el último logro. Tocarlo despliega sus eventos sobre la línea.
+function Mes({ clave, todos, abierto, alTocar }) {
+  const [anio, mes] = clave.split('-')
+  const cuenta = (t) => todos.filter((e) => e.tipo === t).length
+  const logros = todos.filter((e) => e.tipo === 'logro')
+  const pendientes = todos.filter((e) => e.tipo === 'compromiso' && e.estado !== 'cerrado').length
+  const silencio = todos.filter((e) => e.tipo === 'silencio').reduce((n, e) => Math.max(n, e.dias || 0), 0)
+  return (
+    <li className={`ctx-paso is-mes${abierto ? ' is-abierto' : ''}`}>
+      <span className="ctx-paso__fecha">
+        {MESES[Number(mes) - 1]} {anio}
+      </span>
+      <span className="ctx-paso__punto" aria-hidden="true" />
+      <button type="button" className="ctx-tarjeta ctx-mes" onClick={alTocar} aria-expanded={abierto}>
+        <span className="ctx-mes__nombre">
+          {MESES[Number(mes) - 1]}
+          <small>{abierto ? 'Juntar' : `Ver ${todos.length}`}</small>
+        </span>
+        <span className="ctx-mes__cifras">
+          {cuenta('llamada') ? <span>{plural(cuenta('llamada'), 'llamada', 'llamadas')}</span> : null}
+          {logros.length ? <span className="is-verde">{plural(logros.length, 'logro', 'logros')}</span> : null}
+          {cuenta('objecion') ? <span>{plural(cuenta('objecion'), 'objeción', 'objeciones')}</span> : null}
+          {pendientes ? <span className="is-rojo">{plural(pendientes, 'pendiente', 'pendientes')}</span> : null}
+          {silencio ? <span>{silencio} días sin señales</span> : null}
+        </span>
+        {logros.length ? <span className="ctx-mes__logro">Último logro: {corto(logros[0].titulo, 90)}</span> : null}
+      </button>
+    </li>
   )
 }
 
 // El tablero: se arrastra con el mouse o se mueve con la rueda. Mueve el scroll nativo (nada de estado
 // por cuadro), así va a la misma frecuencia que la pantalla.
-function Tablero({ eventos, elegido, alElegir }) {
+function Tablero({ meses, todosPorMes, abiertos, alTocarMes, elegido, alElegir, cliente }) {
   const lienzo = useRef(null)
   const movio = useRef(false)
 
@@ -204,7 +266,7 @@ function Tablero({ eventos, elegido, alElegir }) {
     }
     el.addEventListener('wheel', rueda, { passive: false })
     return () => el.removeEventListener('wheel', rueda)
-  }, [eventos])
+  }, [meses])
 
   function arrastrar(ev) {
     if (ev.button !== 0) return
@@ -228,17 +290,24 @@ function Tablero({ eventos, elegido, alElegir }) {
     window.addEventListener('pointerup', soltar)
   }
 
+  const siNoMovio = (fn) => () => {
+    if (!movio.current) fn()
+  }
+
   return (
     <div ref={lienzo} className="ctx-tablero" onPointerDown={arrastrar}>
       <ol className="ctx-linea">
-        {eventos.map((e, i) => (
-          <Tarjeta
-            key={`${e.tipo}-${e.fecha}-${i}`}
-            e={e}
-            activa={elegido === i}
-            alElegir={() => {
-              if (!movio.current) alElegir(elegido === i ? null : i)
-            }}
+        {meses.map(([clave, eventos]) => (
+          <MesConEventos
+            key={clave}
+            clave={clave}
+            eventos={eventos}
+            todos={todosPorMes.get(clave) || eventos}
+            abierto={abiertos.has(clave)}
+            alTocar={siNoMovio(() => alTocarMes(clave))}
+            elegido={elegido}
+            alElegir={(id) => siNoMovio(() => alElegir(elegido === id ? null : id))()}
+            cliente={cliente}
           />
         ))}
         <li className="ctx-paso is-hoy" aria-hidden="true">
@@ -250,13 +319,26 @@ function Tablero({ eventos, elegido, alElegir }) {
   )
 }
 
+function MesConEventos({ clave, eventos, todos, abierto, alTocar, elegido, alElegir, cliente }) {
+  return (
+    <>
+      <Mes clave={clave} todos={todos} abierto={abierto} alTocar={alTocar} />
+      {abierto
+        ? [...eventos].reverse().map((e) => <Tarjeta key={e.id} e={e} activa={elegido === e.id} alElegir={() => alElegir(e.id)} cliente={cliente} />)
+        : null}
+    </>
+  )
+}
+
 export default function ContextoCliente({ clienteId, abierto, alCerrar }) {
   const [datos, setDatos] = useState(null)
+  const [compromisos, setCompromisos] = useState([])
   const [error, setError] = useState('')
   const [visible, setVisible] = useState(false)
   const [montado, setMontado] = useState(abierto)
   const [elegido, setElegido] = useState(null)
-  const [filtro, setFiltro] = useState('importante')
+  const [filtro, setFiltro] = useState('todo')
+  const [mesesAbiertos, setMesesAbiertos] = useState(() => new Set())
   const hoja = useRef(null)
 
   useEffect(() => {
@@ -278,8 +360,12 @@ export default function ContextoCliente({ clienteId, abierto, alCerrar }) {
     if (!abierto) return
     setError('')
     setElegido(null)
+    setMesesAbiertos(new Set())
     fetchContexto(clienteId)
-      .then(setDatos)
+      .then((d) => {
+        setDatos(d)
+        setCompromisos(d.compromisos || [])
+      })
       .catch((e) => setError(e.message || 'No se pudo armar el contexto.'))
   }, [abierto, clienteId])
 
@@ -291,16 +377,43 @@ export default function ContextoCliente({ clienteId, abierto, alCerrar }) {
     return () => window.removeEventListener('keydown', tecla)
   }, [abierto, alCerrar])
 
-  // En el tablero se lee de izquierda a derecha: lo más viejo primero. Memo: si cambiara en cada render,
-  // el tablero volvería a saltar al final cada vez que tocás una tarjeta.
+  // Los eventos de compromiso siguen el estado que se cambia acá con "Cumplido".
   const eventos = useMemo(() => {
-    const pasa = FILTROS.find((f) => f[0] === filtro)?.[2] || esImportante
-    return datos ? [...datos.eventos].reverse().filter(pasa) : []
-  }, [datos, filtro])
+    if (!datos) return []
+    const estado = new Map(compromisos.map((c) => [`cp:${c.clave}`, c.estado]))
+    return datos.eventos.map((e) => (estado.has(e.id) ? { ...e, estado: estado.get(e.id) } : e))
+  }, [datos, compromisos])
+  const todosPorMes = useMemo(() => new Map(porMes(eventos)), [eventos])
+  const meses = useMemo(() => {
+    const pasa = FILTROS.find((f) => f[0] === filtro)?.[2] || (() => true)
+    return porMes(eventos.filter(pasa))
+  }, [eventos, filtro])
+
+  async function cambiar(c, cerrado) {
+    const antes = compromisos
+    const hoy = hoyIso()
+    const estado = cerrado ? 'cerrado' : c.plazo && c.plazo < hoy ? 'vencido' : 'abierto'
+    setCompromisos((lista) => lista.map((x) => (x.clave === c.clave ? { ...x, estado, cerrado_por: cerrado ? 'vos' : null } : x)))
+    try {
+      const r = await cerrarCompromiso(clienteId, c.clave, cerrado)
+      setCompromisos((lista) => lista.map((x) => (x.clave === c.clave ? { ...x, cerrado_por: r.cerrado_por } : x)))
+    } catch (e) {
+      setCompromisos(antes)
+      setError(e.message || 'No se pudo guardar.')
+    }
+  }
 
   if (!montado) return null
   const c = datos?.cliente
   const dias = diasDesde(c?.desde)
+  const nombre = (c?.nombre || 'Cliente').split(' ')[0]
+  // Lo que ya estaba cerrado al abrir no vuelve arriba; lo que se cierra ahora queda tachado para deshacer.
+  const delPanel = compromisos.filter((x) => x.en_panel)
+  const trabado = delPanel.filter((x) => x.estado === 'vencido')
+  const deAtv = delPanel.filter((x) => x.lado === 'atv')
+  const deCliente = delPanel.filter((x) => x.lado !== 'atv')
+  const elegidoEv = elegido ? eventos.find((e) => e.id === elegido) : null
+  const ultimoMsj = diasDesde(c?.ultimo_mensaje)
 
   return (
     <div className={`ctx${visible ? ' is-visible' : ''}`}>
@@ -312,10 +425,9 @@ export default function ContextoCliente({ clienteId, abierto, alCerrar }) {
             {datos ? (
               <div className="ctx-chips">
                 {c.plan ? <span>{c.plan.charAt(0).toUpperCase() + c.plan.slice(1)}</span> : null}
+                {c.vence ? <span>Vence {fecha(c.vence)}</span> : null}
                 {dias != null ? <span>{dias} días en ATV</span> : null}
                 {c.perfil?.etapa ? <span className="is-verde">{ETAPA[c.perfil.etapa] || c.perfil.etapa}</span> : null}
-                {c.atendieron.length ? <span className="is-azul">Lo atendieron: {c.atendieron.join(', ')}</span> : null}
-                {c.perfil?.tono_cliente ? <span>Cómo es: {c.perfil.tono_cliente}</span> : null}
               </div>
             ) : null}
           </div>
@@ -330,83 +442,121 @@ export default function ContextoCliente({ clienteId, abierto, alCerrar }) {
 
           {datos ? (
             <>
-              <div className="ctx-filtros" role="tablist" aria-label="Qué mostrar en el tablero">
-                {FILTROS.map(([id, nombre, pasa]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="tab"
-                    aria-selected={filtro === id}
-                    className={filtro === id ? 'is-on' : ''}
-                    onClick={() => {
-                      setFiltro(id)
-                      setElegido(null)
-                    }}
-                  >
-                    {nombre}
-                    <small>{datos.eventos.filter(pasa).length}</small>
-                  </button>
-                ))}
-              </div>
-              {eventos.length ? (
-                <Tablero eventos={eventos} elegido={elegido} alElegir={setElegido} />
-              ) : (
-                <p className="ctx-vacio">{datos.eventos.length ? 'Nada con este filtro.' : 'Todavía no hay historia: el cerebro la arma con el chat, el onboarding y las llamadas.'}</p>
-              )}
-              {elegido != null && eventos[elegido] ? (
-                <Detalle e={eventos[elegido]} />
-              ) : eventos.length ? (
-                <p className="ctx-ayuda">Tocá una tarjeta para ver todo lo que se habló. Arrastrá el tablero para ir hacia atrás.</p>
+              {datos.alertas.length ? (
+                <div className="ctx-franja" role="alert">
+                  {datos.alertas.map((a, i) => (
+                    <div key={i}>
+                      <b>{a.texto}</b>
+                      {a.cita ? <q>{a.cita}</q> : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {trabado.length ? (
+                <section className="ctx-trabado">
+                  <p className="ctx-eti">
+                    Trabado <span className="ctx-eti__n">{trabado.length}</span>
+                  </p>
+                  <ul className="ctx-cps">
+                    {trabado.map((x) => (
+                      <Compromiso key={x.clave} c={{ ...x, origen: `${x.lado === 'atv' ? 'Debe ATV' : `Debe ${nombre}`} · ${x.origen}` }} alCambiar={cambiar} />
+                    ))}
+                  </ul>
+                </section>
               ) : null}
 
               <div className="ctx-contexto">
-                <div className="ctx-col">
-                  {c.perfil?.que_vende || c.perfil?.nicho_texto ? (
-                    <section>
-                      <p className="ctx-eti">Quién es</p>
-                      <p className="ctx-quien">{c.perfil.que_vende || c.perfil.nicho_texto}</p>
-                      {c.perfil.objetivo ? <p className="ctx-quien is-suave">Quiere: {c.perfil.objetivo}</p> : null}
-                    </section>
+                <section className="ctx-panel">
+                  <p className="ctx-eti">Quién es</p>
+                  {c.perfil?.que_vende || c.perfil?.nicho_texto ? <p className="ctx-quien">{c.perfil.que_vende || c.perfil.nicho_texto}</p> : null}
+                  {c.perfil?.objetivo ? <p className="ctx-quien is-suave">Quiere: {c.perfil.objetivo}</p> : null}
+                  <dl className="ctx-datos">
+                    <dt>Roadmap</dt>
+                    <dd>{datos.roadmap ? `${datos.roadmap.titulo} · ${datos.roadmap.hechos}/${datos.roadmap.total}` : 'Sin roadmap cargado'}</dd>
+                    <dt>Última llamada</dt>
+                    <dd>
+                      {c.ultima_llamada
+                        ? `${fecha(c.ultima_llamada.fecha)} con ${c.ultima_llamada.quien}${c.ultima_llamada.duracion ? ` · ${c.ultima_llamada.duracion} min` : ''}`
+                        : 'Ninguna en Fathom'}
+                    </dd>
+                    <dt>Último mensaje</dt>
+                    <dd>{ultimoMsj == null ? 'Sin mensajes' : ultimoMsj === 0 ? 'Hoy' : `Hace ${plural(ultimoMsj, 'día', 'días')}`}</dd>
+                    {c.atendieron.length ? (
+                      <>
+                        <dt>Lo atendieron</dt>
+                        <dd>{c.atendieron.join(', ')}</dd>
+                      </>
+                    ) : null}
+                    {c.perfil?.tono_cliente ? (
+                      <>
+                        <dt>Cómo es</dt>
+                        <dd>{c.perfil.tono_cliente}</dd>
+                      </>
+                    ) : null}
+                  </dl>
+                </section>
+                <Panel titulo="Lo que le debe ATV" items={deAtv} vacio="Nada pendiente de nuestro lado." alCambiar={cambiar} />
+                <Panel titulo="Lo que quedó de su lado" items={deCliente} vacio="Nada pendiente de su lado." alCambiar={cambiar}>
+                  {datos.no_repetir.length ? (
+                    <div className="ctx-norepetir">
+                      <p className="ctx-eti">No repetir: no le funcionó</p>
+                      <ul className="ctx-hechos">
+                        {datos.no_repetir.map((x, i) => (
+                          <li key={i}>{corto(x.texto, 160)}</li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : null}
-                  {datos.alertas.length ? (
-                    <section className="ctx-alertas">
-                      <p className="ctx-eti">Lo que tenés que saber sí o sí</p>
-                      {datos.alertas.map((a, i) => (
-                        <div key={i} className={`ctx-alerta is-${a.nivel}`}>
-                          <i aria-hidden="true">!</i>
-                          <div>
-                            <p>{a.texto}</p>
-                            {a.cita ? <q>{a.cita}</q> : null}
-                            <small>{a.fuente === 'llamada' ? 'En la última llamada' : `Chat · ${fecha(a.fecha)}`}</small>
-                          </div>
-                        </div>
-                      ))}
-                    </section>
-                  ) : null}
-                </div>
-                <div className="ctx-col">
-                  {datos.roadmap ? (
-                    <section>
-                      <p className="ctx-eti">Roadmap vigente</p>
-                      <div className="ctx-avance is-grande">
-                        <span>{datos.roadmap.titulo}</span>
-                        <i>
-                          <b style={{ transform: `scaleX(${datos.roadmap.total ? datos.roadmap.hechos / datos.roadmap.total : 0})` }} />
-                        </i>
-                        <small>
-                          {datos.roadmap.hechos} de {datos.roadmap.total}
-                        </small>
-                      </div>
-                    </section>
-                  ) : null}
-                  <Lista titulo="Lo que le debe ATV" items={datos.debe_atv} tono="atv" />
-                </div>
-                <div className="ctx-col">
-                  <Lista titulo="Lo que quedó de su lado" items={datos.debe_cliente} tono="cliente" />
-                  <Lista titulo="No repetir: no le funcionó" items={datos.no_repetir} tono="mal" />
+                </Panel>
+              </div>
+
+              <div className="ctx-historial">
+                <p className="ctx-eti">Historial</p>
+                <div className="ctx-filtros" role="tablist" aria-label="Qué mostrar en el tablero">
+                  {FILTROS.map(([id, nombreFiltro, pasa]) => {
+                    const n = eventos.filter(pasa).length
+                    if (!n) return null
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        role="tab"
+                        aria-selected={filtro === id}
+                        className={filtro === id ? 'is-on' : ''}
+                        onClick={() => {
+                          setFiltro(id)
+                          setElegido(null)
+                        }}
+                      >
+                        {nombreFiltro}
+                        <small>{n}</small>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
-              <p className="ctx-pie">Se arma solo con el chat, el onboarding, las llamadas de Fathom y los roadmaps.</p>
+              {meses.length ? (
+                <Tablero
+                  meses={meses}
+                  todosPorMes={todosPorMes}
+                  abiertos={mesesAbiertos}
+                  alTocarMes={(m) =>
+                    setMesesAbiertos((s) => {
+                      const n = new Set(s)
+                      if (n.has(m)) n.delete(m)
+                      else n.add(m)
+                      return n
+                    })
+                  }
+                  elegido={elegido}
+                  alElegir={setElegido}
+                  cliente={nombre}
+                />
+              ) : (
+                <p className="ctx-vacio">Todavía no hay historia: el cerebro la arma con el chat, el onboarding y las llamadas.</p>
+              )}
+              {elegidoEv ? <Detalle e={elegidoEv} cliente={nombre} /> : null}
             </>
           ) : null}
         </div>
