@@ -226,3 +226,10 @@ html[data-modo="azul"] .cq-pensando__cab i { border-color: rgba(255, 255, 255, 0
 html[data-modo="azul"] .cq-md a { color: #9cc2ff; }
 html[data-modo="azul"] .cq-md strong, html[data-modo="azul"] .cq-md b { color: #ffffff; }
 @media (hover: hover) and (pointer: fine) { html[data-modo="azul"] .cq-sugeridas button:hover { background: #344463; } }
+
+/* ---------- Tarjeta de perfil (tocar el nombre de alguien en el chat) ---------- */
+html[data-modo="azul"] .msj-perfil__banda { background: #46567a; }
+html[data-modo="azul"] .msj-perfil__cuerpo button { background: #eef2f8; color: #26324a; }
+html[data-modo="azul"] .msj-perfil__cuerpo button:hover { background: #ffffff; }
+html[data-modo="azul"] .msj-perfil__cuerpo button.is-secundaria { background: #344463; color: #eef2f8; }
+html[data-modo="azul"] .msj-perfil__cuerpo button.is-secundaria:hover { background: #46567a; }
