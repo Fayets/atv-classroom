@@ -226,3 +226,22 @@ def test_corta_las_marcas_de_formato_que_cuela_la_ia():
     partes = ["buenas laura, lo ve ", "alejandro y te responde\n\n(cite", ' index="">']
     texto = "".join(servicio.transmitir("s", "u", "", -1, stream=lambda s, u: iter(partes)))
     assert texto == "buenas laura, lo ve alejandro y te responde"
+
+
+def test_si_otro_del_equipo_lleva_el_hilo_no_sugiere():
+    from datetime import datetime, timedelta
+
+    from src.services import sugerencias_service as sg
+
+    hace = lambda m: (datetime.utcnow() - timedelta(minutes=m)).isoformat(timespec="seconds") + "Z"  # noqa: E731
+    conv = [
+        {"de": "cliente", "quien": "Aaron", "texto": "@Juampi como vas? ahora nos vemos en 20 no?", "cuando": hace(3)},
+        {"de": "equipo", "quien": "Juampi", "texto": "me voy a demorar 10 minutos", "cuando": hace(2)},
+        {"de": "cliente", "quien": "Aaron", "texto": "trank, 6:10 estamos atentos", "cuando": hace(1)},
+    ]
+    assert sg.hilo_de_otro(conv, "Franco")[0] == "Juampi"
+    assert sg.hilo_de_otro(conv, "Juampi") is None  # si escribe Juampi, es su hilo
+    e = sg.entendimiento({"conversacion": conv, "yo_nombre": "Franco"}, "")
+    assert e["modo"] == "hilo-de-otro" and "Lo está llevando Juampi" in e["que"]
+    conv[1]["cuando"] = hace(60 * 5)  # hace 5 horas: ya no es un hilo activo
+    assert sg.hilo_de_otro(conv, "Franco") is None

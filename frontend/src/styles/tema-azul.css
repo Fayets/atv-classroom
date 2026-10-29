@@ -233,3 +233,9 @@ html[data-modo="azul"] .msj-perfil__cuerpo button { background: #eef2f8; color: 
 html[data-modo="azul"] .msj-perfil__cuerpo button:hover { background: #ffffff; }
 html[data-modo="azul"] .msj-perfil__cuerpo button.is-secundaria { background: #344463; color: #eef2f8; }
 html[data-modo="azul"] .msj-perfil__cuerpo button.is-secundaria:hover { background: #46567a; }
+
+/* ---------- Ver contexto: tarjetas del tablero con fondo fijo claro ---------- */
+html[data-modo="azul"] .ctx-paso.is-llamada .ctx-tarjeta { background: #2b3f63; border-top-color: #6ea0ff; }
+html[data-modo="azul"] .ctx-paso.is-riesgo .ctx-tarjeta { background: #4a2f3a; }
+html[data-modo="azul"] .ctx-detalle.is-llamada { background: #2b3f63; }
+html[data-modo="azul"] .ctx-filtros button.is-on small { color: rgba(32, 43, 65, 0.65); }

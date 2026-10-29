@@ -234,6 +234,27 @@ def pregunta_abierta(conversacion: list[dict]) -> str | None:
     return None
 
 
+def hilo_de_otro(conversacion: list[dict], yo: str | None, horas: float = 3) -> tuple[str, str] | None:
+    """Si a lo último del cliente lo viene contestando otra persona del equipo (hace menos de `horas`): quién y hace cuánto.
+    Ese hilo lo lleva ella; quien escribe no tiene por qué meterse."""
+    conv = [m for m in conversacion or [] if m.get("texto") or m.get("archivos")]
+    pendientes = pendientes_del_cliente(conv)
+    if not pendientes or len(pendientes) == len(conv):
+        return None
+    previo = conv[len(conv) - len(pendientes) - 1]
+    quien = (previo.get("quien") or "").split()[0] if previo.get("quien") else ""
+    mio = (yo or "").split()[0].lower() if yo else ""
+    if not quien or not mio or quien.lower() == mio:
+        return None
+    try:
+        dif = datetime.utcnow() - datetime.fromisoformat((previo.get("cuando") or "").rstrip("Z"))
+    except ValueError:
+        return None
+    if dif.total_seconds() > horas * 3600:
+        return None
+    return quien, _hace(previo.get("cuando")).strip()
+
+
 def para_otro(pendientes: list[dict], equipo: list[str], yo: str | None) -> str | None:
     """Si el cliente etiquetó a otra persona del equipo (y no a quien escribe), a quién: no se contesta por ella."""
     texto = " ".join(m.get("texto") or "" for m in pendientes).lower()
@@ -260,6 +281,10 @@ def entendimiento(ctx: dict, borrador: str, reglas: int = 0, voz_ajena: str | No
     salida: dict = {"modo": "responde", "que": "", "retoma": None, "pregunta_abierta": None}
     if borrador.strip():
         salida.update(modo="completa", que="Termina el mensaje que empezaste a escribir.")
+    elif hilo_de_otro(conv, ctx.get("yo_nombre") or ctx.get("voz_nombre")):
+        otro, hace = hilo_de_otro(conv, ctx.get("yo_nombre") or ctx.get("voz_nombre"))
+        salida.update(modo="hilo-de-otro", que=f"Lo está llevando {otro}: le contestó {hace}. No hace falta que respondas.",
+                      retoma=corto(" ".join(m.get("texto") or "" for m in pendientes[-2:])))
     elif ultimo is None:
         salida.update(modo="primero", que="No hay mensajes todavía: abre la conversación.")
     elif ultimo.get("de") != "cliente":
@@ -274,8 +299,8 @@ def entendimiento(ctx: dict, borrador: str, reglas: int = 0, voz_ajena: str | No
             retoma=corto(ultimo.get("texto")),
             pregunta_abierta=pregunta_abierta(conv),
         )
-    elif para_otro(pendientes, ctx.get("equipo") or [], ctx.get("voz_nombre")):
-        otro = para_otro(pendientes, ctx.get("equipo") or [], ctx.get("voz_nombre"))
+    elif para_otro(pendientes, ctx.get("equipo") or [], ctx.get("yo_nombre") or ctx.get("voz_nombre")):
+        otro = para_otro(pendientes, ctx.get("equipo") or [], ctx.get("yo_nombre") or ctx.get("voz_nombre"))
         salida.update(
             modo="para-otro",
             que=f"La pregunta es para {otro} (lo etiquetó): no contesta por {otro}, solo acusa recibo.",
@@ -431,9 +456,9 @@ def armar_prompt(nombre: str, ctx: dict, borrador: str, nicho: dict | None) -> t
                 f"\nTu pregunta \"{pregunta[:200]}\" sigue sin respuesta: NO la repitas ni la reformules. "
                 "Empujá con una propuesta concreta (lo que vos harías) o pedí una respuesta corta. No inventes fechas."
             )
-    elif para_otro(sin_responder, ctx.get("equipo") or [], ctx.get("voz_nombre")):
+    elif para_otro(sin_responder, ctx.get("equipo") or [], ctx.get("yo_nombre") or ctx.get("voz_nombre")):
         # Le contestaba a la clienta lo que ella le había preguntado a Alejandro, con una opinión que no era suya.
-        otro = para_otro(sin_responder, ctx.get("equipo") or [], ctx.get("voz_nombre"))
+        otro = para_otro(sin_responder, ctx.get("equipo") or [], ctx.get("yo_nombre") or ctx.get("voz_nombre"))
         tarea = (
             f"Todavía no escribió nada. El cliente le escribió a {otro} (lo etiquetó), no a {nombre}. No respondas por {otro} "
             f"ni des una opinión sobre lo que le preguntó: si {nombre} escribe algo, es corto, como avisar que {otro} lo ve "
@@ -588,6 +613,7 @@ class SugerenciasServices:
         ctx = ap.contexto_para_responder(canal["id"], voz_id, incluir_nicho=False)
         ctx["cliente_nombre"] = canal.get("nombre")
         ctx["voz_nombre"] = nombre
+        ctx["yo_nombre"] = (yo.nombre if yo else None) or nombre
         with db_session:
             # Para saber si el cliente le habló a otra persona del equipo (lo etiquetó).
             ctx["equipo"] = [a.nombre for a in Admin.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."admins" WHERE activo AND nombre IS NOT NULL')]
@@ -601,6 +627,8 @@ class SugerenciasServices:
         _emojis_ok[sid] = emojis_de((ctx.get("voz") or {}).get("rasgos") or {})
         porque = entendimiento(ctx, borrador, len(ctx["reglas"]), None if voz_id == admin_id else nombre.split()[0])
         porque.update(id=sid, voz_id=voz_id, propia=voz_id == admin_id)
+        if porque["modo"] == "hilo-de-otro":
+            sistema = None  # no hay nada que sugerir: ni se llama a la IA
         return sistema, usuario, sid, porque
 
     def transmitir(self, sistema: str, usuario: str, borrador: str, sid: int, stream=_stream):
@@ -609,6 +637,8 @@ class SugerenciasServices:
         recorte = _Recorte(borrador)
         permitidos = _emojis_ok.pop(sid, None)
         total = ""
+        if sistema is None:  # otra persona del equipo lleva el hilo: sin sugerencia
+            stream = lambda *_: iter(())  # noqa: E731
         try:
             for pedazo in stream(sistema, usuario):
                 nuevo = recorte.agregar(pedazo)
