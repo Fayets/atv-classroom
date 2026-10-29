@@ -198,3 +198,13 @@ html[data-modo="azul"] .rm-boton.is-suave { background: #2f3d5a; }
 html[data-modo="azul"] .msj-conv__barra { background: #26324a; }
 html[data-modo="azul"] .msj-avisos button,
 html[data-modo="azul"] .ctx-filtros button.is-on { color: #202b41; }
+
+/* Vista del equipo (estilo Mac): barra de ventana, panel del cliente y avatares sin foto */
+html[data-modo="azul"] .app-header.app-header--mac { background: #1d273b; border-bottom-color: rgba(255, 255, 255, 0.08); box-shadow: none; }
+html[data-modo="azul"] .msj-root.is-mac .msj-lateral { background: #222d44; }
+html[data-modo="azul"] .msj-root.is-mac .msj-panel,
+html[data-modo="azul"] .msj-panel { background: #222d44; }
+html[data-modo="azul"] .msj-av--ini:not(.is-equipo) { background: linear-gradient(#5b6b8c, #46567a); color: #eef2f8; }
+html[data-modo="azul"] .mac-nav { background: rgba(255, 255, 255, 0.07); }
+html[data-modo="azul"] .mac-nav a.is-on { background: #344463; box-shadow: none; }
+html[data-modo="azul"] .trabado__caja button { background: #eef2f8; color: #202b41; }

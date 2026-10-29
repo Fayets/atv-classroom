@@ -132,7 +132,7 @@
 .ctx-filtros button.is-on { background: var(--m-t1); color: #fff; }
 .ctx-filtros button.is-on small { color: rgba(255, 255, 255, 0.65); }
 .ctx-paso.is-menor { width: 170px; }
-.ctx-paso.is-menor .ctx-tarjeta { background: var(--m-vidrio, rgba(255, 255, 255, 0.7)); box-shadow: 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.08); border-top-width: 2px; }
+.ctx-paso.is-menor .ctx-tarjeta { background: rgba(255, 255, 255, 0.7); box-shadow: 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.08); border-top-width: 2px; }
 .ctx-paso.is-menor .ctx-tarjeta > b { font-size: 12px; font-weight: 600; color: var(--m-t2); }
 .ctx-tarjeta__menor { font-size: 11.5px; color: var(--m-t4); }
 .ctx-quien-dijo { display: inline-block; padding: 0 6px; border-radius: 999px; background: var(--m-campo); font-size: 11px; font-weight: 650; color: var(--m-t2); }
