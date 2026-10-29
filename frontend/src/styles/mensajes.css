@@ -1127,3 +1127,4 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .ec-clase small { font-size: 11.5px; color: var(--m-t4, #8e8e93); }
 .ec-mini { flex: none; width: 64px; aspect-ratio: 1280 / 659; border-radius: 6px; object-fit: cover; background: var(--m-relleno, #f2f2f7); }
 .ec-vacio { margin: 8px 4px; font-size: 13px; color: var(--m-t3, #6e6e73); }
+.ec-bloq { font-weight: 600; color: var(--m-aviso, #b7791f); }

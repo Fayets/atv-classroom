@@ -48,7 +48,8 @@ def test_el_tab_escribe_con_la_voz_elegida(equipo, monkeypatch):
     usados = {}
     monkeypatch.setattr(sg.ap, "contexto_para_responder", lambda canal, voz, incluir_nicho=True: usados.setdefault("voz", voz) and {"voz": {}, "conversacion": []})
     monkeypatch.setattr(sg, "config", lambda *a, **k: "clave")
-    sistema, _, sid = sg.SugerenciasServices().preparar({"usuario_id": yo, "rol": "coach"}, {"id": 1, "tipo": "cliente"}, "")
+    sistema, _, sid, porque = sg.SugerenciasServices().preparar({"usuario_id": yo, "rol": "coach"}, {"id": 1, "tipo": "cliente"}, "")
+    assert porque["voz_id"] == juan and not porque["propia"]
     assert usados["voz"] == juan and sistema.startswith("Sos Juan")
     with db_session:
         db.execute(f'DELETE FROM "{DB_SCHEMA}"."cerebro_sugerencias" WHERE id = $i', {"i": sid})

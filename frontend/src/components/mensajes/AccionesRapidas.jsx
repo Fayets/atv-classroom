@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { borrarAccion, crearAccion, editarAccion, fetchAcciones, fetchClasesParaEnviar } from '../../api/acciones'
+import { borrarAccion, compartirClase, crearAccion, editarAccion, fetchAcciones, fetchClasesParaEnviar } from '../../api/acciones'
 import { enviarMensaje, fetchTextoCanal } from '../../api/mensajes'
 
 const ESPERA = 4 // segundos para deshacer antes de que salga el mensaje
@@ -208,7 +208,13 @@ function ElegirClase({ onCerrar, onElegir }) {
               <Portada src={c.portada} titulo={c.modulo} chica />
               <span>
                 {c.titulo}
-                {buscando ? <small>{c.modulo}</small> : null}
+                {buscando || c.bloqueada ? (
+                  <small>
+                    {buscando ? c.modulo : ''}
+                    {buscando && c.bloqueada ? ' · ' : ''}
+                    {c.bloqueada ? <b className="ec-bloq">Bloqueada · se le desbloquea al enviarla</b> : null}
+                  </small>
+                ) : null}
               </span>
             </button>
           ))}
@@ -381,9 +387,12 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
           onCerrar={() => setEligiendoClase(false)}
           onElegir={(c) => {
             setEligiendoClase(false)
-            // Sin espera para deshacer: la clase sale en el acto.
             setError('')
-            mandar({ clave: 'clase', canalId, texto: conNombre(`{nombre}, te dejo esta clase: ${c.titulo}\n${c.url}`, cliente) })
+            // Primero se la desbloquea al cliente (aunque su plan no la vea) y después sale el link, sin espera.
+            const texto = conNombre(`{nombre}, te dejo la IMPLEMENTACIÓN: SOP + ENTREGABLE + VIDEO EXPLICACIÓN.\n${c.titulo}\n${c.url}`, cliente)
+            ;(c.fuente === 'classroom' ? compartirClase(c.id, canalId) : Promise.resolve())
+              .then(() => mandar({ clave: 'clase', canalId, texto }))
+              .catch((err) => setError(err.message || 'No se pudo desbloquear la clase.'))
           }}
         />
       ) : null}

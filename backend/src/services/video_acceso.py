@@ -2,7 +2,13 @@
 recibe el cartel de "Próximamente" y el link no sale del servidor. El equipo de ATV ve siempre el video,
 con el aviso de para quién está bloqueado."""
 
+from contextvars import ContextVar
+
 from src.services.roles_canal import rol_de_plan
+
+# Las clases que un coach le mandó a este cliente con "Enviar clase": se ven aunque estén bloqueadas para su
+# plan. Se cargan al armar ve_como (una vez por pedido) y viven solo durante ese pedido.
+_COMPARTIDAS: ContextVar[frozenset] = ContextVar("clases_compartidas", default=frozenset())
 
 # Los planes que se pueden bloquear, en el orden del admin. La clave es la de rol_de_plan (advantage → high).
 PLANES_VIDEO = [
@@ -40,7 +46,8 @@ def video(clase, ve_como: str | None) -> dict:
     from src.services.permisos_service import valor
 
     bloqueos = bloqueado_para(clase)
-    if ve_como is not None and (ve_como in bloqueos or valor(ve_como, "clases") == "no"):
+    compartida = getattr(clase, "id", None) in _COMPARTIDAS.get()
+    if ve_como is not None and not compartida and (ve_como in bloqueos or valor(ve_como, "clases") == "no"):
         return {"video_url": None, "video_proximamente": True}
     return {
         "video_url": clase.video_url,
@@ -53,7 +60,22 @@ def video(clase, ve_como: str | None) -> dict:
 def ve_como(sesion: dict) -> str | None:
     from src.services.auth_service import es_equipo
 
-    return None if es_equipo(sesion) else clave_de_plan(sesion.get("rol"))
+    if es_equipo(sesion):
+        return None
+    _COMPARTIDAS.set(compartidas_de(sesion.get("usuario_id")))
+    return clave_de_plan(sesion.get("rol"))
+
+
+def compartidas_de(cliente_id) -> frozenset:
+    """Las clases que le mandaron a este cliente (su equipo entra con el mismo id de cliente)."""
+    if not cliente_id:
+        return frozenset()
+    from pony.orm import db_session
+
+    from src.db import DB_SCHEMA, db
+
+    with db_session:
+        return frozenset(int(x) for x in db.select(f'SELECT clase_id FROM "{DB_SCHEMA}"."clases_compartidas" WHERE cliente_id = $cliente_id'))
 
 
 def recursos(clase, ve_como: str | None) -> list[dict]:
@@ -73,7 +95,10 @@ def modulo_cerrado(programa, ve_como: str | None) -> bool:
 
     if ve_como is None:
         return False
+    clases = [c for s in programa.secciones for c in s.clases]
+    # Si le mandaron una clase de este módulo, el módulo se abre (las demás clases siguen con su bloqueo).
+    if _COMPARTIDAS.get() & {getattr(c, "id", None) for c in clases}:
+        return False
     if valor(ve_como, "clases") == "no":
         return True
-    clases = [c for s in programa.secciones for c in s.clases]
     return bool(clases) and all(ve_como in bloqueado_para(c) for c in clases)

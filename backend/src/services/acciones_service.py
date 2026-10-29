@@ -72,7 +72,7 @@ def _de(admin_id: int) -> list[AccionRapida]:
     return list(AccionRapida.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."acciones_rapidas" WHERE admin_id = $admin_id ORDER BY orden, id'))
 
 
-_PORTADAS = {"en": 0.0, "modulos": {}}
+_CATALOGO = {"en": 0.0, "clases": []}
 
 
 class AccionesServices:
@@ -118,25 +118,53 @@ class AccionesServices:
         return {"ok": True}
 
     def clases(self, sesion: dict) -> list[dict]:
-        """Las clases que el coach puede mandarle a un cliente desde Acciones rápidas: las mismas que usa la Guía
-        (con contenido, sin "Próximamente"), con su módulo y el link directo."""
+        """Las clases que el coach puede mandarle a un cliente desde el chat: todas las que tienen contenido,
+        también las bloqueadas para algún plan (mandarla se la desbloquea a ese cliente), con la portada y el
+        orden de su módulo. Más las de Skool que usa la Guía."""
         from src.services import sops_service
+        from src.services.video_acceso import bloqueado_para
 
         if not es_equipo(sesion):
             raise HTTPException(status_code=403, detail="Solo para el equipo.")
-        # La portada y el orden de cada módulo, para elegir primero el módulo como en el classroom (10 min en memoria).
-        if time.time() - _PORTADAS["en"] > 600:
+        if time.time() - _CATALOGO["en"] > 600:
             with db_session:
-                _PORTADAS["modulos"] = {
-                    titulo: {"portada": portada, "orden": orden}
-                    for titulo, portada, orden in db.select(f'SELECT titulo, cover_url, orden FROM "{DB_SCHEMA}"."programa"')
-                }
-            _PORTADAS["en"] = time.time()
-        modulos = _PORTADAS["modulos"]
-        return [
-            {
-                "id": c["id"], "titulo": c["titulo"], "modulo": c["modulo"], "url": c["url"], "fuente": c["fuente"],
-                "portada": (modulos.get(c["modulo"]) or {}).get("portada"), "orden": (modulos.get(c["modulo"]) or {}).get("orden", 999),
-            }
-            for c in sops_service.catalogo()
-        ]
+                from src.models import Clase
+
+                filas = db.select(
+                    f'SELECT c.id, c.titulo, p.id, p.titulo, p.cover_url, p.orden FROM "{DB_SCHEMA}"."clase" c '
+                    f'JOIN "{DB_SCHEMA}"."seccion" s ON s.id = c.seccion JOIN "{DB_SCHEMA}"."programa" p ON p.id = s.programa '
+                    # sin las vacías (ni video ni documentos): no se manda un link a nada
+                    f"WHERE coalesce(c.video_url, '') <> '' OR EXISTS (SELECT 1 FROM \"{DB_SCHEMA}\".\"clase_recurso\" r WHERE r.clase = c.id) "
+                    "ORDER BY p.orden, s.orden, c.orden"
+                )
+                bloqueos = {c.id: bloqueado_para(c) for c in Clase.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."clase" WHERE video_bloqueado')}
+            clases = [
+                {"id": cid, "titulo": " ".join(titulo.split()), "modulo": modulo, "portada": portada, "orden": orden,
+                 "url": f"{sops_service.CLASSROOM_URL}/classroom/{pid}?clase={cid}", "fuente": "classroom",
+                 "bloqueada": bool(bloqueos.get(cid))}
+                for cid, titulo, pid, modulo, portada, orden in filas
+            ]
+            clases += [
+                {"id": c["id"], "titulo": c["titulo"], "modulo": c["modulo"], "portada": None, "orden": 999,
+                 "url": c["url"], "fuente": "skool", "bloqueada": False}
+                for c in sops_service.catalogo() if c["fuente"] == "skool"
+            ]
+            _CATALOGO.update(en=time.time(), clases=clases)
+        return _CATALOGO["clases"]
+
+    def compartir(self, sesion: dict, clase_id: int, canal_id: int) -> dict:
+        """Al mandarle una clase a un cliente, se la desbloquea (a él y a su equipo) aunque su plan no la vea."""
+        from src.models import Canal, Clase, ClaseCompartida
+
+        if not es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Solo para el equipo.")
+        with db_session:
+            canal = Canal.get(id=canal_id)
+            if canal is None or canal.tipo != "cliente" or not canal.cliente_id:
+                raise HTTPException(status_code=422, detail="Las clases se mandan en el chat de un cliente.")
+            if Clase.get(id=clase_id) is None:
+                raise HTTPException(status_code=404, detail="No existe esa clase.")
+            ya = ClaseCompartida.get(cliente_id=canal.cliente_id, clase_id=clase_id)
+            if ya is None:
+                ClaseCompartida(cliente_id=canal.cliente_id, clase_id=clase_id, admin_id=sesion["usuario_id"], canal_id=canal_id)
+            return {"ok": True, "cliente_id": canal.cliente_id, "clase_id": clase_id}

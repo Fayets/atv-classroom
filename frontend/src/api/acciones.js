@@ -20,3 +20,8 @@ export function borrarAccion(id) {
 export function fetchClasesParaEnviar() {
   return request('/api/acciones/clases')
 }
+
+// Le desbloquea la clase al cliente del chat (a él y a su equipo) antes de mandarle el link.
+export function compartirClase(claseId, canalId) {
+  return request(`/api/acciones/clases/${claseId}/compartir`, { method: 'POST', body: JSON.stringify({ canal_id: canalId }) })
+}

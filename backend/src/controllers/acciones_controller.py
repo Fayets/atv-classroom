@@ -38,3 +38,13 @@ async def editar(accion_id: int, datos: Accion, sesion: dict = Depends(obtener_s
 @router.delete("/{accion_id}")
 async def borrar(accion_id: int, sesion: dict = Depends(obtener_sesion_desde_request)):
     return await run_in_threadpool(service.borrar, sesion, accion_id)
+
+
+class Compartir(BaseModel):
+    canal_id: int
+
+
+@router.post("/clases/{clase_id}/compartir")
+async def compartir(clase_id: int, body: Compartir, sesion: dict = Depends(obtener_sesion_desde_request)):
+    """Se la desbloquea al cliente de ese chat (antes de mandarle el link)."""
+    return await run_in_threadpool(service.compartir, sesion, clase_id, body.canal_id)

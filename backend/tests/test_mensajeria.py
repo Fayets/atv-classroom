@@ -322,7 +322,7 @@ def test_adjuntos_se_suben_se_atan_y_se_bajan_con_link_firmado(coach):
     assert http.get(url).status_code == 404
 
 
-def test_el_cliente_manda_notas_de_voz_y_el_equipo_no(coach):
+def test_cliente_y_equipo_mandan_notas_de_voz(coach):
     a = _cliente(CLI_A)
     canal = _canal_de(a)
     audio = b"\x1aE\xdf\xa3" + b"0" * 3000  # cabecera de webm
@@ -330,9 +330,9 @@ def test_el_cliente_manda_notas_de_voz_y_el_equipo_no(coach):
     assert adj["tipo_mime"] == "audio/webm"
     m, _ = svc.enviar(a, canal, "", None, None, [adj["id"]])
     assert m["adjuntos"][0]["tipo_mime"] == "audio/webm"
-    with pytest.raises(HTTPException) as e:
-        svc.subir_adjunto(coach, canal, "respuesta.m4a", iter([audio]))
-    assert e.value.status_code == 403
+    # Desde el 29-10 el equipo también manda audios (lo pidió Juan).
+    adj_equipo = svc.subir_adjunto(coach, canal, "respuesta.m4a", iter([audio]))
+    assert adj_equipo["tipo_mime"].startswith("audio/")
     svc.borrar(a, m["id"])
 
 

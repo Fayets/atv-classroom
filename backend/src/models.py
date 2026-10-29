@@ -581,6 +581,21 @@ class ErrorFront(db.Entity):
     creado_en = Required(datetime, default=datetime.utcnow)
 
 
+class ClaseCompartida(db.Entity):
+    """Una clase que un coach le mandó a un cliente desde "Enviar clase": ese cliente (y su equipo) la ve
+    aunque el video esté bloqueado para su plan."""
+
+    _table_ = (DB_SCHEMA, "clases_compartidas")
+
+    id = PrimaryKey(int, auto=True)
+    cliente_id = Required(int, index=True)
+    clase_id = Required(int)
+    admin_id = Required(int)
+    canal_id = Optional(int, nullable=True)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    composite_key(cliente_id, clase_id)
+
+
 class AltaCliente(db.Entity):
     """Un alta hecha desde el classroom: crea la sesión de onboarding, el canal de Discord (contingencia)
     y la ficha en clients.clientes. El mail de onboarding sale aparte, una sola vez, con un botón."""
