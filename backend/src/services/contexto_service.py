@@ -305,6 +305,19 @@ def _paso_hecho_en(p: dict) -> date | None:
         return None
 
 
+def _negocio(cliente_id: int) -> dict | None:
+    """La oferta y el avatar que contó en su último cierre de mes (el del único creador o el primero)."""
+    with db_session:
+        filas = db.select(
+            f'SELECT periodo, respuestas_json FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cliente_id ORDER BY (creador = \'\') DESC, completado_en DESC LIMIT 12'
+        )
+    for periodo, rj in filas:
+        r = json.loads(rj or "{}")
+        if (r.get("oferta") or "").strip() or (r.get("avatar") or "").strip():
+            return {"oferta": (r.get("oferta") or "").strip(), "avatar": (r.get("avatar") or "").strip(), "periodo": periodo}
+    return None
+
+
 def armar(cliente_id: int, llamar=_llamar, ahora: datetime | None = None) -> dict:
     ahora = ahora or datetime.utcnow()
     hoy = _dia(ahora)
@@ -559,6 +572,7 @@ def armar(cliente_id: int, llamar=_llamar, ahora: datetime | None = None) -> dic
             **datos_cliente, "perfil": perfil_d, "atendieron": list(atendieron),
             "ultima_llamada": None if ult_ll is None else {"fecha": ult_ll["fecha"], "quien": ult_ll["quien"], "duracion": ult_ll["duracion"]},
             "ultimo_mensaje": _iso(ultimo_cliente),
+            "negocio": _negocio(cliente_id),
         },
         "alertas": alertas,
         "compromisos": [

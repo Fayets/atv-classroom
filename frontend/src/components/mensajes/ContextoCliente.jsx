@@ -337,6 +337,8 @@ function MesConEventos({ clave, eventos, todos, abierto, alTocar, elegido, alEle
   )
 }
 
+const MESES_CIERRE = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+
 export default function ContextoCliente({ clienteId, abierto, alCerrar }) {
   const [datos, setDatos] = useState(null)
   const [compromisos, setCompromisos] = useState([])
@@ -426,11 +428,10 @@ export default function ContextoCliente({ clienteId, abierto, alCerrar }) {
     <div className={`ctx${visible ? ' is-visible' : ''}`}>
       <section ref={hoja} className="ctx-hoja" role="dialog" aria-label="Contexto del cliente" tabIndex={-1}>
         <header className="ctx-cabeza">
-          <div>
-            <p className="ctx-eti">Contexto antes de tu llamada</p>
+          <div className="ctx-cabeza__quien">
             <h2>{c?.nombre || 'Cargando…'}</h2>
             {datos ? (
-              <div className="ctx-chips">
+              <div className="ctx-chips is-columna">
                 {c.plan ? <span>{c.plan.charAt(0).toUpperCase() + c.plan.slice(1)}</span> : null}
                 {c.vence ? <span>Vence {fecha(c.vence)}</span> : null}
                 {dias != null ? <span>{dias} días en ATV</span> : null}
@@ -438,6 +439,23 @@ export default function ContextoCliente({ clienteId, abierto, alCerrar }) {
               </div>
             ) : null}
           </div>
+          {datos ? (
+            c.negocio ? (
+              <div className="ctx-negocio">
+                <div>
+                  <p className="ctx-eti">Oferta</p>
+                  <p title={c.negocio.oferta}>{c.negocio.oferta || '—'}</p>
+                </div>
+                <div>
+                  <p className="ctx-eti">Avatar</p>
+                  <p title={c.negocio.avatar}>{c.negocio.avatar || '—'}</p>
+                </div>
+                <small>Del cierre de {MESES_CIERRE[Number(c.negocio.periodo.slice(5)) - 1]}</small>
+              </div>
+            ) : (
+              <div className="ctx-negocio is-vacio"><p>Todavía no completó un cierre de mes: sin oferta ni avatar cargados.</p></div>
+            )
+          ) : null}
           <button type="button" className="ctx-cerrar" onClick={alCerrar} aria-label="Cerrar">
             ×
           </button>
