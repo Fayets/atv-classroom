@@ -796,3 +796,30 @@ class MensajeTilde(db.Entity):
     admin_id = Required(int)
     creado_en = Required(datetime, default=datetime.utcnow)
     composite_key(mensaje_id, clave)
+
+
+class UpdateRenglon(db.Entity):
+    """Un renglón de un update de #updates, desarmado para que el cerebro aprenda cómo lo arma Mauri: a quién se
+    lo asigna, de qué cliente, qué tipo de cosa, cuánta urgencia le pone y qué mensaje del cliente lo originó.
+    Si se resolvió sale de mensajes_tildes (misma clave). Se rearma cada vez que el update se edita."""
+
+    _table_ = (DB_SCHEMA, "cerebro_updates")
+
+    id = PrimaryKey(int, auto=True)
+    mensaje_id = Required(int, index=True)
+    autor_id = Optional(int, nullable=True)  # quién publicó el update (Mauri)
+    publicado_en = Required(datetime)
+    orden = Required(int)  # posición dentro del update
+    responsable = Required(str)  # como lo escribió: "Juan"
+    responsable_id = Optional(int, nullable=True)  # admins.id si se reconoce
+    slug = Optional(str, nullable=True)
+    cliente_id = Optional(int, nullable=True, index=True)
+    tipo = Optional(str, nullable=True)  # Entregable, Feedback, Asesoría, Agenda, Contenidos…
+    tarea = Required(str, 600)
+    clave = Required(str, 600)  # el renglón sin marcas: la misma clave que el tilde
+    marca = Optional(str, nullable=True)  # lo que va adelante tal cual: "⚠️ ⏳ 1d 9h"
+    alerta = Required(bool, default=False)  # ⚠️
+    reloj = Required(bool, default=False)  # ⏳
+    espera_horas = Optional(float, nullable=True)  # 1d 9h → 33
+    origen_mensaje_id = Optional(int, nullable=True)  # último mensaje del cliente antes del update
+    origen_en = Optional(datetime, nullable=True)

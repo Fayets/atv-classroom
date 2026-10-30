@@ -658,13 +658,21 @@ def ciclo(llamar=_llamar) -> dict:
 
         nichos = revisar_pendientes(10)
     voces = actualizar_voces()
+    # Los updates de Mauri (#updates): sin IA, se desarman renglón por renglón para aprender cómo los arma.
+    try:
+        from src.services.updates_service import aprender as aprender_updates
+
+        updates = aprender_updates()
+    except Exception:
+        logger.exception("Aprendizaje: fallaron los updates")
+        updates = {"error": "excepción"}
     # Los formularios de onboarding nuevos (de a pocos; cada uno cuesta centavos).
     onboardings = []
     if llamar is _llamar and gasto_ia.gastado_hoy("onboarding") < TOPE_DIARIO_USD:
         from src.services.cerebro_onboarding import importar_pendientes
 
         onboardings = importar_pendientes(5)
-    return {"canales": resultados, "voces": voces, "nichos": nichos, "onboardings": onboardings, "pendientes": max(0, len(pendientes) - len(resultados)), "tope_alcanzado": frenado}
+    return {"canales": resultados, "voces": voces, "updates": updates, "nichos": nichos, "onboardings": onboardings, "pendientes": max(0, len(pendientes) - len(resultados)), "tope_alcanzado": frenado}
 
 
 # ---------- lo que va a usar la IA (Tab, seguimientos) y la base por nicho ----------
