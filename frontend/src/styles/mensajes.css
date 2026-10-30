@@ -1143,3 +1143,15 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-visto-por__lista img, .msj-visto-por__ini { flex: none; width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
 .msj-visto-por__ini { display: grid; place-items: center; background: var(--m-relleno, #f2f2f7); color: var(--m-t3, #6e6e73); font-size: 10.5px; font-weight: 700; }
 .msj-visto-por__vacio { margin: 18px 0; text-align: center; color: var(--m-t3, #6e6e73); }
+
+/* "#" → canales de clientes: mismo menú que las etiquetas; en la edición de un mensaje, arriba de la caja */
+.msj-canal-sug { display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 6px; background: rgba(var(--m-osc, 0, 0, 0), 0.07); color: var(--m-t3, #6e6e73); font-weight: 700; }
+.msj-sugerencias button.is-on .msj-canal-sug { background: rgba(255, 255, 255, 0.22); color: #fff; }
+.msj-sugerencias button > span.msj-canal-sug + b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 0 1 auto; }
+.msj-edicion { position: relative; }
+.msj-edicion .msj-sugerencias { left: 0; bottom: calc(100% + 4px); }
+.msj-edicion .msj-sugerencias button { color: var(--m-t1); }
+.msj-edicion .msj-sugerencias button.is-on { color: #fff; }
+.msj-edicion .msj-sugerencias span { font-size: 12px; color: var(--m-t3); }
+.msj-edicion .msj-sugerencias button.is-on span { color: #fff; }
+.msj-sugerencias button > span.msj-sug-slug::first-letter { text-transform: none; }
