@@ -836,6 +836,7 @@ class CierreEnvio(db.Entity):
     enviado_en = Required(datetime, default=datetime.utcnow)
     vence_en = Required(datetime)
     destinatarios_json = Required(str)  # [cliente_id, ...]
+    importado = Required(bool, default=False)  # traído del Typeform viejo: se ve en la carpeta, no se le pide a nadie
 
 
 class CierreRespuesta(db.Entity):

@@ -144,6 +144,7 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "progreso", "miembro_id", "INTEGER")
                 _agregar_columna(cur, "nota", "miembro_id", "INTEGER")
                 # Cierre de mes: un cliente con varios creadores completa uno por creador.
+                _agregar_columna(cur, "cierres_envios", "importado", "BOOLEAN NOT NULL DEFAULT FALSE")
                 if _tabla_existe(cur, "cierres_respuestas"):
                     _agregar_columna(cur, "cierres_respuestas", "creador", "VARCHAR NOT NULL DEFAULT ''")
                     cur.execute(f'ALTER TABLE "{DB_SCHEMA}"."cierres_respuestas" DROP CONSTRAINT IF EXISTS unq_cierres_respuestas__periodo_cliente_id')

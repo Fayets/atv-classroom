@@ -20,7 +20,7 @@ function Respuestas({ c }) {
       <div className="ob-vista__barra">
         <div className="ob-vista__quien">
           <b>{c.nombre}{c.creador ? ` · ${c.creador}` : ''}</b>
-          <span>{c.plan ? `${mayus(c.plan)} · ` : ''}{c.creador ? `creador ${c.creador} · ` : ''}completó el {fecha(c.completado_en)}</span>
+          <span>{c.plan ? `${mayus(c.plan)} · ` : ''}{c.creador ? `creador ${c.creador} · ` : ''}{r.typeform ? 'por Typeform · ' : ''}completó el {fecha(c.completado_en)}</span>
         </div>
       </div>
       <div className="ci-cuerpo">
@@ -45,9 +45,17 @@ function Respuestas({ c }) {
           <p className="ci-texto">{r.cuello_por_que}</p>
         </section>
         <section>
-          <h4>Conformidad: {r.satisfaccion}/10</h4>
+          <h4>Conformidad: {r.satisfaccion ? `${r.satisfaccion}/10` : r.satisfaccion_rango || '—'}</h4>
           <p className="ci-texto">{r.satisfaccion_por_que}</p>
         </section>
+        {r.typeform ? (
+          <section>
+            <h4>Como lo escribió en el Typeform</h4>
+            {Object.entries(r.typeform).filter(([, v]) => v).map(([pregunta, v]) => (
+              <p key={pregunta} className="ci-texto"><b>{pregunta}</b>{v}</p>
+            ))}
+          </section>
+        ) : null}
         {r.propuesta ? (
           <section>
             <h4>Qué podría agregar o implementar de nuevo en ATV</h4>
@@ -176,7 +184,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
     >
       <span className="ob-icono">
         <IconoPdf tamano={58} apagado={!hecho} />
-        {!hecho && mes?.vencido ? <i className="ob-icono__aviso ct-pendiente" title="Se le venció el plazo" /> : null}
+        {!hecho && mes?.vencido && !mes?.importado ? <i className="ob-icono__aviso ct-pendiente" title="Se le venció el plazo" /> : null}
       </span>
       <span>{c.nombre}{hecho && c.creador ? <small className="fd-gris"> · {c.creador}</small> : null}</span>
     </button>
@@ -252,7 +260,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
               <p className="fd-vacio">Cargando…</p>
             ) : (
               <div className="ci-mes">
-                <p className="ci-plazo">Enviado el {fecha(mes.enviado_en)} · {mes.vencido ? `venció el ${fecha(mes.vence_en)}` : `vence el ${fecha(mes.vence_en)}`}</p>
+                <p className="ci-plazo">{mes.importado ? 'Traído del Typeform (no se le pide a nadie)' : `Enviado el ${fecha(mes.enviado_en)} · ${mes.vencido ? `venció el ${fecha(mes.vence_en)}` : `vence el ${fecha(mes.vence_en)}`}`}</p>
                 <h4 className="ci-grupo">Completaron <small>{completaron.length}</small></h4>
                 {completaron.length ? <div className="fd-grilla">{completaron.map((c) => archivo(c, true))}</div> : <p className="fd-vacio ci-vacio">Todavía nadie.</p>}
                 <h4 className="ci-grupo">Faltan <small>{faltan.length}</small></h4>
@@ -266,7 +274,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
                   <button key={m.periodo} type="button" className={`fd-item${sel === m.periodo ? ' is-sel' : ''}`} onClick={() => setSel(m.periodo)} onDoubleClick={() => ir(m.periodo)} title={`${m.mes} · ${m.completaron} de ${m.total}`}>
                     <IconoCarpeta tamano={64} />
                     <span>{mayus(m.mes)}</span>
-                    <small className="fd-gris">{m.completaron} de {m.total}</small>
+                    <small className="fd-gris">{m.completaron} de {m.total}{m.importado ? ' · Typeform' : ''}</small>
                   </button>
                 ))}
               </div>

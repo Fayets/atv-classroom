@@ -88,7 +88,7 @@ class CierreServices:
         if es_equipo(sesion):
             return {"pendiente": None}
         cid = sesion["usuario_id"]
-        envios = sorted((e for e in list(CierreEnvio.select()) if cid in json.loads(e.destinatarios_json)), key=lambda e: e.enviado_en, reverse=True)
+        envios = sorted((e for e in list(CierreEnvio.select()) if not e.importado and cid in json.loads(e.destinatarios_json)), key=lambda e: e.enviado_en, reverse=True)
         hechos = set(db.select(f'SELECT periodo FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cid'))  # una columna: Pony da los valores
         e = next((x for x in envios if x.periodo not in hechos), None)
         if e is None:
@@ -109,7 +109,7 @@ class CierreServices:
         """Para completar el mismo mes con otro creador (después del primero ya no queda pendiente)."""
         periodo, cid = _valido(periodo), sesion["usuario_id"]
         e = CierreEnvio.get(periodo=periodo)
-        if es_equipo(sesion) or e is None or cid not in json.loads(e.destinatarios_json):
+        if es_equipo(sesion) or e is None or e.importado or cid not in json.loads(e.destinatarios_json):
             raise HTTPException(status_code=404, detail="No hay un cierre de ese mes para vos.")
         return self._para_completar(cid, e)
 
@@ -119,7 +119,7 @@ class CierreServices:
             raise HTTPException(status_code=403, detail="El cierre de mes lo completa el cliente.")
         periodo, cid = _valido(periodo), sesion["usuario_id"]
         envio = CierreEnvio.get(periodo=periodo)
-        if envio is None or cid not in json.loads(envio.destinatarios_json):
+        if envio is None or envio.importado or cid not in json.loads(envio.destinatarios_json):
             raise HTTPException(status_code=404, detail="No hay un cierre de ese mes para vos.")
         creador = _creador(datos.get("creador"))
         hechos = [c.lower() for c in db.select(f'SELECT creador FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cid AND periodo = $periodo')]
@@ -175,7 +175,7 @@ class CierreServices:
         for e in sorted(CierreEnvio.select(), key=lambda x: x.periodo, reverse=True):
             total = len(json.loads(e.destinatarios_json))
             salida.append({"periodo": e.periodo, "mes": nombre_mes(e.periodo), "enviado_en": _iso(e.enviado_en), "vence_en": _iso(e.vence_en),
-                           "total": total, "completaron": respondieron.get(e.periodo, 0)})
+                           "total": total, "completaron": respondieron.get(e.periodo, 0), "importado": e.importado})
         activos = sum(1 for c in list(ClienteExterno.select()) if _tiene_acceso(c))
         sugerido = periodo_sugerido()
         return {"meses": salida, "sugerido": sugerido, "sugerido_mes": nombre_mes(sugerido), "activos": activos}
@@ -205,7 +205,7 @@ class CierreServices:
                 faltan.append({"cliente_id": cid, "nombre": nombre, "plan": c.plan_actual if c else None})
         orden = lambda x: x["nombre"].lower()  # noqa: E731
         return {"periodo": periodo, "mes": nombre_mes(periodo), "enviado_en": _iso(e.enviado_en), "vence_en": _iso(e.vence_en),
-                "vencido": datetime.utcnow() > e.vence_en, "completaron": sorted(completaron, key=orden), "faltan": sorted(faltan, key=orden)}
+                "vencido": datetime.utcnow() > e.vence_en, "importado": e.importado, "completaron": sorted(completaron, key=orden), "faltan": sorted(faltan, key=orden)}
 
     @db_session
     def enviar(self, sesion: dict, periodo: str) -> dict:
@@ -214,6 +214,8 @@ class CierreServices:
         activos = [c.id for c in list(ClienteExterno.select()) if _tiene_acceso(c)]
         e = CierreEnvio.get(periodo=periodo)
         ahora = datetime.utcnow()
+        if e is not None and e.importado:
+            raise HTTPException(status_code=409, detail="Ese mes se trajo del Typeform: no se vuelve a enviar.")
         if e is None:
             CierreEnvio(periodo=periodo, admin_id=sesion["usuario_id"], enviado_en=ahora, vence_en=ahora + timedelta(days=PLAZO_DIAS), destinatarios_json=json.dumps(sorted(activos)))
             return {"periodo": periodo, "mes": nombre_mes(periodo), "enviados": len(activos), "nuevos": len(activos)}
