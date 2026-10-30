@@ -52,6 +52,11 @@ class ReaccionCuerpo(BaseModel):
     emoji: str = Field(min_length=1, max_length=16)
 
 
+class TildeCuerpo(BaseModel):
+    clave: str = Field(min_length=1, max_length=600)
+    hecho: bool
+
+
 class Leido(BaseModel):
     ultimo_id: int = Field(ge=0)
 
@@ -305,6 +310,13 @@ async def editar(mensaje_id: int, body: MensajeEdicion, sesion: dict = Depends(s
 async def reaccionar(mensaje_id: int, body: ReaccionCuerpo, sesion: dict = Depends(sesion_mensajes)):
     evento, canal = await run_in_threadpool(service.reaccionar, sesion, mensaje_id, body.emoji)
     await hub.emitir({"tipo": "reacciones", **evento}, canal)
+    return evento
+
+
+@router.put("/{mensaje_id}/tildes")
+async def tildar(mensaje_id: int, body: TildeCuerpo, sesion: dict = Depends(sesion_mensajes)):
+    evento, canal = await run_in_threadpool(service.tildar, sesion, mensaje_id, body.clave, body.hecho)
+    await hub.emitir({"tipo": "tildes", **evento}, canal)
     return evento
 
 

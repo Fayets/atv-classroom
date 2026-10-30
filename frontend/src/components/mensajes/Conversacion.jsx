@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { borrarMensaje, editarMensaje, reaccionar, enviarMensaje, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaEnviada, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto } from '../../api/mensajes'
+import { borrarMensaje, editarMensaje, reaccionar, enviarMensaje, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaEnviada, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto, tildarMensaje } from '../../api/mensajes'
 import { fetchVoz } from '../../api/cuenta'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
@@ -227,6 +227,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
           })
         } else if (ev.tipo === 'editado' && ev.mensaje.canal_id === canalId) {
           setMensajes((m) => m.map((x) => (x.id === ev.mensaje.id ? ev.mensaje : x)))
+        } else if (ev.tipo === 'tildes' && ev.canal_id === canalId) {
+          setMensajes((m) => m.map((x) => (x.id === ev.mensaje_id ? { ...x, tildes: ev.tildes } : x)))
         } else if (ev.tipo === 'reacciones' && ev.canal_id === canalId) {
           setMensajes((m) => m.map((x) => (x.id === ev.mensaje_id ? { ...x, reacciones: ev.reacciones } : x)))
         } else if (ev.tipo === 'borrado' && ev.mensaje.canal_id === canalId) {
@@ -846,6 +848,19 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     }
   }
 
+  // Tildar un renglón de un update: se ve al instante y, si el servidor no lo acepta, vuelve como estaba.
+  async function tildarRenglon(mensajeId, clave, hecho) {
+    const cambiar = (tildes) => setMensajes((m) => m.map((x) => (x.id === mensajeId ? { ...x, tildes } : x)))
+    const antes = mensajesRef.current.find((x) => x.id === mensajeId)?.tildes || []
+    cambiar(hecho ? [...antes.filter((c) => c !== clave), clave] : antes.filter((c) => c !== clave))
+    try {
+      const r = await tildarMensaje(mensajeId, clave, hecho)
+      cambiar(r.tildes)
+    } catch {
+      cambiar(antes)
+    }
+  }
+
   async function guardarEdicion(m, nuevo) {
     const limpio = conEmojis(nuevo.trim())
     setEditando(null)
@@ -1096,7 +1111,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                       <Edicion texto={m.texto} canales={canales} onGuardar={(t) => guardarEdicion(m, t)} onCancelar={() => setEditando(null)} />
                     ) : (
                       <>
-                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} personas={personasChat} yo={meNombra(m) ? miPrimerNombre : null} canales={canales} onAbrirCanal={onAbrirCanal} secciones={esUpdates} /> : null}
+                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} personas={personasChat} yo={meNombra(m) ? miPrimerNombre : null} canales={canales} onAbrirCanal={onAbrirCanal} secciones={esUpdates} tildes={m.tildes} onTildar={esUpdates && isEquipo ? (clave, hecho) => tildarRenglon(m.id, clave, hecho) : undefined} /> : null}
                         <Enlaces texto={m.texto} />
                         <Adjuntos adjuntos={m.adjuntos} alCargar={bajarSiEstabaAbajo} />
                       </>

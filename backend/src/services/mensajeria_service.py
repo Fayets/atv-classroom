@@ -17,7 +17,7 @@ from fastapi import HTTPException
 from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
-from src.models import Adjunto, Admin, Canal, ClienteExterno, LecturaCanal, Mencion, MensajeCanal, Reaccion
+from src.models import Adjunto, Admin, Canal, ClienteExterno, LecturaCanal, Mencion, MensajeCanal, MensajeTilde, Reaccion
 from src.storage import adjuntos as almacen
 from src.services.auth_service import _emails_del_cliente, _tiene_acceso, es_equipo, ve_plata
 from src.services.cuenta_service import foto_de, fotos_de
@@ -247,6 +247,17 @@ def _reacciones_de(mensaje_ids: list[int], autores: _Autores) -> dict[int, list[
     return {mid: list(grupos.values()) for mid, grupos in por_mensaje.items()}
 
 
+def _tildes_de(mensaje_ids: list[int]) -> dict[int, list[str]]:
+    """Los renglones tildados de varios mensajes (updates) en una sola consulta."""
+    if not mensaje_ids:
+        return {}
+    ids = ",".join(str(int(i)) for i in mensaje_ids)
+    por_mensaje: dict[int, list[str]] = defaultdict(list)
+    for mid, clave in db.select(f'SELECT mensaje_id, clave FROM "{DB_SCHEMA}"."mensajes_tildes" WHERE mensaje_id IN ({ids}) ORDER BY id'):
+        por_mensaje[int(mid)].append(clave)
+    return dict(por_mensaje)
+
+
 def _autor(m, autores: _Autores) -> dict:
     """Quién escribió. En el historial de Discord manda el nombre que tenía allá (puede no tener cuenta)."""
     base = autores.de(m.autor_tipo, m.autor_id)
@@ -258,7 +269,7 @@ def _autor(m, autores: _Autores) -> dict:
     return base
 
 
-def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[dict]] | None = None, reacciones: dict[int, list[dict]] | None = None, menciones: dict[int, list[int]] | None = None) -> dict:
+def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[dict]] | None = None, reacciones: dict[int, list[dict]] | None = None, menciones: dict[int, list[int]] | None = None, tildes: dict[int, list[str]] | None = None) -> dict:
     respuesta = None
     if m.respuesta_a:
         original = MensajeCanal.get(id=m.respuesta_a)
@@ -281,6 +292,7 @@ def _mensaje_dict(m: MensajeCanal, autores: _Autores, adjuntos: dict[int, list[d
         "creado_en": _iso(m.creado_en),
         "origen": "discord" if m.id < 0 else None,
         "menciones": (menciones if menciones is not None else _menciones_de([m.id])).get(m.id, []),
+        "tildes": [] if m.borrado else (tildes if tildes is not None else _tildes_de([m.id])).get(m.id, []),
     }
 
 
@@ -656,9 +668,10 @@ class MensajeriaServices:
             adjuntos = _adjuntos_de([m.id for m in lista])
             reacciones = _reacciones_de([m.id for m in lista], autores)
             menciones = _menciones_de([m.id for m in lista])
+            tildes = _tildes_de([m.id for m in lista])
             salida = []
             for m in lista:
-                salida.append(_mensaje_dict(m, autores, adjuntos, reacciones, menciones))
+                salida.append(_mensaje_dict(m, autores, adjuntos, reacciones, menciones, tildes))
             return {
                 "canal": {"id": canal.id, "tipo": canal.tipo, "nombre": canal.nombre, "descripcion": canal.descripcion},
                 "mensajes": salida,
@@ -854,6 +867,27 @@ class MensajeriaServices:
                 Reaccion(mensaje_id=mid, canal_id=m.canal.id, quien=quien, emoji=emoji)
             db.flush()
             evento = {"mensaje_id": mid, "canal_id": m.canal.id, "reacciones": _reacciones_de([mid], _Autores()).get(mid, [])}
+            return evento, _info(m.canal)
+
+    def tildar(self, sesion: dict, mensaje_id: int, clave: str, hecho: bool) -> tuple[dict, dict]:
+        """Tilda (o destilda) un renglón de un update. Solo el equipo de ATV; lo ven todos en vivo."""
+        if not es_equipo(sesion) or sesion.get("miembro_id"):
+            raise HTTPException(status_code=403, detail="Solo el equipo de ATV tilda los updates.")
+        clave = clave.strip()
+        with db_session:
+            m = MensajeCanal.get(id=mensaje_id)
+            if m is None or m.borrado or not _ve(sesion, _info(m.canal)):
+                raise HTTPException(status_code=404, detail="Mensaje no encontrado.")
+            if not clave or clave not in (m.texto or ""):
+                raise HTTPException(status_code=422, detail="Ese renglón no está en el mensaje.")
+            mid = m.id
+            existente = MensajeTilde.get(mensaje_id=mid, clave=clave)
+            if hecho and existente is None:
+                MensajeTilde(mensaje_id=mid, canal_id=m.canal.id, clave=clave, admin_id=sesion["usuario_id"])
+            elif not hecho and existente is not None:
+                existente.delete()
+            db.flush()
+            evento = {"mensaje_id": mid, "canal_id": m.canal.id, "tildes": _tildes_de([mid]).get(mid, [])}
             return evento, _info(m.canal)
 
     @staticmethod

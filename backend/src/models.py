@@ -781,3 +781,18 @@ class NombreTitular(db.Entity):
     cliente_id = PrimaryKey(int)
     nombre = Required(str)
     actualizado_en = Required(datetime, default=datetime.utcnow)
+
+
+class MensajeTilde(db.Entity):
+    """Un renglón de un update (#updates) que alguien del equipo tildó como hecho. La clave es el texto del
+    renglón tal como está en el mensaje: si el autor edita otro renglón, los tildes de los demás siguen."""
+
+    _table_ = (DB_SCHEMA, "mensajes_tildes")
+
+    id = PrimaryKey(int, auto=True)
+    mensaje_id = Required(int, index=True)
+    canal_id = Required(int)
+    clave = Required(str, 600)
+    admin_id = Required(int)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    composite_key(mensaje_id, clave)

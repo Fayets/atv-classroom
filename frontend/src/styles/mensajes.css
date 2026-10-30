@@ -1155,3 +1155,12 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-edicion .msj-sugerencias span { font-size: 12px; color: var(--m-t3); }
 .msj-edicion .msj-sugerencias button.is-on span { color: #fff; }
 .msj-sugerencias button > span.msj-sug-slug::first-letter { text-transform: none; }
+
+/* #updates: casilla al final de cada renglón; lo tildado baja al final del bloque con ✅ */
+.msj-texto__bloque > div { white-space: pre-wrap; }
+.msj-texto__item { display: flex; align-items: flex-start; gap: 10px; }
+.msj-texto__item > span { flex: 1; min-width: 0; }
+.msj-texto__item.is-hecho > span { color: var(--m-t3); }
+.msj-tilde { flex: none; width: 15px; height: 15px; margin: 4px 0 0; accent-color: #34a853; cursor: pointer; opacity: 0.55; }
+.msj-tilde:checked, .msj-texto__item:hover .msj-tilde, .msj-tilde:focus-visible { opacity: 1; }
+.msj-texto--secciones > div + div, .msj-texto--secciones > p + div, .msj-texto--secciones > div + p { margin-top: 0.7em; }

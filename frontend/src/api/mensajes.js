@@ -143,6 +143,10 @@ export function borrarMensaje(mensajeId) {
   return request(`/api/mensajes/${mensajeId}`, { method: 'DELETE' })
 }
 
+export function tildarMensaje(mensajeId, clave, hecho) {
+  return request(`/api/mensajes/${mensajeId}/tildes`, { method: 'PUT', body: JSON.stringify({ clave, hecho }) })
+}
+
 export function fetchVistos(mensajeId) {
   return request(`/api/mensajes/${mensajeId}/vistos`)
 }

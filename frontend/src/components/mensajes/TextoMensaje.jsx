@@ -19,9 +19,12 @@ function canalDe(palabra, canales) {
 
 function ConCanales({ texto, canales, onAbrirCanal }) {
   if (!canales?.size || !onAbrirCanal) return texto
-  return texto.split(PALABRA).map((parte, i) => {
-    const canal = i % 2 === 1 ? canalDe(parte, canales) : null
-    if (!canal) return <Fragment key={i}>{parte}</Fragment>
+  const partes = texto.split(PALABRA)
+  const canalesDe = partes.map((parte, i) => (i % 2 === 1 ? canalDe(parte, canales) : null))
+  return partes.map((parte, i) => {
+    const canal = canalesDe[i]
+    // El link ya lleva su "#": si se escribió "#slug" (o salió del autocompletado), no se repite.
+    if (!canal) return <Fragment key={i}>{canalesDe[i + 1] && parte.endsWith('#') ? parte.slice(0, -1) : parte}</Fragment>
     return (
       <button key={i} type="button" className="msj-canal" title={`Abrir el chat de ${canal.nombre}`} onClick={() => onAbrirCanal(canal.id)}>
         {parte}
@@ -69,21 +72,56 @@ function ConMenciones({ texto, nombres, personas, yo, canales, onAbrirCanal }) {
 
 // Pasa los :atajos: a emoji, respeta los saltos de línea, convierte los links en enlaces, pone en negrita lo que va
 // entre ** y resalta las @menciones y los canales de clientes nombrados por su slug (sin HTML del usuario).
-// Con `secciones` (canal #updates) cada párrafo que arranca con "@Persona" va con una barra a la izquierda.
-export default function TextoMensaje({ texto, nombres, personas, yo, canales, onAbrirCanal, secciones = false }) {
+// Con `secciones` (canal #updates) cada párrafo que arranca con "@Persona" va con una barra a la izquierda y,
+// con `onTildar`, cada renglón lleva su casilla: tildado pasa al final del bloque con ✅; destildado vuelve a su lugar.
+export default function TextoMensaje({ texto, nombres, personas, yo, canales, onAbrirCanal, secciones = false, tildes = [], onTildar }) {
   const limpio = conEmojis(texto)
   const linea = (t) => <Linea texto={t} nombres={nombres} personas={personas} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
   if (!secciones || !/(^|\n)@/.test(limpio)) return <p className="msj-texto">{linea(limpio)}</p>
-  const parrafos = limpio.split(/\n{2,}/)
+  // Las claves de los tildes son los renglones tal como están escritos (antes de pasar :atajos: a emoji).
+  const parrafos = texto.split(/\n{2,}/)
+  const hechos = new Set(tildes)
   return (
     <div className="msj-texto msj-texto--secciones">
-      {parrafos.map((par, i) => (
-        <p key={i} className={par.trimStart().startsWith('@') ? 'msj-texto__bloque' : undefined}>
-          {linea(par)}
-        </p>
-      ))}
+      {parrafos.map((par, i) => {
+        const [cabeza, ...renglones] = par.split('\n')
+        if (!cabeza.trimStart().startsWith('@') || !renglones.length) {
+          return (
+            <p key={i} className={par.trimStart().startsWith('@') ? 'msj-texto__bloque' : undefined}>
+              {linea(conEmojis(par))}
+            </p>
+          )
+        }
+        const items = renglones.map((r) => ({ r, clave: r.trim(), hecho: hechos.has(r.trim()) })).filter((x) => x.clave)
+        const orden = [...items.filter((x) => !x.hecho), ...items.filter((x) => x.hecho)]
+        return (
+          <div key={i} className="msj-texto__bloque">
+            <div>{linea(conEmojis(cabeza))}</div>
+            {orden.map((x) => (
+              <div key={x.clave} className={`msj-texto__item${x.hecho ? ' is-hecho' : ''}`}>
+                <span>{linea(conEmojis(x.hecho ? hecho(x.clave) : x.r))}</span>
+                {onTildar ? (
+                  <input
+                    type="checkbox"
+                    className="msj-tilde"
+                    checked={x.hecho}
+                    onChange={(e) => onTildar(x.clave, e.target.checked)}
+                    aria-label={x.hecho ? 'Marcar como pendiente' : 'Marcar como hecho'}
+                  />
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )
+      })}
     </div>
   )
+}
+
+// Un renglón tildado: lo que va adelante (⚠️ ⏳ 1d 9h, 📓, 20h, --) se cambia por el visto.
+const MARCAS = /^(?:\s*(?:[^\p{L}\p{N}\s#@]+|\d+\s*[dhm](?![\p{L}\p{N}])))+\s*/u
+function hecho(renglon) {
+  return `✅ ${renglon.replace(MARCAS, '')}`
 }
 
 function Linea({ texto, nombres, personas, yo, canales, onAbrirCanal }) {
