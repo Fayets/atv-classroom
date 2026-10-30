@@ -24,7 +24,6 @@ const PLATA = [
   ['cash', 'Cash collected (USD)'],
   ['facturacion', 'Facturación (USD)'],
 ]
-const LOOM_CONVERSACIONES = 'https://www.loom.com/share/ae2a90ec3ff740c3af81ca09fc7129fe'
 const VACIO = Object.fromEntries([...CONTENIDO, ...EMBUDO, ...PLATA].map(([k]) => [k, '']))
 
 const dia = (iso) => new Date(iso).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -151,9 +150,7 @@ function Formulario({ pendiente, alCerrar, alTerminar, alOtro }) {
 
       <section className="cm-seccion">
         <h3>Ventas</h3>
-        <p className="cm-ayuda">
-          Las tasas se calculan solas. ¿No sabés cómo contar las conversaciones? <a href={LOOM_CONVERSACIONES} target="_blank" rel="noopener noreferrer">Mirá este Loom</a>.
-        </p>
+        <p className="cm-ayuda">Las tasas se calculan solas.</p>
         <div className="cm-grilla">{EMBUDO.map(([k, n]) => <Numero key={k} campo={k} nombre={n} valores={v} poner={poner} />)}</div>
         <div className="cm-tasas">
           {[['Agendamiento', t.agendamiento], ['Asistencia', t.asistencia], ['Cierre', t.cierre]].map(([n, x]) => (
