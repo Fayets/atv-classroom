@@ -1164,3 +1164,10 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-tilde { flex: none; width: 15px; height: 15px; margin: 4px 0 0; accent-color: #34a853; cursor: pointer; opacity: 0.55; }
 .msj-tilde:checked, .msj-texto__item:hover .msj-tilde, .msj-tilde:focus-visible { opacity: 1; }
 .msj-texto--secciones > div + div, .msj-texto--secciones > p + div, .msj-texto--secciones > div + p { margin-top: 0.7em; }
+
+/* Edición: los íconos de siempre a mano y el selector completo (con sus recientes) */
+.msj-edicion__emojis { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 6px 0 2px; }
+.msj-edicion__emojis button { display: inline-grid; place-items: center; min-width: 30px; height: 28px; padding: 0 6px; border: 0; border-radius: 7px; background: rgba(var(--m-osc, 0, 0, 0), 0.06); color: var(--m-t2); font-size: 15px; font-weight: 600; cursor: pointer; }
+.msj-edicion__emojis button:hover { background: rgba(var(--m-osc, 0, 0, 0), 0.12); }
+.msj-edicion__emojis .msj-cara-mas { width: 17px; height: 17px; }
+.msj-edicion .msj-emojis { left: 0; right: auto; bottom: calc(100% + 4px); }

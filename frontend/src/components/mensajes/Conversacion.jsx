@@ -15,6 +15,7 @@ import SelectorEmojis from './SelectorEmojis'
 import TextoMensaje from './TextoMensaje'
 import VistoPor from './VistoPor'
 import { buscarAtajos, conEmojis } from '../../utils/emojis'
+import { textoAlGuardar, textoParaEditar } from '../../utils/updates'
 
 const AGRUPAR_MS = 5 * 60 * 1000
 // Sugerencias con la caja vacía ya pedidas, por chat: volver a un chat no paga otra.
@@ -81,6 +82,8 @@ const guardarBorrador = (clave, valor) => {
 
 // Las reacciones de un toque, como las frecuentes de Discord.
 const EMOJIS = ['👍', '❤️', '🔥', '🙌', '👏', '😂', '🎉', '💪', '👀', '🙏', '✅', '🚀']
+// Los íconos con que Mauri arma los updates: a mano en la edición, sin buscarlos en el selector.
+const EMOJIS_UPDATES = ['⚠️', '⏳', '📓', '✅', '--']
 const PRESION_MS = 450 // en el celular, mantener apretado un mensaje abre sus opciones; las reacciones van por su botón
 // Celu/tablet: ahí mantener apretado es nuestro menú, no la selección de texto del sistema.
 const TACTIL = typeof window !== 'undefined' && window.matchMedia?.('(hover: none) and (pointer: coarse)').matches
@@ -1108,7 +1111,13 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                     {m.borrado ? (
                       <p className="msj-texto msj-texto--borrado">Mensaje borrado</p>
                     ) : editando === m.id ? (
-                      <Edicion texto={m.texto} canales={canales} onGuardar={(t) => guardarEdicion(m, t)} onCancelar={() => setEditando(null)} />
+                      <Edicion
+                        texto={esUpdates ? textoParaEditar(m.texto, m.tildes) : m.texto}
+                        canales={canales}
+                        rapidos={esUpdates ? EMOJIS_UPDATES : null}
+                        onGuardar={(t) => guardarEdicion(m, esUpdates ? textoAlGuardar(t, m.texto, m.tildes) : t)}
+                        onCancelar={() => setEditando(null)}
+                      />
                     ) : (
                       <>
                         {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} personas={personasChat} yo={meNombra(m) ? miPrimerNombre : null} canales={canales} onAbrirCanal={onAbrirCanal} secciones={esUpdates} tildes={m.tildes} onTildar={esUpdates && isEquipo ? (clave, hecho) => tildarRenglon(m.id, clave, hecho) : undefined} /> : null}
@@ -1571,10 +1580,26 @@ function HojaOpciones({ m, mio, puedeEscribir, puedeBorrar, onCerrar, onReaccion
   )
 }
 
-function Edicion({ texto, canales, onGuardar, onCancelar }) {
+function Edicion({ texto, canales, rapidos, onGuardar, onCancelar }) {
   const [valor, setValor] = useState(texto)
   const [sugerencias, setSugerencias] = useState(null)
+  const [verEmojis, setVerEmojis] = useState(false)
   const caja = useRef(null)
+  const cerrarEmojis = useCallback(() => setVerEmojis(false), [])
+  // Mete el emoji donde está el cursor (o reemplaza lo seleccionado) y deja el cursor después.
+  function poner(emoji) {
+    const el = caja.current
+    const desde = el?.selectionStart ?? valor.length
+    const hasta = el?.selectionEnd ?? valor.length
+    // Pegado a otra cosa, con un espacio: "⚠️ 📓 cliente…", no "⚠️📓cliente…".
+    const sigue = valor.slice(hasta, hasta + 1)
+    const extra = (emoji === '--' ? '--' : emoji) + (sigue && !/\s/.test(sigue) ? ' ' : '')
+    setValor((v) => `${v.slice(0, desde)}${extra}${v.slice(hasta)}`)
+    requestAnimationFrame(() => {
+      el?.focus()
+      el?.setSelectionRange(desde + extra.length, desde + extra.length)
+    })
+  }
   function elegirCanal(c) {
     const el = caja.current
     const caret = el?.selectionStart ?? valor.length
@@ -1635,6 +1660,17 @@ function Edicion({ texto, canales, onGuardar, onCancelar }) {
         }}
         maxLength={4000}
       />
+      {verEmojis ? <SelectorEmojis onElegir={poner} onCerrar={cerrarEmojis} /> : null}
+      <div className="msj-edicion__emojis">
+        {(rapidos || []).map((e) => (
+          <button key={e} type="button" title={e === '--' ? 'Guiones' : `Poner ${e}`} onMouseDown={(ev) => ev.preventDefault()} onClick={() => poner(e)}>
+            {e}
+          </button>
+        ))}
+        <button type="button" className="msj-edicion__mas" title="Más emojis" aria-label="Más emojis" onMouseDown={(ev) => ev.preventDefault()} onClick={() => setVerEmojis((v) => !v)}>
+          <CaraMas />
+        </button>
+      </div>
       <span>
         {TACTIL ? (
           <button type="button" onClick={onCancelar}>

@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import { conEmojis } from '../../utils/emojis'
 import { normal } from '../../utils/mensajes'
+import { comoHecho, nucleo, ordenar } from '../../utils/updates'
 
 const URL = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g
 const NEGRITA = /\*\*([^*\n]+?)\*\*/g // **texto**, como en Discord (lo traído de allá y los anuncios del equipo)
@@ -93,14 +94,13 @@ export default function TextoMensaje({ texto, nombres, personas, yo, canales, on
             </p>
           )
         }
-        const items = renglones.map((r) => ({ r, clave: nucleo(r), hecho: hechos.has(nucleo(r)) })).filter((x) => x.clave)
-        const orden = [...items.filter((x) => !x.hecho), ...items.filter((x) => x.hecho)]
+        const orden = ordenar(renglones, hechos)
         return (
           <div key={i} className="msj-texto__bloque">
             <div>{linea(conEmojis(cabeza))}</div>
             {orden.map((x) => (
               <div key={x.clave} className={`msj-texto__item${x.hecho ? ' is-hecho' : ''}`}>
-                <span>{linea(conEmojis(x.hecho ? hecho(x.clave) : x.r))}</span>
+                <span>{linea(conEmojis(x.hecho ? comoHecho(x.r) : x.r))}</span>
                 {onTildar ? (
                   <input
                     type="checkbox"
@@ -119,12 +119,6 @@ export default function TextoMensaje({ texto, nombres, personas, yo, canales, on
   )
 }
 
-// Un renglón tildado: lo que va adelante (⚠️ ⏳ 1d 9h, 📓, 20h, --) se cambia por el visto.
-const MARCAS = /^(?:\s*(?:[^\p{L}\p{N}\s#@]+|\d+\s*[dhm](?![\p{L}\p{N}])))+\s*/u
-const nucleo = (renglon) => renglon.trim().replace(MARCAS, '').replace(/^#/, '').trim()
-function hecho(renglon) {
-  return `✅ ${nucleo(renglon)}`
-}
 
 function Linea({ texto, nombres, personas, yo, canales, onAbrirCanal }) {
   const partes = texto.split(URL)
