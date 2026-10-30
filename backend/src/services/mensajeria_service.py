@@ -881,10 +881,11 @@ class MensajeriaServices:
     @db_session
     def vistos(self, sesion: dict, mensaje_id: int) -> dict:
         """Quiénes leyeron un mensaje y quiénes no ("te clavaron el visto"), entre todos los que pueden ver
-        ese canal: el equipo y los clientes con acceso vigente. Solo para admins. Del lado del cliente la
-        lectura es de la cuenta: si la abrió alguien de su equipo, cuenta como vista."""
-        if sesion.get("rol") != "admin" or sesion.get("miembro_id"):
-            raise HTTPException(status_code=403, detail="Solo los admins ven quién leyó un mensaje.")
+        ese canal: el equipo y los clientes con acceso vigente. Para el equipo de ATV (admins y coaches, cada uno
+        en los canales que ve). Del lado del cliente la lectura es de la cuenta: si la abrió alguien de su equipo,
+        cuenta como vista."""
+        if not es_equipo(sesion) or sesion.get("miembro_id"):
+            raise HTTPException(status_code=403, detail="Solo el equipo de ATV ve quién leyó un mensaje.")
         m = MensajeCanal.get(id=mensaje_id)
         if m is None or m.borrado:
             raise HTTPException(status_code=404, detail="Mensaje no encontrado.")

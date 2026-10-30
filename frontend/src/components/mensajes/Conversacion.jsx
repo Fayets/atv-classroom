@@ -64,7 +64,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const [nuevosAbajo, setNuevosAbajo] = useState(0)
   const lejosRef = useRef(false)
   const [aBorrar, setABorrar] = useState(null)
-  const [vistoPor, setVistoPor] = useState(null) // id del mensaje del que un admin mira quién lo leyó
+  const [vistoPor, setVistoPor] = useState(null) // id del mensaje del que alguien del equipo mira quién lo leyó
   const [equipo, setEquipo] = useState([])
   const [sugerencias, setSugerencias] = useState(null) // { lista, indice, desde }
   const [atajos, setAtajos] = useState(null) // ":fu" → { lista, indice, desde }, como en Discord
@@ -1096,7 +1096,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                           Editar
                         </button>
                       ) : null}
-                      {isAdmin && typeof m.id === 'number' ? (
+                      {isEquipo && typeof m.id === 'number' ? (
                         <button
                           type="button"
                           onClick={() => {

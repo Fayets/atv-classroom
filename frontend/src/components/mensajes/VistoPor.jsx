@@ -3,11 +3,11 @@ import { fetchVistos } from '../../api/mensajes'
 
 const iniciales = (n) => (n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
 
-// Solo admins: quiénes leyeron un mensaje y quiénes le clavaron el visto (o no lo abrieron todavía).
+// Equipo de ATV: quiénes leyeron un mensaje y quiénes le clavaron el visto (o no lo abrieron todavía).
 export default function VistoPor({ mensajeId, onCerrar }) {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
-  const [pestana, setPestana] = useState('faltan')
+  const [pestana, setPestana] = useState('vieron')
   const [sinFoto, setSinFoto] = useState({})
 
   useEffect(() => {
@@ -35,11 +35,11 @@ export default function VistoPor({ mensajeId, onCerrar }) {
       <section className="msj-modal msj-visto-por" role="dialog" aria-modal="true" aria-labelledby="msj-visto-por">
         <h2 id="msj-visto-por">Visto por</h2>
         <div className="msj-visto-por__tabs" role="tablist">
-          <button type="button" role="tab" aria-selected={pestana === 'faltan'} className={pestana === 'faltan' ? 'is-on' : ''} onClick={() => setPestana('faltan')}>
-            No lo vieron <b>{datos ? datos.faltan.length : '·'}</b>
-          </button>
           <button type="button" role="tab" aria-selected={pestana === 'vieron'} className={pestana === 'vieron' ? 'is-on' : ''} onClick={() => setPestana('vieron')}>
             Lo vieron <b>{datos ? datos.vieron.length : '·'}</b>
+          </button>
+          <button type="button" role="tab" aria-selected={pestana === 'faltan'} className={pestana === 'faltan' ? 'is-on' : ''} onClick={() => setPestana('faltan')}>
+            No lo vieron <b>{datos ? datos.faltan.length : '·'}</b>
           </button>
         </div>
         <div className="msj-visto-por__lista">
