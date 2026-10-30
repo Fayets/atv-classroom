@@ -60,8 +60,10 @@ def tasas(r: dict) -> dict:
 
 
 def _recibe(c: ClienteExterno) -> bool:
-    """Le toca el cierre: tiene acceso y ya hizo el onboarding (una seña todavía no tiene canal y no cuenta)."""
-    return _tiene_acceso(c) and bool((c.canal_discord or "").strip()) and not (c.email or "").endswith("@atvos-prueba.com")
+    """Le toca el cierre: tiene acceso y ya hizo el onboarding (una seña todavía no tiene canal y no cuenta). El plan 2K
+    no: solo consume el contenido de Skool."""
+    return (_tiene_acceso(c) and bool((c.canal_discord or "").strip()) and (c.plan_actual or "").lower() != "2k"
+            and not (c.email or "").endswith("@atvos-prueba.com"))
 
 
 def _nombre(c: ClienteExterno) -> str:
