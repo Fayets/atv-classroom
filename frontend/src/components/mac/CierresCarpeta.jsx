@@ -12,8 +12,32 @@ const num = (n) => (typeof n === 'number' ? n.toLocaleString('es-AR') : '—')
 const usd = (n) => (typeof n === 'number' ? `US$ ${n.toLocaleString('es-AR')}` : '—')
 const pct = (n) => (n === null || n === undefined ? '—' : `${n}%`)
 
+// Un cierre traído del Typeform: las preguntas de ese formulario con lo que escribió, tal cual.
+const enTexto = (v) => (/^\d{4}-\d{2}-\d{2}T/.test(v) ? new Date(v).toLocaleDateString('es-AR', { timeZone: 'UTC' }) : v)
+function DelTypeform({ c }) {
+  return (
+    <div className="ci-vista">
+      <div className="ob-vista__barra">
+        <div className="ob-vista__quien">
+          <b>{c.nombre}</b>
+          <span>Typeform · {c.ficha && c.ficha !== c.nombre ? `ficha: ${c.ficha} · ` : ''}completó el {fecha(c.completado_en)}</span>
+        </div>
+      </div>
+      <div className="ci-cuerpo">
+        {c.respuestas.typeform.map(([pregunta, v]) => (
+          <section key={pregunta}>
+            <h4>{pregunta}</h4>
+            <p className="ci-texto">{enTexto(v)}</p>
+          </section>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function Respuestas({ c }) {
   const r = c.respuestas
+  if (Array.isArray(r.typeform)) return <DelTypeform c={c} />
   const filas = (lista) => lista.map(([k, v]) => <div key={k} className="ci-dato"><small>{k}</small><b>{v}</b></div>)
   return (
     <div className="ci-vista">

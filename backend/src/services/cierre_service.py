@@ -199,7 +199,10 @@ class CierreServices:
             if cid in resp:
                 for x in resp[cid]:
                     r = json.loads(x.respuestas_json)
-                    completaron.append({"id": x.id, "cliente_id": cid, "nombre": nombre, "creador": x.creador or None, "plan": c.plan_actual if c else None,
+                    # Los traídos del Typeform se muestran con el nombre que escribieron ahí.
+                    tf = r.get("typeform") if isinstance(r.get("typeform"), list) else None
+                    visible = tf[0][1] if tf and tf[0][0].lower().startswith("nombre") and tf[0][1] else nombre
+                    completaron.append({"id": x.id, "cliente_id": cid, "nombre": visible, "ficha": nombre, "creador": x.creador or None, "plan": c.plan_actual if c else None,
                                         "completado_en": _iso(x.completado_en), "respuestas": r, "tasas": tasas(r)})
             else:
                 faltan.append({"cliente_id": cid, "nombre": nombre, "plan": c.plan_actual if c else None})
