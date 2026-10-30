@@ -22,6 +22,26 @@ const cacheVacio = new Map() // canalId → { mensaje, fantasma }
 const SEGUIMIENTO_DESPUES_MS = 60 * 60 * 1000 // si escribiste vos último, la sugerencia de seguimiento aparece pasada una hora
 let temporal = 0
 
+// Borradores: lo que dejaste escrito en cada chat, por persona, para que no se pierda al ir a otro canal y
+// volver. Quedan en este navegador; se borran al enviar o a los 14 días.
+const BORRADOR_DIAS = 14
+const leerBorrador = (clave) => {
+  try {
+    const b = JSON.parse(localStorage.getItem(clave) || 'null')
+    return b && Date.now() - b.t < BORRADOR_DIAS * 864e5 ? b.v : ''
+  } catch {
+    return ''
+  }
+}
+const guardarBorrador = (clave, valor) => {
+  try {
+    if (valor.trim()) localStorage.setItem(clave, JSON.stringify({ v: valor, t: Date.now() }))
+    else localStorage.removeItem(clave)
+  } catch {
+    /* modo privado o almacenamiento lleno: sin borrador */
+  }
+}
+
 // Las reacciones de un toque, como las frecuentes de Discord.
 const EMOJIS = ['👍', '❤️', '🔥', '🙌', '👏', '😂', '🎉', '💪', '👀', '🙏', '✅', '🚀']
 const PRESION_MS = 450 // en el celular, mantener apretado un mensaje abre sus opciones; las reacciones van por su botón
@@ -54,7 +74,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const [mensajes, setMensajes] = useState([])
   const [pendientes, setPendientes] = useState([])
   const [error, setError] = useState('')
-  const [texto, setTexto] = useState('')
+  const claveBorrador = `atv-borrador:${isEquipo ? 'e' : 'c'}${user?.usuario_id}:${user?.miembro_id || ''}:${canalId}`
+  const [texto, setTexto] = useState(() => leerBorrador(claveBorrador))
+  useEffect(() => guardarBorrador(claveBorrador, texto), [claveBorrador, texto])
   const [respondiendo, setRespondiendo] = useState(null)
   const [editando, setEditando] = useState(null)
   const [escriben, setEscriben] = useState({})
