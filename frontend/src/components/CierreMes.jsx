@@ -160,9 +160,9 @@ function Formulario({ pendiente, alCerrar, alTerminar }) {
       </section>
 
       <section className="cm-seccion">
-        <h3>¿Qué pensás que podrías agregar o implementar de nuevo?</h3>
+        <h3>¿Qué pensás que podrías agregar o implementar de nuevo en ATV?</h3>
         <label className="cm-texto">
-          <textarea value={v.propuesta} onChange={(e) => poner('propuesta', e.target.value)} rows={3} required aria-label="Qué podrías agregar o implementar de nuevo" />
+          <textarea value={v.propuesta} onChange={(e) => poner('propuesta', e.target.value)} rows={3} required aria-label="Qué podrías agregar o implementar de nuevo en ATV" />
         </label>
       </section>
 

@@ -50,7 +50,7 @@ function Respuestas({ c }) {
         </section>
         {r.propuesta ? (
           <section>
-            <h4>Qué podría agregar o implementar de nuevo</h4>
+            <h4>Qué podría agregar o implementar de nuevo en ATV</h4>
             <p className="ci-texto">{r.propuesta}</p>
           </section>
         ) : null}
