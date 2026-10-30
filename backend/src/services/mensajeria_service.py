@@ -878,6 +878,53 @@ class MensajeriaServices:
         evento = {"canal_id": canal.id, "lector": "cliente" if _yo(sesion)[0] == "cliente" else "equipo", "ultimo_id": min(ultimo_id, tope)}
         return evento, _info(canal)
 
+    @db_session
+    def vistos(self, sesion: dict, mensaje_id: int) -> dict:
+        """Quiénes leyeron un mensaje y quiénes no ("te clavaron el visto"), entre todos los que pueden ver
+        ese canal: el equipo y los clientes con acceso vigente. Solo para admins. Del lado del cliente la
+        lectura es de la cuenta: si la abrió alguien de su equipo, cuenta como vista."""
+        if sesion.get("rol") != "admin" or sesion.get("miembro_id"):
+            raise HTTPException(status_code=403, detail="Solo los admins ven quién leyó un mensaje.")
+        m = MensajeCanal.get(id=mensaje_id)
+        if m is None or m.borrado:
+            raise HTTPException(status_code=404, detail="Mensaje no encontrado.")
+        canal = _canal_visible(sesion, m.canal.id)
+        info, cid, mid = _info(canal), canal.id, m.id
+        leyeron = {
+            ("cliente" if t == "cliente" else "admin", int(i))
+            for t, i in db.select(
+                f'SELECT lector_tipo, lector_id FROM "{DB_SCHEMA}"."lecturas_canal" WHERE canal_id = $cid AND ultimo_leido_id >= $mid'
+            )
+        }
+        autor = (m.autor_tipo, m.autor_id)
+        gente: list[tuple[tuple[str, int], str, str | None]] = []  # (clave, nombre, foto de Google)
+
+        def sumar(clave: tuple[str, int], nombre: str, google: str | None = None) -> None:
+            if clave != autor:
+                gente.append((clave, nombre, google))
+
+        # Los canales propios de cada coach (tres consultas por persona) solo hacen falta en un grupo cerrado al equipo.
+        hace_falta = canal.tipo == "grupo" and "equipo" not in info["roles"]
+        for a in list(Admin.select()):
+            if not a.activo or a.borrado:
+                continue
+            quien = {"rol": a.rol or "admin", "usuario_id": a.id}
+            if a.rol == "coach":
+                quien["canales_coach"] = canales_de_coach(a.id) if hace_falta else set()
+            if puede_ver(quien, info):
+                sumar(("admin", a.id), a.nombre or a.email, a.foto_url)
+        for c in list(ClienteExterno.select()):
+            if _tiene_acceso(c) and puede_ver({"rol": c.plan_actual or "mentoria", "usuario_id": c.id, "tipo": "cliente"}, info):
+                sumar(("cliente", c.id), c.nombre or c.email)
+        # Las fotos de todos juntos: una consulta por tipo y no una por persona.
+        fotos = {t: fotos_de(t, [k[1] for k, _, _ in gente if k[0] == t]) for t in ("admin", "cliente")}
+        vieron, faltan = [], []
+        for (tipo, uid), nombre, google in gente:
+            persona = {"tipo": "cliente" if tipo == "cliente" else "equipo", "id": uid, "nombre": nombre, "foto_url": fotos[tipo].get(uid) or google}
+            (vieron if (tipo, uid) in leyeron else faltan).append(persona)
+        orden = lambda p: (p["tipo"] != "cliente", (p["nombre"] or "").lower())  # noqa: E731
+        return {"mensaje_id": mid, "vieron": sorted(vieron, key=orden), "faltan": sorted(faltan, key=orden)}
+
     def no_leidos(self, sesion: dict) -> dict:
         """Los mismos totales que suma la bandeja, sin armarla: es lo que más se consulta."""
         equipo = es_equipo(sesion)

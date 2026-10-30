@@ -13,6 +13,7 @@ import Enlaces from './Enlaces'
 import GrabarAudio, { puedeGrabar } from './GrabarAudio'
 import SelectorEmojis from './SelectorEmojis'
 import TextoMensaje from './TextoMensaje'
+import VistoPor from './VistoPor'
 import { buscarAtajos, conEmojis } from '../../utils/emojis'
 
 const AGRUPAR_MS = 5 * 60 * 1000
@@ -63,6 +64,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const [nuevosAbajo, setNuevosAbajo] = useState(0)
   const lejosRef = useRef(false)
   const [aBorrar, setABorrar] = useState(null)
+  const [vistoPor, setVistoPor] = useState(null) // id del mensaje del que un admin mira quién lo leyó
   const [equipo, setEquipo] = useState([])
   const [sugerencias, setSugerencias] = useState(null) // { lista, indice, desde }
   const [atajos, setAtajos] = useState(null) // ":fu" → { lista, indice, desde }, como en Discord
@@ -1094,6 +1096,17 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                           Editar
                         </button>
                       ) : null}
+                      {isAdmin && typeof m.id === 'number' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEligiendo(null)
+                            setVistoPor(m.id)
+                          }}
+                        >
+                          Visto por
+                        </button>
+                      ) : null}
                       {(mio || isAdmin) && datos.puede_escribir ? (
                         <button
                           type="button"
@@ -1143,6 +1156,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
           {error}
         </p>
       ) : null}
+
+      {vistoPor ? <VistoPor mensajeId={vistoPor} onCerrar={() => setVistoPor(null)} /> : null}
 
       {aBorrar ? (
         <Alerta

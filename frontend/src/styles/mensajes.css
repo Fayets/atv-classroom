@@ -1128,3 +1128,18 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .ec-mini { flex: none; width: 64px; aspect-ratio: 1280 / 659; border-radius: 6px; object-fit: cover; background: var(--m-relleno, #f2f2f7); }
 .ec-vacio { margin: 8px 4px; font-size: 13px; color: var(--m-t3, #6e6e73); }
 .ec-bloq { font-weight: 600; color: var(--m-aviso, #b7791f); }
+
+/* Visto por (solo admins): quiénes leyeron un mensaje y quiénes no */
+.msj-visto-por { display: flex; flex-direction: column; max-height: min(620px, calc(100vh - 48px)); }
+.msj-visto-por__tabs { display: flex; gap: 4px; margin: 10px 0 12px; padding: 3px; border-radius: 9px; background: var(--m-relleno, #f2f2f7); }
+.msj-visto-por__tabs button { flex: 1; padding: 6px 10px; border: 0; border-radius: 7px; background: none; color: var(--m-t3, #6e6e73); font: inherit; font-weight: 600; cursor: pointer; }
+.msj-visto-por__tabs button b { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.msj-visto-por__tabs button.is-on { background: var(--m-tarjeta, #fff); color: var(--m-t1, #1d1d1f); box-shadow: 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.12), 0 1px 3px rgba(0, 0, 0, 0.08); }
+.msj-visto-por__lista { flex: 1; min-height: 120px; overflow-y: auto; margin: 0 -6px 10px; padding: 0 6px; }
+.msj-visto-por__lista h3 { margin: 6px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--m-t3, #6e6e73); }
+.msj-visto-por__lista ul { margin: 0 0 10px; padding: 0; list-style: none; }
+.msj-visto-por__lista li { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-bottom: 1px solid var(--m-linea, rgba(0, 0, 0, 0.06)); font-size: 13.5px; color: var(--m-t1, #1d1d1f); }
+.msj-visto-por__lista li:last-child { border-bottom: 0; }
+.msj-visto-por__lista img, .msj-visto-por__ini { flex: none; width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+.msj-visto-por__ini { display: grid; place-items: center; background: var(--m-relleno, #f2f2f7); color: var(--m-t3, #6e6e73); font-size: 10.5px; font-weight: 700; }
+.msj-visto-por__vacio { margin: 18px 0; text-align: center; color: var(--m-t3, #6e6e73); }

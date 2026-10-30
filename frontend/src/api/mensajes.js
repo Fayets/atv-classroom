@@ -143,6 +143,10 @@ export function borrarMensaje(mensajeId) {
   return request(`/api/mensajes/${mensajeId}`, { method: 'DELETE' })
 }
 
+export function fetchVistos(mensajeId) {
+  return request(`/api/mensajes/${mensajeId}/vistos`)
+}
+
 export function marcarLeido(canalId, ultimoId) {
   return request(`/api/mensajes/canales/${canalId}/leido`, {
     method: 'POST',

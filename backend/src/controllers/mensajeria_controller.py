@@ -308,6 +308,11 @@ async def reaccionar(mensaje_id: int, body: ReaccionCuerpo, sesion: dict = Depen
     return evento
 
 
+@router.get("/{mensaje_id}/vistos")
+async def vistos(mensaje_id: int, sesion: dict = Depends(sesion_mensajes)):
+    return await run_in_threadpool(service.vistos, sesion, mensaje_id)
+
+
 @router.delete("/{mensaje_id}")
 async def borrar(mensaje_id: int, sesion: dict = Depends(sesion_mensajes)):
     mensaje, canal = await run_in_threadpool(service.borrar, sesion, mensaje_id)
