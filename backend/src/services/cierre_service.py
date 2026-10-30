@@ -128,10 +128,10 @@ class CierreServices:
         except (TypeError, ValueError, AssertionError):
             raise HTTPException(status_code=422, detail="Calificá el servicio del 1 al 10.") from None
         limpio["satisfaccion"] = nota
-        for campo in ("cuello_por_que", "satisfaccion_por_que"):
+        for campo, falta in (("cuello_por_que", "Contanos el porqué."), ("satisfaccion_por_que", "Contanos el porqué."), ("propuesta", "Contanos qué podrías agregar o implementar de nuevo.")):
             texto = str(datos.get(campo) or "").strip()[:TEXTOS_MAX]
             if not texto:
-                raise HTTPException(status_code=422, detail="Contanos el porqué.")
+                raise HTTPException(status_code=422, detail=falta)
             limpio[campo] = texto
         CierreRespuesta(periodo=periodo, cliente_id=cid, miembro_id=sesion.get("miembro_id"), respuestas_json=json.dumps(limpio, ensure_ascii=False))
         return {"ok": True, "tasas": tasas(limpio)}

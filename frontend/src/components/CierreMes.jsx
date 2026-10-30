@@ -40,7 +40,7 @@ function Numero({ campo, nombre, valores, poner }) {
 
 function Formulario({ pendiente, alCerrar, alTerminar }) {
   const anterior = pendiente.anterior
-  const [v, setV] = useState({ ...VACIO, cambios: [], oferta: anterior?.oferta || '', avatar: anterior?.avatar || '', cuello: '', cuello_por_que: '', satisfaccion: 0, satisfaccion_por_que: '' })
+  const [v, setV] = useState({ ...VACIO, cambios: [], oferta: anterior?.oferta || '', avatar: anterior?.avatar || '', cuello: '', cuello_por_que: '', satisfaccion: 0, satisfaccion_por_que: '', propuesta: '' })
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [hecho, setHecho] = useState(null)
@@ -156,6 +156,13 @@ function Formulario({ pendiente, alCerrar, alTerminar }) {
         <label className="cm-texto">
           <span>¿Por qué esa nota?</span>
           <textarea value={v.satisfaccion_por_que} onChange={(e) => poner('satisfaccion_por_que', e.target.value)} rows={3} required />
+        </label>
+      </section>
+
+      <section className="cm-seccion">
+        <h3>¿Qué pensás que podrías agregar o implementar de nuevo?</h3>
+        <label className="cm-texto">
+          <textarea value={v.propuesta} onChange={(e) => poner('propuesta', e.target.value)} rows={3} required aria-label="Qué podrías agregar o implementar de nuevo" />
         </label>
       </section>
 

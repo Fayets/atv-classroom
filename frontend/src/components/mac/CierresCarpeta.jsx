@@ -48,6 +48,12 @@ function Respuestas({ c }) {
           <h4>Conformidad: {r.satisfaccion}/10</h4>
           <p className="ci-texto">{r.satisfaccion_por_que}</p>
         </section>
+        {r.propuesta ? (
+          <section>
+            <h4>Qué podría agregar o implementar de nuevo</h4>
+            <p className="ci-texto">{r.propuesta}</p>
+          </section>
+        ) : null}
       </div>
     </div>
   )
