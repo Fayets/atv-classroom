@@ -121,7 +121,7 @@ function Enviar({ datos, alEnviado }) {
         </>
       ) : (
         <>
-          <span>{yaEnviado ? `Se suman los clientes con acceso que no lo tenían.` : `Se envía a ${datos.activos} clientes con acceso. Tienen 3 días.`}</span>
+          <span>{yaEnviado ? `Se suman los clientes con acceso que no lo tenían.` : `Se envía a ${datos.activos} clientes con acceso (sin las señas). Tienen 3 días.`}</span>
           <button type="button" className="ob-todos ci-si" onClick={enviar} disabled={enviando}>{enviando ? 'Enviando…' : 'Confirmar'}</button>
           <button type="button" className="ob-todos" onClick={() => setConfirmar(false)} disabled={enviando}>Cancelar</button>
         </>

@@ -58,6 +58,11 @@ def tasas(r: dict) -> dict:
     return {"agendamiento": pct("agendas", "conversaciones"), "asistencia": pct("llamadas", "agendas"), "cierre": pct("ventas", "llamadas")}
 
 
+def _recibe(c: ClienteExterno) -> bool:
+    """Le toca el cierre: tiene acceso y ya hizo el onboarding (una seña todavía no tiene canal y no cuenta)."""
+    return _tiene_acceso(c) and bool((c.canal_discord or "").strip()) and not (c.email or "").endswith("@atvos-prueba.com")
+
+
 def _nombre(c: ClienteExterno) -> str:
     return nombre_titular(c.id) or c.nombre or c.email or f"Cliente {c.id}"
 
@@ -176,7 +181,7 @@ class CierreServices:
             total = len(json.loads(e.destinatarios_json))
             salida.append({"periodo": e.periodo, "mes": nombre_mes(e.periodo), "enviado_en": _iso(e.enviado_en), "vence_en": _iso(e.vence_en),
                            "total": total, "completaron": respondieron.get(e.periodo, 0), "importado": e.importado})
-        activos = sum(1 for c in list(ClienteExterno.select()) if _tiene_acceso(c))
+        activos = sum(1 for c in list(ClienteExterno.select()) if _recibe(c))
         sugerido = periodo_sugerido()
         return {"meses": salida, "sugerido": sugerido, "sugerido_mes": nombre_mes(sugerido), "activos": activos}
 
@@ -212,9 +217,10 @@ class CierreServices:
 
     @db_session
     def enviar(self, sesion: dict, periodo: str) -> dict:
-        """Lo manda a todos los clientes con acceso. Si el mes ya se envió, suma a los clientes nuevos."""
+        """Lo manda a todos los clientes con acceso que ya hicieron el onboarding (las señas no). Si el mes ya se envió,
+        suma a los clientes nuevos."""
         periodo = _valido(periodo)
-        activos = [c.id for c in list(ClienteExterno.select()) if _tiene_acceso(c)]
+        activos = [c.id for c in list(ClienteExterno.select()) if _recibe(c)]
         e = CierreEnvio.get(periodo=periodo)
         ahora = datetime.utcnow()
         if e is not None and e.importado:
