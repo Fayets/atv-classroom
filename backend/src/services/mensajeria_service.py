@@ -881,11 +881,14 @@ class MensajeriaServices:
             if not clave or clave not in (m.texto or ""):
                 raise HTTPException(status_code=422, detail="Ese renglón no está en el mensaje.")
             mid = m.id
-            existente = MensajeTilde.get(mensaje_id=mid, clave=clave)
-            if hecho and existente is None:
+            # La clave es el renglón sin íconos ni contador; los primeros tildes guardaron el renglón entero.
+            mismos = [t for t in list(MensajeTilde.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."mensajes_tildes" WHERE mensaje_id = $mid'))
+                      if t.clave == clave or t.clave.endswith(clave)]
+            if hecho and not mismos:
                 MensajeTilde(mensaje_id=mid, canal_id=m.canal.id, clave=clave, admin_id=sesion["usuario_id"])
-            elif not hecho and existente is not None:
-                existente.delete()
+            elif not hecho:
+                for t in mismos:
+                    t.delete()
             db.flush()
             evento = {"mensaje_id": mid, "canal_id": m.canal.id, "tildes": _tildes_de([mid]).get(mid, [])}
             return evento, _info(m.canal)

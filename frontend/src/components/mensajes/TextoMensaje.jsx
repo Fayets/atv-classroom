@@ -78,9 +78,10 @@ export default function TextoMensaje({ texto, nombres, personas, yo, canales, on
   const limpio = conEmojis(texto)
   const linea = (t) => <Linea texto={t} nombres={nombres} personas={personas} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
   if (!secciones || !/(^|\n)@/.test(limpio)) return <p className="msj-texto">{linea(limpio)}</p>
-  // Las claves de los tildes son los renglones tal como están escritos (antes de pasar :atajos: a emoji).
+  // La clave de un tilde es el renglón sin sus marcas (cliente + tarea), tal como está escrito: si Mauri edita el
+  // update y cambia el contador o el ícono, lo tildado sigue tildado.
   const parrafos = texto.split(/\n{2,}/)
-  const hechos = new Set(tildes)
+  const hechos = new Set(tildes.map(nucleo))
   return (
     <div className="msj-texto msj-texto--secciones">
       {parrafos.map((par, i) => {
@@ -92,7 +93,7 @@ export default function TextoMensaje({ texto, nombres, personas, yo, canales, on
             </p>
           )
         }
-        const items = renglones.map((r) => ({ r, clave: r.trim(), hecho: hechos.has(r.trim()) })).filter((x) => x.clave)
+        const items = renglones.map((r) => ({ r, clave: nucleo(r), hecho: hechos.has(nucleo(r)) })).filter((x) => x.clave)
         const orden = [...items.filter((x) => !x.hecho), ...items.filter((x) => x.hecho)]
         return (
           <div key={i} className="msj-texto__bloque">
@@ -120,8 +121,9 @@ export default function TextoMensaje({ texto, nombres, personas, yo, canales, on
 
 // Un renglón tildado: lo que va adelante (⚠️ ⏳ 1d 9h, 📓, 20h, --) se cambia por el visto.
 const MARCAS = /^(?:\s*(?:[^\p{L}\p{N}\s#@]+|\d+\s*[dhm](?![\p{L}\p{N}])))+\s*/u
+const nucleo = (renglon) => renglon.trim().replace(MARCAS, '').replace(/^#/, '').trim()
 function hecho(renglon) {
-  return `✅ ${renglon.replace(MARCAS, '')}`
+  return `✅ ${nucleo(renglon)}`
 }
 
 function Linea({ texto, nombres, personas, yo, canales, onAbrirCanal }) {
