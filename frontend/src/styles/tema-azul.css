@@ -239,3 +239,7 @@ html[data-modo="azul"] .ctx-paso.is-llamada .ctx-tarjeta { background: #2b3f63; 
 html[data-modo="azul"] .ctx-paso.is-riesgo .ctx-tarjeta { background: #4a2f3a; }
 html[data-modo="azul"] .ctx-detalle.is-llamada { background: #2b3f63; }
 html[data-modo="azul"] .ctx-filtros button.is-on small { color: rgba(32, 43, 65, 0.65); }
+
+/* ---------- Aviso de mención (arriba a la derecha): .msj-noti fija sus colores claros ---------- */
+html[data-modo="azul"] .msj-noti { --m-t1: #eef2f8; --m-acento: #ec6457; box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 18px 44px -12px rgba(0, 0, 0, 0.6); }
+html[data-modo="azul"] .msj-noti__x { background: rgba(255, 255, 255, 0.1); color: var(--m-t2); }
