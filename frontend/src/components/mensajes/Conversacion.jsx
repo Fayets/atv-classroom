@@ -16,6 +16,7 @@ import TextoMensaje from './TextoMensaje'
 import VistoPor from './VistoPor'
 import { buscarAtajos, conEmojis } from '../../utils/emojis'
 import { textoAlGuardar, textoParaEditar } from '../../utils/updates'
+import { contarAccion } from '../../api/cierre'
 
 const AGRUPAR_MS = 5 * 60 * 1000
 // Sugerencias con la caja vacía ya pedidas, por chat: volver a un chat no paga otra.
@@ -645,6 +646,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       const aceptada = aceptadaIA.current
       aceptadaIA.current = null
       const real = await enviarMensaje(canalId, limpio, provisorio.respuesta_a?.id ?? null, ids, adjuntosIds)
+      contarAccion()
       if (aceptada && real?.id) marcarSugerenciaEnviada(aceptada, real.id)
       setMensajes((m) => agregarSinDuplicar(m, [real]))
       setPendientes((p) => p.filter((x) => x.id !== id))

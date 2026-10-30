@@ -6,6 +6,7 @@ import { useMensajeria } from '../../context/MensajeriaContext'
 import MensajesPage from '../../pages/MensajesPage'
 import Finder, { IconoCarpeta } from './Finder'
 import ContratosCarpeta from './ContratosCarpeta'
+import CierresCarpeta from './CierresCarpeta'
 import LlamadasCarpeta from './LlamadasCarpeta'
 import SopsCarpeta from './SopsCarpeta'
 import OnboardingsCarpeta from './OnboardingsCarpeta'
@@ -256,6 +257,12 @@ export default function Escritorio({ children }) {
     setFinderFrente('llamadas')
     setIconoSel(null)
   }
+  const [cierres, setCierres] = useState(false)
+  function abrirCierres() {
+    setCierres(true)
+    setFinderFrente('cierres')
+    setIconoSel(null)
+  }
   function abrirContratos() {
     setContratos(true)
     setFinderFrente('contratos')
@@ -277,7 +284,7 @@ export default function Escritorio({ children }) {
     <div className="esc" onPointerDownCapture={enfocar}>
       <div className="esc-iconos">
         {[
-          ...(isAdmin ? [{ id: 'clientes', nombre: 'Clientes', abrir: abrirClientes }, { id: 'contratos', nombre: 'Contratos', abrir: abrirContratos }] : []),
+          ...(isAdmin ? [{ id: 'clientes', nombre: 'Clientes', abrir: abrirClientes }, { id: 'contratos', nombre: 'Contratos', abrir: abrirContratos }, { id: 'cierres', nombre: 'Cierres de mes', abrir: abrirCierres }] : []),
           { id: 'onboardings', nombre: 'Onboardings', abrir: abrirOnboardings },
           { id: 'llamadas', nombre: 'Llamadas', abrir: abrirLlamadas },
           { id: 'sops', nombre: 'SOPs solicitados', abrir: abrirSops },
@@ -323,6 +330,9 @@ export default function Escritorio({ children }) {
       ) : null}
       {isAdmin ? (
         <ContratosCarpeta abierta={contratos} alFrente={finderFrente === 'contratos'} alEnfocar={() => setFinderFrente('contratos')} alCerrar={() => setContratos(false)} />
+      ) : null}
+      {isAdmin ? (
+        <CierresCarpeta abierta={cierres} alFrente={finderFrente === 'cierres'} alEnfocar={() => setFinderFrente('cierres')} alCerrar={() => setCierres(false)} />
       ) : null}
       <BibliotecaApp abierta={biblioteca} alFrente={finderFrente === 'biblioteca'} alEnfocar={() => setFinderFrente('biblioteca')} alCerrar={() => setBiblioteca(false)} alAbrirChat={abrirChat} />
       <SopsCarpeta abierta={sops} alFrente={finderFrente === 'sops'} alEnfocar={() => setFinderFrente('sops')} alCerrar={() => setSops(false)} alAbrirChat={abrirChat} />

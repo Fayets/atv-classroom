@@ -823,3 +823,31 @@ class UpdateRenglon(db.Entity):
     espera_horas = Optional(float, nullable=True)  # 1d 9h → 33
     origen_mensaje_id = Optional(int, nullable=True)  # último mensaje del cliente antes del update
     origen_en = Optional(datetime, nullable=True)
+
+
+class CierreEnvio(db.Entity):
+    """El formulario de cierre de mes que un admin mandó: a quiénes (los clientes con acceso en ese momento)
+    y hasta cuándo tienen (3 días). Después del plazo, el cliente ve el cartel que vuelve hasta que lo llene."""
+
+    _table_ = (DB_SCHEMA, "cierres_envios")
+
+    periodo = PrimaryKey(str)  # "2026-10"
+    admin_id = Required(int)
+    enviado_en = Required(datetime, default=datetime.utcnow)
+    vence_en = Required(datetime)
+    destinatarios_json = Required(str)  # [cliente_id, ...]
+
+
+class CierreRespuesta(db.Entity):
+    """Lo que respondió un cliente en el cierre de un mes (una vez por cuenta: si lo llena alguien de su
+    equipo, cuenta para el cliente)."""
+
+    _table_ = (DB_SCHEMA, "cierres_respuestas")
+
+    id = PrimaryKey(int, auto=True)
+    periodo = Required(str)
+    cliente_id = Required(int, index=True)
+    miembro_id = Optional(int, nullable=True)
+    respuestas_json = Required(str)
+    completado_en = Required(datetime, default=datetime.utcnow)
+    composite_key(periodo, cliente_id)

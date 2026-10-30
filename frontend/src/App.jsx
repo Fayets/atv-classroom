@@ -15,6 +15,7 @@ import EquipoRoute from './components/EquipoRoute'
 import ConsultasPage from './pages/ConsultasPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import { PausaSync } from './components/Pausa'
+import { CierreSync } from './components/CierreMes'
 import CuentaPage from './pages/CuentaPage'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { EscritorioProvider, useEscritorio } from './context/EscritorioContext'
@@ -83,6 +84,7 @@ function AppRoutes() {
     <>
       <UnauthorizedSync />
       <PausaSync />
+      <CierreSync />
       <MarcoEquipo>
       <Routes>
         <Route path="/login" element={<LoginPage />} />

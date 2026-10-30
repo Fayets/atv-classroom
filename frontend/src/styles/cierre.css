@@ -1,0 +1,51 @@
+/* Cierre de mes del cliente: aviso, cartel insistente (usa el del cartel de pausa) y el formulario. */
+.cm-aviso { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 8000; transform: translateX(-50%); width: min(560px, calc(100vw - 32px)); display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: 14px; background: #0b0f3d; color: #fff; font: 13.5px/1.4 'Poppins', system-ui, sans-serif; box-shadow: 0 18px 40px -16px rgba(11, 15, 61, 0.6); animation: pausa-entra 0.2s ease-out; }
+.cm-aviso span { flex: 1; min-width: 0; }
+.cm-aviso__si { flex: none; height: 34px; padding: 0 14px; border: 0; border-radius: 9px; background: #fff; color: #0b0f3d; font: 600 13px 'Poppins', system-ui, sans-serif; cursor: pointer; }
+.cm-aviso__x { flex: none; width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.12); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+.cm-cartel__icono { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: rgba(214, 69, 65, 0.12); color: #c0392b; font: 700 26px 'Poppins', system-ui, sans-serif; }
+.cm-cartel__si { background: #c0392b; color: #fff; }
+.cm-cartel__si:hover { background: #a93226; }
+
+.cm-fondo { position: fixed; inset: 0; z-index: 9100; overflow-y: auto; background: rgba(11, 15, 61, 0.55); padding: 24px 16px; }
+.cm-hoja { box-sizing: border-box; width: 100%; max-width: 640px; margin: 0 auto; background: #fbfaf7; border-radius: 18px; color: #16182b; font: 14px/1.5 'Poppins', system-ui, sans-serif; box-shadow: 0 30px 60px -30px rgba(11, 15, 61, 0.5); }
+.cm-cabeza { position: sticky; top: -24px; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 22px 24px 14px; background: #fbfaf7; border-radius: 18px 18px 0 0; border-bottom: 1px solid rgba(11, 15, 61, 0.08); }
+.cm-cabeza small { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8a8790; }
+.cm-cabeza h2 { margin: 2px 0 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; color: #0b0f3d; text-wrap: balance; }
+.cm-x { flex: none; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(11, 15, 61, 0.06); color: #0b0f3d; font-size: 20px; cursor: pointer; }
+.cm-seccion { padding: 18px 24px; border-bottom: 1px solid rgba(11, 15, 61, 0.06); }
+.cm-seccion h3 { margin: 0 0 6px; font-size: 15.5px; font-weight: 600; color: #0b0f3d; text-wrap: balance; }
+.cm-ayuda { margin: 0 0 12px; font-size: 13px; color: #6e6a72; }
+.cm-ayuda a { color: #0b0f3d; }
+.cm-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.cm-chips button { padding: 8px 14px; border: 1px solid rgba(11, 15, 61, 0.16); border-radius: 999px; background: #fff; color: #16182b; font: 500 13px 'Poppins', system-ui, sans-serif; cursor: pointer; }
+.cm-chips button.is-on { background: #0b0f3d; border-color: #0b0f3d; color: #fff; }
+.cm-previo { margin: 0 0 8px; padding: 10px 12px; border-radius: 10px; background: rgba(11, 15, 61, 0.04); font-size: 13px; color: #4a4852; }
+.cm-texto { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.cm-texto span, .cm-num span { font-size: 12.5px; font-weight: 500; color: #4a4852; }
+.cm-texto textarea, .cm-num input { box-sizing: border-box; width: 100%; padding: 10px 12px; border: 1px solid rgba(11, 15, 61, 0.16); border-radius: 10px; background: #fff; color: #16182b; font: 14px/1.5 'Poppins', system-ui, sans-serif; resize: vertical; }
+.cm-texto textarea:focus, .cm-num input:focus { outline: none; border-color: #0b0f3d; box-shadow: 0 0 0 3px rgba(11, 15, 61, 0.12); }
+.cm-grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.cm-num { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cm-num input { font-variant-numeric: tabular-nums; }
+.cm-tasas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+.cm-tasas span { display: flex; flex-direction: column; padding: 10px 12px; border-radius: 10px; background: rgba(11, 15, 61, 0.05); }
+.cm-tasas small { font-size: 11.5px; color: #6e6a72; }
+.cm-tasas b { font-size: 18px; color: #0b0f3d; font-variant-numeric: tabular-nums; }
+.cm-nota { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; margin-bottom: 6px; }
+.cm-nota button { height: 40px; border: 1px solid rgba(11, 15, 61, 0.16); border-radius: 9px; background: #fff; color: #16182b; font: 600 14px 'Poppins', system-ui, sans-serif; cursor: pointer; }
+.cm-nota button.is-on { background: #0b0f3d; border-color: #0b0f3d; color: #fff; }
+.cm-pie { position: sticky; bottom: -24px; display: flex; flex-direction: column; gap: 8px; padding: 16px 24px 22px; background: #fbfaf7; border-radius: 0 0 18px 18px; }
+.cm-error { margin: 0; font-size: 13px; color: #c0392b; }
+.cm-boton { height: 46px; border: 0; border-radius: 11px; background: #0b0f3d; color: #fff; font: 600 14px 'Poppins', system-ui, sans-serif; cursor: pointer; }
+.cm-boton:disabled { opacity: 0.6; cursor: default; }
+.cm-hoja--fin { padding: 40px 24px; }
+.cm-fin { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.cm-fin h2 { margin: 6px 0 0; font-size: 22px; color: #0b0f3d; }
+.cm-fin p { margin: 0 0 8px; color: #6e6a72; }
+.cm-fin .cm-boton { padding: 0 22px; }
+.cm-fin__ok { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; background: rgba(31, 168, 85, 0.12); color: #1fa855; font-size: 28px; font-weight: 700; }
+@media (max-width: 520px) {
+  .cm-nota { grid-template-columns: repeat(5, 1fr); }
+  .cm-seccion, .cm-cabeza, .cm-pie { padding-left: 18px; padding-right: 18px; }
+}
