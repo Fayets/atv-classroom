@@ -6,6 +6,7 @@ quién es, no se le pide nombre, canal ni fecha; oferta y avatar solo si cambiar
 anterior), y las tasas del embudo se calculan solas."""
 
 import json
+import re
 from datetime import datetime, timedelta
 
 from fastapi import HTTPException
@@ -71,19 +72,27 @@ def _creador(texto) -> str:
     return " ".join(str(texto or "").split())[:80]
 
 
+_REMITE = re.compile(r"\b(el mismo|la misma|los mismos|las mismas|mismo de|igual que|igual al|sigue igual|no cambi)", re.I)
+
+
 def _anterior(cliente_id: int, creador: str = "") -> dict | None:
-    """La oferta y el avatar que contó la última vez para ese creador (para no volver a pedírselos si no
-    cambiaron). Sin uno de ese creador, nada: cada creador tiene su oferta."""
+    """La oferta y el avatar que contó antes para ese creador (para no volver a pedírselos si no cambiaron). De cada
+    uno, el último que describe algo: si el último dice "los mismos", va el anterior completo."""
     clave = creador.lower()
+    textos: dict[str, list[str]] = {"oferta": [], "avatar": []}
     for creador_previo, texto in db.select(
         f'SELECT creador, respuestas_json FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cliente_id ORDER BY completado_en DESC LIMIT 30'
     ):
         if (creador_previo or "").lower() != clave:
             continue
         r = json.loads(texto or "{}")
-        if r.get("oferta") or r.get("avatar"):
-            return {"oferta": r.get("oferta") or "", "avatar": r.get("avatar") or ""}
-    return None
+        for campo in textos:
+            if (r.get(campo) or "").strip():
+                textos[campo].append(r[campo].strip())
+    if not textos["oferta"] and not textos["avatar"]:
+        return None
+    elegir = lambda lista: next((t for t in lista if len(t) >= 60 and not _REMITE.search(t)), lista[0] if lista else "")  # noqa: E731
+    return {"oferta": elegir(textos["oferta"]), "avatar": elegir(textos["avatar"])}
 
 
 class CierreServices:

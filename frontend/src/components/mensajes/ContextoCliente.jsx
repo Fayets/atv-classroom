@@ -442,15 +442,13 @@ export default function ContextoCliente({ clienteId, abierto, alCerrar }) {
           {datos ? (
             c.negocio ? (
               <div className="ctx-negocio">
-                <div>
-                  <p className="ctx-eti">Oferta</p>
-                  <p title={c.negocio.oferta}>{c.negocio.oferta || '—'}</p>
-                </div>
-                <div>
-                  <p className="ctx-eti">Avatar</p>
-                  <p title={c.negocio.avatar}>{c.negocio.avatar || '—'}</p>
-                </div>
-                <small>Del cierre de {MESES_CIERRE[Number(c.negocio.periodo.slice(5)) - 1]}</small>
+                {['oferta', 'avatar'].map((k) => (
+                  <div key={k}>
+                    <p className="ctx-eti">{k === 'oferta' ? 'Oferta' : 'Avatar'}</p>
+                    <p title={c.negocio[k]}>{c.negocio[k] || '—'}</p>
+                    {c.negocio[`${k}_periodo`] ? <small>Del cierre de {MESES_CIERRE[Number(c.negocio[`${k}_periodo`].slice(5)) - 1]}</small> : null}
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="ctx-negocio is-vacio"><p>Todavía no completó un cierre de mes: sin oferta ni avatar cargados.</p></div>

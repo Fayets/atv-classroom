@@ -305,17 +305,24 @@ def _paso_hecho_en(p: dict) -> date | None:
         return None
 
 
+_REMITE = re.compile(r"\b(el mismo|la misma|los mismos|las mismas|mismo de|igual que|igual al|sigue igual|no cambi)", re.I)
+
+
 def _negocio(cliente_id: int) -> dict | None:
-    """La oferta y el avatar que contó en su último cierre de mes (el del único creador o el primero)."""
+    """La oferta y el avatar de sus cierres de mes. De cada uno, el último que describe algo: si el último es
+    corto o dice "los mismos", va el anterior completo (cada mes lo escribían de nuevo y lo iban acortando)."""
     with db_session:
         filas = db.select(
-            f'SELECT periodo, respuestas_json FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cliente_id ORDER BY (creador = \'\') DESC, completado_en DESC LIMIT 12'
+            f'SELECT periodo, respuestas_json FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cliente_id AND creador = \'\' ORDER BY completado_en DESC LIMIT 12'
         )
-    for periodo, rj in filas:
-        r = json.loads(rj or "{}")
-        if (r.get("oferta") or "").strip() or (r.get("avatar") or "").strip():
-            return {"oferta": (r.get("oferta") or "").strip(), "avatar": (r.get("avatar") or "").strip(), "periodo": periodo}
-    return None
+    salida: dict = {}
+    for campo in ("oferta", "avatar"):
+        textos = [(p, (json.loads(rj or "{}").get(campo) or "").strip()) for p, rj in filas]
+        textos = [(p, t) for p, t in textos if t]
+        bueno = next(((p, t) for p, t in textos if len(t) >= 60 and not _REMITE.search(t)), None) or (textos[0] if textos else None)
+        if bueno:
+            salida[campo], salida[f"{campo}_periodo"] = bueno[1], bueno[0]
+    return salida or None
 
 
 def armar(cliente_id: int, llamar=_llamar, ahora: datetime | None = None) -> dict:
