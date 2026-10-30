@@ -1,6 +1,7 @@
 import { request } from './client'
 
 export const fetchCierrePendiente = () => request('/api/cierre/pendiente')
+export const fetchOtroCreador = (periodo) => request(`/api/cierre/${periodo}/otro`)
 export const responderCierre = (periodo, datos) => request(`/api/cierre/${periodo}`, { method: 'POST', body: JSON.stringify(datos) })
 
 export const fetchCierres = () => request('/api/admin/cierres')

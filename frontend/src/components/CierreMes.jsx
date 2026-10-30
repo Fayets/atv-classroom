@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { ACCION, fetchCierrePendiente, responderCierre, tasasDe } from '../api/cierre'
+import { ACCION, fetchCierrePendiente, fetchOtroCreador, responderCierre, tasasDe } from '../api/cierre'
 import '../styles/cierre.css'
 
 const CADA = 3 // con el cierre vencido, el cartel vuelve cada 3 acciones
@@ -38,19 +38,33 @@ function Numero({ campo, nombre, valores, poner }) {
   )
 }
 
-function Formulario({ pendiente, alCerrar, alTerminar }) {
-  const anterior = pendiente.anterior
-  const [v, setV] = useState({ ...VACIO, cambios: [], oferta: anterior?.oferta || '', avatar: anterior?.avatar || '', cuello: '', cuello_por_que: '', satisfaccion: 0, satisfaccion_por_que: '', propuesta: '' })
+// La oferta y el avatar que contó antes para ese creador (sin nombre = el único que maneja).
+function anteriorDe(pendiente, creador) {
+  const c = creador.trim().toLowerCase()
+  if (!c) return pendiente.anterior
+  const clave = Object.keys(pendiente.anteriores || {}).find((k) => k.toLowerCase() === c)
+  return clave ? pendiente.anteriores[clave] : null
+}
+
+function Formulario({ pendiente, alCerrar, alTerminar, alOtro }) {
+  const otro = pendiente.hechos?.length > 0 // ya completó uno este mes: este es el de otro creador
+  const [v, setV] = useState({ ...VACIO, creador: '', cambios: [], oferta: '', avatar: '', cuello: '', cuello_por_que: '', satisfaccion: 0, satisfaccion_por_que: '', propuesta: '' })
+  const anterior = anteriorDe(pendiente, v.creador)
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [hecho, setHecho] = useState(null)
   const poner = (k, x) => setV((s) => ({ ...s, [k]: x }))
+  // Al cambiar de creador arranca con lo que contó de él la vez anterior.
+  useEffect(() => {
+    setV((s) => ({ ...s, cambios: [], oferta: anterior?.oferta || '', avatar: anterior?.avatar || '' }))
+  }, [anterior])
   const cambia = (k) => !anterior || v.cambios.includes(k)
   const alternar = (k) => setV((s) => ({ ...s, cambios: s.cambios.includes(k) ? s.cambios.filter((c) => c !== k) : [...s.cambios, k] }))
   const t = tasasDe(v)
 
   async function enviar(e) {
     e.preventDefault()
+    if (otro && !v.creador.trim()) return setError('Escribí de qué creador es este cierre.')
     if (!v.cuello) return setError('Elegí tu principal cuello de botella.')
     if (!v.satisfaccion) return setError('Calificá el servicio del 1 al 10.')
     setError('')
@@ -70,9 +84,10 @@ function Formulario({ pendiente, alCerrar, alTerminar }) {
       <div className="cm-hoja cm-hoja--fin">
         <div className="cm-fin">
           <span className="cm-fin__ok" aria-hidden="true">✓</span>
-          <h2>¡Listo! Cerraste {pendiente.mes}</h2>
+          <h2>¡Listo! Cerraste {pendiente.mes}{v.creador.trim() ? ` de ${v.creador.trim()}` : ''}</h2>
           <p>Gracias. Con esto tu coach prepara lo que sigue.</p>
           <button type="button" className="cm-boton" onClick={alTerminar}>Volver al classroom</button>
+          <button type="button" className="cm-otro" onClick={alOtro}>¿Manejás otro creador? Completar el de otro creador</button>
         </div>
       </div>
     )
@@ -89,6 +104,19 @@ function Formulario({ pendiente, alCerrar, alTerminar }) {
       </header>
 
       <section className="cm-seccion">
+        <h3>{otro ? '¿De qué creador es este cierre?' : '¿Manejás más de un creador?'}</h3>
+        <p className="cm-ayuda">
+          {otro
+            ? `Ya completaste: ${pendiente.hechos.map((c) => c || 'el primero').join(', ')}.`
+            : 'Si manejás varios, escribí de cuál es este cierre: al terminar podés completar el de los otros. Si es uno solo, dejalo vacío.'}
+        </p>
+        <label className="cm-texto">
+          <input className="cm-input" list="cm-creadores" value={v.creador} onChange={(e) => poner('creador', e.target.value)} placeholder="Nombre del creador" maxLength={80} required={otro} />
+          <datalist id="cm-creadores">{(pendiente.creadores || []).map((c) => <option key={c} value={c} />)}</datalist>
+        </label>
+      </section>
+
+      <section className="cm-seccion">
         <h3>Tu negocio</h3>
         {anterior ? (
           <>
@@ -100,7 +128,9 @@ function Formulario({ pendiente, alCerrar, alTerminar }) {
             </div>
           </>
         ) : (
-          <p className="cm-ayuda">Es tu primer cierre: contanos tu oferta y tu avatar. Los próximos meses solo si cambian.</p>
+          <p className="cm-ayuda">
+            {v.creador.trim() ? `Es el primer cierre de ${v.creador.trim()}: contanos su oferta y su avatar.` : 'Es tu primer cierre: contanos tu oferta y tu avatar.'} Los próximos meses solo si cambian.
+          </p>
         )}
         {[['oferta', 'Tu oferta', 'Ayudo a dueños de negocio estancados en $10k/mes a llegar a $100k/mes en 6 meses con 1 a 1, acompañamiento y clases grabadas'], ['avatar', 'Tu avatar', '¿A quién le vendiste este mes?']].map(([k, nombre, ej]) =>
           cambia(k) ? (
@@ -183,6 +213,7 @@ export function CierreSync() {
   const [cartel, setCartel] = useState(false)
   const [formulario, setFormulario] = useState(false)
   const [aviso, setAviso] = useState(true)
+  const [vuelta, setVuelta] = useState(0) // cada creador arranca un formulario nuevo
   const acciones = useRef(0)
 
   const refrescar = useCallback(async () => {
@@ -269,12 +300,21 @@ export function CierreSync() {
       {formulario ? (
         <div className="cm-fondo">
           <Formulario
+            key={vuelta}
             pendiente={pendiente}
             alCerrar={() => setFormulario(false)}
             alTerminar={() => {
               setFormulario(false)
               setPendiente(null)
               refrescar()
+            }}
+            alOtro={async () => {
+              try {
+                setPendiente(await fetchOtroCreador(pendiente.periodo))
+                setVuelta((n) => n + 1)
+              } catch {
+                setFormulario(false)
+              }
             }}
           />
         </div>

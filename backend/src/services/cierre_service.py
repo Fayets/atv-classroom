@@ -62,9 +62,19 @@ def _nombre(c: ClienteExterno) -> str:
     return nombre_titular(c.id) or c.nombre or c.email or f"Cliente {c.id}"
 
 
-def _anterior(cliente_id: int) -> dict | None:
-    """La oferta y el avatar que contó la última vez (para no volver a pedírselos si no cambiaron)."""
-    for texto in db.select(f'SELECT respuestas_json FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cliente_id ORDER BY completado_en DESC LIMIT 6'):
+def _creador(texto) -> str:
+    return " ".join(str(texto or "").split())[:80]
+
+
+def _anterior(cliente_id: int, creador: str = "") -> dict | None:
+    """La oferta y el avatar que contó la última vez para ese creador (para no volver a pedírselos si no
+    cambiaron). Sin uno de ese creador, nada: cada creador tiene su oferta."""
+    clave = creador.lower()
+    for creador_previo, texto in db.select(
+        f'SELECT creador, respuestas_json FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cliente_id ORDER BY completado_en DESC LIMIT 30'
+    ):
+        if (creador_previo or "").lower() != clave:
+            continue
         r = json.loads(texto or "{}")
         if r.get("oferta") or r.get("avatar"):
             return {"oferta": r.get("oferta") or "", "avatar": r.get("avatar") or ""}
@@ -83,10 +93,25 @@ class CierreServices:
         e = next((x for x in envios if x.periodo not in hechos), None)
         if e is None:
             return {"pendiente": None}
-        return {"pendiente": {
-            "periodo": e.periodo, "mes": nombre_mes(e.periodo), "vence_en": _iso(e.vence_en),
-            "vencido": datetime.utcnow() > e.vence_en, "anterior": _anterior(cid), "cuellos": CUELLOS,
-        }}
+        return {"pendiente": self._para_completar(cid, e)}
+
+    def _para_completar(self, cid: int, e: CierreEnvio, creador: str = "") -> dict:
+        creadores = sorted({c for c in db.select(f'SELECT DISTINCT creador FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cid') if c})
+        hechos = [c for c in db.select(f'SELECT creador FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cid AND periodo = $p', {"cid": cid, "p": e.periodo})]
+        return {
+            "periodo": e.periodo, "mes": nombre_mes(e.periodo), "vence_en": _iso(e.vence_en), "vencido": datetime.utcnow() > e.vence_en,
+            "anterior": _anterior(cid, creador), "anteriores": {c: _anterior(cid, c) for c in creadores},
+            "creadores": creadores, "hechos": hechos, "cuellos": CUELLOS,
+        }
+
+    @db_session
+    def otro_creador(self, sesion: dict, periodo: str) -> dict:
+        """Para completar el mismo mes con otro creador (después del primero ya no queda pendiente)."""
+        periodo, cid = _valido(periodo), sesion["usuario_id"]
+        e = CierreEnvio.get(periodo=periodo)
+        if es_equipo(sesion) or e is None or cid not in json.loads(e.destinatarios_json):
+            raise HTTPException(status_code=404, detail="No hay un cierre de ese mes para vos.")
+        return self._para_completar(cid, e)
 
     @db_session
     def responder(self, sesion: dict, periodo: str, datos: dict) -> dict:
@@ -96,9 +121,13 @@ class CierreServices:
         envio = CierreEnvio.get(periodo=periodo)
         if envio is None or cid not in json.loads(envio.destinatarios_json):
             raise HTTPException(status_code=404, detail="No hay un cierre de ese mes para vos.")
-        if CierreRespuesta.get(periodo=periodo, cliente_id=cid):
-            raise HTTPException(status_code=409, detail="Ya completaste este cierre.")
-        anterior = _anterior(cid)
+        creador = _creador(datos.get("creador"))
+        hechos = [c.lower() for c in db.select(f'SELECT creador FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cid AND periodo = $periodo')]
+        if creador.lower() in hechos:
+            raise HTTPException(status_code=409, detail=f"Ya completaste el cierre de {creador}." if creador else "Ya completaste este cierre.")
+        if hechos and not creador:
+            raise HTTPException(status_code=422, detail="Escribí de qué creador es este cierre.")
+        anterior = _anterior(cid, creador)
         limpio: dict = {}
         cambios = [c for c in (datos.get("cambios") or []) if c in ("oferta", "avatar")]
         for campo in ("oferta", "avatar"):
@@ -133,14 +162,14 @@ class CierreServices:
             if not texto:
                 raise HTTPException(status_code=422, detail=falta)
             limpio[campo] = texto
-        CierreRespuesta(periodo=periodo, cliente_id=cid, miembro_id=sesion.get("miembro_id"), respuestas_json=json.dumps(limpio, ensure_ascii=False))
+        CierreRespuesta(periodo=periodo, cliente_id=cid, miembro_id=sesion.get("miembro_id"), creador=creador, respuestas_json=json.dumps(limpio, ensure_ascii=False))
         return {"ok": True, "tasas": tasas(limpio)}
 
     # ---------- admin ----------
     @db_session
     def meses(self) -> dict:
         respondieron: dict[str, int] = {}
-        for p, n in db.select(f'SELECT periodo, count(*) FROM "{DB_SCHEMA}"."cierres_respuestas" GROUP BY periodo'):
+        for p, n in db.select(f'SELECT periodo, count(DISTINCT cliente_id) FROM "{DB_SCHEMA}"."cierres_respuestas" GROUP BY periodo'):
             respondieron[p] = int(n)
         salida = []
         for e in sorted(CierreEnvio.select(), key=lambda x: x.periodo, reverse=True):
@@ -158,7 +187,9 @@ class CierreServices:
         if e is None:
             raise HTTPException(status_code=404, detail="Ese mes no se envió.")
         ids = json.loads(e.destinatarios_json)
-        resp = {r.cliente_id: r for r in CierreRespuesta.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE periodo = $periodo')}
+        resp: dict[int, list] = {}
+        for r in CierreRespuesta.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE periodo = $periodo ORDER BY completado_en'):
+            resp.setdefault(r.cliente_id, []).append(r)
         buscados = set(ids)
         clientes = {c.id: c for c in list(ClienteExterno.select()) if c.id in buscados}
         completaron, faltan = [], []
@@ -166,8 +197,10 @@ class CierreServices:
             c = clientes.get(cid)
             nombre = _nombre(c) if c else f"Cliente {cid}"
             if cid in resp:
-                r = json.loads(resp[cid].respuestas_json)
-                completaron.append({"cliente_id": cid, "nombre": nombre, "plan": c.plan_actual if c else None, "completado_en": _iso(resp[cid].completado_en), "respuestas": r, "tasas": tasas(r)})
+                for x in resp[cid]:
+                    r = json.loads(x.respuestas_json)
+                    completaron.append({"id": x.id, "cliente_id": cid, "nombre": nombre, "creador": x.creador or None, "plan": c.plan_actual if c else None,
+                                        "completado_en": _iso(x.completado_en), "respuestas": r, "tasas": tasas(r)})
             else:
                 faltan.append({"cliente_id": cid, "nombre": nombre, "plan": c.plan_actual if c else None})
         orden = lambda x: x["nombre"].lower()  # noqa: E731

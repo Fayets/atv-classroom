@@ -14,6 +14,11 @@ async def pendiente(sesion: dict = Depends(obtener_sesion_desde_request)):
     return await run_in_threadpool(service.pendiente, sesion)
 
 
+@router.get("/api/cierre/{periodo}/otro")
+async def otro_creador(periodo: str, sesion: dict = Depends(obtener_sesion_desde_request)):
+    return await run_in_threadpool(service.otro_creador, sesion, periodo)
+
+
 @router.post("/api/cierre/{periodo}")
 async def responder(periodo: str, datos: dict = Body(...), sesion: dict = Depends(obtener_sesion_desde_request)):
     return await run_in_threadpool(service.responder, sesion, periodo, datos)

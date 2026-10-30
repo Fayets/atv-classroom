@@ -19,8 +19,8 @@ function Respuestas({ c }) {
     <div className="ci-vista">
       <div className="ob-vista__barra">
         <div className="ob-vista__quien">
-          <b>{c.nombre}</b>
-          <span>{c.plan ? `${mayus(c.plan)} · ` : ''}completó el {fecha(c.completado_en)}</span>
+          <b>{c.nombre}{c.creador ? ` · ${c.creador}` : ''}</b>
+          <span>{c.plan ? `${mayus(c.plan)} · ` : ''}{c.creador ? `creador ${c.creador} · ` : ''}completó el {fecha(c.completado_en)}</span>
         </div>
       </div>
       <div className="ci-cuerpo">
@@ -138,7 +138,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
   const q = normal(buscar.trim())
   const completaron = useMemo(() => (mes?.completaron || []).filter((c) => !q || normal(c.nombre).includes(q)), [mes, q])
   const faltan = useMemo(() => (mes?.faltan || []).filter((c) => !q || normal(c.nombre).includes(q)), [mes, q])
-  const actual = mes?.completaron.find((c) => c.cliente_id === dentro)
+  const actual = mes?.completaron.find((c) => c.id === dentro)
 
   function ir(p) {
     setPeriodo(p)
@@ -167,18 +167,18 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
 
   const archivo = (c, hecho) => (
     <button
-      key={c.cliente_id}
+      key={hecho ? `r${c.id}` : `f${c.cliente_id}`}
       type="button"
-      className={`fd-item${sel === c.cliente_id ? ' is-sel' : ''}`}
-      onClick={() => setSel(c.cliente_id)}
-      onDoubleClick={() => hecho && setDentro(c.cliente_id)}
-      title={hecho ? `${c.nombre} · completó el ${fecha(c.completado_en)}` : `${c.nombre} · todavía no lo completó`}
+      className={`fd-item${sel === (hecho ? c.id : `f${c.cliente_id}`) ? ' is-sel' : ''}`}
+      onClick={() => setSel(hecho ? c.id : `f${c.cliente_id}`)}
+      onDoubleClick={() => hecho && setDentro(c.id)}
+      title={hecho ? `${c.nombre}${c.creador ? ` · ${c.creador}` : ''} · completó el ${fecha(c.completado_en)}` : `${c.nombre} · todavía no lo completó`}
     >
       <span className="ob-icono">
         <IconoPdf tamano={58} apagado={!hecho} />
         {!hecho && mes?.vencido ? <i className="ob-icono__aviso ct-pendiente" title="Se le venció el plazo" /> : null}
       </span>
-      <span>{c.nombre}</span>
+      <span>{c.nombre}{hecho && c.creador ? <small className="fd-gris"> · {c.creador}</small> : null}</span>
     </button>
   )
 
@@ -190,7 +190,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
       onPointerDown={alEnfocar}
       onKeyDown={(e) => {
         if (e.target.tagName === 'INPUT') return
-        if (e.key === 'Enter' && sel && !dentro) (periodo ? mes?.completaron.some((c) => c.cliente_id === sel) && setDentro(sel) : ir(sel))
+        if (e.key === 'Enter' && sel && !dentro) (periodo ? mes?.completaron.some((c) => c.id === sel) && setDentro(sel) : ir(sel))
         if (e.key === 'Backspace' && (dentro || periodo)) (dentro ? setDentro(null) : ir(null))
       }}
       tabIndex={-1}

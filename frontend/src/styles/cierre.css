@@ -49,3 +49,7 @@
   .cm-nota { grid-template-columns: repeat(5, 1fr); }
   .cm-seccion, .cm-cabeza, .cm-pie { padding-left: 18px; padding-right: 18px; }
 }
+
+.cm-input { box-sizing: border-box; width: 100%; height: 44px; padding: 0 12px; border: 1px solid rgba(11, 15, 61, 0.16); border-radius: 10px; background: #fff; color: #16182b; font: 14px 'Poppins', system-ui, sans-serif; }
+.cm-input:focus { outline: none; border-color: #0b0f3d; box-shadow: 0 0 0 3px rgba(11, 15, 61, 0.12); }
+.cm-otro { margin-top: 2px; border: 0; background: none; color: #0b0f3d; font: 600 13px 'Poppins', system-ui, sans-serif; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }

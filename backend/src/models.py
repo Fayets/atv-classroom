@@ -839,8 +839,8 @@ class CierreEnvio(db.Entity):
 
 
 class CierreRespuesta(db.Entity):
-    """Lo que respondió un cliente en el cierre de un mes (una vez por cuenta: si lo llena alguien de su
-    equipo, cuenta para el cliente)."""
+    """Lo que respondió un cliente en el cierre de un mes: uno por creador si maneja varios (si lo llena
+    alguien de su equipo, cuenta para el cliente). Con el primero ya no le queda pendiente."""
 
     _table_ = (DB_SCHEMA, "cierres_respuestas")
 
@@ -848,6 +848,7 @@ class CierreRespuesta(db.Entity):
     periodo = Required(str)
     cliente_id = Required(int, index=True)
     miembro_id = Optional(int, nullable=True)
+    creador = Optional(str, default="")  # si el cliente maneja varios creadores, uno por cada uno ("" = el único)
     respuestas_json = Required(str)
     completado_en = Required(datetime, default=datetime.utcnow)
-    composite_key(periodo, cliente_id)
+    composite_key(periodo, cliente_id, creador)
