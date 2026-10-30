@@ -101,7 +101,7 @@ export default function Escritorio({ children }) {
   }, [actual, pathname, search])
 
   const apps = [
-    { id: 'mensajes', nombre: 'Mensajes', ruta: '/mensajes', cuenta: resumen.esperando && !isAdmin ? resumen.esperando : resumen.no_leidos },
+    { id: 'mensajes', nombre: 'Mensajes', ruta: '/mensajes', cuenta: resumen.no_leidos },
     { id: 'classroom', nombre: 'Classroom', ruta: '/classroom' },
     { id: 'consultas', nombre: 'Consultas', ruta: '/consultas' },
     ...(isAdmin

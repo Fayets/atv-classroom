@@ -18,8 +18,9 @@ export default function AppHeader() {
   const conRoadmap = isEquipo || (user?.permisos?.roadmaps ?? (user?.rol === '2k' ? 'no' : 'si')) !== 'no'
   const { resumen, habilitada } = useMensajeria()
   const escritorio = useEscritorio()
-  // Como en Discord, el número baja al leer: mensajes sin leer. El coach ve sus alertas sin responder.
-  const contador = isEquipo && !isAdmin ? resumen.esperando : resumen.no_leidos
+  // Como en Discord, el número baja al leer: mensajes sin leer, para todos (antes el coach veía los chats
+  // esperando respuesta de cualquier cliente y no tenía cómo hacerlo bajar).
+  const contador = resumen.no_leidos
   const navigate = useNavigate()
   // Como la flecha de Finder: vuelve a la pantalla anterior sin cerrar la ventana. Solo si hay a dónde volver.
   // React Router guarda en history.state.idx cuántas pantallas recorriste en la app: con 0 no hay a dónde volver.
