@@ -183,7 +183,7 @@ function Metricas() {
                     {M.map((m) => {
                       const x = m.numeros[k]
                       return x ? (
-                        <td key={m.periodo}>{pre || ''}{num(x.suma)}{x.cargaron < m.respuestas ? <small>sobre {x.cargaron}</small> : null}</td>
+                        <td key={m.periodo}>{pre || ''}{num(x.suma)}{x.cargaron < m.respuestas ? <small>({x.cargaron} de {m.respuestas} lo cargaron)</small> : null}</td>
                       ) : <td key={m.periodo} className="is-vacio">—</td>
                     })}
                   </tr>
@@ -222,6 +222,102 @@ function Metricas() {
           </div>
         </div>
       </section>
+    </div>
+  )
+}
+
+// Lo de un mes adentro de su carpeta: cuántos pusieron cada nota, dónde se traban y los números que cargaron.
+const TRAMO_TEXTO = { diez: 'No puedo pedir más (10)', muy: 'Muy conforme (6 a 9)', conforme: 'Conforme (4 a 6)', no: 'No conforme (1 a 3)' }
+function tramoDe(r) {
+  const rango = (r.satisfaccion_rango || '').toLowerCase()
+  return rango.includes('pedir') ? 'diez' : rango.includes('muy') ? 'muy' : rango.includes('no estoy') ? 'no' : rango.includes('estoy') ? 'conforme' : null
+}
+const quien = (c) => `${c.nombre}${c.creador ? ` (${c.creador})` : ''}`
+
+function Barras({ filas, total }) {
+  const max = Math.max(1, ...filas.map((f) => f.gente.length))
+  return filas.map((f) => (
+    <div key={f.clave} className="ci-r-fila" title={f.gente.map(quien).join('\n')}>
+      <span>{f.etiqueta}</span>
+      <span className="ci-r-pista"><i className={f.clase || ''} style={{ width: `${(100 * f.gente.length) / max}%` }} /></span>
+      <b>{f.gente.length}</b>
+      <small>{total ? `${Math.round((100 * f.gente.length) / total)}%` : ''}</small>
+    </div>
+  ))
+}
+
+function ResumenMes({ mes }) {
+  const R = mes.completaron
+  if (!R.length) return null
+  const clientes = new Set(R.map((c) => c.cliente_id)).size
+  const total = clientes + mes.faltan.length
+  // Nota: el formulario nuevo pide del 1 al 10; el Typeform pedía un tramo. Cada uno se muestra como se pidió.
+  const conNota = R.filter((c) => typeof c.respuestas.satisfaccion === 'number' && !tramoDe(c.respuestas))
+  const notas = conNota.length
+    ? [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((n) => ({ clave: n, etiqueta: `${n}`, clase: n >= 9 ? 'is-diez' : n >= 7 ? 'is-muy' : n >= 4 ? 'is-conforme' : 'is-no', gente: conNota.filter((c) => c.respuestas.satisfaccion === n) }))
+    : []
+  const tramos = Object.entries(TRAMO_TEXTO).map(([k, t]) => ({ clave: k, etiqueta: t, clase: `is-${k}`, gente: R.filter((c) => tramoDe(c.respuestas) === k) })).filter((f) => f.gente.length)
+  const promedio = conNota.length ? (conNota.reduce((t, c) => t + c.respuestas.satisfaccion, 0) / conNota.length).toFixed(1).replace('.', ',') : null
+  const cuellos = [...new Set(R.map((c) => c.respuestas.cuello).filter(Boolean))]
+    .map((k) => ({ clave: k, etiqueta: k, gente: R.filter((c) => c.respuestas.cuello === k) }))
+    .sort((a, b) => b.gente.length - a.gente.length)
+  const campos = [['reels', 'Reels'], ['historias', 'Secuencias de historias'], ['youtube', 'YouTube'], ['cta_historias', 'CTAs en historias'], ['cta_reels', 'CTAs en reels'],
+    ['conversaciones', 'Conversaciones'], ['agendas', 'Agendas'], ['llamadas', 'Llamadas'], ['ventas', 'Ventas'], ['cash', 'Cash collected', true], ['facturacion', 'Facturación', true]]
+  const numeros = campos.map(([k, t, plata]) => {
+    const v = R.map((c) => c.respuestas[k]).filter((x) => typeof x === 'number')
+    const suma = v.reduce((a, b) => a + b, 0)
+    return { k, t, plata, n: v.length, suma, prom: v.length ? suma / v.length : null }
+  }).filter((x) => x.n)
+  const de = Object.fromEntries(numeros.map((x) => [x.k, x.suma]))
+  // Cada tasa solo con los que cargaron los dos números (si no, se mezclan clientes distintos arriba y abajo).
+  const tasa = (a, b) => {
+    const ambos = R.filter((c) => typeof c.respuestas[a] === 'number' && typeof c.respuestas[b] === 'number')
+    const arriba = ambos.reduce((t, c) => t + c.respuestas[a], 0)
+    const abajo = ambos.reduce((t, c) => t + c.respuestas[b], 0)
+    return abajo ? `${(Math.round((1000 * arriba) / abajo) / 10).toLocaleString('es-AR')}%` : '—'
+  }
+  const fmt = (x, plata) => (plata ? usd(Math.round(x)) : num(Math.round(x * 10) / 10))
+  return (
+    <div className="ci-resumen">
+      <div className="ci-datos">
+        <div className="ci-dato"><small>Respondieron</small><b>{clientes} de {total}</b></div>
+        <div className="ci-dato"><small>Tasa de respuesta</small><b>{total ? Math.round((100 * clientes) / total) : 0}%</b></div>
+        {promedio ? <div className="ci-dato"><small>Nota promedio</small><b>{promedio}</b></div> : null}
+        {R.length > clientes ? <div className="ci-dato"><small>Formularios (varios creadores)</small><b>{R.length}</b></div> : null}
+      </div>
+      <div className="ci-r-dos">
+        <div>
+          <h4>{notas.length ? 'Cuántos pusieron cada nota' : 'Conformidad con ATV'}</h4>
+          {notas.length ? <Barras filas={notas} total={conNota.length} /> : null}
+          {tramos.length ? <Barras filas={tramos} total={R.length} /> : null}
+        </div>
+        <div>
+          <h4>Cuello de botella</h4>
+          <Barras filas={cuellos} total={R.length} />
+        </div>
+      </div>
+      {numeros.length ? (
+        <div>
+          <h4>Números que cargaron</h4>
+          <div className="ci-m-tabla">
+            <table>
+              <thead><tr><th /><th>Total</th><th>Promedio por cliente</th><th>Lo cargaron</th></tr></thead>
+              <tbody>
+                {numeros.map((x) => (
+                  <tr key={x.k}><td>{x.t}</td><td>{fmt(x.suma, x.plata)}</td><td>{fmt(x.prom, x.plata)}</td><td>{x.n} de {R.length}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {de.conversaciones != null || de.agendas != null ? (
+            <div className="ci-datos is-tasas ci-r-tasas">
+              <div className="ci-dato"><small>Agendamiento</small><b>{tasa('agendas', 'conversaciones')}</b></div>
+              <div className="ci-dato"><small>Asistencia</small><b>{tasa('llamadas', 'agendas')}</b></div>
+              <div className="ci-dato"><small>Cierre</small><b>{tasa('ventas', 'llamadas')}</b></div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -388,6 +484,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
             ) : (
               <div className="ci-mes">
                 <p className="ci-plazo">{mes.importado ? 'Traído del Typeform (no se le pide a nadie)' : `Enviado el ${fecha(mes.enviado_en)} · ${mes.vencido ? `venció el ${fecha(mes.vence_en)}` : `vence el ${fecha(mes.vence_en)}`}`}</p>
+                {!q ? <ResumenMes mes={mes} /> : null}
                 <h4 className="ci-grupo">Completaron <small>{completaron.length}</small></h4>
                 {completaron.length ? <div className="fd-grilla">{completaron.map((c) => archivo(c, true))}</div> : <p className="fd-vacio ci-vacio">Todavía nadie.</p>}
                 <h4 className="ci-grupo">Faltan <small>{faltan.length}</small></h4>

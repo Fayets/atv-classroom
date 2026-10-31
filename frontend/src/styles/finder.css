@@ -291,3 +291,22 @@ a.fd-boton { text-decoration: none; display: inline-block; }
 .ci-m-barra .is-no, .ci-m-leyenda .is-no::before { background: #c0392b; }
 .ci-m-leyenda { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 11px; color: #6e6e73; }
 .ci-m-leyenda span::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 2px; }
+
+/* Resumen de un mes, arriba de quiénes completaron */
+.ci-resumen { margin: 12px 18px 6px; padding: 14px 16px 16px; border-radius: 10px; background: rgba(0, 0, 0, 0.025); display: flex; flex-direction: column; gap: 18px; }
+.ci-resumen h4 { margin: 0 0 8px; font-size: 12.5px; font-weight: 650; color: #1d1d1f; }
+.ci-resumen .ci-datos { margin: 0; }
+.ci-resumen .ci-dato { background: #fff; }
+.ci-resumen .ci-datos.is-tasas .ci-dato { background: rgba(10, 100, 214, 0.07); }
+.ci-r-tasas { margin-top: 10px !important; }
+.ci-r-dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+.ci-r-dos > div { min-width: 0; }
+.ci-r-fila { display: grid; grid-template-columns: minmax(70px, 160px) 1fr 28px 36px; gap: 8px; align-items: center; font-size: 12.5px; color: #3a3a3c; cursor: default; }
+.ci-r-fila + .ci-r-fila { margin-top: 4px; }
+.ci-r-fila > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-r-pista { height: 12px; border-radius: 3px; background: rgba(0, 0, 0, 0.05); overflow: hidden; }
+.ci-r-pista i { display: block; height: 100%; border-radius: 3px; background: #0a64d6; }
+.ci-r-pista i.is-diez { background: #1d6b2b; } .ci-r-pista i.is-muy { background: #5fae6b; } .ci-r-pista i.is-conforme { background: #d9b44a; } .ci-r-pista i.is-no { background: #c0392b; }
+.ci-r-fila b { text-align: right; font-variant-numeric: tabular-nums; color: #1d1d1f; }
+.ci-r-fila small { text-align: right; font-size: 11px; color: #8e8e93; font-variant-numeric: tabular-nums; }
+.ci-resumen .ci-m-tabla { background: #fff; border-radius: 8px; }
