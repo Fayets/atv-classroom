@@ -301,8 +301,10 @@ a.fd-boton { text-decoration: none; display: inline-block; }
 .ci-r-tasas { margin-top: 10px !important; }
 .ci-r-dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
 .ci-r-dos > div { min-width: 0; }
-.ci-r-fila { display: grid; grid-template-columns: minmax(70px, 160px) 1fr 28px 36px; gap: 8px; align-items: center; font-size: 12.5px; color: #3a3a3c; cursor: default; }
-.ci-r-fila + .ci-r-fila { margin-top: 4px; }
+.ci-r-fila { box-sizing: border-box; width: calc(100% + 12px); padding: 3px 6px; margin: 0 -6px; border: 0; border-radius: 6px; background: none; font: inherit; text-align: left; display: grid; grid-template-columns: minmax(70px, 160px) 1fr 28px 36px; gap: 8px; align-items: center; font-size: 12.5px; color: #3a3a3c; cursor: pointer; }
+.ci-r-fila:hover:not(:disabled) { background: rgba(0, 0, 0, 0.05); }
+.ci-r-fila:disabled { cursor: default; opacity: 0.55; }
+.ci-r-fila + .ci-r-fila { margin-top: 1px; }
 .ci-r-fila > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ci-r-pista { height: 12px; border-radius: 3px; background: rgba(0, 0, 0, 0.05); overflow: hidden; }
 .ci-r-pista i { display: block; height: 100%; border-radius: 3px; background: #0a64d6; }
@@ -310,3 +312,6 @@ a.fd-boton { text-decoration: none; display: inline-block; }
 .ci-r-fila b { text-align: right; font-variant-numeric: tabular-nums; color: #1d1d1f; }
 .ci-r-fila small { text-align: right; font-size: 11px; color: #8e8e93; font-variant-numeric: tabular-nums; }
 .ci-resumen .ci-m-tabla { background: #fff; border-radius: 8px; }
+.ci-filtro { display: flex; align-items: center; gap: 12px; margin: 14px 18px 4px; font-size: 13px; font-weight: 600; color: #1d1d1f; }
+.ci-filtro small { margin-left: 4px; font-weight: 400; color: #8e8e93; }
+.ci-filtro button { padding: 3px 10px; border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 6px; background: #fff; font: inherit; font-size: 12px; font-weight: 400; color: #0a64d6; cursor: pointer; }

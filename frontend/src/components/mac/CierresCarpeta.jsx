@@ -234,19 +234,21 @@ function tramoDe(r) {
 }
 const quien = (c) => `${c.nombre}${c.creador ? ` (${c.creador})` : ''}`
 
-function Barras({ filas, total }) {
+// Cada barra abre las respuestas de los que la eligieron (si es uno solo, directo su formulario).
+function Barras({ filas, total, titulo, alElegir }) {
   const max = Math.max(1, ...filas.map((f) => f.gente.length))
   return filas.map((f) => (
-    <div key={f.clave} className="ci-r-fila" title={f.gente.map(quien).join('\n')}>
+    <button key={f.clave} type="button" className="ci-r-fila" disabled={!f.gente.length} title={f.gente.map(quien).join('\n')}
+      onClick={() => alElegir({ titulo: `${titulo}: ${f.etiqueta}`, ids: f.gente.map((c) => c.id) })}>
       <span>{f.etiqueta}</span>
       <span className="ci-r-pista"><i className={f.clase || ''} style={{ width: `${(100 * f.gente.length) / max}%` }} /></span>
       <b>{f.gente.length}</b>
       <small>{total ? `${Math.round((100 * f.gente.length) / total)}%` : ''}</small>
-    </div>
+    </button>
   ))
 }
 
-function ResumenMes({ mes }) {
+function ResumenMes({ mes, alElegir }) {
   const R = mes.completaron
   if (!R.length) return null
   const clientes = new Set(R.map((c) => c.cliente_id)).size
@@ -261,22 +263,6 @@ function ResumenMes({ mes }) {
   const cuellos = [...new Set(R.map((c) => c.respuestas.cuello).filter(Boolean))]
     .map((k) => ({ clave: k, etiqueta: k, gente: R.filter((c) => c.respuestas.cuello === k) }))
     .sort((a, b) => b.gente.length - a.gente.length)
-  const campos = [['reels', 'Reels'], ['historias', 'Secuencias de historias'], ['youtube', 'YouTube'], ['cta_historias', 'CTAs en historias'], ['cta_reels', 'CTAs en reels'],
-    ['conversaciones', 'Conversaciones'], ['agendas', 'Agendas'], ['llamadas', 'Llamadas'], ['ventas', 'Ventas'], ['cash', 'Cash collected', true], ['facturacion', 'Facturación', true]]
-  const numeros = campos.map(([k, t, plata]) => {
-    const v = R.map((c) => c.respuestas[k]).filter((x) => typeof x === 'number')
-    const suma = v.reduce((a, b) => a + b, 0)
-    return { k, t, plata, n: v.length, suma, prom: v.length ? suma / v.length : null }
-  }).filter((x) => x.n)
-  const de = Object.fromEntries(numeros.map((x) => [x.k, x.suma]))
-  // Cada tasa solo con los que cargaron los dos números (si no, se mezclan clientes distintos arriba y abajo).
-  const tasa = (a, b) => {
-    const ambos = R.filter((c) => typeof c.respuestas[a] === 'number' && typeof c.respuestas[b] === 'number')
-    const arriba = ambos.reduce((t, c) => t + c.respuestas[a], 0)
-    const abajo = ambos.reduce((t, c) => t + c.respuestas[b], 0)
-    return abajo ? `${(Math.round((1000 * arriba) / abajo) / 10).toLocaleString('es-AR')}%` : '—'
-  }
-  const fmt = (x, plata) => (plata ? usd(Math.round(x)) : num(Math.round(x * 10) / 10))
   return (
     <div className="ci-resumen">
       <div className="ci-datos">
@@ -288,36 +274,14 @@ function ResumenMes({ mes }) {
       <div className="ci-r-dos">
         <div>
           <h4>{notas.length ? 'Cuántos pusieron cada nota' : 'Conformidad con ATV'}</h4>
-          {notas.length ? <Barras filas={notas} total={conNota.length} /> : null}
-          {tramos.length ? <Barras filas={tramos} total={R.length} /> : null}
+          {notas.length ? <Barras filas={notas} total={conNota.length} titulo="Nota" alElegir={alElegir} /> : null}
+          {tramos.length ? <Barras filas={tramos} total={R.length} titulo="Conformidad" alElegir={alElegir} /> : null}
         </div>
         <div>
           <h4>Cuello de botella</h4>
-          <Barras filas={cuellos} total={R.length} />
+          <Barras filas={cuellos} total={R.length} titulo="Cuello de botella" alElegir={alElegir} />
         </div>
       </div>
-      {numeros.length ? (
-        <div>
-          <h4>Números que cargaron</h4>
-          <div className="ci-m-tabla">
-            <table>
-              <thead><tr><th /><th>Total</th><th>Promedio por cliente</th><th>Lo cargaron</th></tr></thead>
-              <tbody>
-                {numeros.map((x) => (
-                  <tr key={x.k}><td>{x.t}</td><td>{fmt(x.suma, x.plata)}</td><td>{fmt(x.prom, x.plata)}</td><td>{x.n} de {R.length}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {de.conversaciones != null || de.agendas != null ? (
-            <div className="ci-datos is-tasas ci-r-tasas">
-              <div className="ci-dato"><small>Agendamiento</small><b>{tasa('agendas', 'conversaciones')}</b></div>
-              <div className="ci-dato"><small>Asistencia</small><b>{tasa('llamadas', 'agendas')}</b></div>
-              <div className="ci-dato"><small>Cierre</small><b>{tasa('ventas', 'llamadas')}</b></div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   )
 }
@@ -333,6 +297,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
   const [grande, setGrande] = useState(false)
   const [aviso, setAviso] = useState('')
   const [metricas, setMetricas] = useState(false)
+  const [filtro, setFiltro] = useState(null) // { titulo, ids }: los que eligieron una nota o un cuello
   const ventana = useRef(null)
   const pos = useRef({ x: 90, y: 60 })
 
@@ -360,17 +325,25 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
   }, [periodo])
 
   const q = normal(buscar.trim())
-  const completaron = useMemo(() => (mes?.completaron || []).filter((c) => !q || normal(c.nombre).includes(q)), [mes, q])
+  const completaron = useMemo(() => (mes?.completaron || []).filter((c) => (!q || normal(c.nombre).includes(q)) && (!filtro || filtro.ids.includes(c.id))), [mes, q, filtro])
   const faltan = useMemo(() => (mes?.faltan || []).filter((c) => !q || normal(c.nombre).includes(q)), [mes, q])
   const actual = mes?.completaron.find((c) => c.id === dentro)
 
   function ir(p) {
     setMetricas(false)
+    setFiltro(null)
     setPeriodo(p)
     setDentro(null)
     setSel(null)
     setBuscar('')
   }
+
+  function elegir(f) {
+    setFiltro(f)
+    setSel(null)
+    if (f.ids.length === 1) setDentro(f.ids[0])
+  }
+  const atras = () => (dentro ? setDentro(null) : filtro ? setFiltro(null) : ir(null))
 
   function arrastrar(e) {
     if (grande || e.button !== 0 || e.target.closest('button, input, a')) return
@@ -416,7 +389,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
       onKeyDown={(e) => {
         if (e.target.tagName === 'INPUT') return
         if (e.key === 'Enter' && sel && !dentro) (periodo ? mes?.completaron.some((c) => c.id === sel) && setDentro(sel) : ir(sel))
-        if (e.key === 'Backspace' && (dentro || periodo)) (dentro ? setDentro(null) : ir(null))
+        if (e.key === 'Backspace' && (dentro || periodo)) atras()
       }}
       tabIndex={-1}
       role="dialog"
@@ -452,7 +425,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
       <div className="fd-principal">
         <header className="fd-barra" onPointerDown={arrastrar} onDoubleClick={(e) => !e.target.closest('button, input') && setGrande((g) => !g)}>
           <div className="fd-nav">
-            <button type="button" onClick={() => (dentro ? setDentro(null) : ir(null))} disabled={!periodo && !dentro && !metricas} aria-label="Atrás">
+            <button type="button" onClick={atras} disabled={!periodo && !dentro && !metricas} aria-label="Atrás">
               <svg viewBox="0 0 10 16"><path d="M8 2L2 8l6 6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </button>
           </div>
@@ -484,11 +457,23 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
             ) : (
               <div className="ci-mes">
                 <p className="ci-plazo">{mes.importado ? 'Traído del Typeform (no se le pide a nadie)' : `Enviado el ${fecha(mes.enviado_en)} · ${mes.vencido ? `venció el ${fecha(mes.vence_en)}` : `vence el ${fecha(mes.vence_en)}`}`}</p>
-                {!q ? <ResumenMes mes={mes} /> : null}
-                <h4 className="ci-grupo">Completaron <small>{completaron.length}</small></h4>
-                {completaron.length ? <div className="fd-grilla">{completaron.map((c) => archivo(c, true))}</div> : <p className="fd-vacio ci-vacio">Todavía nadie.</p>}
-                <h4 className="ci-grupo">Faltan <small>{faltan.length}</small></h4>
-                {faltan.length ? <div className="fd-grilla">{faltan.map((c) => archivo(c, false))}</div> : <p className="fd-vacio ci-vacio">No falta nadie.</p>}
+                {filtro ? (
+                  <>
+                    <p className="ci-filtro">
+                      <span>{filtro.titulo} <small>{completaron.length}</small></span>
+                      <button type="button" onClick={() => setFiltro(null)}>Ver todo el mes</button>
+                    </p>
+                    <div className="fd-grilla">{completaron.map((c) => archivo(c, true))}</div>
+                  </>
+                ) : (
+                  <>
+                    {!q ? <ResumenMes mes={mes} alElegir={elegir} /> : null}
+                    <h4 className="ci-grupo">Completaron <small>{completaron.length}</small></h4>
+                    {completaron.length ? <div className="fd-grilla">{completaron.map((c) => archivo(c, true))}</div> : <p className="fd-vacio ci-vacio">Todavía nadie.</p>}
+                    <h4 className="ci-grupo">Faltan <small>{faltan.length}</small></h4>
+                    {faltan.length ? <div className="fd-grilla">{faltan.map((c) => archivo(c, false))}</div> : <p className="fd-vacio ci-vacio">No falta nadie.</p>}
+                  </>
+                )}
               </div>
             )
           ) : datos ? (
