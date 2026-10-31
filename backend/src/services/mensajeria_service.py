@@ -1318,6 +1318,9 @@ class MensajeriaServices:
                 n = (n or "").strip()
                 if not n or _compacto(n) in del_equipo or any(_mismo_nombre(n, v) for v in vistos):
                     continue
+                # Solo el primer nombre de alguien que ya está (en Discord Ana Scheffer firmaba "Ana"): es la misma persona.
+                if " " not in n and any(v.split() and _compacto(n) == _compacto(v.split()[0]) for v in vistos):
+                    continue
                 vistos.add(n)
                 lista.append({"clave": f"p{canal.cliente_id}-{i}", "nombre": n, "detalle": "Cliente", "foto_url": None})
             return lista
