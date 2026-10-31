@@ -38,6 +38,29 @@ function canalesPara(antes, canales) {
   return lista.length ? { lista, indice: 0, desde: antes.length - hallado[2].length - 1 } : null
 }
 
+function SugerenciasMencion({ sugerencias, onElegir }) {
+  return (
+    <ul className="msj-sugerencias" role="listbox" aria-label="Etiquetar a alguien">
+      {sugerencias.lista.map((m, i) => (
+        <li key={m.id} role="option" aria-selected={i === sugerencias.indice}>
+          <button
+            type="button"
+            className={i === sugerencias.indice ? 'is-on' : ''}
+            onMouseDown={(e) => {
+              e.preventDefault()
+              onElegir(m)
+            }}
+          >
+            {m.id === 0 ? <span className="msj-everyone" aria-hidden="true">@</span> : <Avatar persona={{ ...m, tipo: m.esCliente ? 'cliente' : 'equipo' }} size={24} />}
+            <b>{m.nombre}</b>
+            <span>{m.esCliente ? m.detalle : m.area || (m.rol === 'admin' ? 'Admin' : 'Coach')}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 function SugerenciasCanal({ sugerencias, onElegir }) {
   return (
     <ul className="msj-sugerencias" role="listbox" aria-label="Nombrar un canal">
@@ -698,11 +721,13 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       setSugerencias(deCanal)
       return
     }
+    setSugerencias(mencionesPara(antes))
+  }
+
+  // La lista de @ para lo escrito hasta el cursor (también la usa la caja de editar un mensaje).
+  function mencionesPara(antes) {
     const hallado = antes.match(/(^|\s)@([A-Za-zÁÉÍÓÚÜÑáéíóúüñ]*)$/)
-    if (!hallado || (!equipo.length && !participantes.length)) {
-      setSugerencias(null)
-      return
-    }
+    if (!hallado || (!equipo.length && !participantes.length)) return null
     const q = normal(hallado[2])
     const todos = isEquipo && (!q || 'everyone'.startsWith(q) || 'todos'.startsWith(q)) ? [EVERYONE] : []
     const delCliente = participantes
@@ -716,7 +741,16 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
         .filter((m) => m.id !== (isEquipo ? user?.usuario_id : null))
         .filter((m) => !q || normal(m.nombre).split(/\s+/).some((p) => p.startsWith(q))),
     ].slice(0, 7)
-    setSugerencias(lista.length ? { lista, indice: 0, desde: caret - hallado[2].length - 1 } : null)
+    return lista.length ? { lista, indice: 0, desde: antes.length - hallado[2].length - 1 } : null
+  }
+
+  // Si el primer nombre se repite (Franco del equipo y Franco Ascurra cliente), va el nombre completo.
+  // Del lado del cliente va el nombre como aparece ("@Pedro Gamez"); del equipo, el primero salvo que se repita.
+  function marcaDe(miembro) {
+    const primero = primerNombre(miembro.nombre)
+    const repetido = [...equipo, ...participantes].filter((p) => normal(primerNombre(p.nombre)) === normal(primero)).length > 1
+    const completo = miembro.nombre.trim()
+    return `@${(miembro.esCliente || repetido) && completo.includes(' ') ? completo : primero}`
   }
 
   function elegir(miembro) {
@@ -734,12 +768,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       })
       return
     }
-    // Si el primer nombre se repite (Franco del equipo y Franco Ascurra cliente), va el nombre completo.
-    const primero = primerNombre(miembro.nombre)
-    const repetido = [...equipo, ...participantes].filter((p) => normal(primerNombre(p.nombre)) === normal(primero)).length > 1
-    // Del lado del cliente va el nombre como aparece ("@Pedro Gamez"); del equipo, el primero salvo que se repita.
-    const completo = miembro.nombre.trim()
-    const marca = `@${(miembro.esCliente || repetido) && completo.includes(' ') ? completo : primero}`
+    const marca = marcaDe(miembro)
     const nuevo = `${texto.slice(0, desde)}${marca} ${texto.slice(caret)}`
     mencionados.current.set(marca, miembro.esCliente ? null : miembro.id) // al servidor solo van ids del equipo
     setTexto(nuevo)
@@ -866,12 +895,12 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     }
   }
 
-  async function guardarEdicion(m, nuevo) {
+  async function guardarEdicion(m, nuevo, menciones = []) {
     const limpio = conEmojis(nuevo.trim())
     setEditando(null)
     if (!limpio || limpio === m.texto) return
     try {
-      const r = await editarMensaje(m.id, limpio)
+      const r = await editarMensaje(m.id, limpio, menciones)
       setMensajes((lista) => lista.map((x) => (x.id === r.id ? r : x)))
     } catch (err) {
       setError(err.message)
@@ -1116,8 +1145,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                       <Edicion
                         texto={esUpdates ? textoParaEditar(m.texto, m.tildes) : m.texto}
                         canales={canales}
+                        mencionar={{ buscar: mencionesPara, marca: marcaDe }}
                         rapidos={esUpdates ? EMOJIS_UPDATES : null}
-                        onGuardar={(t) => guardarEdicion(m, esUpdates ? textoAlGuardar(t, m.texto, m.tildes) : t)}
+                        onGuardar={(t, ids) => guardarEdicion(m, esUpdates ? textoAlGuardar(t, m.texto, m.tildes) : t, ids)}
                         onCancelar={() => setEditando(null)}
                       />
                     ) : (
@@ -1311,26 +1341,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
           ) : null}
           {verEmojis ? <SelectorEmojis onElegir={insertarEmoji} onCerrar={cerrarEmojis} /> : null}
           {sugerencias?.lista[0]?.esCanal ? <SugerenciasCanal sugerencias={sugerencias} onElegir={elegir} /> : null}
-          {sugerencias && !sugerencias.lista[0]?.esCanal ? (
-            <ul className="msj-sugerencias" role="listbox" aria-label="Etiquetar a alguien">
-              {sugerencias.lista.map((m, i) => (
-                <li key={m.id} role="option" aria-selected={i === sugerencias.indice}>
-                  <button
-                    type="button"
-                    className={i === sugerencias.indice ? 'is-on' : ''}
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      elegir(m)
-                    }}
-                  >
-                    {m.id === 0 ? <span className="msj-everyone" aria-hidden="true">@</span> : <Avatar persona={{ ...m, tipo: m.esCliente ? 'cliente' : 'equipo' }} size={24} />}
-                    <b>{m.nombre}</b>
-                    <span>{m.esCliente ? m.detalle : m.area || (m.rol === 'admin' ? 'Admin' : 'Coach')}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          {sugerencias && !sugerencias.lista[0]?.esCanal ? <SugerenciasMencion sugerencias={sugerencias} onElegir={elegir} /> : null}
           {archivos.length ? (
             <ul className="msj-subidas">
               {archivos.map((a) => (
@@ -1583,9 +1594,10 @@ function HojaOpciones({ m, mio, puedeEscribir, puedeBorrar, onCerrar, onReaccion
   )
 }
 
-function Edicion({ texto, canales, rapidos, onGuardar, onCancelar }) {
+function Edicion({ texto, canales, mencionar, rapidos, onGuardar, onCancelar }) {
   const [valor, setValor] = useState(texto)
   const [sugerencias, setSugerencias] = useState(null)
+  const mencionados = useRef(new Map()) // marca → id del equipo (null si es del lado del cliente)
   const [verEmojis, setVerEmojis] = useState(false)
   const caja = useRef(null)
   const cerrarEmojis = useCallback(() => setVerEmojis(false), [])
@@ -1606,7 +1618,8 @@ function Edicion({ texto, canales, rapidos, onGuardar, onCancelar }) {
   function elegirCanal(c) {
     const el = caja.current
     const caret = el?.selectionStart ?? valor.length
-    const marca = `#${c.slug}`
+    const marca = c.esCanal ? `#${c.slug}` : mencionar.marca(c)
+    if (!c.esCanal) mencionados.current.set(marca, c.esCliente ? null : c.id)
     setValor(`${valor.slice(0, sugerencias.desde)}${marca} ${valor.slice(caret)}`)
     setSugerencias(null)
     requestAnimationFrame(() => {
@@ -1614,6 +1627,12 @@ function Edicion({ texto, canales, rapidos, onGuardar, onCancelar }) {
       el?.focus()
       el?.setSelectionRange(pos, pos)
     })
+  }
+  // Solo cuentan las etiquetas elegidas que siguen escritas.
+  function guardar() {
+    const ids = []
+    mencionados.current.forEach((id, marca) => id && valor.includes(marca) && !ids.includes(id) && ids.push(id))
+    onGuardar(valor, ids)
   }
   // Crece con el texto (como el mensaje que se está editando) hasta un tope; más allá, scroll adentro.
   useLayoutEffect(() => {
@@ -1629,13 +1648,15 @@ function Edicion({ texto, canales, rapidos, onGuardar, onCancelar }) {
   }, [])
   return (
     <div className="msj-edicion">
-      {sugerencias ? <SugerenciasCanal sugerencias={sugerencias} onElegir={elegirCanal} /> : null}
+      {sugerencias?.lista[0]?.esCanal ? <SugerenciasCanal sugerencias={sugerencias} onElegir={elegirCanal} /> : null}
+      {sugerencias && !sugerencias.lista[0]?.esCanal ? <SugerenciasMencion sugerencias={sugerencias} onElegir={elegirCanal} /> : null}
       <textarea
         ref={caja}
         value={valor}
         onChange={(e) => {
           setValor(e.target.value)
-          setSugerencias(canalesPara(e.target.value.slice(0, e.target.selectionStart), canales))
+          const antes = e.target.value.slice(0, e.target.selectionStart)
+          setSugerencias(canalesPara(antes, canales) || mencionar?.buscar(antes) || null)
         }}
         onKeyDown={(e) => {
           if (sugerencias) {
@@ -1658,7 +1679,7 @@ function Edicion({ texto, canales, rapidos, onGuardar, onCancelar }) {
           // En el celu Enter baja de línea (los updates tienen varias): se guarda con el botón.
           if (e.key === 'Enter' && !e.shiftKey && !TACTIL) {
             e.preventDefault()
-            onGuardar(valor)
+            guardar()
           } else if (e.key === 'Escape') onCancelar()
         }}
         maxLength={4000}
@@ -1682,7 +1703,7 @@ function Edicion({ texto, canales, rapidos, onGuardar, onCancelar }) {
         ) : (
           'Enter guarda · Esc cancela '
         )}
-        <button type="button" onClick={() => onGuardar(valor)}>
+        <button type="button" onClick={guardar}>
           Guardar
         </button>
       </span>

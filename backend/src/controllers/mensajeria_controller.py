@@ -46,6 +46,7 @@ class MensajeNuevo(BaseModel):
 
 class MensajeEdicion(BaseModel):
     texto: str = Field(min_length=1, max_length=MAX_TEXTO)
+    menciones: list[int] = []
 
 
 class ReaccionCuerpo(BaseModel):
@@ -313,8 +314,11 @@ def bajar_adjunto(adjunto_id: int, f: str = ""):
 
 @router.patch("/{mensaje_id}")
 async def editar(mensaje_id: int, body: MensajeEdicion, sesion: dict = Depends(sesion_mensajes)):
-    mensaje, canal = await run_in_threadpool(service.editar, sesion, mensaje_id, body.texto)
+    mensaje, canal = await run_in_threadpool(service.editar, sesion, mensaje_id, body.texto, body.menciones)
     await hub.emitir({"tipo": "editado", "mensaje": mensaje}, canal)
+    # Al que se etiquetó editando le llega la mención como si fuera un mensaje nuevo.
+    for admin_id in mensaje.pop("menciones_nuevas", []):
+        await hub.emitir_a_equipo(admin_id, {"tipo": "mencion", "canal_id": canal["id"], "mensaje": mensaje})
     return mensaje
 
 

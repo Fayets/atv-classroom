@@ -136,8 +136,8 @@ export function resolverMencion(mencionId) {
   return request(`/api/mensajes/menciones/${mencionId}/resolver`, { method: 'POST' })
 }
 
-export function editarMensaje(mensajeId, texto) {
-  return request(`/api/mensajes/${mensajeId}`, { method: 'PATCH', body: JSON.stringify({ texto }) })
+export function editarMensaje(mensajeId, texto, menciones = []) {
+  return request(`/api/mensajes/${mensajeId}`, { method: 'PATCH', body: JSON.stringify({ texto, menciones }) })
 }
 
 export function reaccionar(mensajeId, emoji) {

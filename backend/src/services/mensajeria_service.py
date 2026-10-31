@@ -824,7 +824,7 @@ class MensajeriaServices:
             datos["menciones"] = [n.admin_id for n in nuevas]
             return datos, _info(canal)
 
-    def editar(self, sesion: dict, mensaje_id: int, texto: str) -> tuple[dict, dict]:
+    def editar(self, sesion: dict, mensaje_id: int, texto: str, menciones: list[int] | None = None) -> tuple[dict, dict]:
         texto = (texto or "").strip()
         if not texto or len(texto) > MAX_TEXTO:
             raise HTTPException(status_code=422, detail="Texto inválido.")
@@ -836,7 +836,18 @@ class MensajeriaServices:
                 raise HTTPException(status_code=403, detail="Solo podés editar tus propios mensajes.")
             m.texto = texto
             m.editado_en = datetime.utcnow()
-            return _mensaje_dict(m, _Autores()), _info(m.canal)
+            # Etiquetas que se agregaron al editar: quedan como menciones, igual que en un mensaje nuevo.
+            canal = m.canal
+            ya = set(_menciones_de([m.id]).get(m.id, []))
+            etiquetados = set() if canal.tipo in ("privado", "dm") else _detectar_menciones(texto, menciones, _nombres_del_cliente(canal))
+            if es_equipo(sesion) and _EVERYONE.search(texto):
+                etiquetados |= _equipo_que_ve(canal, sesion["usuario_id"])
+            yo = _yo(sesion)
+            nuevas = [Mencion(mensaje_id=m.id, canal_id=canal.id, admin_id=i, creado_en=datetime.utcnow()) for i in etiquetados - ya if yo != ("admin", i)]
+            db.flush()
+            datos = _mensaje_dict(m, _Autores())
+            datos["menciones_nuevas"] = [n.admin_id for n in nuevas]
+            return datos, _info(canal)
 
     def borrar(self, sesion: dict, mensaje_id: int) -> tuple[dict, dict]:
         with db_session:
