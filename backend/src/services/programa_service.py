@@ -164,7 +164,9 @@ class ProgramaServices:
                         # Los links a grupos de WhatsApp no son SOPs; cada clase es un SOP con sus documentos.
                         docs = [r for r in recursos(clase, ve_como) if not re.search(r"whatsapp\.com|wa\.me", r["url"])]
                         if docs:
-                            sops.append({"clase_id": clase.id, "titulo": clase.titulo, "seccion": seccion.titulo, "documentos": docs})
+                            sops.append({"clase_id": clase.id, "titulo": clase.titulo, "seccion": seccion.titulo, "documentos": docs,
+                                         # Sin video para su plan: el SOP no lleva a la clase (el módulo puede estar cerrado).
+                                         "con_video": not video(clase, ve_como)["video_proximamente"]})
                 if sops:
                     modulos.append({"programa_id": programa.id, "modulo": programa.titulo, "sops": sops})
             return modulos

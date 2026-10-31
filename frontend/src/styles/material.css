@@ -71,6 +71,7 @@
 .mt-estante__det-txt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .mt-estante__det h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--pc-t1); }
 .mt-estante__det-txt span { font-size: 12.5px; color: var(--pc-t3); }
+.mt-estante__pronto { align-self: center; padding: 8px 14px; border-radius: 99px; background: var(--pc-s2, rgba(0, 0, 0, 0.05)); color: var(--pc-t2); font-size: 13px; font-weight: 600; white-space: nowrap; }
 .mt-estante__docs { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
 @media (hover: hover) and (pointer: fine) { .mt-tapa:hover { transform: translateY(-4px) rotate(-0.6deg); } }
 @media (max-width: 640px) {

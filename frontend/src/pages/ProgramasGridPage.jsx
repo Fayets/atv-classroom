@@ -219,9 +219,13 @@ function Estante({ modulo: m, indice, abierta, onAbrir }) {
               {m.modulo} › {tituloLindo(sop.seccion)}
             </span>
           </div>
-          <Link to={`/classroom/${m.programa_id}?clase=${sop.clase_id}`} className="pc-btn pc-btn--light">
-            Ver video <Chevron />
-          </Link>
+          {sop.con_video === false ? (
+            <span className="mt-estante__pronto">Video próximamente</span>
+          ) : (
+            <Link to={`/classroom/${m.programa_id}?clase=${sop.clase_id}`} className="pc-btn pc-btn--light">
+              Ver video <Chevron />
+            </Link>
+          )}
           <div className="mt-estante__docs">
             {sop.documentos.map((d) => (
               <a key={d.id} href={urlRecurso(d.url)} target="_blank" rel="noopener noreferrer" className="im-sopchip">
