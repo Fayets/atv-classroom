@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { enviarCierre, fetchCierreMes, fetchCierres } from '../../api/cierre'
+import { enviarCierre, fetchCierreMes, fetchCierres, fetchMetricasCierre } from '../../api/cierre'
 import { IconoCarpeta } from './Finder'
 import { IconoPdf } from './OnboardingsCarpeta'
 
@@ -131,6 +131,101 @@ function Enviar({ datos, alEnviado }) {
   )
 }
 
+// Los meses uno al lado del otro: cuántos respondieron, qué tan conformes están, la suma de lo que cargaron y
+// dónde se traban. De los meses del Typeform solo hay los números que vinieron limpios: la suma dice sobre cuántos.
+const FILAS = [
+  ['Contenido', [['reels', 'Reels'], ['historias', 'Secuencias de historias'], ['youtube', 'YouTube']]],
+  ['Ventas', [['conversaciones', 'Conversaciones'], ['agendas', 'Agendas'], ['llamadas', 'Llamadas'], ['ventas', 'Ventas'], ['cash', 'Cash collected', 'US$ '], ['facturacion', 'Facturación', 'US$ ']]],
+]
+const TRAMOS = [['diez', 'No puedo pedir más (10)'], ['muy', 'Muy conforme'], ['conforme', 'Conforme'], ['no', 'No conforme']]
+const porciento = (a, b) => (b ? `${Math.round((100 * a) / b)}%` : '—')
+
+function Metricas() {
+  const [datos, setDatos] = useState(null)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    let vivo = true
+    fetchMetricasCierre()
+      .then((d) => vivo && setDatos(d))
+      .catch((e) => vivo && setError(e.message || 'No se pudieron cargar las métricas.'))
+    return () => {
+      vivo = false
+    }
+  }, [])
+  if (error) return <p className="fd-vacio">{error}</p>
+  if (!datos) return <p className="fd-vacio">Cargando…</p>
+  const M = datos.meses
+  if (!M.length) return <p className="fd-vacio">Todavía no hay cierres.</p>
+  const contentos = (m) => m.conformidad.diez + m.conformidad.muy
+  const conTramo = (m) => TRAMOS.reduce((t, [k]) => t + m.conformidad[k], 0)
+  const grupo = (titulo) => <tr className="ci-m-grupo"><td colSpan={M.length + 1}>{titulo}</td></tr>
+  return (
+    <div className="ci-cuerpo ci-metricas">
+      <section>
+        <h4>Mes a mes</h4>
+        <div className="ci-m-tabla">
+          <table>
+            <thead>
+              <tr><th />{M.map((m) => <th key={m.periodo} className={m.en_curso ? 'is-curso' : ''}>{mayus(m.mes)}{m.en_curso ? ' · en curso' : ''}</th>)}</tr>
+            </thead>
+            <tbody>
+              {grupo('Respuesta')}
+              <tr><td>Respondieron</td>{M.map((m) => <td key={m.periodo}>{m.respondieron}<small>de {m.total}</small></td>)}</tr>
+              <tr><td>Tasa de respuesta</td>{M.map((m) => <td key={m.periodo}>{porciento(m.respondieron, m.total)}</td>)}</tr>
+              {grupo('Conformidad')}
+              <tr><td>Muy conformes o 10</td>{M.map((m) => <td key={m.periodo}>{porciento(contentos(m), conTramo(m))}</td>)}</tr>
+              <tr><td>No conformes</td>{M.map((m) => <td key={m.periodo}>{m.conformidad.no}</td>)}</tr>
+              {FILAS.map(([titulo, campos]) => [
+                grupo(`${titulo} (suma)`),
+                ...campos.map(([k, etiqueta, pre]) => (
+                  <tr key={k}>
+                    <td>{etiqueta}</td>
+                    {M.map((m) => {
+                      const x = m.numeros[k]
+                      return x ? (
+                        <td key={m.periodo}>{pre || ''}{num(x.suma)}{x.cargaron < m.respuestas ? <small>sobre {x.cargaron}</small> : null}</td>
+                      ) : <td key={m.periodo} className="is-vacio">—</td>
+                    })}
+                  </tr>
+                )),
+              ])}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section className="ci-m-dos">
+        <div>
+          <h4>Conformidad con ATV</h4>
+          {M.map((m) => {
+            const n = conTramo(m)
+            return (
+              <div key={m.periodo} className="ci-m-apilada">
+                <span>{mayus(m.mes)}</span>
+                <span className="ci-m-barra">{TRAMOS.map(([k]) => <i key={k} className={`is-${k}`} style={{ width: n ? `${(100 * m.conformidad[k]) / n}%` : 0 }} title={`${m.conformidad[k]}`} />)}</span>
+                <b>{porciento(contentos(m), n)}</b>
+              </div>
+            )
+          })}
+          <div className="ci-m-leyenda">{TRAMOS.map(([k, t]) => <span key={k} className={`is-${k}`}>{t}</span>)}</div>
+        </div>
+        <div>
+          <h4>Cuello de botella</h4>
+          <div className="ci-m-tabla">
+            <table>
+              <thead><tr><th />{M.map((m) => <th key={m.periodo}>{mayus(m.mes).slice(0, 3)}</th>)}</tr></thead>
+              <tbody>
+                {[...datos.cuellos].sort((a, b) => M.reduce((t, m) => t + m.cuellos[b] - m.cuellos[a], 0)).map((c) => (
+                  <tr key={c}><td>{c}</td>{M.map((m) => <td key={m.periodo} className={m.cuellos[c] ? '' : 'is-vacio'}>{m.cuellos[c]}</td>)}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente }) {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
@@ -141,6 +236,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
   const [buscar, setBuscar] = useState('')
   const [grande, setGrande] = useState(false)
   const [aviso, setAviso] = useState('')
+  const [metricas, setMetricas] = useState(false)
   const ventana = useRef(null)
   const pos = useRef({ x: 90, y: 60 })
 
@@ -173,6 +269,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
   const actual = mes?.completaron.find((c) => c.id === dentro)
 
   function ir(p) {
+    setMetricas(false)
     setPeriodo(p)
     setDentro(null)
     setSel(null)
@@ -237,10 +334,14 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
           <button type="button" aria-label="Agrandar" onClick={() => setGrande((g) => !g)}><svg viewBox="0 0 8 8"><path d="M2 2h3L2 5zM6 6H3l3-3z" fill="currentColor" /></svg></button>
         </div>
         <h5>Cierres de mes</h5>
-        <button type="button" className={`fd-lado${!periodo ? ' is-activo' : ''}`} onClick={() => ir(null)}>
+        <button type="button" className={`fd-lado${!periodo && !metricas ? ' is-activo' : ''}`} onClick={() => ir(null)}>
           <IconoCarpeta tamano={16} />
           <span>Todos los meses</span>
           <small>{datos?.meses.length || ''}</small>
+        </button>
+        <button type="button" className={`fd-lado${metricas ? ' is-activo' : ''}`} onClick={() => { ir(null); setMetricas(true) }}>
+          <svg className="ci-m-icono" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 13.5h11M4 11V7m3 4V4m3 7V8.5m3 2.5V6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+          <span>Métricas</span>
         </button>
         <h5>Meses</h5>
         {(datos?.meses || []).map((m) => (
@@ -255,12 +356,12 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
       <div className="fd-principal">
         <header className="fd-barra" onPointerDown={arrastrar} onDoubleClick={(e) => !e.target.closest('button, input') && setGrande((g) => !g)}>
           <div className="fd-nav">
-            <button type="button" onClick={() => (dentro ? setDentro(null) : ir(null))} disabled={!periodo && !dentro} aria-label="Atrás">
+            <button type="button" onClick={() => (dentro ? setDentro(null) : ir(null))} disabled={!periodo && !dentro && !metricas} aria-label="Atrás">
               <svg viewBox="0 0 10 16"><path d="M8 2L2 8l6 6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </button>
           </div>
-          <h3>{dentro ? actual?.nombre : periodo ? mayus(mes?.mes || '') : 'Cierres de mes'}</h3>
-          {!periodo && datos ? (
+          <h3>{dentro ? actual?.nombre : periodo ? mayus(mes?.mes || '') : metricas ? 'Métricas' : 'Cierres de mes'}</h3>
+          {!periodo && !metricas && datos ? (
             <div className="ob-barra-der">
               <Enviar datos={datos} alEnviado={(r) => { setAviso(`Cierre de ${r.mes}: ${r.nuevos === r.enviados ? `enviado a ${r.enviados} clientes` : `${r.nuevos} clientes nuevos sumados`}.`); cargar() }} />
             </div>
@@ -273,11 +374,13 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
           ) : <span />}
         </header>
 
-        <div className={`fd-contenido${dentro ? ' is-vista' : ''}`} onClick={(e) => e.target === e.currentTarget && setSel(null)}>
+        <div className={`fd-contenido${dentro || metricas ? ' is-vista' : ''}`} onClick={(e) => e.target === e.currentTarget && setSel(null)}>
           {error ? <p className="fd-vacio">{error}</p> : null}
-          {aviso && !periodo ? <p className="ci-aviso">{aviso}</p> : null}
-          {!datos && !error ? <p className="fd-vacio">Cargando…</p> : null}
-          {dentro && actual ? (
+          {aviso && !periodo && !metricas ? <p className="ci-aviso">{aviso}</p> : null}
+          {!datos && !error && !metricas ? <p className="fd-vacio">Cargando…</p> : null}
+          {metricas ? (
+            <Metricas />
+          ) : dentro && actual ? (
             <Respuestas c={actual} />
           ) : periodo ? (
             !mes ? (

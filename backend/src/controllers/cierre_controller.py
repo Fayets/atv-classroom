@@ -29,6 +29,11 @@ async def meses(_sesion: dict = Depends(requerir_admin)):
     return await run_in_threadpool(service.meses)
 
 
+@router.get("/api/admin/cierres/metricas")
+async def metricas(_sesion: dict = Depends(requerir_admin)):
+    return await run_in_threadpool(service.metricas)
+
+
 @router.get("/api/admin/cierres/{periodo}")
 async def mes(periodo: str, _sesion: dict = Depends(requerir_admin)):
     return await run_in_threadpool(service.mes, periodo)

@@ -5,6 +5,7 @@ export const fetchOtroCreador = (periodo) => request(`/api/cierre/${periodo}/otr
 export const responderCierre = (periodo, datos) => request(`/api/cierre/${periodo}`, { method: 'POST', body: JSON.stringify(datos) })
 
 export const fetchCierres = () => request('/api/admin/cierres')
+export const fetchMetricasCierre = () => request('/api/admin/cierres/metricas')
 export const fetchCierreMes = (periodo) => request(`/api/admin/cierres/${periodo}`)
 export const enviarCierre = (periodo) => request(`/api/admin/cierres/${periodo}/enviar`, { method: 'POST' })
 

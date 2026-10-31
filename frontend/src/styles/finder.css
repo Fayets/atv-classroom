@@ -265,3 +265,29 @@ a.fd-boton { text-decoration: none; display: inline-block; }
 .ci-dato small { font-size: 11px; color: #6e6e73; }
 .ci-dato b { font-size: 15px; color: #1d1d1f; font-variant-numeric: tabular-nums; }
 .ci-datos.is-tasas .ci-dato { background: rgba(10, 100, 214, 0.07); }
+
+/* Métricas de los cierres: los meses en columnas */
+.ci-m-icono { width: 16px; height: 16px; color: #0a64d6; flex: none; }
+.ci-metricas h4 small { font-weight: 400; color: #8e8e93; }
+.ci-m-tabla { overflow-x: auto; }
+.ci-m-tabla table { border-collapse: collapse; width: 100%; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.ci-m-tabla th, .ci-m-tabla td { padding: 6px 10px; text-align: right; border-bottom: 1px solid rgba(0, 0, 0, 0.06); white-space: nowrap; color: #1d1d1f; }
+.ci-m-tabla th:first-child, .ci-m-tabla td:first-child { text-align: left; color: #6e6e73; }
+.ci-m-tabla thead th { font-size: 11.5px; font-weight: 600; color: #6e6e73; }
+.ci-m-tabla th.is-curso { color: #0a64d6; }
+.ci-m-tabla td small { margin-left: 3px; font-size: 10.5px; color: #8e8e93; }
+.ci-m-tabla td.is-vacio { color: #c7c7cc; }
+.ci-m-grupo td { padding-top: 14px !important; border-bottom: none !important; font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #8e8e93 !important; }
+.ci-cuerpo section.ci-m-dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 28px; }
+.ci-m-dos > div { min-width: 0; }
+.ci-m-apilada { display: grid; grid-template-columns: 116px 1fr 42px; gap: 10px; align-items: center; font-size: 12.5px; color: #6e6e73; }
+.ci-m-apilada + .ci-m-apilada { margin-top: 6px; }
+.ci-m-apilada b { text-align: right; color: #1d1d1f; font-variant-numeric: tabular-nums; }
+.ci-m-barra { display: flex; height: 14px; border-radius: 4px; overflow: hidden; background: rgba(0, 0, 0, 0.05); }
+.ci-m-barra i { display: block; height: 100%; }
+.ci-m-barra .is-diez, .ci-m-leyenda .is-diez::before { background: #1d6b2b; }
+.ci-m-barra .is-muy, .ci-m-leyenda .is-muy::before { background: #5fae6b; }
+.ci-m-barra .is-conforme, .ci-m-leyenda .is-conforme::before { background: #d9b44a; }
+.ci-m-barra .is-no, .ci-m-leyenda .is-no::before { background: #c0392b; }
+.ci-m-leyenda { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 11px; color: #6e6e73; }
+.ci-m-leyenda span::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 2px; }

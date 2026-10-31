@@ -97,6 +97,15 @@ def _anterior(cliente_id: int, creador: str = "") -> dict | None:
     return {"oferta": elegir(textos["oferta"]), "avatar": elegir(textos["avatar"])}
 
 
+def _conformidad(r: dict) -> str | None:
+    """La conformidad en los 4 tramos del Typeform, para poder comparar con los meses en que se pedía así."""
+    s = r.get("satisfaccion")
+    if isinstance(s, (int, float)) and not isinstance(s, bool):
+        return "diez" if s >= 10 else "muy" if s >= 7 else "conforme" if s >= 4 else "no"
+    rango = (r.get("satisfaccion_rango") or "").lower()
+    return "diez" if "pedir" in rango else "muy" if "muy" in rango else "no" if "no estoy" in rango else "conforme" if "estoy" in rango else None
+
+
 class CierreServices:
     # ---------- cliente ----------
     @db_session
@@ -195,6 +204,36 @@ class CierreServices:
         activos = sum(1 for c in list(ClienteExterno.select()) if _recibe(c))
         sugerido = periodo_sugerido()
         return {"meses": salida, "sugerido": sugerido, "sugerido_mes": nombre_mes(sugerido), "activos": activos}
+
+    @db_session
+    def metricas(self) -> dict:
+        """Los números de cada mes, para compararlos: cuántos respondieron, qué tan conformes están, dónde se traban y
+        la suma de lo que cargaron. De los meses del Typeform solo cuentan los números que vinieron limpios (eran texto
+        libre), por eso cada suma dice sobre cuántos."""
+        por_mes: dict[str, list[tuple[int, dict]]] = {}
+        for r in CierreRespuesta.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."cierres_respuestas"'):
+            por_mes.setdefault(r.periodo, []).append((r.cliente_id, json.loads(r.respuestas_json)))
+        ahora = datetime.utcnow()
+        salida = []
+        for e in sorted(CierreEnvio.select(), key=lambda x: x.periodo):
+            filas = por_mes.get(e.periodo, [])
+            conformidad = {"diez": 0, "muy": 0, "conforme": 0, "no": 0}
+            cuellos = {c: 0 for c in CUELLOS}
+            numeros = {}
+            for _, r in filas:
+                b = _conformidad(r)
+                if b:
+                    conformidad[b] += 1
+                if r.get("cuello") in cuellos:
+                    cuellos[r["cuello"]] += 1
+            for campo in NUMEROS:
+                v = [float(r[campo]) for _, r in filas if isinstance(r.get(campo), (int, float)) and not isinstance(r.get(campo), bool)]
+                numeros[campo] = {"suma": round(sum(v), 2), "cargaron": len(v)} if v else None
+            salida.append({"periodo": e.periodo, "mes": nombre_mes(e.periodo), "importado": e.importado,
+                           "en_curso": not e.importado and ahora <= e.vence_en, "total": len(json.loads(e.destinatarios_json)),
+                           "respondieron": len({c for c, _ in filas}), "respuestas": len(filas),
+                           "conformidad": conformidad, "cuellos": cuellos, "numeros": numeros})
+        return {"meses": salida, "cuellos": CUELLOS}
 
     @db_session
     def mes(self, periodo: str) -> dict:
