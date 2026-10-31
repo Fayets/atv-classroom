@@ -265,7 +265,9 @@ def _autor(m, autores: _Autores) -> dict:
         return {**base, **autores.miembro(m.miembro_id, m.autor_nombre)}
     nombre = getattr(m, "autor_nombre", None)
     if nombre and (m.autor_tipo == "cliente" or not m.autor_id):
-        return {**base, "nombre": nombre, "foto_url": None}
+        # Lo traído de Discord (id negativo) pudo escribirlo otra persona: sin foto. El titular que firma con
+        # el nombre de Mi cuenta es él mismo, así que lleva su foto.
+        return {**base, "nombre": nombre, "foto_url": base["foto_url"] if (m.id or 0) > 0 and m.autor_id else None}
     return base
 
 
