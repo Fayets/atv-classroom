@@ -248,3 +248,8 @@ html[data-modo="azul"] .msj-noti__x { background: rgba(255, 255, 255, 0.1); colo
 html[data-modo="azul"] .mac-atras { color: #c3ccda; }
 html[data-modo="azul"] .mac-atras:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); color: #eef2f8; }
 html[data-modo="azul"] .mac-atras:disabled { color: rgba(255, 255, 255, 0.22); }
+
+/* ---------- Alerta (confirmaciones): el isotipo y el botón principal fijan colores claros ---------- */
+html[data-modo="azul"] .msj-alerta__icono { color: #eef2f8; }
+html[data-modo="azul"] .msj-alerta__botones button.is-principal { background: #eef2f8; color: #1c2638; }
+html[data-modo="azul"] .msj-alerta__botones button.is-principal:hover { background: #ffffff; }
