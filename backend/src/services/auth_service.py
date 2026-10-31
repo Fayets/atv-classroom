@@ -207,6 +207,16 @@ def cerrar_sesiones_de_admin(admin_id: int) -> None:
                 guardada.delete()
 
 
+def actualizar_plan_en_sesiones(cliente_id: int, plan: str) -> None:
+    """Al cambiarle el plan a un cliente, sus sesiones abiertas pasan a ver lo del plan nuevo sin volver a entrar."""
+    for sesion in _sessions.values():
+        if sesion.get("tipo") == "cliente" and sesion.get("usuario_id") == cliente_id:
+            sesion["rol"] = plan
+    with db_session:
+        for guardada in SesionGuardada.select(lambda x: x.tipo == "cliente" and x.usuario_id == cliente_id)[:]:
+            guardada.rol = plan
+
+
 def _sesion_de_admin(admin: Admin) -> dict:
     session_data = {
         "usuario_id": admin.id,

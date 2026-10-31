@@ -19,7 +19,7 @@ from pony.orm import db_session
 from src.db import DB_SCHEMA, db
 from src.models import Adjunto, Admin, Canal, ClienteExterno, LecturaCanal, Mencion, MensajeCanal, MensajeTilde, Reaccion
 from src.storage import adjuntos as almacen
-from src.services.auth_service import _emails_del_cliente, _tiene_acceso, es_equipo, ve_plata
+from src.services.auth_service import _emails_del_cliente, _tiene_acceso, actualizar_plan_en_sesiones, es_equipo, ve_plata
 from src.services.cuenta_service import foto_de, fotos_de
 from src.services.roles_canal import validar_roles
 from src.services.tiempo_real import puede_ver
@@ -553,6 +553,10 @@ def _canales_visibles(sesion: dict, equipo: bool, del_equipo: dict[int, dict]) -
             continue
         visibles.append((canal, otro, cliente))
     return visibles
+
+
+# Los planes que acepta la ficha (CHECK de clients.clientes).
+PLANES_FICHA = {"entry", "mid", "high", "mentoria", "boost", "advantage", "2k"}
 
 
 class MensajeriaServices:
@@ -1160,6 +1164,27 @@ class MensajeriaServices:
             if vencido:
                 canal.pausa = canal.inactivo = False  # está en un solo grupo a la vez
             return _info(canal)
+
+    def cambiar_plan(self, sesion: dict, canal_id: int, plan: str) -> dict:
+        """Arrastrar el chat de un cliente a otro grupo de la bandeja le cambia el plan en su ficha de atv-clients
+        (y con eso lo que puede ver). Lo hacen los mismos que pausan. Si estaba en Pausa/Inactivos/Vencidos, vuelve."""
+        if not ve_plata(sesion):
+            raise HTTPException(status_code=403, detail="Solo admins, Ventas o Sistemas cambian el plan de un cliente.")
+        plan = (plan or "").strip().lower()
+        if plan not in PLANES_FICHA:
+            raise HTTPException(status_code=422, detail="Ese plan no existe.")
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            if canal.tipo != "cliente" or not canal.cliente_id:
+                raise HTTPException(status_code=422, detail="Solo los chats de clientes tienen plan.")
+            cliente = ClienteExterno.get(id=canal.cliente_id)
+            if cliente is None:
+                raise HTTPException(status_code=404, detail="El cliente no tiene ficha.")
+            cliente.plan_actual = plan
+            canal.pausa = canal.inactivo = canal.vencido = False
+            info = _info(canal)
+        actualizar_plan_en_sesiones(canal.cliente_id, plan)
+        return info
 
     def marcar_pausa(self, sesion: dict, canal_id: int, pausa: bool) -> dict:
         """Pone al cliente en pausa (o lo reanuda). A diferencia de Inactivos, esto SÍ toca su acceso: en

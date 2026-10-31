@@ -199,6 +199,18 @@ async def marcar_inactivo(canal_id: int, body: CanalInactivo, sesion: dict = Dep
     return {"ok": True, "inactivo": body.inactivo}
 
 
+class CanalPlan(BaseModel):
+    plan: str
+
+
+@router.put("/canales/{canal_id}/plan")
+async def cambiar_plan(canal_id: int, body: CanalPlan, sesion: dict = Depends(sesion_mensajes)):
+    info = await run_in_threadpool(service.cambiar_plan, sesion, canal_id, body.plan)
+    await hub.emitir({"tipo": "canal", "canal_id": canal_id}, info)
+    await hub.emitir({"tipo": "pausa", "canal_id": canal_id, "pausa": False}, info)
+    return {"ok": True, "plan": body.plan.strip().lower()}
+
+
 class CanalVencido(BaseModel):
     vencido: bool
 

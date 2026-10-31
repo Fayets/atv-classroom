@@ -4,9 +4,10 @@ import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchSenas } from '../api/altas'
 import { pedirCartelPausa } from '../components/Pausa'
 import { NotificacionesCartel } from '../components/Notificaciones'
-import { abrirDirecto, abrirDm, abrirPrivado, buscarClientes, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, marcarVencido, ordenarCanales } from '../api/mensajes'
+import { abrirDirecto, abrirDm, abrirPrivado, buscarClientes, cambiarPlan, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, marcarVencido, ordenarCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
+import Alerta from '../components/mensajes/Alerta'
 import Alertas from '../components/mensajes/Alertas'
 import AccionesRapidas from '../components/mensajes/AccionesRapidas'
 import QuePenso from '../components/mensajes/QuePenso'
@@ -27,6 +28,7 @@ const sinTildes = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, 
 
 // Como las categorías de Discord: un grupo por plan, en este orden.
 const GRUPOS = [
+  // planes[0] es el que se le pone en la ficha al soltar ahí un chat de otro plan.
   { id: 'high', nombre: 'High Level', planes: ['high', 'advantage'] },
   { id: 'boost', nombre: 'Boost', planes: ['boost'] },
   { id: 'mid', nombre: 'Mid level', planes: ['mid'] },
@@ -573,12 +575,19 @@ export default function MensajesPage() {
   // Arrastrar un chat a "Inactivos" lo archiva; a "Pausa" le corta el acceso al cliente (solo lee su
   // canal); soltarlo en cualquier otro grupo lo devuelve a la normalidad.
   const [soltandoEn, setSoltandoEn] = useState(null)
+  const [cambioPlan, setCambioPlan] = useState(null) // { canal, grupo }: se confirma antes de tocar la ficha
   async function soltar(e, grupoId) {
     e.preventDefault()
     setSoltandoEn(null)
     const id = Number(e.dataTransfer.getData('application/x-atv-canal'))
     const canal = canales?.find((c) => c.id === id)
     if (!canal) return
+    // Soltarlo en el grupo de otro plan le cambia el plan en la ficha (y lo que puede ver): se pregunta antes.
+    const grupo = GRUPOS.find((g) => g.id === grupoId)
+    if (grupo && canal.cliente && !grupo.planes.includes((canal.cliente.plan || '').toLowerCase())) {
+      setCambioPlan({ canal, grupo })
+      return
+    }
     const pausa = grupoId === 'pausa'
     const inactivo = grupoId === 'inactivos'
     const vencido = grupoId === 'vencidos'
@@ -596,6 +605,19 @@ export default function MensajesPage() {
     } catch (err) {
       setCanales((l) => l.map((c) => (c.id === id ? { ...c, ...antes } : c)))
       setError(err.message || 'No se pudo mover el chat.')
+    }
+  }
+  async function confirmarPlan() {
+    const { canal, grupo } = cambioPlan
+    setCambioPlan(null)
+    const plan = grupo.planes[0]
+    const antes = { pausa: canal.pausa, inactivo: canal.inactivo, vencido: canal.vencido, cliente: canal.cliente }
+    setCanales((l) => l.map((c) => (c.id === canal.id ? { ...c, pausa: false, inactivo: false, vencido: false, cliente: { ...c.cliente, plan } } : c)))
+    try {
+      await cambiarPlan(canal.id, plan)
+    } catch (err) {
+      setCanales((l) => l.map((c) => (c.id === canal.id ? { ...c, ...antes } : c)))
+      setError(err.message || 'No se pudo cambiar el plan.')
     }
   }
   const zonaDeSoltar = (grupoId) => ({
@@ -911,6 +933,15 @@ export default function MensajesPage() {
           {vista === 'bandeja' ? (
           <>
           {error ? <p className="msj-error">{error}</p> : null}
+          {cambioPlan ? (
+            <Alerta
+              titulo={`¿Pasar a ${cambioPlan.canal.cliente.nombre || cambioPlan.canal.nombre} a ${cambioPlan.grupo.nombre}?`}
+              texto={`Le cambia el plan en su ficha (de ${GRUPOS.find((g) => g.planes.includes((cambioPlan.canal.cliente.plan || '').toLowerCase()))?.nombre || 'sin plan'} a ${cambioPlan.grupo.nombre}) y con eso lo que puede ver en el classroom.`}
+              confirmar="Cambiar plan"
+              onConfirmar={confirmarPlan}
+              onCancelar={() => setCambioPlan(null)}
+            />
+          ) : null}
           {!canales ? <p className="msj-vacio">Cargando…</p> : null}
 
           {seccionCanales}
