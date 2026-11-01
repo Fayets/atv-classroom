@@ -353,14 +353,13 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
               title="El primer mensaje del canal: cómo hacer el onboarding y qué sigue"
             >
               <span>Bienvenida</span>
-              {hecho === 'bienvenida' ? <em className="is-ok">Enviado</em> : <em>Onboarding</em>}
+              {hecho === 'bienvenida' ? <em className="is-ok">Enviado</em> : null}
             </button>
           </li>
           {alCrearRoadmap ? (
             <li className="msj-accion is-fija">
               <button type="button" className="msj-accion__boton" onClick={alCrearRoadmap} title="Al salir de la llamada: pegás el Fathom y el documento de próximos pasos">
                 <span>Crear roadmap</span>
-                <em>Roadmap</em>
               </button>
             </li>
           ) : null}
@@ -368,20 +367,20 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
             <li className="msj-accion is-fija">
               <button type="button" className="msj-accion__boton" onClick={() => setCuello(true)} title="Pegás el Loom del cliente y arma el diagnóstico y el roadmap para que Juan lo corrija">
                 <span>Cuello de botella</span>
-                {hecho === 'cuello' ? <em className="is-ok">Enviado</em> : <em>Diagnóstico</em>}
+                {hecho === 'cuello' ? <em className="is-ok">Enviado</em> : null}
               </button>
             </li>
           ) : null}
           <li className="msj-accion is-fija is-contexto">
             <button type="button" className="msj-accion__boton" onClick={() => setEligiendoClase(true)} disabled={Boolean(pendiente)} title="Elegí una clase del classroom y le llega el link en el chat">
               <span>Enviar clase</span>
-              {hecho === 'clase' ? <em className="is-ok">Enviado</em> : <em>Classroom</em>}
+              {hecho === 'clase' ? <em className="is-ok">Enviado</em> : null}
             </button>
           </li>
           <li className="msj-accion is-fija is-contexto">
             <button type="button" className="msj-accion__boton" onClick={descargarTexto} disabled={bajando} title="Baja toda la conversación de este chat en un .txt">
               <span>Descargar chat</span>
-              <em>{bajando ? 'Bajando…' : '.txt'}</em>
+              {bajando ? <em>Bajando…</em> : null}
             </button>
           </li>
           {acciones.map((a) => fila(`a${a.id}`, a))}
