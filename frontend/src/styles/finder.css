@@ -121,7 +121,8 @@
 .fd-ficha a { color: #0a64d6; }
 
 /* Íconos del escritorio en columna (Clientes, Onboardings, Nuevo cliente) */
-.esc-iconos { position: absolute; z-index: 5; top: 18px; right: 22px; display: grid; gap: 6px; justify-items: center; }
+/* Como en macOS: los íconos bajan en columna desde arriba a la derecha y, cuando no entran (antes del Dock), siguen en otra columna a la izquierda. */
+.esc-iconos { position: absolute; z-index: 5; top: 18px; right: 22px; bottom: 96px; display: flex; flex-direction: column; flex-wrap: wrap-reverse; align-content: flex-start; align-items: center; gap: 6px; }
 .esc-iconos .esc-icono { position: static; }
 .esc-icono__dibujo { position: relative; display: block; padding: 0; background: none !important; }
 .esc-icono__dibujo b { position: absolute; right: -4px; bottom: 2px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #c0392b; color: #fff; font-size: 16px; font-weight: 700; line-height: 1; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
