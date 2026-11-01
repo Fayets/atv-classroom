@@ -31,7 +31,6 @@ export default function QuePenso({ info }) {
   }, [info?.id])
 
   if (!info) return null
-  const v = info.voz || {}
   const propia = reglas ? reglas.propia : info.propia
   const textos = [...elegidas.map((i) => RAPIDAS[i][1]), nota.trim()].filter(Boolean)
 
@@ -81,18 +80,6 @@ export default function QuePenso({ info }) {
         ) : null}
       </div>
 
-      <div className="qp__bloque">
-        <p className="qp__eti">Cómo lo escribió</p>
-        <div className="qp__chips">
-          {v.de ? <span className="is-azul">Voz de {v.de}</span> : null}
-          {v.minusculas != null ? <span>{v.minusculas}% en minúsculas</span> : null}
-          {v.palabras ? <span>~{v.palabras} palabras</span> : null}
-          {v.seguidos ? <span>mensajes cortos seguidos</span> : null}
-          {v.ejemplos ? <span>{v.ejemplos} ejemplos tuyos</span> : null}
-          {v.reglas ? <span className="is-verde">{v.reglas} {v.reglas === 1 ? 'regla tuya' : 'reglas tuyas'}</span> : null}
-        </div>
-      </div>
-
       {propia ? (
         <div className="qp__bloque">
           <p className="qp__eti">Corregile</p>
@@ -123,7 +110,7 @@ export default function QuePenso({ info }) {
           </button>
         </div>
       ) : (
-        <p className="qp__ajena">Estás usando la voz de {v.de || 'otra persona'}: sus reglas las pone esa persona.</p>
+        <p className="qp__ajena">Estás usando la voz de {info.voz?.de || 'otra persona'}: sus reglas las pone esa persona.</p>
       )}
 
       {reglas?.reglas.length ? (

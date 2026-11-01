@@ -1055,14 +1055,14 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 @media (prefers-reduced-motion: reduce) { .msj-m.is-resaltado::after { animation-duration: 0.01s; } }
 
 /* "Qué pensó" el Tab, abajo del panel del cliente */
-.qp { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+.qp { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .qp__titulo { display: flex; justify-content: space-between; align-items: baseline; }
 .qp__titulo span { color: var(--m-acento); }
 .qp__titulo em { font-style: normal; font-size: 11px; font-weight: 500; color: var(--m-t4); text-transform: none; letter-spacing: 0; }
-.qp__bloque { display: flex; flex-direction: column; gap: 7px; padding: 11px 12px; border-radius: 12px; background: var(--m-tarjeta); box-shadow: 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.1); }
+.qp__bloque { min-width: 0; display: flex; flex-direction: column; gap: 7px; padding: 11px 12px; border-radius: 12px; background: var(--m-tarjeta); box-shadow: 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.1); }
 .qp__que { margin: 0; font-size: 13px; line-height: 1.4; color: var(--m-t1); font-weight: 550; }
 .qp__dato { margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--m-t3); }
-.qp__dato q { font-style: italic; color: var(--m-t2); line-height: 1.4; }
+.qp__dato q { font-style: italic; color: var(--m-t2); line-height: 1.4; overflow-wrap: anywhere; }
 .qp__dato.is-aviso { padding-left: 9px; box-shadow: inset 2px 0 0 var(--m-aviso); }
 .qp__dato small { font-size: 11.5px; color: var(--m-ok); font-weight: 600; }
 .qp__eti { margin: 0; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--m-t4); }
