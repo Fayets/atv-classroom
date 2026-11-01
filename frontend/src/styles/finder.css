@@ -316,3 +316,4 @@ a.fd-boton { text-decoration: none; display: inline-block; }
 .ci-filtro { display: flex; align-items: center; gap: 12px; margin: 14px 18px 4px; font-size: 13px; font-weight: 600; color: #1d1d1f; }
 .ci-filtro small { margin-left: 4px; font-weight: 400; color: #8e8e93; }
 .ci-filtro button { padding: 3px 10px; border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 6px; background: #fff; font: inherit; font-size: 12px; font-weight: 400; color: #0a64d6; cursor: pointer; }
+.esc-iconos.is-izquierda { right: auto; left: 22px; flex-wrap: wrap; }

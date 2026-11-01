@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { fetchCuello, fetchCuellosCliente, pedirCuello } from '../../api/cuellos'
-import { enviarMensaje } from '../../api/mensajes'
+import { enviarMensaje, subirAdjunto } from '../../api/mensajes'
 import { Diagnostico } from '../mac/CuellosCarpeta'
 import '../../styles/cuellos.css'
+import { pdfCuello } from '../../utils/cuelloPdf'
 
 // Acción rápida "Cuello de botella": con el Loom del cliente, su cierre de mes o su problema contado, se lo
 // manda a Jeremy y arma el documento que pidió Juan: diagnóstico, causas, qué no hacer, solución y
@@ -108,14 +109,23 @@ export default function CuelloBotella({ clienteId, canalId, cliente, alCerrar, a
     return () => window.removeEventListener('keydown', esc)
   }, [clienteId, alCerrar])
 
+  const [enviando, setEnviando] = useState(false)
+  // Sale el PDF con la marca de ATV como adjunto, con una línea de presentación.
   async function enviar() {
+    setEnviando(true)
+    setError('')
     try {
-      await enviarMensaje(canalId, mandar)
+      const { blob, nombre } = await pdfCuello({ cliente: mandar.cliente, texto: mandar.version_final, fecha: new Date(mandar.aprobado_en || Date.now()) })
+      const adjunto = await subirAdjunto(canalId, new File([blob], nombre, { type: 'application/pdf' }))
+      const primero = (cliente || '').trim().split(/\s+/)[0]
+      await enviarMensaje(canalId, `${primero}, te dejo el diagnóstico de tu cuello de botella y el roadmap para resolverlo 👇`, null, [], [adjunto.id])
       setMandar(null)
       alEnviado()
       alCerrar()
     } catch (e) {
       setError(e.message || 'No se pudo enviar.')
+    } finally {
+      setEnviando(false)
     }
   }
 
@@ -141,10 +151,10 @@ export default function CuelloBotella({ clienteId, canalId, cliente, alCerrar, a
         </div>
         {mandar ? (
           <div className="cb-confirmar" role="alertdialog" aria-label="Enviar al chat">
-            <p>Va a salir este documento en el chat de {cliente}.</p>
+            <p>Va a salir el PDF del diagnóstico en el chat de {cliente}.</p>
             <span className="cb-btns">
               <button type="button" className="cb-btn is-suave" onClick={() => setMandar(null)}>Cancelar</button>
-              <button type="button" className="cb-btn" onClick={enviar}>Enviar</button>
+              <button type="button" className="cb-btn" disabled={enviando} onClick={enviar}>{enviando ? 'Enviando…' : 'Enviar'}</button>
             </span>
           </div>
         ) : null}

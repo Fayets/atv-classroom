@@ -289,8 +289,9 @@ export default function Escritorio({ children }) {
 
   return (
     <div className="esc" onPointerDownCapture={enfocar}>
-      <div className="esc-iconos">
-        {[
+      {/* Las carpetas a la derecha; lo que crea algo nuevo ("+"), a la izquierda (Franco, 01-11-2026). */}
+      {(() => {
+        const iconos = [
           ...(isAdmin ? [{ id: 'clientes', nombre: 'Clientes', abrir: abrirClientes }, { id: 'contratos', nombre: 'Contratos', abrir: abrirContratos }, { id: 'cierres', nombre: 'Cierres de mes', abrir: abrirCierres }] : []),
           { id: 'onboardings', nombre: 'Onboardings', abrir: abrirOnboardings },
           { id: 'llamadas', nombre: 'Llamadas', abrir: abrirLlamadas },
@@ -299,7 +300,8 @@ export default function Escritorio({ children }) {
           { id: 'biblioteca', nombre: 'Biblioteca', abrir: abrirBiblioteca, icono: <IconoBiblioteca tamano={58} /> },
           { id: 'alta', nombre: 'Nuevo onboarding', abrir: () => { setDandoAlta(true); setIconoSel(null) }, mas: true },
           ...(isAdmin ? [{ id: 'clase', nombre: 'Nueva clase', abrir: () => { setDandoClase(true); setIconoSel(null) }, mas: true }] : []),
-        ].map((ic) => (
+        ]
+        const icono = (ic) => (
           <button
             key={ic.id}
             type="button"
@@ -315,8 +317,14 @@ export default function Escritorio({ children }) {
             </span>
             <span>{ic.nombre}</span>
           </button>
-        ))}
-      </div>
+        )
+        return (
+          <>
+            <div className="esc-iconos">{iconos.filter((ic) => !ic.mas).map(icono)}</div>
+            <div className="esc-iconos is-izquierda">{iconos.filter((ic) => ic.mas).map(icono)}</div>
+          </>
+        )
+      })()}
       {/* Mensajes no se desarma al cambiar de app: vuelve en el acto, con el mismo chat y scroll. */}
       <div
         ref={ventanaMensajes}

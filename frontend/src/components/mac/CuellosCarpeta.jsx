@@ -6,6 +6,7 @@ import {
 import { IconoCarpeta } from './Finder'
 import { IconoPdf } from './OnboardingsCarpeta'
 import '../../styles/cuellos.css'
+import { descargarPdfCuello } from '../../utils/cuelloPdf'
 
 // Carpeta "Cuellos de botella" (equipo): el cliente mandó un Loom con su traba, Jeremy arma el diagnóstico,
 // Juan lo corrige y lo aprueba. La neurona mide cuánto se parecen Jeremy y el cerebro a lo que deja Juan, y
@@ -142,6 +143,18 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
   const [cambios, setCambios] = useState(null)
   const [error, setError] = useState('')
   const [verTrans, setVerTrans] = useState(false)
+  const [bajando, setBajando] = useState(false)
+
+  async function pdf() {
+    setBajando(true)
+    try {
+      await descargarPdfCuello({ cliente: d.cliente, texto: d.version_final, fecha: new Date(d.aprobado_en || Date.now()) })
+    } catch (e) {
+      setError(e.message || 'No se pudo armar el PDF.')
+    } finally {
+      setBajando(false)
+    }
+  }
 
   function cargar() {
     return fetchCuello(id).then((x) => {
@@ -250,12 +263,13 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
       {d.estado === 'aprobado' ? (
         <>
           {cambios && cambios.length ? <Lecciones diag={d} cambios={cambios} alListo={() => { setCambios(null); alCambiar() }} /> : null}
-          {alEnviar && !(cambios && cambios.length) ? (
+          {!(cambios && cambios.length) ? (
             <div className="cb-acciones cb-enviar">
-              <small className="cb-gris">El documento final de Juan, listo para el cliente.</small>
+              <small className="cb-gris">{bajando ? 'Armando el PDF…' : 'El documento final de Juan, con la marca de ATV.'}</small>
               <span className="cb-btns">
-                <button type="button" className="cb-btn is-suave" onClick={() => navigator.clipboard?.writeText(paraChat(d.version_final)).catch(() => {})}>Copiar</button>
-                <button type="button" className="cb-btn" onClick={() => alEnviar(paraChat(d.version_final))}>Enviar al chat</button>
+                <button type="button" className="cb-btn is-suave" onClick={() => navigator.clipboard?.writeText(paraChat(d.version_final)).catch(() => {})}>Copiar texto</button>
+                <button type="button" className={`cb-btn${alEnviar ? ' is-suave' : ''}`} disabled={bajando} onClick={pdf}>Descargar PDF</button>
+                {alEnviar ? <button type="button" className="cb-btn" onClick={() => alEnviar(d)}>Enviar PDF al chat</button> : null}
               </span>
             </div>
           ) : null}

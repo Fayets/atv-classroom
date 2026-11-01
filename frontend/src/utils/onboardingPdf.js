@@ -293,7 +293,7 @@ async function buildFormPdfDefinition(data, { includeLogo = true } = {}) {
   };
 }
 
-async function loadPdfMake() {
+export async function loadPdfMake() {
   if (pdfMakePromise) {
     return pdfMakePromise;
   }
