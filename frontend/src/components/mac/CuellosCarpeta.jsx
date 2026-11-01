@@ -10,13 +10,13 @@ import '../../styles/cuellos.css'
 // Carpeta "Cuellos de botella" (equipo): el cliente mandó un Loom con su traba, Jeremy arma el diagnóstico,
 // Juan lo corrige y lo aprueba. La neurona mide cuánto se parecen Jeremy y el cerebro a lo que deja Juan, y
 // guarda cada corrección como lección.
-const SECCIONES = ['Diagnóstico', 'Causas', 'Qué no hacer', 'Solución', 'Roadmap', 'Meta']
+export const SECCIONES = ['Diagnóstico', 'Causas', 'Qué no hacer', 'Solución', 'Roadmap', 'Meta']
 const ESTADO = { pidiendo: 'Mandando a Jeremy…', esperando: 'Jeremy lo está armando', borrador: 'Para corregir', aprobado: 'Aprobado', error: 'Con error' }
 const fecha = (iso) => (iso ? new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : '—')
 const pct = (n) => (n === null || n === undefined ? '—' : `${Math.round(n * 100)}%`)
 const normal = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
-function partir(texto) {
+export function partir(texto) {
   const salida = {}
   let actual = null
   for (const linea of (texto || '').split('\n')) {
@@ -30,7 +30,12 @@ function partir(texto) {
   }
   return Object.fromEntries(SECCIONES.map((s) => [s, (salida[s] || []).join('\n').trim()]))
 }
-const unir = (partes) => SECCIONES.map((s) => `# ${s}\n${(partes[s] || '').trim()}`).join('\n\n')
+// Para mandarlo por el chat: los títulos de sección en mayúsculas, sin los "#".
+export const paraChat = (texto) => {
+  const p = partir(texto)
+  return SECCIONES.filter((s) => p[s]).map((s) => `${s.toUpperCase()}\n${p[s].replace(/^##\s*/gm, '')}`).join('\n\n')
+}
+export const unir = (partes) => SECCIONES.map((s) => `# ${s}\n${(partes[s] || '').trim()}`).join('\n\n')
 
 function Nuevo({ alCreado }) {
   const [clientes, setClientes] = useState(null)
@@ -130,7 +135,7 @@ function Lecciones({ diag, cambios, alListo }) {
   )
 }
 
-function Diagnostico({ id, alCambiar }) {
+export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
   const [d, setD] = useState(null)
   const [partes, setPartes] = useState(null)
   const [guardando, setGuardando] = useState(false)
@@ -245,6 +250,15 @@ function Diagnostico({ id, alCambiar }) {
       {d.estado === 'aprobado' ? (
         <>
           {cambios && cambios.length ? <Lecciones diag={d} cambios={cambios} alListo={() => { setCambios(null); alCambiar() }} /> : null}
+          {alEnviar && !(cambios && cambios.length) ? (
+            <div className="cb-acciones cb-enviar">
+              <small className="cb-gris">El documento final de Juan, listo para el cliente.</small>
+              <span className="cb-btns">
+                <button type="button" className="cb-btn is-suave" onClick={() => navigator.clipboard?.writeText(paraChat(d.version_final)).catch(() => {})}>Copiar</button>
+                <button type="button" className="cb-btn" onClick={() => alEnviar(paraChat(d.version_final))}>Enviar al chat</button>
+              </span>
+            </div>
+          ) : null}
           <div className="cb-medidas">
             <span>Jeremy <b>{pct(d.coincidencia_jeremy)}</b> igual a tu versión</span>
             <span>Cerebro <b>{pct(d.coincidencia_cerebro)}</b> igual a tu versión</span>

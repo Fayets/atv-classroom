@@ -364,7 +364,7 @@ function PanelCliente({ item, alVerFicha, llamadaId = null, onLlamadaUsada, pens
         <span>Ver contexto</span>
         <em>Timeline</em>
       </button>
-      <AccionesRapidas canalId={item.id} cliente={cliente.nombre} plan={cliente.plan} alCrearRoadmap={() => setPedidoRoadmap((n) => n + 1)} />
+      <AccionesRapidas canalId={item.id} clienteId={cliente.id} cliente={cliente.nombre} plan={cliente.plan} alCrearRoadmap={() => setPedidoRoadmap((n) => n + 1)} />
       <ContextoCliente clienteId={cliente.id} abierto={contexto} alCerrar={cerrarContexto} />
       <RoadmapCliente key={cliente.id} clienteId={cliente.id} canalId={item.id} cliente={cliente.nombre.split(' ')[0]} pedido={pedidoRoadmap} llamadaId={llamadaId} onLlamadaUsada={onLlamadaUsada} />
       <QuePenso info={pensamiento} />

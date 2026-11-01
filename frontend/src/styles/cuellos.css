@@ -94,3 +94,13 @@
 .cb-reglas li p { margin: 2px 0 0; font-size: 13.5px; }
 .cb-reglas li.is-apagada p { color: #aeaeb2; text-decoration: line-through; }
 @media (max-width: 700px) { .cb-fases { grid-template-columns: 1fr; } .cb-fases div { border-left: 0; border-top: 1px solid #ececf0; } }
+
+/* La misma vista abierta desde Acciones rápidas del chat. */
+.msj-modal.cb-modal { width: min(980px, 94vw); max-width: none; max-height: 88vh; padding: 0; display: flex; flex-direction: column; overflow: hidden; background: #fff; color: #1d1d1f; }
+.cb-modal__cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 22px; border-bottom: 1px solid #ececf0; }
+.cb-modal__cab h2 { margin: 0; font-size: 16px; }
+.cb-modal__cuerpo { overflow-y: auto; min-height: 0; }
+.cb-modal__cuerpo .cb-pie { bottom: -24px; }
+.cb-enviar { padding: 12px 14px; border-radius: 10px; background: rgba(192, 57, 43, 0.05); }
+.cb-confirmar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 22px; border-top: 1px solid #ececf0; background: #fffaf9; }
+.cb-confirmar p { margin: 0; font-size: 13px; }

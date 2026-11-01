@@ -446,6 +446,14 @@ class CuellosServices:
             filas = list(ClienteExterno.select(lambda c: c.id in ids)) if ids else []
             return sorted(({"id": c.id, "nombre": c.nombre or c.email, "plan": c.plan_actual} for c in filas), key=lambda x: _norm(x["nombre"]))
 
+    def de_cliente(self, cliente_id: int) -> dict:
+        """Para la acción rápida del chat: el último diagnóstico del cliente, si tiene."""
+        with db_session:
+            _cliente(cliente_id)
+            ultimo = CuelloDiagnostico.select_by_sql(
+                f'SELECT * FROM "{DB_SCHEMA}"."cuellos_diagnosticos" WHERE cliente_id = $cliente_id ORDER BY id DESC LIMIT 1')
+            return {"ultimo": ultimo[0].id if ultimo else None, "jeremy": bool(JEREMY_URL and JEREMY_SECRET)}
+
     def lista(self) -> dict:
         with db_session:
             filas = list(CuelloDiagnostico.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."cuellos_diagnosticos" ORDER BY id DESC LIMIT 200'))

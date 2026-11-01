@@ -102,3 +102,9 @@ def test_errores_a_la_vista():
     assert det["estado"] == "error" and "Jeremy" in det["error"]
     with pytest.raises(HTTPException):
         cs.CuellosServices().recibir("no-existe", {"output": "x"})
+
+
+
+def test_ultimo_del_cliente():
+    d, _ = _pedir()
+    assert cs.CuellosServices().de_cliente(d["cliente_id"])["ultimo"] == d["id"]

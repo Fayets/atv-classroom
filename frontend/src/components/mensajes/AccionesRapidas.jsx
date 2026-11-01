@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { borrarAccion, compartirClase, crearAccion, editarAccion, fetchAcciones, fetchClasesParaEnviar } from '../../api/acciones'
 import { enviarMensaje, fetchTextoCanal } from '../../api/mensajes'
+import CuelloBotella from './CuelloBotella'
 
 const ESPERA = 4 // segundos para deshacer antes de que salga el mensaje
 
@@ -228,7 +229,7 @@ function ElegirClase({ onCerrar, onElegir }) {
   )
 }
 
-export default function AccionesRapidas({ canalId, cliente, plan = null, alCrearRoadmap = null }) {
+export default function AccionesRapidas({ canalId, cliente, plan = null, alCrearRoadmap = null, clienteId }) {
   const [datos, setDatos] = useState(null)
   const [editando, setEditando] = useState(null) // {} = nueva
   const [pendiente, setPendiente] = useState(null) // { clave, nombre, texto, canalId, queda }
@@ -257,6 +258,8 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
     }
   }
 
+  const [cuello, setCuello] = useState(false)
+  const cerrarCuello = useCallback(() => setCuello(false), [])
   useEffect(() => {
     fetchAcciones()
       .then(setDatos)
@@ -361,6 +364,14 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
               </button>
             </li>
           ) : null}
+          {clienteId ? (
+            <li className="msj-accion is-fija">
+              <button type="button" className="msj-accion__boton" onClick={() => setCuello(true)} title="Pegás el Loom del cliente y arma el diagnóstico y el roadmap para que Juan lo corrija">
+                <span>Cuello de botella</span>
+                {hecho === 'cuello' ? <em className="is-ok">Enviado</em> : <em>Diagnóstico</em>}
+              </button>
+            </li>
+          ) : null}
           <li className="msj-accion is-fija is-contexto">
             <button type="button" className="msj-accion__boton" onClick={() => setEligiendoClase(true)} disabled={Boolean(pendiente)} title="Elegí una clase del classroom y le llega el link en el chat">
               <span>Enviar clase</span>
@@ -382,6 +393,15 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
         </button>
       ) : null}
 
+      {cuello ? (
+        <CuelloBotella
+          clienteId={clienteId}
+          canalId={canalId}
+          cliente={cliente}
+          alCerrar={cerrarCuello}
+          alEnviado={() => { setHecho('cuello'); setTimeout(() => setHecho((h) => (h === 'cuello' ? null : h)), 2500) }}
+        />
+      ) : null}
       {eligiendoClase ? (
         <ElegirClase
           onCerrar={() => setEligiendoClase(false)}
