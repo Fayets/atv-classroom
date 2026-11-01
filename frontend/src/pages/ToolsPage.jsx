@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { fetchTools } from '../api/tools'
+import { abrirTool, fetchTools } from '../api/tools'
 import AppHeader from '../components/AppHeader'
 import { Chevron } from '../components/frentes/piezas'
 import Isotipo from '../components/marca/Isotipo'
@@ -43,6 +43,20 @@ export default function ToolsPage() {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
   const [abierta, setAbierta] = useState(null)
+  const [abriendo, setAbriendo] = useState(false)
+
+  // Salta al proyecto de agentes con un pase firmado que vence en un minuto (no hay que volver a loguearse).
+  async function abrir(id) {
+    setAbriendo(true)
+    setError('')
+    try {
+      const { url } = await abrirTool(id)
+      window.location.assign(url)
+    } catch (e) {
+      setError(e.message || 'No se pudo abrir la tool.')
+      setAbriendo(false)
+    }
+  }
 
   useEffect(() => {
     let cancelado = false
@@ -80,7 +94,7 @@ export default function ToolsPage() {
           ) : null}
         </header>
 
-        {error ? <p className="im-error">{error}</p> : !datos ? <p className="pc-loading">Cargando tools…</p> : (
+        {error && !datos ? <p className="im-error">{error}</p> : !datos ? <p className="pc-loading">Cargando tools…</p> : (
           <div className="mt-sops">
             {grupos.map(([titulo, lista]) => (
               <section key={titulo} className="mt-estante">
@@ -104,6 +118,10 @@ export default function ToolsPage() {
                           Sumarla con {contacto.nombre.split(' ')[0]} <Chevron />
                         </a>
                       ) : null
+                    ) : sel.abrir ? (
+                      <button type="button" className="pc-btn pc-btn--light" disabled={abriendo} onClick={() => abrir(sel.id)}>
+                        {abriendo ? 'Abriendo…' : 'Abrir'} <Chevron />
+                      </button>
                     ) : (
                       <span className="mt-estante__pronto">Muy pronto</span>
                     )}
@@ -111,6 +129,7 @@ export default function ToolsPage() {
                 ) : null}
               </section>
             ))}
+            {error ? <p className="im-error" role="alert">{error}</p> : null}
             {!grupos.length ? <p className="mt-sops__vacio">Todavía no hay tools para tu plan.</p> : null}
           </div>
         )}

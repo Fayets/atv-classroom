@@ -51,3 +51,35 @@ def test_apagar_la_seccion_la_esconde_de_nuevo():
 def test_cambio_invalido():
     with pytest.raises(HTTPException):
         t.guardar(None, [{"plan": "boost", "tool": "audiencia", "estado": "gratis"}], {})
+
+
+def test_pase_firmado_vence_y_no_se_puede_falsificar():
+    from src.services.tools_pase import firmar, verificar
+
+    p = firmar({"tool": "bottleneck", "cliente_id": 29}, "clave", ahora=1000)
+    assert verificar(p, "clave", ahora=1030)["cliente_id"] == 29
+    assert verificar(p, "clave", ahora=1061) is None  # venció a los 60 s
+    assert verificar(p, "otra-clave", ahora=1030) is None
+    cuerpo, firma = p.split(".")
+    assert verificar(cuerpo[:-2] + "xx." + firma, "clave", ahora=1030) is None
+
+
+def test_sin_proyecto_de_agentes_configurado_dice_muy_pronto(monkeypatch):
+    monkeypatch.setattr(t, "TOOLS_URL", "")
+    with pytest.raises(HTTPException) as e:
+        t.pase({"rol": "admin", "usuario_id": 1}, "bottleneck")
+    assert e.value.status_code == 409
+
+
+def test_pase_del_equipo_lleva_a_la_tool(monkeypatch):
+    from src.services.tools_pase import verificar
+
+    monkeypatch.setattr(t, "TOOLS_URL", "https://tools.atvos.io")
+    monkeypatch.setattr(t, "TOOLS_PASE_SECRET", "clave")
+    monkeypatch.setattr(t, "TOOLS_ACTIVAS", {"bottleneck"})
+    url = t.pase({"rol": "admin", "usuario_id": 7, "nombre": "Franco"}, "bottleneck")["url"]
+    assert url.startswith("https://tools.atvos.io/bottleneck?pase=")
+    datos = verificar(url.split("pase=")[1], "clave")
+    assert datos["tipo"] == "equipo" and datos["admin_id"] == 7 and datos["tool"] == "bottleneck"
+    with pytest.raises(HTTPException):
+        t.pase({"rol": "admin", "usuario_id": 7}, "audiencia")  # no está activa todavía
