@@ -1171,3 +1171,8 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-edicion__emojis button:hover { background: rgba(var(--m-osc, 0, 0, 0), 0.12); }
 .msj-edicion__emojis .msj-cara-mas { width: 17px; height: 17px; }
 .msj-edicion .msj-emojis { left: 0; right: auto; bottom: calc(100% + 4px); }
+
+/* Acciones rápidas sin etiquetas: el nombre va centrado; "Enviado" / "Bajando…" aparece a la derecha sin moverlo. */
+.msj-acciones:not(.rmc) .msj-accion__boton { position: relative; justify-content: center; text-align: center; padding-left: 34px; padding-right: 34px; }
+.msj-acciones:not(.rmc) .msj-accion__boton em { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); }
+.msj-acciones:not(.rmc) .msj-accion:not(.is-fija) .msj-accion__boton em { right: 36px; }
