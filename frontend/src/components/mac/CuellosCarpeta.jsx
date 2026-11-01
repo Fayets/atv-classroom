@@ -4,6 +4,7 @@ import {
   guardarCuello, guardarLecciones, pedirCuello, reintentarCuello,
 } from '../../api/cuellos'
 import { IconoCarpeta } from './Finder'
+import HojaCuello from './HojaCuello'
 import { IconoPdf } from './OnboardingsCarpeta'
 import '../../styles/cuellos.css'
 import { descargarPdfCuello } from '../../utils/cuelloPdf'
@@ -238,18 +239,8 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
 
       {d.estado === 'borrador' && partes ? (
         <>
-          <p className="cb-gris">Corregí lo que haga falta. Lo que cambies es lo que va a aprender la neurona.</p>
-          {SECCIONES.map((s) => (
-            <section key={s} className="cb-seccion">
-              <h4>{s}{partes[s] !== jeremy[s] ? <em> · corregida</em> : null}</h4>
-              <textarea
-                rows={Math.min(14, Math.max(3, (partes[s] || '').split('\n').length + 1))}
-                value={partes[s]}
-                onChange={(e) => setPartes((p) => ({ ...p, [s]: e.target.value }))}
-                aria-label={s}
-              />
-            </section>
-          ))}
+          <p className="cb-gris">Así sale el PDF. Escribí directo sobre el documento: lo que cambies es lo que va a aprender la neurona.</p>
+          <HojaCuello key={d.id} cliente={d.cliente} partes={partes} original={jeremy} alCambiar={setPartes} />
           <div className="cb-acciones cb-pie">
             <small className="cb-gris">{d.cerebro_listo ? 'El cerebro ya armó su versión: la vas a ver cuando apruebes.' : 'El cerebro todavía está armando su versión.'}</small>
             <span className="cb-btns">
