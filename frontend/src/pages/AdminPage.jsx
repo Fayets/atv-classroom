@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { urlRecurso } from '../utils/frentes'
 import {
   createAdminClase,
@@ -18,6 +18,7 @@ import {
 } from '../api/admin'
 import AppHeader from '../components/AppHeader'
 import PermisosPlanes from '../components/admin/PermisosPlanes'
+import ToolsAdmin from '../components/admin/ToolsAdmin'
 
 const PROGRAMA_VACIO = {
   titulo: '',
@@ -69,7 +70,8 @@ export default function AdminPage() {
   const [cargandoLista, setCargandoLista] = useState(true)
   const [cargandoDetalle, setCargandoDetalle] = useState(false)
   const [guardando, setGuardando] = useState(false)
-  const [vistaAdmin, setVistaAdmin] = useState('permisos')
+  const [params] = useSearchParams()
+  const [vistaAdmin, setVistaAdmin] = useState(params.get('vista') === 'tools' ? 'tools' : 'permisos')
   const [error, setError] = useState('')
 
   const loadLista = useCallback(async () => {
@@ -465,12 +467,13 @@ export default function AdminPage() {
         <header className="admin-page__header">
           <div>
             <p className="admin-page__eyebrow">Panel admin</p>
-            <h1 className="admin-page__title">{vistaAdmin === 'permisos' ? 'Permisos por plan' : 'Configuración de módulos'}</h1>
+            <h1 className="admin-page__title">{vistaAdmin === 'permisos' ? 'Permisos por plan' : vistaAdmin === 'tools' ? 'Tools' : 'Configuración de módulos'}</h1>
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <div className="admin-tabs" role="tablist">
               <button type="button" role="tab" aria-selected={vistaAdmin === 'permisos'} className={vistaAdmin === 'permisos' ? 'is-on' : ''} onClick={() => setVistaAdmin('permisos')}>Permisos</button>
               <button type="button" role="tab" aria-selected={vistaAdmin === 'contenido'} className={vistaAdmin === 'contenido' ? 'is-on' : ''} onClick={() => setVistaAdmin('contenido')}>Editar contenido</button>
+              <button type="button" role="tab" aria-selected={vistaAdmin === 'tools'} className={vistaAdmin === 'tools' ? 'is-on' : ''} onClick={() => setVistaAdmin('tools')}>Tools</button>
             </div>
             {vistaAdmin === 'contenido' ? (
               <button
@@ -486,6 +489,7 @@ export default function AdminPage() {
         </header>
 
         {vistaAdmin === 'permisos' ? <PermisosPlanes /> : null}
+        {vistaAdmin === 'tools' ? <ToolsAdmin /> : null}
 
         {error ? (
           <p className="admin-page__error" role="alert">

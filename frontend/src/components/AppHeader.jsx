@@ -15,6 +15,8 @@ const PLANES = { advantage: 'High Level', high: 'High Level', boost: 'Boost', mi
 export default function AppHeader() {
   const { user, logout, isAdmin, isEquipo } = useAuth()
   // Lo que su plan tiene apagado en Permisos (admin) no aparece en el menú.
+  // Tools aparece cuando un admin prende la sección (Admin → Tools).
+  const conTools = !isEquipo && user?.permisos?.tools === 'si'
   const conRoadmap = isEquipo || (user?.permisos?.roadmaps ?? (user?.rol === '2k' ? 'no' : 'si')) !== 'no'
   const { resumen, habilitada } = useMensajeria()
   const escritorio = useEscritorio()
@@ -150,6 +152,7 @@ export default function AppHeader() {
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-on' : '')}>Inicio</NavLink>
           <NavLink to="/classroom" className={({ isActive }) => (isActive ? 'is-on' : '')}>Material</NavLink>
           {conRoadmap ? <NavLink to="/roadmap" className={({ isActive }) => (isActive ? 'is-on' : '')}>Roadmap</NavLink> : null}
+          {conTools ? <NavLink to="/tools" className={({ isActive }) => (isActive ? 'is-on' : '')}>Tools</NavLink> : null}
           {habilitada ? (
             <NavLink to="/mensajes" className={({ isActive }) => (isActive ? 'is-on' : '')}>
               Mensajes
@@ -179,6 +182,12 @@ export default function AppHeader() {
             <NavLink to="/roadmap" className={({ isActive }) => (isActive ? 'is-on' : '')}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-1 3-6 7-7s4-6 7-7" /><circle cx="5" cy="19" r="1.6" /><circle cx="19" cy="5" r="1.6" /></svg>
               Roadmap
+            </NavLink>
+          ) : null}
+          {conTools ? (
+            <NavLink to="/tools" className={({ isActive }) => (isActive ? 'is-on' : '')}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-3-1-1-3z" /></svg>
+              Tools
             </NavLink>
           ) : null}
           {habilitada ? (

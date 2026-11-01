@@ -33,6 +33,7 @@ import PlaceholderPage from './pages/PlaceholderPage'
 import ProgramaDetailPage from './pages/ProgramaDetailPage'
 import ProgramasGridPage from './pages/ProgramasGridPage'
 import RoadmapPage from './pages/RoadmapPage'
+import ToolsPage from './pages/ToolsPage'
 
 function UnauthorizedSync() {
   const { logout } = useAuth()
@@ -134,6 +135,14 @@ function AppRoutes() {
             <AdminRoute>
               <EquipoPage />
             </AdminRoute>
+          }
+        />
+        <Route
+          path="/tools"
+          element={
+            <ProtectedRoute>
+              <ToolsPage />
+            </ProtectedRoute>
           }
         />
         <Route

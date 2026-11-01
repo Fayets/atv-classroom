@@ -136,7 +136,10 @@ def _vencido_por_fecha(cliente: ClienteExterno) -> bool:
 def _permisos_de(plan: str | None) -> dict:
     from src.services.permisos_service import PERMISOS, valor
 
-    return {clave: valor(plan, clave) for clave in PERMISOS}
+    from src.services.tools_service import visible
+
+    # "tools": si la sección Tools está prendida para los clientes (se prende desde el admin).
+    return {**{clave: valor(plan, clave) for clave in PERMISOS}, "tools": "si" if visible() else "no"}
 
 
 def _hash_token(token: str) -> str:
