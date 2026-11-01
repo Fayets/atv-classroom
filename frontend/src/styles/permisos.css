@@ -3,7 +3,7 @@
 .admin-tabs button { padding: 8px 16px; border: 0; border-radius: 7px; background: transparent; color: #6e6e73; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
 .admin-tabs button.is-on { background: #fff; color: #1d1d1f; font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }
 
-.pm-panel { display: flex; flex-direction: column; min-width: 0; flex: 1; border-radius: 14px; box-shadow: inset 0 0 0 1px #e5e5ea; overflow: hidden; background: #fff; }
+.pm-panel { display: flex; flex-direction: column; min-width: 0; flex: 1; border-radius: 14px; box-shadow: inset 0 0 0 1px #e5e5ea; overflow: hidden; background: #fff; color: #1d1d1f; color-scheme: light; }
 .pm-cargando, .pm-error { margin: 12px 18px; font-size: 13.5px; color: #6e6e73; }
 .pm-error { color: #c41e1e; }
 
@@ -25,7 +25,7 @@
 .pm-switch.is-si, .pm-switch.is-1a1 { background: #c0392b; }
 .pm-switch.is-si span, .pm-switch.is-1a1 span { transform: translateX(16px); }
 .pm-switch.is-1a1 { background: #e08a7f; }
-.pm-cupo { width: 56px; padding: 4px 6px; border: 0; border-radius: 7px; box-shadow: inset 0 0 0 1px #d1d1d6; text-align: center; font: inherit; font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pm-cupo { width: 56px; padding: 4px 6px; border: 0; border-radius: 7px; box-shadow: inset 0 0 0 1px #d1d1d6; text-align: center; font: inherit; font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; background: #fff; color: #1d1d1f; }
 
 .pm-pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 20px; border-top: 1px solid #ececf0; background: #fffaf9; font-size: 13px; color: #3a3a3c; }
 .pm-guardar { padding: 9px 18px; border: 0; border-radius: 9px; background: #c0392b; color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }

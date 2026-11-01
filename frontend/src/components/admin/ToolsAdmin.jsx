@@ -107,7 +107,7 @@ export default function ToolsAdmin() {
         </div>
         {error ? <p className="pm-error" role="alert">{error}</p> : null}
         <div className="pm-pie">
-          <span>{pendientes ? <><b>{pendientes} {pendientes === 1 ? 'cambio' : 'cambios'}</b> sin guardar</> : 'Incluida: la usa. Paga: la ve con candado y se la vende Juampi. Oculta: no aparece.'}</span>
+          <span>{pendientes ? <><b>{pendientes} {pendientes === 1 ? 'cambio' : 'cambios'}</b> sin guardar</> : null}</span>
           <button type="button" className="pm-guardar" disabled={!pendientes || guardando} onClick={guardarTabla}>
             {guardando ? 'Guardando…' : 'Guardar'}
           </button>
