@@ -355,10 +355,24 @@ def procesar(diag_id: int, llamar=_llamar, mandar=_mandar_a_jeremy, leer_loom=tr
         logger.exception("Cuello %s: no se pudo pedir a Jeremy", diag_id)
         _poner(diag_id, estado="error", error=str(e)[:500])
         return
+    armar_cerebro(diag_id, llamar, payload)
+
+
+def armar_cerebro(diag_id: int, llamar=_llamar, payload: dict | None = None) -> bool:
+    """La versión del cerebro, en silencio. Si falla, se vuelve a intentar cuando vuelve Jeremy."""
     try:
+        if payload is None:
+            with db_session:
+                d = CuelloDiagnostico.get(id=diag_id)
+                if d is None or d.version_cerebro or not d.transcripcion:
+                    return False
+                datos = {"id": d.id, "cliente_id": d.cliente_id, "contexto": d.contexto, "transcripcion": d.transcripcion, "token": d.token}
+            payload = armar_payload(datos, contexto_cliente(datos["cliente_id"]), lecciones_texto())
         _poner(diag_id, version_cerebro=llamar(INSTRUCCIONES, _mensaje_cerebro(payload)))
+        return True
     except Exception:  # noqa: BLE001 — sin la versión del cerebro el caso igual sirve para Juan
         logger.exception("Cuello %s: el cerebro no pudo armar su versión", diag_id)
+        return False
 
 
 def _en_segundo_plano(diag_id: int) -> None:
@@ -430,6 +444,9 @@ class CuellosServices:
             if not d.version_final:
                 d.version_final = d.version_jeremy
             d.estado, d.error, d.respondido_en = "borrador", None, datetime.utcnow()
+            falta_cerebro = not d.version_cerebro
+        if falta_cerebro:
+            threading.Thread(target=armar_cerebro, args=(d.id,), daemon=True).start()
         return {"ok": True}
 
     def guardar(self, diag_id: int, texto: str) -> dict:

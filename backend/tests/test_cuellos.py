@@ -135,3 +135,14 @@ def test_desde_el_cierre_de_mes_o_contado():
     finally:
         with db_session:
             db.execute(f'DELETE FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE periodo = \'2099-01\' AND cliente_id = $cid', {"cid": cid})
+
+
+def test_si_el_cerebro_fallo_se_vuelve_a_armar():
+    def falla(*a):
+        raise RuntimeError("sin clave")
+
+    d = cs.CuellosServices().pedir({"usuario_id": 1}, _cliente_id(), "https://www.loom.com/share/" + "e" * 32, None, None,
+                                   en_fondo=lambda i: cs.procesar(i, llamar=falla, mandar=lambda p: None, leer_loom=lambda u: "x"))
+    assert not cs.CuellosServices().detalle(d["id"])["cerebro_listo"]
+    assert cs.armar_cerebro(d["id"], llamar=lambda *a: JEREMY)
+    assert cs.CuellosServices().detalle(d["id"])["cerebro_listo"]
