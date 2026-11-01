@@ -59,6 +59,18 @@ const DIBUJOS = {
       <path d="M58 104 l6 6 l10 -12" {...S} /><path d="M118 74 l6 6 l10 -12" {...S} /><path d="M176 108 l12 12 M188 108 l-12 12" {...S} />
     </>
   ),
+  crm: (
+    <>
+      {/* Tablero en columnas: los leads avanzan de etapa hasta la llamada */}
+      <rect x="18" y="20" width="62" height="112" rx="8" {...S} /><rect x="92" y="20" width="62" height="112" rx="8" {...S} /><rect x="166" y="20" width="62" height="112" rx="8" {...S} />
+      <path d="M28 36 H70 M102 36 H144 M176 36 H218" {...S} />
+      <rect x="28" y="48" width="42" height="18" rx="4" {...S} /><rect x="28" y="74" width="42" height="18" rx="4" {...S} /><rect x="28" y="100" width="42" height="18" rx="4" {...S} />
+      <rect x="102" y="48" width="42" height="18" rx="4" {...S} /><rect x="102" y="74" width="42" height="18" rx="4" {...S} />
+      <rect x="176" y="48" width="42" height="18" rx="4" {...S} /><path d="M188 57 l5 5 l9 -10" {...S} />
+      <path d="M74 109 C 88 109, 90 83, 100 83" {...S} markerEnd="url(#tl-flecha)" />
+      <path d="M148 83 C 160 83, 162 57, 172 57" {...S} markerEnd="url(#tl-flecha)" />
+    </>
+  ),
 }
 
 export function DibujoTool({ id }) {

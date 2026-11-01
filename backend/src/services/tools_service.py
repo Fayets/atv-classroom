@@ -22,6 +22,8 @@ TOOLS = [
      "descripcion": "Lee tus comentarios y DMs y te dice qué dolor repite tu audiencia."},
     {"id": "competencia", "nombre": "Analizador de competencia", "tono": "blanca", "duracion": "5 min",
      "descripcion": "Pasale tres cuentas y te arma qué venden, a qué precio y con qué ángulo."},
+    {"id": "crm", "nombre": "CRM", "tono": "crema", "duracion": "Leads y llamadas",
+     "descripcion": "Tus leads en un solo lugar: de qué conversación vienen, en qué etapa están y cuándo hacerles seguimiento."},
 ]
 _IDS = {t["id"] for t in TOOLS}
 ESTADOS = ["incluida", "paga", "oculta"]
