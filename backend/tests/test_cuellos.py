@@ -10,24 +10,38 @@ from src.models import ClienteExterno
 from src.services import cuellos_service as cs
 
 JEREMY = """# Diagnóstico
-Le entran 41 conversaciones por mes y solo 3 pasan a llamada.
+El problema no es el tráfico: les entran 41 conversaciones por mes y solo 3 terminan en llamada.
+Números:
+- 41 conversaciones en octubre.
+- 3 llamadas (7% de las conversaciones).
+El chat informa en vez de abrir una conversación sobre el problema.
 
 # Causas
-- El primer mensaje manda precio y PDF [chat 22-10]
-- No hay guion antes de invitar [Loom 07:40]
+### Causa 1: El primer mensaje cierra la conversación
+El primer mensaje manda precio y PDF.
+### Causa 2: No hay guion
+No hay preguntas antes de invitar a la llamada.
+
+# Causa vs potenciadores
+Los anuncios son el potenciador; la conversación es la causa.
 
 # Qué no hacer
-- Subir el presupuesto de anuncios.
+- **No subir el presupuesto.** Más conversaciones son más gente en el "info".
 
 # Solución
-Primer mensaje con una pregunta y un guion de 3 preguntas.
+### 5.1 Primer mensaje con pregunta
+Abrir con una pregunta sobre su situación.
+> "¿Qué es lo que más te frena hoy para dormir tranquilo?"
 
-# Roadmap
-## Semana 1 — 03-11
-- Cambiar el primer mensaje.
+# Métricas a mirar
+- **Conversación → llamada:** hoy 7%, objetivo 25%.
 
-# Meta
-De 3 a 10 llamadas por mes."""
+# Expectativas
+- **Semana 1:** primer mensaje y guion nuevos.
+- **Objetivo:** 10 llamadas por mes.
+
+# Cierre
+Más tráfico no arregla una conversación que no existe."""
 
 
 @pytest.fixture(autouse=True)
@@ -60,6 +74,9 @@ def _pedir(**kw):
 
 
 def test_secciones_y_coincidencia():
+    # Numeradas como en el documento de Juan, y los nombres viejos se siguen leyendo.
+    assert cs.secciones("# 2. Causas\nx\n# 4. Qué NO hacer\ny") == {"Causas": "x", "Qué no hacer": "y"}
+    assert cs.secciones("# Roadmap\n## Semana 1\n- a\n# Meta\nb")["Expectativas"] == "## Semana 1\n- a\nb"
     s = cs.secciones(JEREMY)
     assert list(s) == cs.SECCIONES and "41 conversaciones" in s["Diagnóstico"]
     assert cs.coincidencia(JEREMY, JEREMY) == 1.0
@@ -80,7 +97,7 @@ def test_recorrido_completo():
     cs.CuellosServices().recibir(token, {"diagnostico_id": str(d["id"]), "output": JEREMY})
     assert cs.CuellosServices().detalle(d["id"])["estado"] == "borrador"
 
-    final = JEREMY.replace("- El primer mensaje manda precio y PDF [chat 22-10]", "- Contestan a las 4 horas [chat 22-10]")
+    final = JEREMY.replace("El primer mensaje manda precio y PDF.", "Contestan a las 4 horas: la demora pesa más que el precio.")
     r = cs.CuellosServices().aprobar({"usuario_id": 1}, d["id"], final, llamar=lambda *a: "Mirar cuánto tardan en contestar antes de culpar al guion.")
     assert r["estado"] == "aprobado" and r["version_cerebro"]
     assert 0 < r["coincidencia_jeremy"] < 1 and r["coincidencia_cerebro"] is not None

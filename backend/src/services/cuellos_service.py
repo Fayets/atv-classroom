@@ -38,45 +38,63 @@ CLASSROOM_URL = config("CLASSROOM_URL", default="https://classroom.atvos.io").rs
 MODELO = config("CUELLO_MODEL", default="claude-sonnet-5-5")
 MODELO_LECCION = config("CUELLO_MODEL_LECCION", default="claude-haiku-5-5")
 
-SECCIONES = ["Diagnóstico", "Causas", "Qué no hacer", "Solución", "Roadmap", "Meta"]
+# El formato del documento de Juan (Diagnóstico HAR PROGRAM, 01-11-2026).
+SECCIONES = ["Diagnóstico", "Causas", "Causa vs potenciadores", "Qué no hacer", "Solución", "Métricas a mirar", "Expectativas", "Cierre"]
+# Nombres viejos o como los escribe la IA → la sección de ahora (los diagnósticos anteriores se siguen leyendo).
+_ALIAS = {"roadmap": "Expectativas", "meta": "Expectativas", "frame: causa vs potenciadores": "Causa vs potenciadores",
+          "frame": "Causa vs potenciadores", "metricas": "Métricas a mirar", "que no hacer ahora": "Qué no hacer"}
 # Para pasar de fase: el cerebro se parece a la final de Juan al menos esto, tres semanas seguidas (supuesto).
 UMBRAL_FASE = 0.85
 TOPE_TRANSCRIPCION = 60_000
 
 # Las mismas instrucciones que tiene el trigger "ATV Bottleneck" en Jeremy: si se cambia allá, se cambia acá,
 # así el cerebro y Jeremy compiten con la misma consigna.
-INSTRUCCIONES = """Sos parte del equipo de coaches de ATV (Aumenta Tu Valor). Un cliente nos contó una traba de su negocio: con un Loom, con su reporte de cierre de mes o escribiéndola. Tu trabajo es armar el diagnóstico de su cuello de botella y un roadmap para resolverlo. Este documento lo revisa y corrige Juan antes de que llegue al cliente.
+INSTRUCCIONES = """Sos parte del equipo de coaches de ATV (Aumenta Tu Valor). Un cliente nos contó una traba de su negocio: con un Loom, con su reporte de cierre de mes o escribiéndola. Tu trabajo es armar el diagnóstico de su cuello de botella, como lo escribe Juan. Este documento lo revisa y corrige Juan antes de que llegue al cliente.
 
 Reglas:
-- Un solo cuello de botella: el que más frena la plata hoy. No una lista de problemas.
-- Usá los números del cliente. Si un dato no está en lo que te pasamos, no lo inventes: decí qué falta.
-- Cada causa lleva de dónde sale entre corchetes: [Loom 07:40], [chat 22-10], [llamada 15-10] o [cierre sep].
-- El roadmap va en semanas con fecha real desde hoy, con tareas concretas que el cliente puede hacer. Nada de "a mediano plazo" ni "mejorá tu marketing".
+- Un solo cuello de botella: el que más frena la plata hoy. Nombralo sin vueltas, separando lo que NO es el problema de lo que sí ("El problema no es el tráfico: ...").
+- Usá los números del cliente y decí qué significan. Si un dato no está en lo que te pasamos, no lo inventes: decí qué falta medir.
+- Explicá el mecanismo: qué trabajo no está haciendo nadie y por eso pasa lo que pasa.
+- Diferenciá la causa de los potenciadores: lo que amplifica resultados no sirve si falta la causa.
+- La solución es concreta y usa lo que el cliente ya tiene. Con ejemplos listos para usar (un CTA, un guion, un creativo), escritos entre comillas en una línea que empieza con "> ".
 - Si hay una clase o un SOP de ATV que aplica, nombralo.
 - Respetá siempre las lecciones que Juan ya corrigió en otros diagnósticos.
-- Tono directo, en español rioplatense, con voseo. Sin el nombre del cliente. Que se lea como armado por el equipo, no por una IA.
+- Tono directo, en español rioplatense, con voseo, hablándole al cliente. Que se lea como armado por el equipo, no por una IA.
 
-Formato de salida: texto plano, sin HTML ni tablas. Respetá exactamente estas secciones y este orden:
+Formato de salida: texto plano, sin HTML ni tablas. Podés usar **negrita**, viñetas con "- ", subtítulos con "### " y ejemplos con "> ". Respetá exactamente estas secciones y este orden:
 
 # Diagnóstico
-Un párrafo con el cuello de botella y el número que lo muestra.
+Una frase que nombra el cuello de botella.
+Números:
+- Cada número que lo muestra, con qué significa.
+Un párrafo que explica el mecanismo.
 
 # Causas
-- Una causa por línea, con su fuente entre corchetes.
+### Causa 1: título corto
+Un párrafo con la evidencia.
+(de 2 a 4 causas)
+
+# Causa vs potenciadores
+Un párrafo: cuál es la causa de fondo y qué cosas son potenciadores que hoy no alcanzan.
 
 # Qué no hacer
-- Una línea por cada cosa que NO tiene que tocar ahora y por qué.
+- **No hacer tal cosa.** Por qué no.
 
 # Solución
-Un párrafo con el cambio de fondo.
+### 5.1 Título
+Qué hacer y cómo, con un ejemplo concreto en una línea "> ".
+(de 2 a 4 subsecciones: 5.1, 5.2, ...)
 
-# Roadmap
-## Semana 1 — dd-mm
-- Tarea concreta.
-(repetí por cada semana, de 2 a 4 semanas)
+# Métricas a mirar
+- **Métrica:** qué mide, cuánto da hoy y cuál es el objetivo.
 
-# Meta
-Una línea: de cuánto a cuánto tiene que pasar qué número al final del roadmap."""
+# Expectativas
+- **Semana 1:** qué tiene que estar hecho.
+- **Semana 2:** ...
+- **Objetivo:** el resultado al final.
+
+# Cierre
+Una o dos frases con la idea de fondo que el cliente se tiene que llevar."""
 
 
 # ---------- texto ----------
@@ -86,7 +104,13 @@ def _norm(t: str) -> str:
     return "".join(c for c in t if unicodedata.category(c) != "Mn").strip()
 
 
-_CLAVES = {_norm(s): s for s in SECCIONES}
+_CLAVES = {**{_norm(s): s for s in SECCIONES}, **{_norm(k): v for k, v in _ALIAS.items()}}
+
+
+def _clave(titulo: str) -> str | None:
+    """El título de una sección sin número ("2. Causas") ni dos puntos."""
+    t = re.sub(r"^\d+(\.\d+)*[.)]?\s*", "", _norm(titulo)).rstrip(":").strip()
+    return _CLAVES.get(t)
 
 
 def secciones(texto: str) -> dict[str, str]:
@@ -96,7 +120,7 @@ def secciones(texto: str) -> dict[str, str]:
     for linea in (texto or "").splitlines():
         m = re.match(r"^\s*#\s+(?!#)(.+?)\s*$", linea)
         if m:
-            actual = _CLAVES.get(_norm(m.group(1)).rstrip(":"))
+            actual = _clave(m.group(1))
             if actual:
                 salida.setdefault(actual, [])
             continue

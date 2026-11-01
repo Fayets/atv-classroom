@@ -8,36 +8,15 @@ import HojaCuello from './HojaCuello'
 import { IconoPdf } from './OnboardingsCarpeta'
 import '../../styles/cuellos.css'
 import { descargarPdfCuello } from '../../utils/cuelloPdf'
+import { paraChat, partir, SECCIONES, unir } from '../../utils/docCuello'
 
 // Carpeta "Cuellos de botella" (equipo): el cliente mandó un Loom con su traba, Jeremy arma el diagnóstico,
 // Juan lo corrige y lo aprueba. La neurona mide cuánto se parecen Jeremy y el cerebro a lo que deja Juan, y
 // guarda cada corrección como lección.
-export const SECCIONES = ['Diagnóstico', 'Causas', 'Qué no hacer', 'Solución', 'Roadmap', 'Meta']
 const ESTADO = { pidiendo: 'Mandando a Jeremy…', esperando: 'Jeremy lo está armando', borrador: 'Para corregir', aprobado: 'Aprobado', error: 'Con error' }
 const fecha = (iso) => (iso ? new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : '—')
 const pct = (n) => (n === null || n === undefined ? '—' : `${Math.round(n * 100)}%`)
-const normal = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-
-export function partir(texto) {
-  const salida = {}
-  let actual = null
-  for (const linea of (texto || '').split('\n')) {
-    const m = linea.match(/^\s*#\s+(?!#)(.+?)\s*$/)
-    if (m) {
-      actual = SECCIONES.find((s) => normal(s) === normal(m[1]).replace(/:$/, '')) || null
-      if (actual) salida[actual] = []
-      continue
-    }
-    if (actual) salida[actual].push(linea)
-  }
-  return Object.fromEntries(SECCIONES.map((s) => [s, (salida[s] || []).join('\n').trim()]))
-}
-// Para mandarlo por el chat: los títulos de sección en mayúsculas, sin los "#".
-export const paraChat = (texto) => {
-  const p = partir(texto)
-  return SECCIONES.filter((s) => p[s]).map((s) => `${s.toUpperCase()}\n${p[s].replace(/^##\s*/gm, '')}`).join('\n\n')
-}
-export const unir = (partes) => SECCIONES.map((s) => `# ${s}\n${(partes[s] || '').trim()}`).join('\n\n')
+const normal = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
 function Nuevo({ alCreado }) {
   const [clientes, setClientes] = useState(null)

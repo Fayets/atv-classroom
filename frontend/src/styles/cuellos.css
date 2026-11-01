@@ -109,38 +109,24 @@
 .cb-fuentes button.is-on { background: #fff; color: #1d1d1f; font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
 .cb-campo select { width: 100%; padding: 9px 11px; border: 0; border-radius: 8px; box-shadow: inset 0 0 0 1px #d1d1d6; background: #fff; color: #1d1d1f; font: inherit; font-size: 13.5px; }
 
-/* La hoja editable: igual que el PDF (marca ATV), con lo editable marcado al pasar el mouse. */
-.hc-hoja { --hc-hueso: #f3f0e9; --hc-carbon: #242321; --hc-rojo: #ff2518; --hc-piedra: #8a847c; --hc-linea: #ddd7cc;
-  display: flex; flex-direction: column; padding: 36px 44px 28px; border-radius: 4px; background: var(--hc-hueso); color: var(--hc-carbon);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 12px 32px -16px rgba(0, 0, 0, 0.35); font-size: 14px; line-height: 1.5; }
-.hc-cab { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 26px; font-size: 10px; font-weight: 700; letter-spacing: 0.18em; }
-.hc-cab span:last-child { color: var(--hc-piedra); font-weight: 500; }
-.hc-rotulo { margin: 22px 0 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--hc-rojo); display: flex; align-items: center; gap: 8px; }
-.hc-hoja > .hc-rotulo:first-of-type { margin-top: 0; }
-.hc-corregida { font-style: normal; font-weight: 600; letter-spacing: 0; text-transform: none; font-size: 10.5px; padding: 1px 7px; border-radius: 99px; background: rgba(255, 37, 24, 0.12); color: #b40210; }
-.hc-hoja .hc-cliente { margin: 4px 0 0; font-size: 32px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
-.hc-raya { display: block; width: 44px; height: 3px; margin: 14px 0 20px; background: var(--hc-rojo); }
-.hc-caja { padding: 16px 20px; }
-.hc-caja .hc-rotulo { margin-top: 0; }
-.hc-caja.is-carbon { background: var(--hc-carbon); color: var(--hc-hueso); }
-.hc-caja.is-rojo { margin-top: 24px; background: var(--hc-rojo); color: #fff; }
-.hc-caja.is-rojo .hc-rotulo { color: #fff; }
-.hc-caja.is-rojo .hc-corregida { background: rgba(255, 255, 255, 0.25); color: #fff; }
-.hc-editable, .hc-lista, .hc-semana__titulo { outline: none; border-radius: 3px; transition: box-shadow 0.12s, background 0.12s; white-space: pre-wrap; overflow-wrap: anywhere; }
-.hc-editable:hover, .hc-lista:hover, .hc-semana__titulo:hover { box-shadow: 0 0 0 5px rgba(36, 35, 33, 0.05); background: rgba(36, 35, 33, 0.03); }
-.hc-editable:focus, .hc-lista:focus, .hc-semana__titulo:focus { box-shadow: 0 0 0 5px rgba(255, 37, 24, 0.12); background: rgba(255, 255, 255, 0.5); }
-.hc-caja.is-carbon .hc-editable:focus { background: rgba(255, 255, 255, 0.06); }
-.hc-caja.is-rojo .hc-editable:focus { background: rgba(255, 255, 255, 0.12); box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.2); }
-.hc-editable.is-grande { font-size: 16.5px; line-height: 1.45; }
-.hc-editable.is-meta { font-size: 17px; font-weight: 700; line-height: 1.35; }
-.hc-lista { margin: 0; padding: 0 0 0 20px; list-style: none; }
-.hc-lista li { position: relative; margin: 0 0 7px; }
-.hc-lista li::before { content: "•"; position: absolute; left: -18px; color: var(--hc-rojo); font-weight: 700; }
-.hc-lista.is-no li::before { content: "×"; }
-.hc-lista.is-tareas li::before { content: "–"; }
-.hc-roadmap { display: flex; flex-direction: column; }
-.hc-semana { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 16px; padding: 10px 0; border-top: 1px solid var(--hc-linea); }
-.hc-semana:first-child { border-top: 0; }
-.hc-semana__titulo { font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
-.hc-pie { margin-top: 26px; font-size: 10px; letter-spacing: 0.08em; color: var(--hc-piedra); }
-@media (max-width: 640px) { .hc-hoja { padding: 24px 20px; } .hc-semana { grid-template-columns: 1fr; gap: 4px; } }
+/* La hoja editable: igual que el PDF (marca ATV) con el formato del documento de Juan. */
+.hc-marco { display: flex; flex-direction: column; gap: 10px; }
+.hc-barra { position: sticky; top: 0; z-index: 2; display: flex; gap: 4px; flex-wrap: wrap; align-self: flex-start; padding: 4px; border-radius: 9px; background: #fff; box-shadow: 0 0 0 1px #e5e5ea, 0 4px 14px -6px rgba(0, 0, 0, 0.2); }
+.hc-barra button { padding: 5px 10px; border: 0; border-radius: 6px; background: transparent; color: #1d1d1f; font: inherit; font-size: 12.5px; cursor: pointer; }
+.hc-barra button:hover { background: #f1f1f4; }
+.hc-hoja { --hc-hueso: #f3f0e9; --hc-carbon: #242321; --hc-piedra: #8a847c;
+  display: flex; flex-direction: column; padding: 34px 48px 36px; border-radius: 4px; background: var(--hc-hueso); color: var(--hc-carbon);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 12px 32px -16px rgba(0, 0, 0, 0.35); font-size: 14px; line-height: 1.55; }
+.hc-logo { width: 18px; height: auto; margin-bottom: 26px; }
+.hc-hoja .hc-cliente { margin: 0 0 6px; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+.hc-titulo { margin: 22px 0 8px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+.hc-corregida { font-style: normal; font-weight: 600; letter-spacing: 0; text-transform: none; font-size: 10.5px; padding: 1px 7px; border-radius: 99px; background: rgba(36, 35, 33, 0.08); color: var(--hc-piedra); }
+.hc-editable { outline: none; border-radius: 3px; transition: box-shadow 0.12s, background 0.12s; overflow-wrap: anywhere; }
+.hc-editable:hover { box-shadow: 0 0 0 6px rgba(36, 35, 33, 0.04); background: rgba(36, 35, 33, 0.03); }
+.hc-editable:focus { box-shadow: 0 0 0 6px rgba(36, 35, 33, 0.07); background: rgba(255, 255, 255, 0.45); }
+.hc-rico p { margin: 0 0 9px; }
+.hc-rico h4 { margin: 14px 0 6px; font-size: 14.5px; font-weight: 700; }
+.hc-rico ul { margin: 0 0 10px; padding: 0 0 0 20px; }
+.hc-rico li { margin: 0 0 6px; }
+.hc-rico blockquote { margin: 4px 0 10px 16px; font-style: italic; }
+@media (max-width: 640px) { .hc-hoja { padding: 24px 20px; } }
