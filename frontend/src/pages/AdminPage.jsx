@@ -472,8 +472,8 @@ export default function AdminPage() {
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <div className="admin-tabs" role="tablist">
               <button type="button" role="tab" aria-selected={vistaAdmin === 'permisos'} className={vistaAdmin === 'permisos' ? 'is-on' : ''} onClick={() => setVistaAdmin('permisos')}>Permisos</button>
-              <button type="button" role="tab" aria-selected={vistaAdmin === 'contenido'} className={vistaAdmin === 'contenido' ? 'is-on' : ''} onClick={() => setVistaAdmin('contenido')}>Editar contenido</button>
               <button type="button" role="tab" aria-selected={vistaAdmin === 'tools'} className={vistaAdmin === 'tools' ? 'is-on' : ''} onClick={() => setVistaAdmin('tools')}>Tools</button>
+              <button type="button" role="tab" aria-selected={vistaAdmin === 'contenido'} className={vistaAdmin === 'contenido' ? 'is-on' : ''} onClick={() => setVistaAdmin('contenido')}>Contenido</button>
             </div>
             {vistaAdmin === 'contenido' ? (
               <button
