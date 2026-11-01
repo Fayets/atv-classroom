@@ -5,34 +5,36 @@ import { fetchTools } from '../api/tools'
 import AppHeader from '../components/AppHeader'
 import { Chevron } from '../components/frentes/piezas'
 import Isotipo from '../components/marca/Isotipo'
+import { DefsTools, DibujoTool } from '../components/tools/DibujosTools'
 import '../styles/frentes.css'
 import '../styles/material.css'
 import '../styles/tools.css'
 
-// Tools: herramientas con IA. Las de su plan se usan; las pagas se ven con candado y se venden por WhatsApp.
-// Las tapas son las mismas de los SOPs.
-const TAPA = { roja: 'roja', negra: 'oscura', crema: 'piedra', blanca: 'blanca' }
-
+// Tools: herramientas con IA. Las de su plan se usan; las pagas se ven con candado y el dibujo empañado, y se
+// venden por WhatsApp. Las portadas son tapas verticales con el dibujo de línea de las portadas de los módulos.
 function Tapa({ tool, indice, abierta, onAbrir }) {
   const paga = tool.estado === 'paga'
   return (
-    <button
-      type="button"
-      className={`mt-tapa is-${TAPA[tool.tono] || 'oscura'}${paga ? ' tl-tapa--paga' : ''}${abierta ? ' is-on' : ''}`}
-      onClick={onAbrir}
-      aria-expanded={abierta}
-    >
-      <span className="mt-tapa__cab">
-        <span className="num">TOOL {String(indice + 1).padStart(2, '0')}</span>
-        <Isotipo className="mt-tapa__logo" titulo="ATV" />
+    <button type="button" className={`tl-tapa${paga ? ' is-paga' : ''}${abierta ? ' is-on' : ''}`} onClick={onAbrir} aria-expanded={abierta}>
+      <span className="tl-tapa__meta">
+        <span>Tool {String(indice + 1).padStart(2, '0')}</span>
+        <span>{paga && tool.precio ? tool.precio : tool.duracion}</span>
       </span>
-      <b>{tool.nombre}</b>
-      <small>{tool.duracion}</small>
-      <span className="mt-tapa__pie">
-        {paga ? <span className="tl-candado">Bloqueado</span> : <span>INCLUIDA</span>}
-        {paga && tool.precio ? <span>{tool.precio}</span> : null}
+      <span className="tl-tapa__dib"><DibujoTool id={tool.id} /></span>
+      {paga ? (
+        <span className="tl-tapa__candado">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5" /><path d="M5.5 7V5a2.5 2.5 0 015 0v2" /></svg>
+          Bloqueado
+        </span>
+      ) : null}
+      <span className="tl-tapa__cab">
+        <span className={`tl-tapa__pill${tool.nuevo ? ' is-nuevo' : ''}`}>{tool.nuevo ? 'Nuevo' : 'Tool'}</span>
+        <b>{tool.nombre}</b>
       </span>
-      <Isotipo className="mt-tapa__marca" />
+      <span className="tl-tapa__pie">
+        <span>{paga ? 'Para sumar' : 'En tu plan'}</span>
+        <Isotipo className="tl-tapa__iso" />
+      </span>
     </button>
   )
 }
@@ -66,6 +68,7 @@ export default function ToolsPage() {
   return (
     <div className="app-shell im-root">
       <AppHeader />
+      <DefsTools />
       <main className="mt-grid-page">
         <header className="mt-grid-head">
           <Link to="/" className="im-back">
@@ -84,7 +87,7 @@ export default function ToolsPage() {
                 <div className="mt-estante__cab">
                   <h2>{titulo} <span className="num">{lista.length}</span></h2>
                 </div>
-                <div className="mt-estante__fila">
+                <div className="mt-estante__fila tl-fila">
                   {lista.map((t) => (
                     <Tapa key={t.id} tool={t} indice={tools.indexOf(t)} abierta={abierta === t.id} onAbrir={() => setAbierta(abierta === t.id ? null : t.id)} />
                   ))}

@@ -11,11 +11,12 @@ from pony.orm import db_session
 from src.models import PermisoPlan
 from src.services.video_acceso import PLANES_VIDEO, clave_de_plan
 
-# Las tools, en el orden en que se muestran. "tono" es la tapa (las mismas de los SOPs).
+# Las tools, en el orden en que se muestran. Cada una tiene su dibujo en la portada (DibujosTools.jsx, por id);
+# "nuevo" le pone la etiqueta roja.
 TOOLS = [
     {"id": "juan-ai", "nombre": "Juan AI", "tono": "roja", "duracion": "Chat",
      "descripcion": "Preguntale lo que sea de tu negocio. Responde como Juan y te lleva a la clase o al SOP."},
-    {"id": "bottleneck", "nombre": "Bottleneck analysis", "tono": "negra", "duracion": "5–10 min",
+    {"id": "bottleneck", "nombre": "Bottleneck analysis", "tono": "negra", "duracion": "5–10 min", "nuevo": True,
      "descripcion": "Mandá un Loom con tu traba y recibí diagnóstico, causas y un roadmap con plazos."},
     {"id": "audiencia", "nombre": "Analizador de audiencia", "tono": "crema", "duracion": "3 min",
      "descripcion": "Lee tus comentarios y DMs y te dice qué dolor repite tu audiencia."},
