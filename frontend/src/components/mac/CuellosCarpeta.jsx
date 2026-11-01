@@ -200,7 +200,7 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
           <small className="cb-gris">
             Pedido el {fecha(d.creado_en)}
             {d.loom_url ? <> · <a href={d.loom_url} target="_blank" rel="noreferrer">ver el Loom</a></> : null}
-            {d.transcripcion ? <> · <button type="button" className="cb-link" onClick={() => setVerTrans((v) => !v)}>{verTrans ? 'ocultar' : 'ver'} transcripción</button></> : null}
+            {d.transcripcion ? <> · <button type="button" className="cb-link" onClick={() => setVerTrans((v) => !v)}>{verTrans ? 'ocultar' : 'ver'} lo que mandó</button></> : null}
           </small>
         </div>
         <span className={`cb-estado is-${d.estado}`}>{ESTADO[d.estado]}</span>

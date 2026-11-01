@@ -108,3 +108,30 @@ def test_errores_a_la_vista():
 def test_ultimo_del_cliente():
     d, _ = _pedir()
     assert cs.CuellosServices().de_cliente(d["cliente_id"])["ultimo"] == d["id"]
+
+
+def test_desde_el_cierre_de_mes_o_contado():
+    import json as _json
+
+    cid = _cliente_id()
+    r = {"conversaciones": 41, "agendas": 6, "llamadas": 3, "ventas": 1, "cash": 1500, "cuello": "Ventas", "cuello_por_que": "No cierro"}
+    with db_session:
+        db.execute(f'INSERT INTO "{DB_SCHEMA}"."cierres_respuestas" (periodo, cliente_id, creador, respuestas_json, completado_en) VALUES (\'2099-01\', $cid, \'\', $rj, now())',
+                   {"cid": cid, "rj": _json.dumps(r)})
+    try:
+        assert {"periodo": "2099-01", "cuello": "Ventas", "typeform": False} in cs.CuellosServices().de_cliente(cid)["cierres"]
+        enviados = []
+        d = cs.CuellosServices().pedir({"usuario_id": 1}, cid, None, None, None, cierre_periodo="2099-01",
+                                       en_fondo=lambda i: cs.procesar(i, llamar=lambda *a: "", mandar=enviados.append, leer_loom=None))
+        t = enviados[0]["transcripcion"]
+        assert t.startswith("Reporte de cierre de mes 2099-01") and "Conversaciones: 41" in t and "Su principal cuello de botella: Ventas" in t
+        assert d["loom_url"] is None
+        enviados.clear()
+        cs.CuellosServices().pedir({"usuario_id": 1}, cid, None, "No me cierran las llamadas", None,
+                                   en_fondo=lambda i: cs.procesar(i, llamar=lambda *a: "", mandar=enviados.append, leer_loom=None))
+        assert enviados[0]["transcripcion"].startswith("Lo que contó el cliente")
+        with pytest.raises(HTTPException):
+            cs.CuellosServices().pedir({"usuario_id": 1}, cid, None, None, None, cierre_periodo="2098-01", en_fondo=lambda i: None)
+    finally:
+        with db_session:
+            db.execute(f'DELETE FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE periodo = \'2099-01\' AND cliente_id = $cid', {"cid": cid})

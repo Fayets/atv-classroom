@@ -45,7 +45,7 @@ TOPE_TRANSCRIPCION = 60_000
 
 # Las mismas instrucciones que tiene el trigger "ATV Bottleneck" en Jeremy: si se cambia allá, se cambia acá,
 # así el cerebro y Jeremy compiten con la misma consigna.
-INSTRUCCIONES = """Sos parte del equipo de coaches de ATV (Aumenta Tu Valor). Un cliente nos mandó un Loom contando una traba de su negocio. Tu trabajo es armar el diagnóstico de su cuello de botella y un roadmap para resolverlo. Este documento lo revisa y corrige Juan antes de que llegue al cliente.
+INSTRUCCIONES = """Sos parte del equipo de coaches de ATV (Aumenta Tu Valor). Un cliente nos contó una traba de su negocio: con un Loom, con su reporte de cierre de mes o escribiéndola. Tu trabajo es armar el diagnóstico de su cuello de botella y un roadmap para resolverlo. Este documento lo revisa y corrige Juan antes de que llegue al cliente.
 
 Reglas:
 - Un solo cuello de botella: el que más frena la plata hoy. No una lista de problemas.
@@ -237,6 +237,42 @@ def contexto_cliente(cliente_id: int) -> dict:
     }
 
 
+_CAMPOS_CIERRE = [
+    ("oferta", "Oferta"), ("avatar", "Avatar"),
+    ("reels", "Reels"), ("historias", "Secuencias de historias"), ("youtube", "Videos de YouTube"),
+    ("cta_historias", "CTAs en historias"), ("cta_reels", "CTAs en reels"),
+    ("conversaciones", "Conversaciones"), ("agendas", "Agendas"), ("llamadas", "Llamadas"), ("ventas", "Ventas"),
+    ("cash", "Cash collected (USD)"), ("facturacion", "Facturación (USD)"),
+    ("cuello", "Su principal cuello de botella"), ("cuello_por_que", "Por qué"),
+    ("satisfaccion", "Conformidad con ATV (1 a 10)"), ("satisfaccion_por_que", "Por qué esa nota"),
+    ("propuesta", "Qué agregaría en ATV"),
+]
+
+
+def texto_cierre(cliente_id: int, periodo: str) -> str:
+    """El reporte de cierre de mes que completó el cliente, como texto para Jeremy y el cerebro."""
+    from src.services.cierre_service import tasas
+
+    with db_session:
+        filas = db.select(
+            f'SELECT creador, respuestas_json FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cliente_id AND periodo = $periodo ORDER BY completado_en',
+            {"cliente_id": cliente_id, "periodo": periodo})
+    if not filas:
+        raise HTTPException(status_code=404, detail="Ese cliente no completó el cierre de ese mes.")
+    bloques = []
+    for creador, rj in filas:
+        r = json.loads(rj or "{}")
+        cab = f"Reporte de cierre de mes {periodo}" + (f" (creador {creador})" if creador else "") + " que completó el cliente:"
+        if isinstance(r.get("typeform"), list):  # importado del Typeform viejo: pregunta y respuesta tal cual
+            lineas = [f"- {preg}: {val}" for preg, val in r["typeform"] if val not in (None, "")]
+        else:
+            lineas = [f"- {nombre}: {r[k]}" for k, nombre in _CAMPOS_CIERRE if r.get(k) not in (None, "")]
+            t = tasas(r)
+            lineas += [f"- Tasa de {k}: {v}%" for k, v in t.items() if v is not None]
+        bloques.append(cab + "\n" + "\n".join(lineas))
+    return "\n\n".join(bloques)
+
+
 def lecciones_texto() -> str:
     with db_session:
         filas = list(CuelloLeccion.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."cuellos_lecciones" WHERE activa ORDER BY id DESC LIMIT 40'))
@@ -264,7 +300,7 @@ def armar_payload(d: dict, ctx: dict, lecciones: str) -> dict:
 
 def _mensaje_cerebro(p: dict) -> str:
     return (f"Cliente: {p['cliente']}\nPlan en ATV: {p['plan']}\nQué hace y a quién le vende: {p['contexto']}\n\n"
-            f"Transcripción del Loom del cliente:\n{p['transcripcion']}\n\nLo que ya sabemos de este cliente (hechos con fecha y fuente):\n{p['hechos']}\n\n"
+            f"Lo que mandó el cliente (transcripción de su Loom, su reporte de cierre de mes o lo que escribió):\n{p['transcripcion']}\n\nLo que ya sabemos de este cliente (hechos con fecha y fuente):\n{p['hechos']}\n\n"
             f"Su chat con el equipo (últimos mensajes):\n{p['chat']}\n\nSus llamadas con el equipo (resúmenes):\n{p['llamadas']}\n\n"
             f"Su último cierre de mes (números que reportó):\n{p['cierre']}\n\nLecciones que Juan ya corrigió en otros diagnósticos (respetalas siempre):\n{p['lecciones']}\n\n"
             f"Hoy es {p['fecha']}.")
@@ -346,10 +382,17 @@ def _resumen(d: CuelloDiagnostico, nombres: dict) -> dict:
 
 
 class CuellosServices:
-    def pedir(self, sesion: dict, cliente_id: int, loom_url: str | None, texto: str | None, contexto: str | None, en_fondo=_en_segundo_plano) -> dict:
+    def pedir(self, sesion: dict, cliente_id: int, loom_url: str | None, texto: str | None, contexto: str | None, en_fondo=_en_segundo_plano,
+              cierre_periodo: str | None = None) -> dict:
+        """El cliente cuenta su traba de una de tres formas: un Loom, su reporte de cierre de mes o escrita."""
         loom_url, texto = (loom_url or "").strip() or None, (texto or "").strip() or None
+        if cierre_periodo:
+            texto = texto_cierre(cliente_id, cierre_periodo) + (f"\n\nLo que agrega el equipo:\n{texto}" if texto else "")
+            loom_url = None
+        elif texto and not loom_url:
+            texto = f"Lo que contó el cliente sobre su traba:\n{texto}"
         if not loom_url and not texto:
-            raise HTTPException(status_code=422, detail="Pegá el Loom del cliente o escribí su traba.")
+            raise HTTPException(status_code=422, detail="Pegá el Loom, elegí un cierre de mes o contá su problema.")
         if loom_url and not id_loom(loom_url):
             raise HTTPException(status_code=422, detail="Ese link no es de un Loom (tiene que ser loom.com/share/…).")
         with db_session:
@@ -452,7 +495,16 @@ class CuellosServices:
             _cliente(cliente_id)
             ultimo = CuelloDiagnostico.select_by_sql(
                 f'SELECT * FROM "{DB_SCHEMA}"."cuellos_diagnosticos" WHERE cliente_id = $cliente_id ORDER BY id DESC LIMIT 1')
-            return {"ultimo": ultimo[0].id if ultimo else None, "jeremy": bool(JEREMY_URL and JEREMY_SECRET)}
+            cierres = db.select(
+                f'SELECT periodo, creador, respuestas_json FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cliente_id ORDER BY periodo DESC, completado_en')
+            lista, vistos = [], set()
+            for periodo, creador, rj in cierres:
+                if periodo in vistos:
+                    continue
+                vistos.add(periodo)
+                r = json.loads(rj or "{}")
+                lista.append({"periodo": periodo, "cuello": r.get("cuello"), "typeform": isinstance(r.get("typeform"), list)})
+            return {"ultimo": ultimo[0].id if ultimo else None, "jeremy": bool(JEREMY_URL and JEREMY_SECRET), "cierres": lista}
 
     def lista(self) -> dict:
         with db_session:

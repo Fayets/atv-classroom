@@ -5,21 +5,38 @@ import { enviarMensaje } from '../../api/mensajes'
 import { Diagnostico } from '../mac/CuellosCarpeta'
 import '../../styles/cuellos.css'
 
-// Acción rápida "Detectar cuello de botella": pegás el Loom del cliente, se lo manda a Jeremy y arma el documento que pidió Juan: diagnóstico, causas, qué no hacer, solución y
+// Acción rápida "Cuello de botella": con el Loom del cliente, su cierre de mes o su problema contado, se lo
+// manda a Jeremy y arma el documento que pidió Juan: diagnóstico, causas, qué no hacer, solución y
 // roadmap. Juan lo corrige acá mismo y, aprobado, sale al chat. Todo queda también en la carpeta del escritorio.
-function Pedido({ jeremy, clienteId, alPedido }) {
+const MES = (p) => {
+  const [a, m] = p.split('-').map(Number)
+  const t = new Date(a, m - 1, 15).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
+  return t[0].toUpperCase() + t.slice(1)
+}
+
+// El cliente cuenta su traba de una de tres formas: un Loom, su reporte de cierre de mes o escrita.
+function Pedido({ datos, clienteId, alPedido }) {
+  const [fuente, setFuente] = useState('loom')
   const [loom, setLoom] = useState('')
+  const [periodo, setPeriodo] = useState(datos.cierres?.[0]?.periodo || '')
   const [texto, setTexto] = useState('')
   const [contexto, setContexto] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState('')
+  const listo = fuente === 'loom' ? loom.trim() : fuente === 'cierre' ? periodo : texto.trim()
 
   async function pedir(e) {
     e.preventDefault()
     setEnviando(true)
     setError('')
     try {
-      alPedido(await pedirCuello({ cliente_id: clienteId, loom_url: loom.trim() || null, texto: texto.trim() || null, contexto: contexto.trim() || null }))
+      alPedido(await pedirCuello({
+        cliente_id: clienteId,
+        loom_url: fuente === 'loom' ? loom.trim() : null,
+        cierre_periodo: fuente === 'cierre' ? periodo : null,
+        texto: texto.trim() || null,
+        contexto: contexto.trim() || null,
+      }))
     } catch (err) {
       setError(err.message || 'No se pudo pedir el diagnóstico.')
       setEnviando(false)
@@ -28,14 +45,32 @@ function Pedido({ jeremy, clienteId, alPedido }) {
 
   return (
     <form className="cb-nuevo" onSubmit={pedir}>
-      {!jeremy ? <p className="cb-aviso">Falta conectar Jeremy en el servidor: el pedido va a quedar con error.</p> : null}
+      {!datos.jeremy ? <p className="cb-aviso">Falta conectar Jeremy en el servidor: el pedido va a quedar con error.</p> : null}
+      <div className="cb-fuentes" role="tablist" aria-label="De dónde sale el problema">
+        {[['loom', 'Loom'], ['cierre', 'Cierre de mes'], ['texto', 'Contarlo']].map(([id, nombre]) => (
+          <button key={id} type="button" role="tab" aria-selected={fuente === id} className={fuente === id ? 'is-on' : ''} onClick={() => setFuente(id)}>{nombre}</button>
+        ))}
+      </div>
+      {fuente === 'loom' ? (
+        <label className="cb-campo">
+          <span>Link del Loom</span>
+          <input id="cb-loom-chat" value={loom} onChange={(e) => setLoom(e.target.value)} placeholder="https://www.loom.com/share/…" inputMode="url" autoFocus />
+        </label>
+      ) : fuente === 'cierre' ? (
+        datos.cierres?.length ? (
+          <label className="cb-campo">
+            <span>¿Qué cierre de mes?</span>
+            <select id="cb-cierre" value={periodo} onChange={(e) => setPeriodo(e.target.value)}>
+              {datos.cierres.map((c) => (
+                <option key={c.periodo} value={c.periodo}>{MES(c.periodo)}{c.cuello ? ` · marcó ${c.cuello}` : ''}{c.typeform ? ' · Typeform' : ''}</option>
+              ))}
+            </select>
+          </label>
+        ) : <p className="cb-gris">Este cliente todavía no completó ningún cierre de mes.</p>
+      ) : null}
       <label className="cb-campo">
-        <span>Link del Loom</span>
-        <input id="cb-loom-chat" value={loom} onChange={(e) => setLoom(e.target.value)} placeholder="https://www.loom.com/share/…" inputMode="url" autoFocus />
-      </label>
-      <label className="cb-campo">
-        <span>Si no hay Loom, la traba en sus palabras</span>
-        <textarea id="cb-texto-chat" rows={3} value={texto} onChange={(e) => setTexto(e.target.value)} />
+        <span>{fuente === 'texto' ? 'Su problema, en sus palabras' : 'Algo más que quieras sumar (opcional)'}</span>
+        <textarea id="cb-texto-chat" rows={fuente === 'texto' ? 5 : 2} value={texto} onChange={(e) => setTexto(e.target.value)} autoFocus={fuente === 'texto'} />
       </label>
       <label className="cb-campo">
         <span>Contexto en una línea (opcional)</span>
@@ -44,7 +79,7 @@ function Pedido({ jeremy, clienteId, alPedido }) {
       {error ? <p className="cb-error" role="alert">{error}</p> : null}
       <div className="cb-acciones">
         <small className="cb-gris">Lee también su chat, sus llamadas y su último cierre de mes. Tarda entre 5 y 10 minutos.</small>
-        <button type="submit" className="cb-btn" disabled={enviando || (!loom.trim() && !texto.trim())}>{enviando ? 'Pidiendo…' : 'Detectar cuello de botella'}</button>
+        <button type="submit" className="cb-btn" disabled={enviando || !listo}>{enviando ? 'Pidiendo…' : 'Detectar cuello de botella'}</button>
       </div>
     </form>
   )
@@ -101,7 +136,7 @@ export default function CuelloBotella({ clienteId, canalId, cliente, alCerrar, a
           ) : diagId && !nuevo ? (
             <Diagnostico id={diagId} alEnviar={setMandar} />
           ) : (
-            <Pedido jeremy={datos.jeremy} clienteId={clienteId} alPedido={(d) => { setDiagId(d.id); setNuevo(false) }} />
+            <Pedido datos={datos} clienteId={clienteId} alPedido={(d) => { setDiagId(d.id); setNuevo(false) }} />
           )}
         </div>
         {mandar ? (
