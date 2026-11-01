@@ -1,0 +1,529 @@
+"""Cuellos de botella: el cliente manda un Loom con su traba y el equipo le arma el diagnóstico y el roadmap.
+
+El recorrido (Franco y Juan, 01-11-2026):
+1. Desde la carpeta "Cuellos de botella" alguien del equipo elige al cliente y pega el Loom.
+2. El classroom lee la transcripción del Loom, junta lo que el cerebro sabe del cliente (hechos, chat,
+   llamadas, último cierre de mes) y las lecciones que ya dejó Juan, y se lo manda a Jeremy (trigger
+   "ATV Bottleneck"). Jeremy tarda unos minutos y devuelve el borrador a /api/cuellos/jeremy/<token>.
+3. Al mismo tiempo el cerebro arma su propia versión con lo mismo, en silencio: nadie la ve hasta que Juan
+   aprueba, para no influirlo.
+4. Juan corrige el borrador y lo aprueba. Se mide cuánto se parece a su versión final lo de Jeremy y lo del
+   cerebro (código, no IA), y de cada sección que cambió sale una lección que Juan confirma o reescribe.
+5. La neurona: con el tiempo el cerebro se tiene que parecer a Juan tanto como para reemplazar a Jeremy.
+"""
+
+import json
+import logging
+import re
+import secrets
+import threading
+import unicodedata
+from datetime import datetime, timedelta
+from difflib import SequenceMatcher
+
+import httpx
+from decouple import config
+from fastapi import HTTPException
+from pony.orm import db_session
+
+from src.db import DB_SCHEMA, db
+from src.models import Admin, Canal, ClienteExterno, CuelloDiagnostico, CuelloLeccion, Llamada, MensajeCanal
+from src.services import gasto_ia
+
+logger = logging.getLogger(__name__)
+
+JEREMY_URL = config("JEREMY_BOTTLENECK_URL", default="")
+JEREMY_SECRET = config("JEREMY_BOTTLENECK_SECRET", default="")
+CLASSROOM_URL = config("CLASSROOM_URL", default="https://classroom.atvos.io").rstrip("/")
+MODELO = config("CUELLO_MODEL", default="claude-sonnet-5-5")
+MODELO_LECCION = config("CUELLO_MODEL_LECCION", default="claude-haiku-5-5")
+
+SECCIONES = ["Diagnóstico", "Causas", "Qué no hacer", "Solución", "Roadmap", "Meta"]
+# Para pasar de fase: el cerebro se parece a la final de Juan al menos esto, tres semanas seguidas (supuesto).
+UMBRAL_FASE = 0.85
+TOPE_TRANSCRIPCION = 60_000
+
+# Las mismas instrucciones que tiene el trigger "ATV Bottleneck" en Jeremy: si se cambia allá, se cambia acá,
+# así el cerebro y Jeremy compiten con la misma consigna.
+INSTRUCCIONES = """Sos parte del equipo de coaches de ATV (Aumenta Tu Valor). Un cliente nos mandó un Loom contando una traba de su negocio. Tu trabajo es armar el diagnóstico de su cuello de botella y un roadmap para resolverlo. Este documento lo revisa y corrige Juan antes de que llegue al cliente.
+
+Reglas:
+- Un solo cuello de botella: el que más frena la plata hoy. No una lista de problemas.
+- Usá los números del cliente. Si un dato no está en lo que te pasamos, no lo inventes: decí qué falta.
+- Cada causa lleva de dónde sale entre corchetes: [Loom 07:40], [chat 22-10], [llamada 15-10] o [cierre sep].
+- El roadmap va en semanas con fecha real desde hoy, con tareas concretas que el cliente puede hacer. Nada de "a mediano plazo" ni "mejorá tu marketing".
+- Si hay una clase o un SOP de ATV que aplica, nombralo.
+- Respetá siempre las lecciones que Juan ya corrigió en otros diagnósticos.
+- Tono directo, en español rioplatense, con voseo. Sin el nombre del cliente. Que se lea como armado por el equipo, no por una IA.
+
+Formato de salida: texto plano, sin HTML ni tablas. Respetá exactamente estas secciones y este orden:
+
+# Diagnóstico
+Un párrafo con el cuello de botella y el número que lo muestra.
+
+# Causas
+- Una causa por línea, con su fuente entre corchetes.
+
+# Qué no hacer
+- Una línea por cada cosa que NO tiene que tocar ahora y por qué.
+
+# Solución
+Un párrafo con el cambio de fondo.
+
+# Roadmap
+## Semana 1 — dd-mm
+- Tarea concreta.
+(repetí por cada semana, de 2 a 4 semanas)
+
+# Meta
+Una línea: de cuánto a cuánto tiene que pasar qué número al final del roadmap."""
+
+
+# ---------- texto ----------
+
+def _norm(t: str) -> str:
+    t = unicodedata.normalize("NFD", (t or "").lower())
+    return "".join(c for c in t if unicodedata.category(c) != "Mn").strip()
+
+
+_CLAVES = {_norm(s): s for s in SECCIONES}
+
+
+def secciones(texto: str) -> dict[str, str]:
+    """El documento partido por sus "# Sección". Lo que no cae en una sección conocida se ignora."""
+    salida: dict[str, list[str]] = {}
+    actual = None
+    for linea in (texto or "").splitlines():
+        m = re.match(r"^\s*#\s+(?!#)(.+?)\s*$", linea)
+        if m:
+            actual = _CLAVES.get(_norm(m.group(1)).rstrip(":"))
+            if actual:
+                salida.setdefault(actual, [])
+            continue
+        if actual:
+            salida[actual].append(linea)
+    return {k: "\n".join(v).strip() for k, v in salida.items()}
+
+
+def _palabras(t: str) -> list[str]:
+    return re.findall(r"\w+", _norm(t))
+
+
+def parecido(a: str, b: str) -> float:
+    if not a and not b:
+        return 1.0
+    return SequenceMatcher(None, _palabras(a), _palabras(b), autojunk=False).ratio()
+
+
+def coincidencia(version: str, final: str) -> float:
+    """Cuánto se parece una versión a la final de Juan: sección por sección, pesado por lo largo de la final."""
+    sv, sf = secciones(version), secciones(final)
+    total = peso = 0.0
+    for s in SECCIONES:
+        f = sf.get(s, "")
+        w = max(len(_palabras(f)), 1) if (f or sv.get(s)) else 0
+        if not w:
+            continue
+        total += w * parecido(sv.get(s, ""), f)
+        peso += w
+    return round(total / peso, 3) if peso else 0.0
+
+
+def cambios(jeremy: str, final: str) -> list[dict]:
+    """Las secciones que Juan cambió de verdad (no un retoque de una palabra)."""
+    sj, sf = secciones(jeremy), secciones(final)
+    salida = []
+    for s in SECCIONES:
+        a, b = sj.get(s, ""), sf.get(s, "")
+        p = parecido(a, b)
+        if p < 0.97:
+            salida.append({"seccion": s, "antes": a, "despues": b, "parecido": round(p, 2)})
+    return salida
+
+
+# ---------- Loom ----------
+
+def id_loom(url: str) -> str | None:
+    m = re.search(r"loom\.com/(?:share|embed)/([0-9a-f]{32})", url or "")
+    return m.group(1) if m else None
+
+
+def transcripcion_loom(url: str) -> str:
+    """La transcripción de un Loom público con la marca de tiempo de cada frase ("07:40 …")."""
+    vid = id_loom(url)
+    if not vid:
+        raise ValueError("Ese link no es de un Loom (tiene que ser loom.com/share/…).")
+    q = ("query FetchVideoTranscript($videoId: ID!, $password: String) { fetchVideoTranscript(videoId: $videoId, password: $password) "
+         "{ ... on VideoTranscriptDetails { source_url } ... on GenericError { message } } }")
+    with httpx.Client(timeout=30) as c:
+        r = c.post("https://www.loom.com/graphql", json={"operationName": "FetchVideoTranscript", "variables": {"videoId": vid, "password": None}, "query": q},
+                   headers={"x-loom-request-source": "loom_web"})
+        r.raise_for_status()
+        fuente = ((r.json().get("data") or {}).get("fetchVideoTranscript") or {}).get("source_url")
+        if not fuente:
+            raise ValueError("Loom no devolvió la transcripción (¿el video es privado o todavía se está procesando?).")
+        frases = c.get(fuente).json().get("phrases") or []
+    texto = "\n".join(f"{int(p['ts'] // 60):02d}:{int(p['ts'] % 60):02d} {p['value']}" for p in frases if p.get("value"))
+    if not texto:
+        raise ValueError("El Loom no tiene transcripción.")
+    if len(texto) > TOPE_TRANSCRIPCION:
+        mitad = TOPE_TRANSCRIPCION // 2
+        texto = texto[:mitad] + "\n[…]\n" + texto[-mitad:]
+    return texto
+
+
+# ---------- contexto del cliente ----------
+
+def _fecha(d) -> str:
+    return d.strftime("%d-%m") if d else "s/f"
+
+
+def _cliente(cliente_id: int) -> ClienteExterno:
+    c = ClienteExterno.get(id=cliente_id)
+    if c is None:
+        raise HTTPException(status_code=404, detail="No existe ese cliente.")
+    return c
+
+
+def contexto_cliente(cliente_id: int) -> dict:
+    """Lo que se le pasa a Jeremy y al cerebro: datos con fecha y fuente, nada interpretado."""
+    from src.services.aprendizaje_service import perfil_de
+
+    p = perfil_de(cliente_id)
+    with db_session:
+        c = _cliente(cliente_id)
+        nombre, plan = c.nombre or c.email, c.plan_actual
+        canal = Canal.get(cliente_id=cliente_id)
+        mensajes = []
+        if canal is not None:
+            cid = canal.id
+            mensajes = list(MensajeCanal.select_by_sql(
+                f'SELECT * FROM "{DB_SCHEMA}"."mensajes_canal" WHERE canal = $cid AND NOT borrado AND texto <> \'\' ORDER BY id DESC LIMIT 80'))[::-1]
+        equipo = {a.id: (a.nombre or a.email or "Equipo").split(" ")[0] for a in list(Admin.select())}
+        chat = "\n".join(
+            f"[{_fecha(m.creado_en)}] {'Cliente' if m.autor_tipo == 'cliente' else equipo.get(m.autor_id, 'Equipo')}: {(m.texto or '').strip()[:600]}"
+            for m in mensajes)
+        llamadas = sorted([l for l in list(Llamada.select()) if l.cliente_id == cliente_id], key=lambda l: l.inicio or l.creado_en, reverse=True)[:5]
+        textos_ll = []
+        for l in llamadas:
+            puntos = ""
+            try:
+                datos = json.loads(l.puntos_json or "null") or {}
+                puntos = "; ".join(str(x.get("texto") if isinstance(x, dict) else x) for k in ("temas", "decisiones", "compromisos") for x in (datos.get(k) or []))
+            except (ValueError, AttributeError):
+                puntos = ""
+            textos_ll.append(f"[llamada {_fecha(l.inicio)}] {l.titulo or ''}: {(puntos or l.resumen or '').strip()[:1500]}")
+        cierre = db.select(
+            f'SELECT periodo, respuestas_json FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $c ORDER BY completado_en DESC LIMIT 1',
+            {"c": cliente_id})
+    perfil = p.get("perfil") or {}
+    hechos = "\n".join(f"- [{h['tipo']}] {h['texto']} ({h['dicho_en'][:10]})" for h in p.get("hechos", [])[:40])
+    texto_cierre = ""
+    if cierre:
+        periodo, rj = cierre[0]
+        r = json.loads(rj or "{}")
+        campos = [("conversaciones", "Conversaciones"), ("agendas", "Agendas"), ("llamadas", "Llamadas"), ("ventas", "Ventas"),
+                  ("cash", "Cash collected (USD)"), ("facturacion", "Facturación (USD)"), ("cuello", "Cuello de botella que marcó"),
+                  ("cuello_por_que", "Por qué"), ("oferta", "Oferta"), ("avatar", "Avatar")]
+        texto_cierre = f"Cierre {periodo}:\n" + "\n".join(f"- {n}: {r[k]}" for k, n in campos if r.get(k) not in (None, ""))
+    return {
+        "cliente": nombre,
+        "plan": plan or "",
+        "perfil": perfil,
+        "hechos": hechos or "(sin hechos registrados)",
+        "chat": chat or "(sin mensajes)",
+        "llamadas": "\n".join(textos_ll) or "(sin llamadas registradas)",
+        "cierre": texto_cierre or "(no completó cierres de mes)",
+    }
+
+
+def lecciones_texto() -> str:
+    with db_session:
+        filas = list(CuelloLeccion.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."cuellos_lecciones" WHERE activa ORDER BY id DESC LIMIT 40'))
+    return "\n".join(f"- {l.texto}" for l in filas) or "(todavía ninguna)"
+
+
+def armar_payload(d: dict, ctx: dict, lecciones: str) -> dict:
+    perfil = ctx["perfil"]
+    contexto = d.get("contexto") or perfil.get("que_vende") or perfil.get("nicho_texto") or ""
+    return {
+        "diagnostico_id": str(d["id"]),
+        "cliente": ctx["cliente"],
+        "plan": ctx["plan"],
+        "contexto": contexto,
+        "transcripcion": d["transcripcion"],
+        "hechos": ctx["hechos"],
+        "chat": ctx["chat"],
+        "llamadas": ctx["llamadas"],
+        "cierre": ctx["cierre"],
+        "lecciones": lecciones,
+        "fecha": datetime.utcnow().strftime("%d-%m-%Y"),
+        "callback_url": f"{CLASSROOM_URL}/api/cuellos/jeremy/{d['token']}",
+    }
+
+
+def _mensaje_cerebro(p: dict) -> str:
+    return (f"Cliente: {p['cliente']}\nPlan en ATV: {p['plan']}\nQué hace y a quién le vende: {p['contexto']}\n\n"
+            f"Transcripción del Loom del cliente:\n{p['transcripcion']}\n\nLo que ya sabemos de este cliente (hechos con fecha y fuente):\n{p['hechos']}\n\n"
+            f"Su chat con el equipo (últimos mensajes):\n{p['chat']}\n\nSus llamadas con el equipo (resúmenes):\n{p['llamadas']}\n\n"
+            f"Su último cierre de mes (números que reportó):\n{p['cierre']}\n\nLecciones que Juan ya corrigió en otros diagnósticos (respetalas siempre):\n{p['lecciones']}\n\n"
+            f"Hoy es {p['fecha']}.")
+
+
+# ---------- IA ----------
+
+def _llamar(sistema: str, usuario: str, modelo: str = MODELO, max_tokens: int = 3000) -> str:
+    from anthropic import Anthropic
+
+    r = Anthropic(api_key=config("ANTHROPIC_API_KEY", default=""), timeout=240).messages.create(
+        model=modelo, max_tokens=max_tokens, system=sistema, messages=[{"role": "user", "content": usuario}])
+    try:
+        gasto_ia.registrar("cuellos", r.usage)
+    except Exception:  # el registro nunca corta el diagnóstico
+        pass
+    return "".join(b.text for b in r.content if getattr(b, "type", "") == "text").strip()
+
+
+def _mandar_a_jeremy(payload: dict) -> None:
+    if not (JEREMY_URL and JEREMY_SECRET):
+        raise RuntimeError("Falta configurar Jeremy (JEREMY_BOTTLENECK_URL y JEREMY_BOTTLENECK_SECRET).")
+    r = httpx.post(JEREMY_URL, json=payload, headers={"x-webhook-secret": JEREMY_SECRET}, timeout=30)
+    if r.status_code >= 300:
+        raise RuntimeError(f"Jeremy respondió {r.status_code}.")
+
+
+# ---------- recorrido ----------
+
+def _poner(diag_id: int, **campos) -> None:
+    with db_session:
+        d = CuelloDiagnostico.get(id=diag_id)
+        for k, v in campos.items():
+            setattr(d, k, v)
+
+
+def procesar(diag_id: int, llamar=_llamar, mandar=_mandar_a_jeremy, leer_loom=transcripcion_loom) -> None:
+    """Transcripción → contexto → Jeremy, y la versión del cerebro en silencio. Corre en segundo plano."""
+    try:
+        with db_session:
+            d = CuelloDiagnostico.get(id=diag_id)
+            datos = {"id": d.id, "cliente_id": d.cliente_id, "loom_url": d.loom_url, "contexto": d.contexto, "transcripcion": d.transcripcion, "token": d.token}
+        if not datos["transcripcion"]:
+            if not datos["loom_url"]:
+                raise ValueError("Falta el Loom o el texto del cliente.")
+            datos["transcripcion"] = leer_loom(datos["loom_url"])
+            _poner(diag_id, transcripcion=datos["transcripcion"])
+        payload = armar_payload(datos, contexto_cliente(datos["cliente_id"]), lecciones_texto())
+        mandar(payload)
+        _poner(diag_id, estado="esperando", error=None)
+    except Exception as e:  # noqa: BLE001 — el error queda a la vista en la carpeta, con "Reintentar"
+        logger.exception("Cuello %s: no se pudo pedir a Jeremy", diag_id)
+        _poner(diag_id, estado="error", error=str(e)[:500])
+        return
+    try:
+        _poner(diag_id, version_cerebro=llamar(INSTRUCCIONES, _mensaje_cerebro(payload)))
+    except Exception:  # noqa: BLE001 — sin la versión del cerebro el caso igual sirve para Juan
+        logger.exception("Cuello %s: el cerebro no pudo armar su versión", diag_id)
+
+
+def _en_segundo_plano(diag_id: int) -> None:
+    threading.Thread(target=procesar, args=(diag_id,), daemon=True).start()
+
+
+def _nombres_clientes(ids: set[int]) -> dict[int, str]:
+    if not ids:
+        return {}
+    return {c.id: c.nombre or c.email for c in list(ClienteExterno.select(lambda c: c.id in ids))}
+
+
+def _resumen(d: CuelloDiagnostico, nombres: dict) -> dict:
+    return {
+        "id": d.id, "cliente_id": d.cliente_id, "cliente": nombres.get(d.cliente_id, f"Cliente {d.cliente_id}"),
+        "estado": d.estado, "error": d.error, "loom_url": d.loom_url,
+        "creado_en": d.creado_en.isoformat() + "Z", "respondido_en": d.respondido_en.isoformat() + "Z" if d.respondido_en else None,
+        "aprobado_en": d.aprobado_en.isoformat() + "Z" if d.aprobado_en else None,
+        "coincidencia_jeremy": d.coincidencia_jeremy, "coincidencia_cerebro": d.coincidencia_cerebro,
+    }
+
+
+class CuellosServices:
+    def pedir(self, sesion: dict, cliente_id: int, loom_url: str | None, texto: str | None, contexto: str | None, en_fondo=_en_segundo_plano) -> dict:
+        loom_url, texto = (loom_url or "").strip() or None, (texto or "").strip() or None
+        if not loom_url and not texto:
+            raise HTTPException(status_code=422, detail="Pegá el Loom del cliente o escribí su traba.")
+        if loom_url and not id_loom(loom_url):
+            raise HTTPException(status_code=422, detail="Ese link no es de un Loom (tiene que ser loom.com/share/…).")
+        with db_session:
+            _cliente(cliente_id)
+            d = CuelloDiagnostico(cliente_id=cliente_id, admin_id=sesion["usuario_id"], loom_url=loom_url, transcripcion=texto,
+                                  contexto=(contexto or "").strip()[:500] or None, token=secrets.token_urlsafe(24))
+            d.flush()
+            diag_id = d.id
+        en_fondo(diag_id)
+        return self.detalle(diag_id)
+
+    def reintentar(self, diag_id: int, en_fondo=_en_segundo_plano) -> dict:
+        with db_session:
+            d = CuelloDiagnostico.get(id=diag_id)
+            if d is None:
+                raise HTTPException(status_code=404, detail="No existe ese diagnóstico.")
+            if d.estado not in ("error", "esperando"):
+                raise HTTPException(status_code=409, detail="Este diagnóstico ya volvió de Jeremy.")
+            d.estado, d.error = "pidiendo", None
+        en_fondo(diag_id)
+        return self.detalle(diag_id)
+
+    def recibir(self, token: str, cuerpo: dict) -> dict:
+        """Lo que devuelve Jeremy. La dirección lleva el token: no hace falta otra clave."""
+        salida = (cuerpo or {}).get("output")
+        if not isinstance(salida, str) or not salida.strip():
+            raise HTTPException(status_code=422, detail="Falta output.")
+        with db_session:
+            d = CuelloDiagnostico.get(token=token)
+            if d is None:
+                raise HTTPException(status_code=404, detail="No existe.")
+            if d.estado == "aprobado":
+                return {"ok": True}
+            d.version_jeremy = salida.strip()
+            if not d.version_final:
+                d.version_final = d.version_jeremy
+            d.estado, d.error, d.respondido_en = "borrador", None, datetime.utcnow()
+        return {"ok": True}
+
+    def guardar(self, diag_id: int, texto: str) -> dict:
+        with db_session:
+            d = CuelloDiagnostico.get(id=diag_id)
+            if d is None:
+                raise HTTPException(status_code=404, detail="No existe ese diagnóstico.")
+            if d.estado != "borrador":
+                raise HTTPException(status_code=409, detail="Solo se corrige el borrador que devolvió Jeremy.")
+            d.version_final = texto
+        return self.detalle(diag_id)
+
+    def aprobar(self, sesion: dict, diag_id: int, texto: str | None = None, llamar=_llamar) -> dict:
+        """Cierra la versión final, mide a Jeremy y al cerebro contra ella y propone una lección por cada sección
+        que Juan cambió (Juan la confirma, la reescribe o la descarta)."""
+        with db_session:
+            d = CuelloDiagnostico.get(id=diag_id)
+            if d is None:
+                raise HTTPException(status_code=404, detail="No existe ese diagnóstico.")
+            if d.estado != "borrador":
+                raise HTTPException(status_code=409, detail="Solo se aprueba el borrador que devolvió Jeremy.")
+            if texto is not None:
+                d.version_final = texto
+            final, jeremy, cerebro = d.version_final or "", d.version_jeremy or "", d.version_cerebro
+            d.coincidencia_jeremy = coincidencia(jeremy, final)
+            d.coincidencia_cerebro = coincidencia(cerebro, final) if cerebro else None
+            d.estado, d.aprobado_por, d.aprobado_en = "aprobado", sesion["usuario_id"], datetime.utcnow()
+        propuestas = []
+        for c in cambios(jeremy, final):
+            propuestas.append({**c, "propuesta": _proponer_leccion(c, llamar)})
+        return {**self.detalle(diag_id), "cambios": propuestas}
+
+    def guardar_lecciones(self, diag_id: int, lecciones: list[dict]) -> dict:
+        with db_session:
+            d = CuelloDiagnostico.get(id=diag_id)
+            if d is None or d.estado != "aprobado":
+                raise HTTPException(status_code=409, detail="Primero se aprueba el diagnóstico.")
+            for l in lecciones:
+                texto = (l.get("texto") or "").strip()
+                if texto and l.get("seccion") in SECCIONES:
+                    CuelloLeccion(diagnostico_id=diag_id, seccion=l["seccion"], antes=(l.get("antes") or "")[:4000],
+                                  despues=(l.get("despues") or "")[:4000], texto=texto[:400])
+        return self.neurona()
+
+    def desactivar_leccion(self, leccion_id: int) -> dict:
+        with db_session:
+            l = CuelloLeccion.get(id=leccion_id)
+            if l is None:
+                raise HTTPException(status_code=404, detail="No existe esa lección.")
+            l.activa = False
+        return self.neurona()
+
+    def clientes(self) -> list[dict]:
+        """Para elegir a quién se le hace el diagnóstico: los clientes con canal en el classroom."""
+        with db_session:
+            ids = {c.cliente_id for c in list(Canal.select()) if c.cliente_id and not c.inactivo}
+            filas = list(ClienteExterno.select(lambda c: c.id in ids)) if ids else []
+            return sorted(({"id": c.id, "nombre": c.nombre or c.email, "plan": c.plan_actual} for c in filas), key=lambda x: _norm(x["nombre"]))
+
+    def lista(self) -> dict:
+        with db_session:
+            filas = list(CuelloDiagnostico.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."cuellos_diagnosticos" ORDER BY id DESC LIMIT 200'))
+            nombres = _nombres_clientes({d.cliente_id for d in filas})
+            return {"diagnosticos": [_resumen(d, nombres) for d in filas], "jeremy": bool(JEREMY_URL and JEREMY_SECRET)}
+
+    def detalle(self, diag_id: int) -> dict:
+        with db_session:
+            d = CuelloDiagnostico.get(id=diag_id)
+            if d is None:
+                raise HTTPException(status_code=404, detail="No existe ese diagnóstico.")
+            nombres = _nombres_clientes({d.cliente_id})
+            aprobado = d.estado == "aprobado"
+            return {
+                **_resumen(d, nombres),
+                "contexto": d.contexto,
+                "transcripcion": d.transcripcion,
+                "version_jeremy": d.version_jeremy,
+                "version_final": d.version_final,
+                # La del cerebro recién se muestra aprobado: Juan corrige sin verla.
+                "version_cerebro": d.version_cerebro if aprobado else None,
+                "cerebro_listo": bool(d.version_cerebro),
+                "secciones": SECCIONES,
+                "lecciones": [{"id": l.id, "seccion": l.seccion, "texto": l.texto} for l in list(CuelloLeccion.select(lambda l: l.diagnostico_id == diag_id))],
+            }
+
+    def neurona(self) -> dict:
+        """La carpeta de Franco: cuánto se parece el cerebro (y Jeremy) a lo que deja Juan, semana a semana."""
+        with db_session:
+            aprobados = list(CuelloDiagnostico.select_by_sql(
+                f'SELECT * FROM "{DB_SCHEMA}"."cuellos_diagnosticos" WHERE estado = \'aprobado\' ORDER BY aprobado_en'))
+            lecciones = list(CuelloLeccion.select_by_sql(f'SELECT * FROM "{DB_SCHEMA}"."cuellos_lecciones" ORDER BY id DESC'))
+            pedidos = [d.creado_en for d in list(CuelloDiagnostico.select())]
+            nombres = _nombres_clientes({d.cliente_id for d in aprobados})
+            semanas: dict[str, dict] = {}
+            for d in aprobados:
+                lunes = (d.aprobado_en - timedelta(days=d.aprobado_en.weekday())).date().isoformat()
+                s = semanas.setdefault(lunes, {"semana": lunes, "casos": 0, "jeremy": [], "cerebro": []})
+                s["casos"] += 1
+                if d.coincidencia_jeremy is not None:
+                    s["jeremy"].append(d.coincidencia_jeremy)
+                if d.coincidencia_cerebro is not None:
+                    s["cerebro"].append(d.coincidencia_cerebro)
+            prom = lambda xs: round(sum(xs) / len(xs), 3) if xs else None  # noqa: E731
+            serie = [{"semana": s["semana"], "casos": s["casos"], "jeremy": prom(s["jeremy"]), "cerebro": prom(s["cerebro"])} for s in semanas.values()]
+            ultimas = [s["cerebro"] for s in serie[-3:]]
+            fase = 2 if len(ultimas) == 3 and all(x is not None and x >= UMBRAL_FASE for x in ultimas) else 1
+            return {
+                "fase": fase,
+                "umbral": UMBRAL_FASE,
+                "casos": len(aprobados),
+                "pedidos": len(pedidos),
+                "coincidencia_cerebro": prom([d.coincidencia_cerebro for d in aprobados if d.coincidencia_cerebro is not None]),
+                "coincidencia_jeremy": prom([d.coincidencia_jeremy for d in aprobados if d.coincidencia_jeremy is not None]),
+                "serie": serie,
+                "casos_lista": [_resumen(d, nombres) for d in reversed(aprobados)],
+                # Cada lección va en todos los pedidos que se hicieron después de escrita.
+                "lecciones": [
+                    {"id": l.id, "seccion": l.seccion, "texto": l.texto, "antes": l.antes, "despues": l.despues, "activa": l.activa,
+                     "diagnostico_id": l.diagnostico_id, "creado_en": l.creado_en.isoformat() + "Z",
+                     "usada": sum(1 for p in pedidos if p > l.creado_en)}
+                    for l in lecciones
+                ],
+                "secciones_corregidas": {s: sum(1 for l in lecciones if l.seccion == s) for s in SECCIONES},
+            }
+
+
+_PEDIDO_LECCION = """Juan, el dueño de ATV, corrigió una sección de un diagnóstico de cuello de botella que armó una IA.
+Te paso la sección como estaba y como la dejó Juan. Escribí en UNA línea la regla que la IA tiene que seguir de ahora
+en adelante para no repetir el error, en general (para cualquier cliente), sin nombres ni números de este cliente.
+Si la diferencia es solo de redacción y no deja ninguna regla, respondé exactamente: NINGUNA"""
+
+
+def _proponer_leccion(c: dict, llamar) -> str:
+    try:
+        r = llamar(_PEDIDO_LECCION, f"Sección: {c['seccion']}\n\nComo estaba:\n{c['antes'] or '(vacía)'}\n\nComo la dejó Juan:\n{c['despues'] or '(la borró)'}",
+                   MODELO_LECCION, 200)
+    except Exception:  # noqa: BLE001 — sin propuesta, Juan la escribe
+        return ""
+    r = r.strip().strip('"').splitlines()[0] if r.strip() else ""
+    return "" if r.upper().startswith("NINGUNA") else r[:300]

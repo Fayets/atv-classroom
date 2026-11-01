@@ -7,6 +7,7 @@ import MensajesPage from '../../pages/MensajesPage'
 import Finder, { IconoCarpeta } from './Finder'
 import ContratosCarpeta from './ContratosCarpeta'
 import CierresCarpeta from './CierresCarpeta'
+import CuellosCarpeta from './CuellosCarpeta'
 import LlamadasCarpeta from './LlamadasCarpeta'
 import SopsCarpeta from './SopsCarpeta'
 import OnboardingsCarpeta from './OnboardingsCarpeta'
@@ -257,6 +258,12 @@ export default function Escritorio({ children }) {
     setFinderFrente('llamadas')
     setIconoSel(null)
   }
+  const [cuellos, setCuellos] = useState(false)
+  function abrirCuellos() {
+    setCuellos(true)
+    setFinderFrente('cuellos')
+    setIconoSel(null)
+  }
   const [cierres, setCierres] = useState(false)
   function abrirCierres() {
     setCierres(true)
@@ -287,6 +294,7 @@ export default function Escritorio({ children }) {
           ...(isAdmin ? [{ id: 'clientes', nombre: 'Clientes', abrir: abrirClientes }, { id: 'contratos', nombre: 'Contratos', abrir: abrirContratos }, { id: 'cierres', nombre: 'Cierres de mes', abrir: abrirCierres }] : []),
           { id: 'onboardings', nombre: 'Onboardings', abrir: abrirOnboardings },
           { id: 'llamadas', nombre: 'Llamadas', abrir: abrirLlamadas },
+          { id: 'cuellos', nombre: 'Cuellos de botella', abrir: abrirCuellos },
           { id: 'sops', nombre: 'SOPs solicitados', abrir: abrirSops },
           { id: 'biblioteca', nombre: 'Biblioteca', abrir: abrirBiblioteca, icono: <IconoBiblioteca tamano={58} /> },
           { id: 'alta', nombre: 'Nuevo onboarding', abrir: () => { setDandoAlta(true); setIconoSel(null) }, mas: true },
@@ -336,6 +344,7 @@ export default function Escritorio({ children }) {
       ) : null}
       <BibliotecaApp abierta={biblioteca} alFrente={finderFrente === 'biblioteca'} alEnfocar={() => setFinderFrente('biblioteca')} alCerrar={() => setBiblioteca(false)} alAbrirChat={abrirChat} />
       <SopsCarpeta abierta={sops} alFrente={finderFrente === 'sops'} alEnfocar={() => setFinderFrente('sops')} alCerrar={() => setSops(false)} alAbrirChat={abrirChat} />
+      <CuellosCarpeta abierta={cuellos} alFrente={finderFrente === 'cuellos'} alEnfocar={() => setFinderFrente('cuellos')} alCerrar={() => setCuellos(false)} />
       <LlamadasCarpeta abierta={llamadas} alFrente={finderFrente === 'llamadas'} alEnfocar={() => setFinderFrente('llamadas')} alCerrar={() => setLlamadas(false)} alAbrirChat={abrirChat} />
       <OnboardingsCarpeta abierta={onboardings} alFrente={finderFrente === 'onboardings'} alEnfocar={() => setFinderFrente('onboardings')} alCerrar={() => setOnboardings(false)} alAbrirChat={abrirChat} />
       {dandoClase ? (

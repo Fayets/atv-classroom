@@ -1,0 +1,12 @@
+import { request } from './client'
+
+export const fetchCuellos = () => request('/api/cuellos')
+export const fetchCuello = (id) => request(`/api/cuellos/${id}`)
+export const fetchNeurona = () => request('/api/cuellos/neurona')
+export const fetchClientesCuellos = () => request('/api/cuellos/clientes')
+export const pedirCuello = (body) => request('/api/cuellos', { method: 'POST', body: JSON.stringify(body) })
+export const guardarCuello = (id, texto) => request(`/api/cuellos/${id}`, { method: 'PUT', body: JSON.stringify({ texto }) })
+export const aprobarCuello = (id, texto) => request(`/api/cuellos/${id}/aprobar`, { method: 'POST', body: JSON.stringify({ texto }) })
+export const reintentarCuello = (id) => request(`/api/cuellos/${id}/reintentar`, { method: 'POST' })
+export const guardarLecciones = (id, lecciones) => request(`/api/cuellos/${id}/lecciones`, { method: 'POST', body: JSON.stringify({ lecciones }) })
+export const desactivarLeccion = (id) => request(`/api/cuellos/lecciones/${id}`, { method: 'DELETE' })

@@ -853,3 +853,47 @@ class CierreRespuesta(db.Entity):
     respuestas_json = Required(str)
     completado_en = Required(datetime, default=datetime.utcnow)
     composite_key(periodo, cliente_id, creador)
+
+
+class CuelloDiagnostico(db.Entity):
+    """Un diagnóstico de cuello de botella pedido desde la carpeta "Cuellos de botella": el cliente mandó un
+    Loom con su traba, Jeremy (guía de ATV) arma el borrador, Juan lo corrige y lo aprueba. En paralelo el
+    cerebro arma su propia versión sin que nadie la vea, para medir cuánto se parece a la final de Juan."""
+
+    _table_ = (DB_SCHEMA, "cuellos_diagnosticos")
+
+    id = PrimaryKey(int, auto=True)
+    cliente_id = Required(int, index=True)
+    admin_id = Required(int)  # quién lo pidió
+    loom_url = Optional(str, nullable=True)
+    contexto = Optional(str, nullable=True)  # lo que escribió el coach en una línea
+    transcripcion = Optional(str, nullable=True)
+    # pidiendo → esperando (Jeremy lo tiene) → borrador (volvió) → aprobado; error si algo falló
+    estado = Required(str, default="pidiendo")
+    error = Optional(str, nullable=True)
+    token = Required(str, unique=True)  # va en la dirección de vuelta de Jeremy
+    version_jeremy = Optional(str, nullable=True)
+    version_cerebro = Optional(str, nullable=True)  # se muestra recién cuando Juan aprueba
+    version_final = Optional(str, nullable=True)
+    coincidencia_jeremy = Optional(float, nullable=True)  # 0..1 contra la final de Juan
+    coincidencia_cerebro = Optional(float, nullable=True)
+    aprobado_por = Optional(int, nullable=True)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    respondido_en = Optional(datetime, nullable=True)
+    aprobado_en = Optional(datetime, nullable=True)
+
+
+class CuelloLeccion(db.Entity):
+    """Lo que aprendió la neurona de una corrección de Juan: va en cada pedido siguiente (a Jeremy y al
+    cerebro). Juan la escribe o acepta la que propone la IA al aprobar."""
+
+    _table_ = (DB_SCHEMA, "cuellos_lecciones")
+
+    id = PrimaryKey(int, auto=True)
+    diagnostico_id = Required(int, index=True)
+    seccion = Required(str)
+    antes = Optional(str, nullable=True)
+    despues = Optional(str, nullable=True)
+    texto = Required(str)
+    activa = Required(bool, default=True)
+    creado_en = Required(datetime, default=datetime.utcnow)
