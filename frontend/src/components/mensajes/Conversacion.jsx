@@ -540,15 +540,26 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     if (!mensajes.length || cargandoRef.current) return
     cargandoRef.current = true
     setCargandoAntes(true)
+    let seguir = false
     try {
       const r = await fetchMensajes(canalId, { antesDe: mensajes[0].id })
       setMensajes((m) => [...r.mensajes, ...m])
       setDatos((d) => ({ ...d, hay_mas: r.hay_mas }))
+      seguir = r.hay_mas
     } catch (err) {
       setError(err.message)
     } finally {
       cargandoRef.current = false
       setCargandoAntes(false)
+    }
+    // El observador avisa solo cuando la marca entra: si quedaste pegado arriba y sigue a la vista después de
+    // cargar (Consu Rocio, 02-11-2026), no vuelve a avisar y no se podía subir más. Se mira a mano tras dibujar.
+    if (seguir) {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const marca = centinela.current
+        const caja = lista.current
+        if (marca && caja && marca.getBoundingClientRect().bottom > caja.getBoundingClientRect().top - 400) traerAnteriores.current?.()
+      }))
     }
   }
 
