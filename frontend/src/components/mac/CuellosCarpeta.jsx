@@ -136,16 +136,22 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
     }
   }
 
+  // Lo que Juan viene corrigiendo se conserva solo si ya estaba corrigiendo este mismo borrador: si recién llegó de
+  // Jeremy (la ventana quedó abierta esperando), se carga entero.
+  const corrigiendo = useRef(false)
   function cargar() {
     return fetchCuello(id).then((x) => {
       setD(x)
-      setPartes((p) => (x.estado === 'borrador' && p ? p : partir(x.version_final)))
+      const seguir = x.estado === 'borrador' && corrigiendo.current
+      corrigiendo.current = x.estado === 'borrador'
+      setPartes((p) => (seguir && p ? p : partir(x.version_final)))
     }).catch((e) => setError(e.message))
   }
   useEffect(() => {
     setD(null)
     setPartes(null)
     setCambios(null)
+    corrigiendo.current = false
     cargar()
   }, [id])
   // Mientras Jeremy trabaja, se vuelve a mirar cada 20 s.
@@ -219,7 +225,7 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
       {d.estado === 'borrador' && partes ? (
         <>
           <p className="cb-gris">Así sale el PDF. Escribí directo sobre el documento: lo que cambies es lo que va a aprender la neurona.</p>
-          <HojaCuello key={d.id} cliente={d.cliente} partes={partes} original={jeremy} alCambiar={setPartes} capturas={d.captura_base} />
+          <HojaCuello key={`${d.id}-${d.respondido_en}`} cliente={d.cliente} partes={partes} original={jeremy} alCambiar={setPartes} capturas={d.captura_base} />
           <div className="cb-acciones cb-pie">
             <small className="cb-gris">{d.cerebro_listo ? 'El cerebro ya armó su versión: la vas a ver cuando apruebes.' : 'El cerebro todavía está armando su versión.'}</small>
             <span className="cb-btns">

@@ -400,6 +400,12 @@ def armar_cerebro(diag_id: int, llamar=_llamar, payload: dict | None = None) -> 
         return False
 
 
+def _no_vacio(texto: str) -> None:
+    """Un documento sin texto en ninguna sección nunca pisa al borrador (pasó con la ventana abierta esperando a Jeremy)."""
+    if not any(secciones(texto).values()):
+        raise HTTPException(status_code=422, detail="El documento quedó vacío: cerrá y volvé a abrir el diagnóstico antes de guardar.")
+
+
 def _en_segundo_plano(diag_id: int) -> None:
     threading.Thread(target=procesar, args=(diag_id,), daemon=True).start()
 
@@ -490,6 +496,7 @@ class CuellosServices:
             raise HTTPException(status_code=502, detail="No se pudo sacar la captura del Loom.") from e
 
     def guardar(self, diag_id: int, texto: str) -> dict:
+        _no_vacio(texto)
         with db_session:
             d = CuelloDiagnostico.get(id=diag_id)
             if d is None:
@@ -509,6 +516,7 @@ class CuellosServices:
             if d.estado != "borrador":
                 raise HTTPException(status_code=409, detail="Solo se aprueba el borrador que devolvió Jeremy.")
             if texto is not None:
+                _no_vacio(texto)
                 d.version_final = texto
             final, jeremy, cerebro = d.version_final or "", d.version_jeremy or "", d.version_cerebro
             d.coincidencia_jeremy = coincidencia(jeremy, final)

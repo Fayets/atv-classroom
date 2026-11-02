@@ -142,6 +142,17 @@ def test_errores_a_la_vista():
         cs.CuellosServices().recibir("no-existe", {"output": "x"})
 
 
+def test_un_documento_vacio_no_pisa_el_borrador():
+    d, enviados = _pedir()
+    token = enviados[0]["callback_url"].rsplit("/", 1)[1]
+    cs.CuellosServices().recibir(token, {"output": JEREMY})
+    vacio = "\n\n".join(f"# {s}\n" for s in cs.SECCIONES)
+    for hacer in (lambda: cs.CuellosServices().guardar(d["id"], vacio), lambda: cs.CuellosServices().aprobar({"usuario_id": 1}, d["id"], vacio)):
+        with pytest.raises(HTTPException):
+            hacer()
+    assert cs.CuellosServices().detalle(d["id"])["version_final"] == JEREMY
+
+
 
 def test_ultimo_del_cliente():
     d, _ = _pedir()
