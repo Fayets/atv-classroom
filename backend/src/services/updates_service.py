@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Lo que va adelante del cliente: íconos, "--" y el contador ("1d 9h", "20h"). Igual que en el chat (TextoMensaje).
 _MARCAS = re.compile(r"^(?:\s*(?:[^\w\s#@]+|\d+\s*[dhm](?!\w)))+\s*")
-_SLUG = re.compile(r"^#?([a-z0-9][a-z0-9-]*[a-z0-9])(?:\s+|$)(.*)$", re.I | re.S)
+_SLUG = re.compile(r"^#?([a-z0-9][a-z0-9.-]*[a-z0-9])(?:\s+|$)(.*)$", re.I | re.S)
 _TIPO = re.compile(r"^([^:]{2,30}):\s*(.+)$", re.S)
 _TIEMPO = re.compile(r"(\d+)\s*([dhm])(?!\w)")
 _REVISAR_DIAS = 3  # los updates de estos días se releen en cada ciclo (Mauri los edita)

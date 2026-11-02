@@ -6,7 +6,8 @@ import { comoHecho, nucleo, ordenar } from '../../utils/updates'
 const URL = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g
 const NEGRITA = /\*\*([^*\n]+?)\*\*/g // **texto**, como en Discord (lo traído de allá y los anuncios del equipo)
 
-const PALABRA = /([A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9](?:…|\.\.\.)?)/g
+// Con puntos adentro: hay canales como "biblio.info" o "nico.grimaldo" (el punto final de una oración no entra).
+const PALABRA = /([A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9](?:…|\.\.\.)?)/g
 
 // El canal de un cliente nombrado como en los updates ("kilian-gabi", o cortado: "la-biblia-de-los-productos-digi…").
 function canalDe(palabra, canales) {
