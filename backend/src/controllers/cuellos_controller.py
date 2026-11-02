@@ -95,6 +95,11 @@ async def guardar(diag_id: int, body: Texto, _sesion: dict = Depends(requerir_eq
     return await run_in_threadpool(service.guardar, diag_id, body.texto)
 
 
+@router.delete("/{diag_id}")
+async def borrar(diag_id: int, _sesion: dict = Depends(requerir_equipo)):
+    return await run_in_threadpool(service.borrar, diag_id)
+
+
 @router.post("/{diag_id}/reintentar")
 async def reintentar(diag_id: int, _sesion: dict = Depends(requerir_equipo)):
     return await run_in_threadpool(service.reintentar, diag_id)

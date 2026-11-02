@@ -209,3 +209,10 @@ def test_si_el_cerebro_fallo_se_vuelve_a_armar():
     assert not cs.CuellosServices().detalle(d["id"])["cerebro_listo"]
     assert cs.armar_cerebro(d["id"], llamar=lambda *a: JEREMY)
     assert cs.CuellosServices().detalle(d["id"])["cerebro_listo"]
+
+
+def test_borrar_un_diagnostico():
+    d, _ = _pedir()
+    assert cs.CuellosServices().borrar(d["id"]) == {"ok": True}
+    with pytest.raises(HTTPException):
+        cs.CuellosServices().detalle(d["id"])

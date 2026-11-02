@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
-  aprobarCuello, desactivarLeccion, fetchClientesCuellos, fetchCuello, fetchCuellos, fetchNeurona,
+  aprobarCuello, borrarCuello, desactivarLeccion, fetchClientesCuellos, fetchCuello, fetchCuellos, fetchNeurona,
   guardarCuello, guardarLecciones, pedirCuello, reintentarCuello,
 } from '../../api/cuellos'
 import { IconoCarpeta } from './Finder'
@@ -363,8 +364,32 @@ export default function CuellosCarpeta({ abierta, alFrente, alEnfocar, alCerrar 
   const [sel, setSel] = useState(null)
   const [grande, setGrande] = useState(false)
   const [error, setError] = useState('')
+  const [menu, setMenu] = useState(null) // click derecho sobre un diagnóstico: { d, x, y, seguro }
   const ventana = useRef(null)
   const pos = useRef({ x: 120, y: 70 })
+
+  useEffect(() => {
+    if (!menu) return undefined
+    const cerrar = (e) => !e.target.closest?.('.cb-menu') && setMenu(null)
+    const tecla = (e) => e.key === 'Escape' && setMenu(null)
+    window.addEventListener('pointerdown', cerrar)
+    window.addEventListener('keydown', tecla)
+    return () => {
+      window.removeEventListener('pointerdown', cerrar)
+      window.removeEventListener('keydown', tecla)
+    }
+  }, [menu])
+
+  async function borrar(d) {
+    setMenu(null)
+    try {
+      await borrarCuello(d.id)
+      setSel(null)
+      cargar()
+    } catch (e) {
+      setError(e.message || 'No se pudo borrar.')
+    }
+  }
 
   function cargar() {
     fetchCuellos().then((d) => { setLista(d); setError('') }).catch((e) => setError(e.message))
@@ -403,6 +428,7 @@ export default function CuellosCarpeta({ abierta, alFrente, alEnfocar, alCerrar 
     : { lista: 'Cuellos de botella', nuevo: 'Nuevo diagnóstico', avance: 'Neurona · Avance', casos: 'Neurona · Casos', aprendido: 'Neurona · Lo que aprendió' }[vista]
   const archivo = (d) => (
     <button key={d.id} type="button" className={`fd-item${sel === d.id ? ' is-sel' : ''}`} onClick={() => setSel(d.id)} onDoubleClick={() => setDentro(d.id)}
+      onContextMenu={(e) => { e.preventDefault(); setSel(d.id); setMenu({ d, x: e.clientX, y: e.clientY, seguro: false }) }}
       title={`${d.cliente} · ${ESTADO[d.estado]} · ${fecha(d.creado_en)}`}>
       <span className="ob-icono">
         <IconoPdf tamano={58} apagado={d.estado !== 'aprobado' && d.estado !== 'borrador'} />
@@ -484,6 +510,18 @@ export default function CuellosCarpeta({ abierta, alFrente, alEnfocar, alCerrar 
           )}
         </div>
       </div>
+      {menu ? createPortal(
+        <div className="cb-menu" role="menu" style={{ left: menu.x, top: menu.y }} onContextMenu={(e) => e.preventDefault()}>
+          <button type="button" role="menuitem" onClick={() => { setMenu(null); setDentro(menu.d.id) }}>Abrir</button>
+          <hr />
+          {menu.seguro ? (
+            <button type="button" role="menuitem" className="is-peligro" onClick={() => borrar(menu.d)}>Sí, borrar el de {menu.d.cliente}</button>
+          ) : (
+            <button type="button" role="menuitem" className="is-peligro" onClick={() => setMenu({ ...menu, seguro: true })}>Borrar</button>
+          )}
+        </div>,
+        document.body,
+      ) : null}
     </div>
   )
 }

@@ -11,3 +11,4 @@ export const reintentarCuello = (id) => request(`/api/cuellos/${id}/reintentar`,
 export const guardarLecciones = (id, lecciones) => request(`/api/cuellos/${id}/lecciones`, { method: 'POST', body: JSON.stringify({ lecciones }) })
 export const desactivarLeccion = (id) => request(`/api/cuellos/lecciones/${id}`, { method: 'DELETE' })
 export const fetchCuellosCliente = (clienteId) => request(`/api/cuellos/cliente/${clienteId}`)
+export const borrarCuello = (id) => request(`/api/cuellos/${id}`, { method: 'DELETE' })

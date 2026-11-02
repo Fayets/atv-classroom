@@ -556,6 +556,19 @@ class CuellosServices:
                                   despues=(l.get("despues") or "")[:4000], texto=texto[:400])
         return self.neurona()
 
+    def borrar(self, diag_id: int) -> dict:
+        """Click derecho → Borrar en la carpeta (Franco, 02-11-2026). Las lecciones que dejó quedan: ya son de la neurona.
+        Si Jeremy vuelve tarde con uno borrado, la vuelta da 404 y no pasa nada."""
+        with db_session:
+            d = CuelloDiagnostico.get(id=diag_id)
+            if d is None:
+                raise HTTPException(status_code=404, detail="No existe ese diagnóstico.")
+            token = d.token
+            d.delete()
+        for f in cuellos_capturas.CAPTURAS_DIR.glob(f"{token}-*.jpg"):
+            f.unlink(missing_ok=True)
+        return {"ok": True}
+
     def desactivar_leccion(self, leccion_id: int) -> dict:
         with db_session:
             l = CuelloLeccion.get(id=leccion_id)
