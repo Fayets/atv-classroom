@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { bloques, SECCIONES, TITULOS, tramos } from '../../utils/docCuello'
 
-// El diagnóstico tal como sale en el PDF (sobrio: hoja hueso, el logo y el texto), con el formato del documento de Juan, y editable ahí mismo: cada
+// El diagnóstico tal como sale en el PDF (sobrio: hoja hueso, el logo y el texto), con el formato y el estilo del documento de Juan, y editable ahí mismo: cada
 // sección es un bloque editable con subtítulos, párrafos, viñetas, ejemplos y negritas. Al escribir se lee de
 // vuelta como texto ("### ", "- ", "> ", "**"), así lo que se guarda y lo que mide la neurona no cambia.
 // Los bloques no se vuelven a dibujar con cada tecla (perderían el cursor): se arman con el texto inicial.
@@ -99,7 +99,7 @@ export default function HojaCuello({ cliente, partes, original, alCambiar }) {
         <h2 className="hc-cliente">Diagnóstico {cliente}</h2>
         {SECCIONES.map((s) => (
           <section key={s} className="hc-seccion">
-            {TITULOS[s] ? <h3 className="hc-titulo"><span>{TITULOS[s].split('. ')[0]}</span>{TITULOS[s].split('. ').slice(1).join('. ')} {marca(s)}</h3> : marca(s)}
+            {TITULOS[s] ? <h3 className="hc-titulo">{TITULOS[s]} {marca(s)}</h3> : marca(s)}
             <Seccion texto={partes[s]} alCambiar={cambio(s)} />
           </section>
         ))}

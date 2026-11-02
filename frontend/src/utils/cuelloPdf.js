@@ -1,14 +1,15 @@
 // El PDF del diagnóstico de cuello de botella: sobrio, como pidió Franco. Hoja hueso de la marca de ATV, el isotipo
-// arriba y el texto en carbón, en Poppins y con el diseño A (Memo); el contenido sigue el documento de Juan. Sale de la versión final que aprobó Juan.
+// arriba y el texto en carbón, en Poppins y con el estilo del Google Doc de Juan (Diagnóstico HAR PROGRAM): títulos
+// grandes en negrita, subtítulos en negrita, texto con aire. Sale de la versión final que aprobó Juan.
 import { bloques, partir, SECCIONES, TITULOS, tramos } from './docCuello'
 import { loadPdfMake } from './onboardingPdf'
 
-const C = { hueso: '#F3F0E9', carbon: '#242321', piedra: '#8A847C', linea: '#D9D3C8', cita: '#4A4642' }
+const C = { hueso: '#F3F0E9', carbon: '#242321', piedra: '#8A847C' }
 
 // Poppins, la tipografía de todo lo que ve el cliente (public/fonts, de Google Fonts, licencia OFL).
 function poppins(pdfMake) {
   const url = (f) => `${window.location.origin}/fonts/${f}.ttf`
-  const fuentes = { Poppins: { normal: url('Poppins-Regular'), bold: url('Poppins-SemiBold'), italics: url('Poppins-Italic'), bolditalics: url('Poppins-SemiBold') } }
+  const fuentes = { Poppins: { normal: url('Poppins-Regular'), bold: url('Poppins-Bold'), italics: url('Poppins-Italic'), bolditalics: url('Poppins-Bold') } }
   if (typeof pdfMake.addFonts === 'function') pdfMake.addFonts(fuentes)
   else pdfMake.fonts = { ...(pdfMake.fonts || {}), ...fuentes }
 }
@@ -49,43 +50,44 @@ function enLinea(texto) {
 // Los bloques de una sección (subtítulo, párrafo, viñeta, ejemplo) en pdfmake.
 function cuerpo(texto) {
   const salida = []
+  // Poppins no trae "●": el punto de la viñeta se dibuja.
+  const punto = () => ({ canvas: [{ type: 'ellipse', x: 2, y: 7.5, r1: 1.9, r2: 1.9, color: C.carbon }], width: 16 })
+  let previo = null
   for (const b of bloques(texto)) {
-    if (b.tipo === 'sub') salida.push({ text: enLinea(b.texto), bold: true, margin: [0, 7, 0, 2] })
-    else if (b.tipo === 'item') salida.push({ columns: [{ text: '•', width: 11 }, { text: enLinea(b.texto), width: '*', lineHeight: 1.3 }], margin: [0, 0, 0, 3] })
-    else if (b.tipo === 'cita') salida.push({ text: enLinea(b.texto), italics: true, color: C.cita, lineHeight: 1.3, margin: [12, 1, 0, 7] })
-    else salida.push({ text: enLinea(b.texto), lineHeight: 1.35, margin: [0, 0, 0, 6] })
+    const despuesDeLista = previo === 'item' && b.tipo !== 'item' ? 6 : 0
+    if (b.tipo === 'sub') salida.push({ text: enLinea(b.texto), bold: true, fontSize: 12.5, margin: [0, 8 + despuesDeLista, 0, 6] })
+    else if (b.tipo === 'item') salida.push({ columns: [punto(), { text: enLinea(b.texto), width: '*', lineHeight: 1.2 }], margin: [16, 0, 0, 4] })
+    else if (b.tipo === 'cita') salida.push({ text: enLinea(b.texto), lineHeight: 1.2, margin: [24, 2 + despuesDeLista, 0, 10] })
+    else salida.push({ text: enLinea(b.texto), lineHeight: 1.2, margin: [0, despuesDeLista, 0, 10] })
+    previo = b.tipo
   }
   return salida
 }
 
-// Diseño A ("Memo", elegido por Franco el 01-11-2026): línea fina entre secciones y el número en gris.
-const separador = () => ({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 499, y2: 0, lineWidth: 0.6, lineColor: C.linea }], margin: [0, 14, 0, 9] })
-function titulo(s) {
-  const [num, ...resto] = TITULOS[s].split('. ')
-  return { text: [{ text: `${num}   `, color: C.piedra, bold: false }, { text: resto.join('. ') }], bold: true, fontSize: 12, margin: [0, 0, 0, 6] }
-}
+// Los títulos como en el Doc de Juan: "2. Causas" grande y en negrita.
+const titulo = (s) => ({ text: TITULOS[s], bold: true, fontSize: 16.5, margin: [0, 10, 0, 8] })
 
 export async function pdfCuello({ cliente, texto, fecha = new Date() }) {
   const pdfMake = await loadPdfMake()
   poppins(pdfMake)
   const logo = await isotipo()
   const p = partir(texto)
-  const contenido = [{ text: `Diagnóstico ${cliente}`, fontSize: 21, bold: true, characterSpacing: -0.3, margin: [0, 0, 0, 6] }]
+  const contenido = [{ text: `Diagnóstico ${cliente}`, fontSize: 21, bold: true, margin: [0, 0, 0, 12] }]
   for (const s of SECCIONES) {
     if (!p[s]) continue
-    // La línea, el título y el primer bloque van juntos: un título nunca queda solo al pie de la página.
+    // El título y el primer bloque van juntos: un título nunca queda solo al pie de la página.
     const [primero, ...resto] = cuerpo(p[s])
-    contenido.push({ stack: [separador(), ...(TITULOS[s] ? [titulo(s)] : []), ...(primero ? [primero] : [])], unbreakable: true }, ...resto)
+    contenido.push({ stack: [...(TITULOS[s] ? [titulo(s)] : [{ text: '', margin: [0, 10, 0, 0] }]), ...(primero ? [primero] : [])], unbreakable: true }, ...resto)
   }
 
   const doc = {
     pageSize: 'A4',
-    pageMargins: [48, 78, 48, 56],
+    pageMargins: [64, 80, 64, 60],
     background: () => ({ canvas: [{ type: 'rect', x: 0, y: 0, w: ANCHO, h: ALTO, color: C.hueso }] }),
-    header: () => (logo ? { image: logo, width: 15, margin: [48, 34, 0, 0] } : { text: '' }),
-    footer: (pagina, total) => (total > 1 ? { text: `${pagina} / ${total}`, fontSize: 7.5, color: C.piedra, alignment: 'right', margin: [48, 18, 48, 0] } : { text: '' }),
+    header: () => (logo ? { image: logo, width: 15, margin: [64, 36, 0, 0] } : { text: '' }),
+    footer: (pagina, total) => (total > 1 ? { text: `${pagina} / ${total}`, fontSize: 7.5, color: C.piedra, alignment: 'right', margin: [64, 20, 64, 0] } : { text: '' }),
     content: contenido,
-    defaultStyle: { font: 'Poppins', fontSize: 9.5, color: C.carbon },
+    defaultStyle: { font: 'Poppins', fontSize: 10.5, color: C.carbon },
     info: { title: `Cuello de botella · ${cliente}`, author: 'ATV — Aumenta Tu Valor' },
   }
   const blob = await pdfMake.createPdf(doc).getBlob()
