@@ -44,13 +44,21 @@ function Contenido({ texto, base, cliente }) {
   return salida.length ? salida : <p><br /></p>
 }
 
+// Lo pegado de Google Docs trae la negrita como estilo (font-weight: 700) y envuelve todo en un <b> con
+// font-weight normal: cuenta lo que se ve, no la etiqueta.
+function esNegrita(n) {
+  const peso = n.style?.fontWeight
+  if (peso) return peso === 'bold' || Number(peso) >= 600
+  return n.nodeName === 'STRONG' || n.nodeName === 'B'
+}
+
 // Elementos → texto con marcas.
 function enLinea(nodo) {
   let t = ''
   nodo.childNodes.forEach((n) => {
     if (n.nodeType === Node.TEXT_NODE) t += n.textContent
     else if (n.nodeName === 'BR') t += ' '
-    else if (n.nodeName === 'STRONG' || n.nodeName === 'B') {
+    else if (esNegrita(n)) {
       const adentro = enLinea(n).trim()
       if (adentro) t += `**${adentro}**`
     } else t += enLinea(n)
@@ -70,7 +78,7 @@ function leer(raiz) {
     else if (tag === 'UL' || tag === 'OL') n.querySelectorAll('li').forEach((li) => { const t = enLinea(li).trim(); if (t) lineas.push(`- ${t}`) })
     else if (/^H[1-6]$/.test(tag)) { const t = enLinea(n).trim(); if (t) lineas.push(`### ${t}`) }
     else if (tag === 'BLOCKQUOTE') { const t = enLinea(n).trim(); if (t) lineas.push(`> ${t}`) }
-    else if ((tag === 'DIV' || tag === 'P') && n.querySelector('ul,ol,h1,h2,h3,h4,h5,h6,blockquote,p,div,figure')) lineas.push(leer(n))
+    else if (n.querySelector?.('ul,ol,h1,h2,h3,h4,h5,h6,blockquote,p,div,figure')) lineas.push(leer(n)) // un envoltorio (el <b> de Google Docs, un div) con bloques adentro
     else { const t = enLinea(n).trim(); if (t) lineas.push(t) }
   })
   return lineas.filter(Boolean).join('\n')
@@ -118,7 +126,8 @@ function Barra({ base, cliente }) {
 }
 
 export default function HojaCuello({ cliente, partes, original, alCambiar, capturas }) {
-  const cambio = (s) => (v) => alCambiar({ ...partes, [s]: v })
+  // Sobre la versión más nueva: si cambian dos secciones antes de redibujar (pegar, deshacer), no se pisan.
+  const cambio = (s) => (v) => alCambiar((prev) => ({ ...prev, [s]: v }))
   const marca = (s) => ((partes[s] || '').trim() !== (original[s] || '').trim() ? <em className="hc-corregida">corregida</em> : null)
   return (
     <div className="hc-marco">
