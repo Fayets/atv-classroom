@@ -68,7 +68,7 @@ async function capturas(base, texto) {
 }
 
 // Los bloques de una sección (subtítulo, párrafo, viñeta, ejemplo, captura) en pdfmake.
-function cuerpo(texto, imgs = {}, cliente = '') {
+function cuerpo(texto, imgs = {}) {
   const salida = []
   // Poppins no trae "●": el punto de la viñeta se dibuja.
   const punto = () => ({ canvas: [{ type: 'ellipse', x: 2, y: 7.5, r1: 1.9, r2: 1.9, color: C.carbon }], width: 16 })
@@ -76,7 +76,7 @@ function cuerpo(texto, imgs = {}, cliente = '') {
   for (const b of bloques(texto)) {
     const despuesDeLista = previo === 'item' && b.tipo !== 'item' ? 6 : 0
     if (b.tipo === 'captura') {
-      if (imgs[b.seg]) salida.push({ stack: [{ image: imgs[b.seg], width: ANCHO - 128 }, { text: `Loom de ${cliente} · ${b.texto}`, fontSize: 8.5, color: C.piedra, margin: [0, 5, 0, 0] }], unbreakable: true, margin: [0, 2 + despuesDeLista, 0, 12] })
+      if (imgs[b.seg]) salida.push({ image: imgs[b.seg], width: ANCHO - 128, margin: [0, 2 + despuesDeLista, 0, 12] })
     } else if (b.tipo === 'sub') salida.push({ text: enLinea(b.texto), bold: true, fontSize: 12.5, margin: [0, 8 + despuesDeLista, 0, 6] })
     else if (b.tipo === 'item') salida.push({ columns: [punto(), { text: enLinea(b.texto), width: '*', lineHeight: 1.2 }], margin: [16, 0, 0, 4] })
     else if (b.tipo === 'cita') salida.push({ text: enLinea(b.texto), lineHeight: 1.2, margin: [24, 2 + despuesDeLista, 0, 10] })
@@ -98,7 +98,7 @@ export async function pdfCuello({ cliente, texto, fecha = new Date(), capturas: 
   for (const s of SECCIONES) {
     if (!p[s]) continue
     // El título y el primer bloque van juntos: un título nunca queda solo al pie de la página.
-    const [primero, ...resto] = cuerpo(p[s], imgs, cliente)
+    const [primero, ...resto] = cuerpo(p[s], imgs)
     contenido.push({ stack: [...(TITULOS[s] ? [titulo(s)] : [{ text: '', margin: [0, 10, 0, 0] }]), ...(primero ? [primero] : [])], unbreakable: true }, ...resto)
   }
 

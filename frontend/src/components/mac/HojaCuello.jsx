@@ -11,18 +11,17 @@ function Tramos({ texto }) {
 }
 
 // Una captura del Loom: no se edita por dentro (se borra entera o se agrega otra con la barra).
-function Captura({ seg, base, cliente }) {
+function Captura({ seg, base }) {
   return (
     <figure className="hc-captura" contentEditable={false} data-captura={seg}>
       <img src={`${base}/${seg}.jpg`} alt={`Loom en el minuto ${minuto(seg)}`} loading="lazy"
         onError={(e) => { e.currentTarget.replaceWith(Object.assign(document.createElement('div'), { className: 'hc-captura-falla', textContent: 'No se pudo sacar esta captura del Loom.' })) }} />
-      <figcaption>Loom de {cliente} · {minuto(seg)}</figcaption>
     </figure>
   )
 }
 
 // Texto → elementos (las viñetas seguidas van en una misma lista).
-function Contenido({ texto, base, cliente }) {
+function Contenido({ texto, base }) {
   const salida = []
   let lista = null
   bloques(texto).forEach((b, i) => {
@@ -36,7 +35,7 @@ function Contenido({ texto, base, cliente }) {
     }
     lista = null
     if (b.tipo === 'captura') {
-      if (base) salida.push(<Captura key={i} seg={b.seg} base={base} cliente={cliente} />)
+      if (base) salida.push(<Captura key={i} seg={b.seg} base={base} />)
     } else if (b.tipo === 'sub') salida.push(<h4 key={i}><Tramos texto={b.texto} /></h4>)
     else if (b.tipo === 'cita') salida.push(<blockquote key={i}><Tramos texto={b.texto} /></blockquote>)
     else salida.push(<p key={i}><Tramos texto={b.texto} /></p>)
@@ -84,17 +83,17 @@ function leer(raiz) {
   return lineas.filter(Boolean).join('\n')
 }
 
-function Seccion({ texto, alCambiar, base, cliente }) {
+function Seccion({ texto, alCambiar, base }) {
   const inicial = useMemo(() => texto || '', []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="hc-editable hc-rico" contentEditable suppressContentEditableWarning spellCheck onInput={(e) => alCambiar(leer(e.currentTarget))}>
-      <Contenido texto={inicial} base={base} cliente={cliente} />
+      <Contenido texto={inicial} base={base} />
     </div>
   )
 }
 
 // Barra de formato: usa los comandos del navegador sobre lo que está seleccionado en la hoja.
-function Barra({ base, cliente }) {
+function Barra({ base }) {
   const hacer = (comando, valor) => (e) => {
     e.preventDefault()
     document.execCommand(comando, false, valor)
@@ -111,7 +110,7 @@ function Barra({ base, cliente }) {
     sel.addRange(rango)
     const seg = Number(m[1]) * 60 + Number(m[2])
     document.execCommand('insertHTML', false,
-      `<figure class="hc-captura" contenteditable="false" data-captura="${seg}"><img src="${base}/${seg}.jpg" alt="Loom en el minuto ${minuto(seg)}"><figcaption>Loom de ${cliente.replace(/[<>&"]/g, '')} · ${minuto(seg)}</figcaption></figure><p><br></p>`)
+      `<figure class="hc-captura" contenteditable="false" data-captura="${seg}"><img src="${base}/${seg}.jpg" alt="Loom en el minuto ${minuto(seg)}"></figure><p><br></p>`)
   }
   return (
     <div className="hc-barra" role="toolbar" aria-label="Formato">
@@ -131,14 +130,14 @@ export default function HojaCuello({ cliente, partes, original, alCambiar, captu
   const marca = (s) => ((partes[s] || '').trim() !== (original[s] || '').trim() ? <em className="hc-corregida">corregida</em> : null)
   return (
     <div className="hc-marco">
-      <Barra base={capturas} cliente={cliente} />
+      <Barra base={capturas} />
       <article className="hc-hoja" aria-label={`Diagnóstico de ${cliente}`}>
         <img className="hc-logo" src="/atv-logo-negro.png" alt="ATV" />
         <h2 className="hc-cliente">Diagnóstico {cliente}</h2>
         {SECCIONES.map((s) => (
           <section key={s} className="hc-seccion">
             {TITULOS[s] ? <h3 className="hc-titulo">{TITULOS[s]} {marca(s)}</h3> : marca(s)}
-            <Seccion texto={partes[s]} alCambiar={cambio(s)} base={capturas} cliente={cliente} />
+            <Seccion texto={partes[s]} alCambiar={cambio(s)} base={capturas} />
           </section>
         ))}
       </article>
