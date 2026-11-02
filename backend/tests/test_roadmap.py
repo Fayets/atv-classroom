@@ -114,7 +114,7 @@ def test_el_roadmap_puede_resolver_un_diagnostico_aprobado_sin_llamada(monkeypat
     b = ria.RoadmapIAServices().generar(EQUIPO, CLIENTE, "", llamar=falso, diagnostico_id=7)
     assert pedidos == [(7, CLIENTE)] and b["titulo"] == "Seguidores sin conversaciones"
     p = vistos["prompt"]
-    assert "ESTE ROADMAP RESUELVE UN DIAGNÓSTICO" in p and "No hubo llamada" in p and "5.1 CTA con keyword" in p and "(no hubo llamada)" in p
+    assert "ESTE ROADMAP ES LA EJECUCIÓN DE UN DIAGNÓSTICO" in p and "No hubo llamada" in p and "5.1 CTA con keyword" in p and "(no hubo llamada)" in p
 
 
 def test_el_cuello_en_una_frase_y_solo_aprobados_del_cliente():

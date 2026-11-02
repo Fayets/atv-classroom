@@ -76,12 +76,13 @@ Respondé SOLO con un JSON válido, sin texto antes ni después:
 
 _DIAGNOSTICO = """
 
-ESTE ROADMAP RESUELVE UN DIAGNÓSTICO: a {cliente} ya le mandaste el diagnóstico de su cuello de botella (más
-abajo). Los pasos salen de lo que propone el diagnóstico, sobre todo de Solución y Expectativas, en ese
-orden, bajados a tareas concretas en tu voz; si además hay una llamada, sumá lo que se acordó ahí. No
-contradigas el diagnóstico ni sumes nada de "Qué no hacer". El título del roadmap es el cuello de botella
-en pocas palabras (por ejemplo "Seguidores sin conversaciones"), y el mensaje le dice que este es el plan
-para resolverlo.{sin_llamada}"""
+ESTE ROADMAP ES LA EJECUCIÓN DE UN DIAGNÓSTICO: a {cliente} ya le mandaste el diagnóstico de su cuello de
+botella (más abajo). El diagnóstico es para leer: explica qué pasa y por qué. El roadmap es para hacer: no
+vuelvas a explicar el problema ni las causas, solo las tareas. Bajá la Solución a pasos concretos, uno por
+acción, en el orden de las Expectativas (lo de la semana 1 primero) y con lo que diga cada ejemplo listo para
+usar; si además hay una llamada, sumá lo que se acordó ahí. No contradigas el diagnóstico ni sumes nada de
+"Qué no hacer". El título del roadmap es el cuello de botella en pocas palabras (por ejemplo "Seguidores sin
+conversaciones"), y el mensaje le dice, corto, que acá está cómo se ejecuta el diagnóstico que ya leyó.{sin_llamada}"""
 
 _SIN_LLAMADA = """ No hubo llamada: armalo solo con el diagnóstico, y el mensaje no habla de ninguna llamada
 ni de su grabación."""
