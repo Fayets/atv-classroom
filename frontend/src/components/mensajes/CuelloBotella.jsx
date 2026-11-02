@@ -115,7 +115,7 @@ export default function CuelloBotella({ clienteId, canalId, cliente, alCerrar, a
     setEnviando(true)
     setError('')
     try {
-      const { blob, nombre } = await pdfCuello({ cliente: mandar.cliente, texto: mandar.version_final, fecha: new Date(mandar.aprobado_en || Date.now()) })
+      const { blob, nombre } = await pdfCuello({ cliente: mandar.cliente, texto: mandar.version_final, fecha: new Date(mandar.aprobado_en || Date.now()), capturas: mandar.captura_base })
       const adjunto = await subirAdjunto(canalId, new File([blob], nombre, { type: 'application/pdf' }))
       const primero = (cliente || '').trim().split(/\s+/)[0]
       await enviarMensaje(canalId, `${primero}, te dejo el diagnóstico de tu cuello de botella y el roadmap para resolverlo 👇`, null, [], [adjunto.id])

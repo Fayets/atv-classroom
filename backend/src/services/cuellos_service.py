@@ -28,7 +28,7 @@ from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
 from src.models import Admin, Canal, ClienteExterno, CuelloDiagnostico, CuelloLeccion, Llamada, MensajeCanal
-from src.services import gasto_ia
+from src.services import cuellos_capturas, gasto_ia
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,7 @@ Reglas:
 - La solución es concreta y usa lo que el cliente ya tiene. Con ejemplos listos para usar (un CTA, un guion, un creativo), escritos entre comillas en una línea que empieza con "> ".
 - Si hay una clase o un SOP de ATV que aplica, nombralo.
 - Respetá siempre las lecciones que Juan ya corrigió en otros diagnósticos.
+- Si lo que mandó el cliente es un Loom, mostrá lo que dice con capturas del video: debajo del párrafo o la viñeta donde se habla o se prueba algo, agregá una línea sola "[captura MM:SS]" con el minuto de la transcripción donde se ve en pantalla (un número, un anuncio, su perfil, su embudo). Entre 2 y 4 en todo el documento, solo en Diagnóstico y Causas. Si no es un Loom, no pongas capturas.
 - Tono directo, en español rioplatense, con voseo, hablándole al cliente. Que se lea como armado por el equipo, no por una IA.
 
 Formato de salida: texto plano, sin HTML ni tablas. Podés usar **negrita**, viñetas con "- ", subtítulos con "### " y ejemplos con "> ". Respetá exactamente estas secciones y este orden:
@@ -117,7 +118,7 @@ def secciones(texto: str) -> dict[str, str]:
     """El documento partido por sus "# Sección". Lo que no cae en una sección conocida se ignora."""
     salida: dict[str, list[str]] = {}
     actual = None
-    for linea in (texto or "").splitlines():
+    for linea in cuellos_capturas.sin_marcas(texto).splitlines():
         m = re.match(r"^\s*#\s+(?!#)(.+?)\s*$", linea)
         if m:
             actual = _clave(m.group(1))
@@ -469,9 +470,24 @@ class CuellosServices:
                 d.version_final = d.version_jeremy
             d.estado, d.error, d.respondido_en = "borrador", None, datetime.utcnow()
             falta_cerebro = not d.version_cerebro
+            loom, token = id_loom(d.loom_url), d.token
+        if loom and cuellos_capturas.marcas(salida):
+            threading.Thread(target=cuellos_capturas.preparar, args=(loom, token, salida), daemon=True).start()
         if falta_cerebro:
             threading.Thread(target=armar_cerebro, args=(d.id,), daemon=True).start()
         return {"ok": True}
+
+    def captura(self, token: str, segundo: int):
+        with db_session:
+            d = CuelloDiagnostico.get(token=token)
+            loom = id_loom(d.loom_url) if d else None
+        if not loom or not 0 <= segundo <= 6 * 3600:
+            raise HTTPException(status_code=404, detail="No hay captura.")
+        try:
+            return cuellos_capturas.sacar(loom, token, segundo)
+        except Exception as e:  # noqa: BLE001
+            logger.exception("Cuello %s: captura %s", token[:6], segundo)
+            raise HTTPException(status_code=502, detail="No se pudo sacar la captura del Loom.") from e
 
     def guardar(self, diag_id: int, texto: str) -> dict:
         with db_session:
@@ -570,6 +586,8 @@ class CuellosServices:
                 "version_cerebro": d.version_cerebro if aprobado else None,
                 "cerebro_listo": bool(d.version_cerebro),
                 "secciones": SECCIONES,
+                # Las capturas del Loom: <base>/<segundo>.jpg, sin sesión (la dirección lleva el token).
+                "captura_base": f"/api/cuellos/captura/{d.token}" if id_loom(d.loom_url) else None,
                 "lecciones": [{"id": l.id, "seccion": l.seccion, "texto": l.texto} for l in list(CuelloLeccion.select(lambda l: l.diagnostico_id == diag_id))],
             }
 

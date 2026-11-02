@@ -110,6 +110,27 @@ def test_recorrido_completo():
     assert "Mirar cuánto tardan" in enviados2[0]["lecciones"]
 
 
+def test_capturas_del_loom(monkeypatch, tmp_path):
+    from src.services import cuellos_capturas as cc
+
+    con = JEREMY.replace("- 3 llamadas (7% de las conversaciones).\n", "- 3 llamadas (7% de las conversaciones).\n[captura 03:12]\n")
+    assert cc.marcas(con + "\n[Captura 3:12]\n[captura 10:05]") == [192, 605]
+    # Una foto no es redacción: no cambia cuánto se parece a la final de Juan.
+    assert cs.coincidencia(con, JEREMY) == 1.0
+
+    d, enviados = _pedir()
+    token = enviados[0]["callback_url"].rsplit("/", 1)[1]
+    assert cs.CuellosServices().detalle(d["id"])["captura_base"] == f"/api/cuellos/captura/{token}"
+    pedidas = []
+    monkeypatch.setattr(cc, "sacar", lambda loom, tok, seg, video=None: pedidas.append((loom, seg)) or tmp_path / "x.jpg")
+    assert cs.CuellosServices().captura(token, 192) == tmp_path / "x.jpg" and pedidas == [("a" * 32, 192)]
+    with pytest.raises(HTTPException):
+        cs.CuellosServices().captura("no-existe", 192)
+    # Sin Loom (cierre de mes o contado) no hay capturas.
+    sin = cs.CuellosServices().pedir({"usuario_id": 1}, _cliente_id(), None, "No me agendan", None, en_fondo=lambda i: None)
+    assert sin["captura_base"] is None
+
+
 def test_errores_a_la_vista():
     with pytest.raises(HTTPException):
         cs.CuellosServices().pedir({"usuario_id": 1}, _cliente_id(), "https://youtube.com/x", None, None, en_fondo=lambda i: None)

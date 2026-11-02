@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
@@ -50,6 +51,13 @@ async def de_jeremy(token: str, request: Request):
     except ValueError:
         raise HTTPException(status_code=422, detail="El cuerpo no es JSON.")
     return await run_in_threadpool(service.recibir, token, cuerpo if isinstance(cuerpo, dict) else {})
+
+
+@router.get("/captura/{token}/{segundo}.jpg")
+async def captura(token: str, segundo: int):
+    """Una captura del Loom del diagnóstico: sin sesión (la usan la hoja y el PDF), la dirección lleva el token."""
+    ruta = await run_in_threadpool(service.captura, token, segundo)
+    return FileResponse(ruta, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=86400"})
 
 
 @router.get("")

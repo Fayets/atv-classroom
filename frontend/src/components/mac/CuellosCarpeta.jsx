@@ -128,7 +128,7 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
   async function pdf() {
     setBajando(true)
     try {
-      await descargarPdfCuello({ cliente: d.cliente, texto: d.version_final, fecha: new Date(d.aprobado_en || Date.now()) })
+      await descargarPdfCuello({ cliente: d.cliente, texto: d.version_final, fecha: new Date(d.aprobado_en || Date.now()), capturas: d.captura_base })
     } catch (e) {
       setError(e.message || 'No se pudo armar el PDF.')
     } finally {
@@ -219,7 +219,7 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
       {d.estado === 'borrador' && partes ? (
         <>
           <p className="cb-gris">Así sale el PDF. Escribí directo sobre el documento: lo que cambies es lo que va a aprender la neurona.</p>
-          <HojaCuello key={d.id} cliente={d.cliente} partes={partes} original={jeremy} alCambiar={setPartes} />
+          <HojaCuello key={d.id} cliente={d.cliente} partes={partes} original={jeremy} alCambiar={setPartes} capturas={d.captura_base} />
           <div className="cb-acciones cb-pie">
             <small className="cb-gris">{d.cerebro_listo ? 'El cerebro ya armó su versión: la vas a ver cuando apruebes.' : 'El cerebro todavía está armando su versión.'}</small>
             <span className="cb-btns">
