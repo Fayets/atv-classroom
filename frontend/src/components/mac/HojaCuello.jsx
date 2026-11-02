@@ -99,7 +99,7 @@ export default function HojaCuello({ cliente, partes, original, alCambiar }) {
         <h2 className="hc-cliente">Diagnóstico {cliente}</h2>
         {SECCIONES.map((s) => (
           <section key={s} className="hc-seccion">
-            {TITULOS[s] ? <h3 className="hc-titulo">{TITULOS[s]} {marca(s)}</h3> : marca(s)}
+            {TITULOS[s] ? <h3 className="hc-titulo"><span>{TITULOS[s].split('. ')[0]}</span>{TITULOS[s].split('. ').slice(1).join('. ')} {marca(s)}</h3> : marca(s)}
             <Seccion texto={partes[s]} alCambiar={cambio(s)} />
           </section>
         ))}

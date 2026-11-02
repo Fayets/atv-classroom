@@ -114,19 +114,28 @@
 .hc-barra { position: sticky; top: 0; z-index: 2; display: flex; gap: 4px; flex-wrap: wrap; align-self: flex-start; padding: 4px; border-radius: 9px; background: #fff; box-shadow: 0 0 0 1px #e5e5ea, 0 4px 14px -6px rgba(0, 0, 0, 0.2); }
 .hc-barra button { padding: 5px 10px; border: 0; border-radius: 6px; background: transparent; color: #1d1d1f; font: inherit; font-size: 12.5px; cursor: pointer; }
 .hc-barra button:hover { background: #f1f1f4; }
-.hc-hoja { --hc-hueso: #f3f0e9; --hc-carbon: #242321; --hc-piedra: #8a847c;
-  display: flex; flex-direction: column; padding: 34px 48px 36px; border-radius: 4px; background: var(--hc-hueso); color: var(--hc-carbon);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 12px 32px -16px rgba(0, 0, 0, 0.35); font-size: 14px; line-height: 1.55; }
-.hc-logo { width: 18px; height: auto; margin-bottom: 26px; }
-.hc-hoja .hc-cliente { margin: 0 0 6px; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
-.hc-titulo { margin: 22px 0 8px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
-.hc-corregida { font-style: normal; font-weight: 600; letter-spacing: 0; text-transform: none; font-size: 10.5px; padding: 1px 7px; border-radius: 99px; background: rgba(36, 35, 33, 0.08); color: var(--hc-piedra); }
+@font-face { font-family: "Poppins ATV"; src: url("/fonts/Poppins-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Poppins ATV"; src: url("/fonts/Poppins-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Poppins ATV"; src: url("/fonts/Poppins-SemiBold.ttf") format("truetype"); font-weight: 600 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Poppins ATV"; src: url("/fonts/Poppins-Italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
+/* Diseño A ("Memo"): igual que el PDF. Hoja hueso, el isotipo, línea fina entre secciones y el número en gris. */
+.hc-hoja { --hc-hueso: #f3f0e9; --hc-carbon: #242321; --hc-piedra: #8a847c; --hc-linea: #d9d3c8;
+  display: flex; flex-direction: column; padding: 40px 52px 44px; border-radius: 3px; background: var(--hc-hueso); color: var(--hc-carbon);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 14px 36px -18px rgba(0, 0, 0, 0.35);
+  font-family: "Poppins ATV", "Poppins", "Helvetica Neue", Arial, sans-serif; font-size: 13.5px; line-height: 1.55; }
+.hc-logo { width: 18px; height: auto; margin-bottom: 30px; }
+.hc-hoja .hc-cliente { margin: 0 0 6px; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+.hc-seccion { border-top: 1px solid var(--hc-linea); margin-top: 18px; padding-top: 14px; }
+.hc-titulo { margin: 0 0 8px; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.hc-titulo > span { color: var(--hc-piedra); font-weight: 500; min-width: 14px; }
+.hc-corregida { font-style: normal; font-weight: 500; font-size: 10.5px; padding: 1px 7px; border-radius: 99px; background: rgba(36, 35, 33, 0.08); color: var(--hc-piedra); }
 .hc-editable { outline: none; border-radius: 3px; transition: box-shadow 0.12s, background 0.12s; overflow-wrap: anywhere; }
 .hc-editable:hover { box-shadow: 0 0 0 6px rgba(36, 35, 33, 0.04); background: rgba(36, 35, 33, 0.03); }
 .hc-editable:focus { box-shadow: 0 0 0 6px rgba(36, 35, 33, 0.07); background: rgba(255, 255, 255, 0.45); }
-.hc-rico p { margin: 0 0 9px; }
-.hc-rico h4 { margin: 14px 0 6px; font-size: 14.5px; font-weight: 700; }
-.hc-rico ul { margin: 0 0 10px; padding: 0 0 0 20px; }
-.hc-rico li { margin: 0 0 6px; }
-.hc-rico blockquote { margin: 4px 0 10px 16px; font-style: italic; }
-@media (max-width: 640px) { .hc-hoja { padding: 24px 20px; } }
+.hc-rico p { margin: 0 0 8px; }
+.hc-rico h4 { margin: 12px 0 3px; font-size: 13.5px; font-weight: 600; }
+.hc-rico ul { margin: 0 0 9px; padding: 0 0 0 18px; }
+.hc-rico li { margin: 0 0 4px; }
+.hc-rico blockquote { margin: 3px 0 10px 14px; font-style: italic; color: #4a4642; }
+.hc-rico strong, .hc-rico b { font-weight: 600; }
+@media (max-width: 640px) { .hc-hoja { padding: 26px 20px; } }
