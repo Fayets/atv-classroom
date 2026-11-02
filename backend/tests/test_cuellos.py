@@ -160,7 +160,17 @@ def test_un_documento_vacio_no_pisa_el_borrador():
 
 def test_ultimo_del_cliente():
     d, _ = _pedir()
-    assert cs.CuellosServices().de_cliente(d["cliente_id"])["ultimo"] == d["id"]
+    assert cs.CuellosServices().de_cliente(d["cliente_id"], 1)["ultimo"] == d["id"]
+
+
+def test_el_borrador_sin_enviar_es_de_quien_lo_pidio():
+    d, enviados = _pedir()  # lo pide el usuario 1
+    otro = 999
+    assert cs.CuellosServices().de_cliente(d["cliente_id"], otro)["ultimo"] != d["id"]
+    token = enviados[0]["callback_url"].rsplit("/", 1)[1]
+    cs.CuellosServices().recibir(token, {"output": JEREMY})
+    cs.CuellosServices().aprobar({"usuario_id": 1}, d["id"], JEREMY, llamar=lambda *a, **k: "[]")
+    assert cs.CuellosServices().de_cliente(d["cliente_id"], otro)["ultimo"] == d["id"]  # enviado, lo ven todos
 
 
 def test_desde_el_cierre_de_mes_o_contado():

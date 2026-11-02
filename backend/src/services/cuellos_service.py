@@ -571,12 +571,14 @@ class CuellosServices:
             filas = list(ClienteExterno.select(lambda c: c.id in ids)) if ids else []
             return sorted(({"id": c.id, "nombre": c.nombre or c.email, "plan": c.plan_actual} for c in filas), key=lambda x: _norm(x["nombre"]))
 
-    def de_cliente(self, cliente_id: int) -> dict:
-        """Para la acción rápida del chat: el último diagnóstico del cliente, si tiene."""
+    def de_cliente(self, cliente_id: int, admin_id: int | None = None) -> dict:
+        """Para la acción rápida del chat: el último diagnóstico del cliente, si tiene. Uno sin enviar es de quien lo
+        pidió (Franco, 02-11-2026): si Juan dejó el suyo a medias, a otro coach no le aparece."""
         with db_session:
             _cliente(cliente_id)
             ultimo = CuelloDiagnostico.select_by_sql(
-                f'SELECT * FROM "{DB_SCHEMA}"."cuellos_diagnosticos" WHERE cliente_id = $cliente_id ORDER BY id DESC LIMIT 1')
+                f'SELECT * FROM "{DB_SCHEMA}"."cuellos_diagnosticos" WHERE cliente_id = $cliente_id'
+                f' AND (estado = \'aprobado\' OR admin_id = $admin_id) ORDER BY id DESC LIMIT 1')
             cierres = db.select(
                 f'SELECT periodo, creador, respuestas_json FROM "{DB_SCHEMA}"."cierres_respuestas" WHERE cliente_id = $cliente_id ORDER BY periodo DESC, completado_en')
             lista, vistos = [], set()

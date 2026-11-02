@@ -71,8 +71,8 @@ async def clientes(_sesion: dict = Depends(requerir_equipo)):
 
 
 @router.get("/cliente/{cliente_id}")
-async def de_cliente(cliente_id: int, _sesion: dict = Depends(requerir_equipo)):
-    return await run_in_threadpool(service.de_cliente, cliente_id)
+async def de_cliente(cliente_id: int, sesion: dict = Depends(requerir_equipo)):
+    return await run_in_threadpool(service.de_cliente, cliente_id, sesion.get("usuario_id"))
 
 
 @router.get("/neurona")
