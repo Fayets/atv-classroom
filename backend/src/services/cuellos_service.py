@@ -471,7 +471,8 @@ class CuellosServices:
                 raise HTTPException(status_code=404, detail="No existe.")
             if d.estado == "aprobado":
                 return {"ok": True}
-            d.version_jeremy = salida.strip()
+            salida = cuellos_capturas.separar(salida.strip())
+            d.version_jeremy = salida
             if not d.version_final:
                 d.version_final = d.version_jeremy
             d.estado, d.error, d.respondido_en = "borrador", None, datetime.utcnow()

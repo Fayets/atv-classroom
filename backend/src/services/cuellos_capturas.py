@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 CAPTURAS_DIR = UPLOADS_DIR / "cuellos"
 MARCA = re.compile(r"^\s*\[captura\s+(\d{1,3}):(\d{2})\]\s*$", re.IGNORECASE)
+# Jeremy a veces la deja pegada al final de una viñeta o en medio de un párrafo (Har Program, 02-11-2026).
+EN_LINEA = re.compile(r"\s*\[captura\s+(\d{1,3}):(\d{2})\]", re.IGNORECASE)
 TOPE_POR_DOCUMENTO = 8
 _candados: dict[str, threading.Lock] = {}
 _candado_general = threading.Lock()
@@ -32,18 +34,33 @@ def segundos(linea: str) -> int | None:
 
 
 def marcas(texto: str) -> list[int]:
-    """Los minutos marcados en el documento, en orden y sin repetir."""
+    """Los minutos marcados en el documento, en orden y sin repetir, estén solos en su línea o no."""
     vistos: list[int] = []
-    for linea in (texto or "").splitlines():
-        s = segundos(linea)
-        if s is not None and s not in vistos:
+    for m in EN_LINEA.finditer(texto or ""):
+        s = int(m.group(1)) * 60 + int(m.group(2))
+        if s not in vistos:
             vistos.append(s)
     return vistos[:TOPE_POR_DOCUMENTO]
 
 
+def separar(texto: str) -> str:
+    """Cada marca en su propia línea, debajo del párrafo o la viñeta donde estaba."""
+    salida = []
+    for linea in (texto or "").splitlines():
+        encontradas = EN_LINEA.findall(linea)
+        if not encontradas or segundos(linea) is not None:
+            salida.append(linea)
+            continue
+        resto = EN_LINEA.sub("", linea).rstrip()
+        if resto.strip():
+            salida.append(resto)
+        salida += [f"[captura {int(m):02d}:{sg}]" for m, sg in encontradas]
+    return "\n".join(salida)
+
+
 def sin_marcas(texto: str) -> str:
-    """El texto sin las líneas de captura: para medir a Jeremy y al cerebro contra Juan, una foto no es redacción."""
-    return "\n".join(l for l in (texto or "").splitlines() if segundos(l) is None)
+    """El texto sin las capturas: para medir a Jeremy y al cerebro contra Juan, una foto no es redacción."""
+    return "\n".join(l for l in separar(texto).splitlines() if segundos(l) is None)
 
 
 def _ffmpeg() -> str:

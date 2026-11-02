@@ -115,6 +115,10 @@ def test_capturas_del_loom(monkeypatch, tmp_path):
 
     con = JEREMY.replace("- 3 llamadas (7% de las conversaciones).\n", "- 3 llamadas (7% de las conversaciones).\n[captura 03:12]\n")
     assert cc.marcas(con + "\n[Captura 3:12]\n[captura 10:05]") == [192, 605]
+    # Pegada al final de una viñeta o en medio de un párrafo (así vino Har Program): va abajo, en su línea.
+    pegada = "- **4.602 seguidores:** el tráfico existe. [captura 05:29]\nLa oferta está bien. [captura 13:23] Pero no crea conversaciones."
+    assert cc.separar(pegada) == "- **4.602 seguidores:** el tráfico existe.\n[captura 05:29]\nLa oferta está bien. Pero no crea conversaciones.\n[captura 13:23]"
+    assert cc.marcas(pegada) == [329, 803]
     # Una foto no es redacción: no cambia cuánto se parece a la final de Juan.
     assert cs.coincidencia(con, JEREMY) == 1.0
 

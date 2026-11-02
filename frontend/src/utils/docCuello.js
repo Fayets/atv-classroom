@@ -42,6 +42,8 @@ export const unir = (partes) => SECCIONES.map((s) => `# ${s}\n${(partes[s] || ''
 
 // "[captura 03:12]" → segundos (lo mismo que cuellos_capturas.py).
 const MARCA = /^\[captura\s+(\d{1,3}):(\d{2})\]$/i
+// Jeremy a veces la deja pegada al final de una viñeta o en medio de un párrafo: la captura va debajo de ese bloque.
+const EN_LINEA = /\s*\[captura\s+(\d{1,3}):(\d{2})\]/gi
 export const segundosCaptura = (linea) => {
   const m = (linea || '').trim().match(MARCA)
   return m ? Number(m[1]) * 60 + Number(m[2]) : null
@@ -53,8 +55,10 @@ export const marcaCaptura = (seg) => `[captura ${String(Math.floor(seg / 60)).pa
 export function bloques(texto) {
   const salida = []
   for (const crudo of (texto || '').split('\n')) {
-    const l = crudo.trim()
-    if (!l) continue
+    const pegadas = segundosCaptura(crudo) === null ? [...crudo.matchAll(EN_LINEA)].map((x) => Number(x[1]) * 60 + Number(x[2])) : []
+    const l = (pegadas.length ? crudo.replace(EN_LINEA, '') : crudo).trim()
+    const despues = pegadas.map((seg) => ({ tipo: 'captura', seg, texto: minuto(seg) }))
+    if (!l) { salida.push(...despues); continue }
     let m
     const seg = segundosCaptura(l)
     if (seg !== null) salida.push({ tipo: 'captura', seg, texto: minuto(seg) })
@@ -62,6 +66,7 @@ export function bloques(texto) {
     else if ((m = l.match(/^[-•*]\s+(.+)$/))) salida.push({ tipo: 'item', texto: m[1] })
     else if ((m = l.match(/^>\s*(.+)$/))) salida.push({ tipo: 'cita', texto: m[1] })
     else salida.push({ tipo: 'p', texto: l })
+    salida.push(...despues)
   }
   return salida
 }
