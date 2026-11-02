@@ -58,6 +58,12 @@ _TOPE_EQUIPO_POR_MINUTO = 120  # el equipo contesta a muchos clientes seguidos
 _envios_recientes: dict[tuple, deque] = defaultdict(deque)
 
 
+def _alfabetico(nombre: str | None) -> str:
+    """Para ordenar como en la bandeja: sin tildes ni mayúsculas ("Álvaro" va con la A)."""
+    t = unicodedata.normalize("NFD", (nombre or "").casefold())
+    return "".join(c for c in t if unicodedata.category(c) != "Mn")
+
+
 def _iso(momento: datetime | None) -> str | None:
     return momento.isoformat(timespec="seconds") + "Z" if momento else None
 
@@ -619,20 +625,17 @@ class MensajeriaServices:
                         "puede_administrar": self._puede_administrar(sesion, canal),
                     }
                 )
-        # Anuncios arriba; después quien espera respuesta (el que más espera primero); después lo más reciente.
+        # Anuncios arriba, después los directos y los clientes de la A a la Z (lo que espera respuesta se ve por el
+        # punto, no por el orden): lo mismo que ordenarBandeja en MensajesPage.
         anuncios = [c for c in items if c["tipo"] in ("anuncios", "grupo")]
         # El orden que les dio un admin arrastrándolos; los que no tienen orden van al final, como antes.
         anuncios.sort(key=lambda c: (c["orden"] is None, c["orden"] or 0, c["tipo"] != "anuncios", c["nombre"]))
-        esperando = [c for c in items if c["tipo"] == "cliente" and c["esperando_desde"]]
-        esperando.sort(key=lambda c: c["esperando_desde"])
-        resto = [c for c in items if c["tipo"] == "cliente" and not c["esperando_desde"]]
-        # Sin novedades: lo más reciente arriba y, entre los que no tienen mensajes, por nombre.
-        resto.sort(key=lambda c: c["nombre"].lower())
-        resto.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
+        clientes = [c for c in items if c["tipo"] == "cliente"]
+        clientes.sort(key=lambda c: _alfabetico(c["nombre"]))
         # Mensajes directos: el último con movimiento arriba, como en Discord.
         directos = [c for c in items if c["tipo"] in ("directo", "privado", "dm")]
         directos.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
-        return anuncios + directos + esperando + resto
+        return anuncios + directos + clientes
 
     def mensajes(self, sesion: dict, canal_id: int, antes_de: int | None = None, despues_de: int | None = None) -> dict:
         # SQL directo: Pony no puede descompilar lambdas en Python 3.13.

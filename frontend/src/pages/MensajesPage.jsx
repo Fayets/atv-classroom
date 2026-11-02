@@ -65,7 +65,7 @@ function recorte(texto, largo) {
 }
 
 // El mismo orden que arma el servidor (listar_canales): anuncios y grupos como estén, los directos
-// con movimiento arriba, quien espera respuesta (el que más espera primero) y después lo más reciente.
+// con movimiento arriba y los clientes de la A a la Z. Se aplica también al cargar, no solo con cada mensaje.
 function ordenarBandeja(lista) {
   const anuncios = lista.filter((c) => c.tipo === 'anuncios' || c.tipo === 'grupo')
   const directos = lista.filter((c) => ['directo', 'privado', 'dm'].includes(c.tipo)).sort((a, b) => comparar(fechaUltimo(b), fechaUltimo(a)))
@@ -439,7 +439,7 @@ export default function MensajesPage() {
     cargando.current = true
     const pedidos = [
       fetchCanales()
-        .then(setCanales)
+        .then((l) => setCanales(ordenarBandeja(l || [])))
         .catch((err) => setError(err.message || 'No se pudieron cargar los canales.')),
     ]
     if (isEquipo) pedidos.push(fetchSenas().then(setSenas).catch(() => null))
