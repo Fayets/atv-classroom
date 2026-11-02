@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { enviarMensaje } from '../../api/mensajes'
 import { fetchLlamada, fetchLlamadas, llamadaPorLink, borrarLlamada } from '../../api/llamadas'
 import { crearDoc, generarRoadmap } from '../../api/roadmap'
+import { fetchCuellosCliente } from '../../api/cuellos'
 import { useAuth } from '../../context/AuthContext'
 
 const ENLACE = '[ROADMAP]'
@@ -302,6 +303,12 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
   const [buscando, setBuscando] = useState(false)
   const [noEncontrada, setNoEncontrada] = useState('')
   const [aMano, setAMano] = useState(false) // mostrar la transcripción (o la caja para pegarla)
+  // Los diagnósticos de cuello de botella aprobados del cliente: el roadmap puede salir de uno, para resolverlo.
+  const [diagnosticos, setDiagnosticos] = useState([])
+  const [diagnostico, setDiagnostico] = useState(null)
+  useEffect(() => {
+    fetchCuellosCliente(clienteId).then((d) => setDiagnosticos(d.aprobados || [])).catch(() => null)
+  }, [clienteId])
   const [editarTexto, setEditarTexto] = useState(false)
 
   // Pegás el link y se trae la llamada con su transcripción (de la carpeta Llamadas o del Fathom del equipo).
@@ -368,14 +375,17 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
   async function armar(e) {
     e.preventDefault()
     setError('')
-    if (!fathom.trim()) return setError('Pegá el link de Fathom: el cliente va a poder ver la grabación desde su roadmap.')
-    if (transcripcion.trim().length < 200) {
+    // Con un diagnóstico elegido la llamada es opcional: si hay Fathom, se usa también.
+    const conLlamada = Boolean(fathom.trim() || transcripcion.trim())
+    if (!diagnostico && !fathom.trim()) return setError('Pegá el link de Fathom: el cliente va a poder ver la grabación desde su roadmap.')
+    if (conLlamada && buscando) return setError('Esperá un segundo: estamos trayendo la llamada.')
+    if ((!diagnostico || conLlamada) && transcripcion.trim().length < 200) {
       setAMano(true)
       return setError(buscando ? 'Esperá un segundo: estamos trayendo la llamada.' : 'Pegá la transcripción completa de la llamada.')
     }
     setPaso('armando')
     try {
-      const r = await generarRoadmap(clienteId, transcripcion, fathom.trim())
+      const r = await generarRoadmap(clienteId, transcripcion, fathom.trim(), diagnostico)
       setB({ ...r, tipo: 'revision', fecha: hoy() })
       setPaso('borrador')
     } catch (err) {
@@ -421,6 +431,21 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
           <form onSubmit={armar}>
             <h2 id="rmi-titulo">Crear roadmap de {cliente}</h2>
             <p className="msj-modal__ayuda">Pegá el link de Fathom y la IA arma los próximos pasos y el mensaje en tu voz. Vos lo revisás antes de que lo vea.</p>
+            {diagnosticos.length ? (
+              <div className="rmi-llamadas">
+                <span>Resolver un diagnóstico</span>
+                <div>
+                  {diagnosticos.map((x) => (
+                    <div key={x.id} className={`rmi-llamada rmi-diag${diagnostico === x.id ? ' is-on' : ''}`}>
+                      <button type="button" className="rmi-llamada__usar" aria-pressed={diagnostico === x.id} onClick={() => setDiagnostico((d) => (d === x.id ? null : x.id))} disabled={paso === 'armando'}>
+                        <b>{x.cuello || 'Diagnóstico de cuello de botella'}</b>
+                        <small>Aprobado el {new Date(x.aprobado_en).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}{diagnostico === x.id ? ' · la llamada es opcional' : ''}</small>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {recientes.length ? (
               <div className="rmi-llamadas">
                 <span>Tus llamadas de hoy</span>
@@ -443,7 +468,7 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
               </div>
             ) : null}
             <label className="msj-modal__campo">
-              <span>Link de Fathom de la llamada</span>
+              <span>Link de Fathom de la llamada{diagnostico ? ' (opcional)' : ''}</span>
               <input type="text" value={fathom} onChange={(e) => setFathom(e.target.value)} placeholder="https://fathom.video/…" autoFocus disabled={paso === 'armando'} />
             </label>
             {buscando ? <p className="rmi-estado">Trayendo la llamada de Fathom…</p> : null}

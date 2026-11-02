@@ -94,6 +94,37 @@ def test_el_borrador_con_ia_trae_pasos_mensaje_con_link_y_entregables(monkeypatc
 
 
 
+def test_el_roadmap_puede_resolver_un_diagnostico_aprobado_sin_llamada(monkeypatch):
+    from src.services import cuellos_service as cs
+    from src.services import roadmap_ia_service as ria
+
+    vistos = {}
+
+    def falso(sistema, usuario):
+        if "Transcripción de la llamada" in usuario:
+            vistos["prompt"] = sistema + usuario
+        return '{"titulo": "Seguidores sin conversaciones", "area": "Setting", "pasos": [{"texto": "Cambiá el CTA del perfil", "quien": "cliente"}], "mensaje": "este es el plan", "entregables": [], "resumen": "x"}'
+
+    monkeypatch.setattr(ria.ClienteExterno, "get", staticmethod(lambda **kw: type("C", (), {"nombre": "Ana Scheffer", "email": "a@x.com", "plan_actual": "mentoria"})()))
+    pedidos = []
+    monkeypatch.setattr(cs, "para_roadmap", lambda d, c: pedidos.append((d, c)) or "# Diagnóstico\nEl problema no es el tráfico.\n[captura 01:00]\n# Solución\n### 5.1 CTA con keyword")
+    # Sin llamada y sin diagnóstico no alcanza; con el diagnóstico sí.
+    with pytest.raises(HTTPException):
+        ria.RoadmapIAServices().generar(EQUIPO, CLIENTE, "", llamar=falso)
+    b = ria.RoadmapIAServices().generar(EQUIPO, CLIENTE, "", llamar=falso, diagnostico_id=7)
+    assert pedidos == [(7, CLIENTE)] and b["titulo"] == "Seguidores sin conversaciones"
+    p = vistos["prompt"]
+    assert "ESTE ROADMAP RESUELVE UN DIAGNÓSTICO" in p and "No hubo llamada" in p and "5.1 CTA con keyword" in p and "(no hubo llamada)" in p
+
+
+def test_el_cuello_en_una_frase_y_solo_aprobados_del_cliente():
+    from src.services import cuellos_service as cs
+
+    assert cs.cuello("# Diagnóstico\n**El problema no es el tráfico.** No hay conversaciones.\n# Causas\nx") == "El problema no es el tráfico. No hay conversaciones."
+    with pytest.raises(HTTPException):
+        cs.para_roadmap(-1, CLIENTE)
+
+
 def test_el_cerebro_aprende_de_las_correcciones_y_de_los_resultados(monkeypatch):
     from src.services import roadmap_ia_service as ria
     from src.services import roadmaps_aprendidos as apr

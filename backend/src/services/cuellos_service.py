@@ -406,6 +406,22 @@ def _no_vacio(texto: str) -> None:
         raise HTTPException(status_code=422, detail="El documento quedó vacío: cerrá y volvé a abrir el diagnóstico antes de guardar.")
 
 
+def cuello(texto: str) -> str:
+    """El cuello de botella en una frase: la primera del Diagnóstico ("El problema no es el tráfico. ...")."""
+    primera = next((l.strip() for l in secciones(texto).get("Diagnóstico", "").splitlines() if l.strip()), "")
+    primera = re.sub(r"\*\*|^[-•>]\s*", "", primera)
+    return primera if len(primera) <= 140 else primera[:139].rsplit(" ", 1)[0] + "…"
+
+
+def para_roadmap(diag_id: int, cliente_id: int) -> str:
+    """El diagnóstico aprobado de ese cliente, como texto para la IA del roadmap (sin las capturas)."""
+    with db_session:
+        d = CuelloDiagnostico.get(id=diag_id)
+        if d is None or d.cliente_id != cliente_id or d.estado != "aprobado":
+            raise HTTPException(status_code=404, detail="Ese diagnóstico no es de este cliente o todavía no se aprobó.")
+        return cuellos_capturas.sin_marcas(d.version_final or "").strip()
+
+
 def _en_segundo_plano(diag_id: int) -> None:
     threading.Thread(target=procesar, args=(diag_id,), daemon=True).start()
 
@@ -570,7 +586,11 @@ class CuellosServices:
                 vistos.add(periodo)
                 r = json.loads(rj or "{}")
                 lista.append({"periodo": periodo, "cuello": r.get("cuello"), "typeform": isinstance(r.get("typeform"), list)})
-            return {"ultimo": ultimo[0].id if ultimo else None, "jeremy": bool(JEREMY_URL and JEREMY_SECRET), "cierres": lista}
+            aprobados = list(CuelloDiagnostico.select_by_sql(
+                f'SELECT * FROM "{DB_SCHEMA}"."cuellos_diagnosticos" WHERE cliente_id = $cliente_id AND estado = \'aprobado\' ORDER BY aprobado_en DESC LIMIT 10'))
+            return {"ultimo": ultimo[0].id if ultimo else None, "jeremy": bool(JEREMY_URL and JEREMY_SECRET), "cierres": lista,
+                    # Para "Crear roadmap": el roadmap puede salir de un diagnóstico ya aprobado, para resolverlo.
+                    "aprobados": [{"id": d.id, "aprobado_en": d.aprobado_en.isoformat() + "Z", "cuello": cuello(d.version_final)} for d in aprobados]}
 
     def lista(self) -> dict:
         with db_session:

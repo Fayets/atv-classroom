@@ -20,6 +20,7 @@ from pony.orm import db_session
 
 from src.models import Admin, Canal, ClienteExterno, Llamada
 from src.services import aprendizaje_service as ap
+from src.services import cuellos_service as cuellos
 from src.services import sops_service as sops
 from src.services import gasto_ia
 from src.services import roadmaps_aprendidos as aprendidos
@@ -72,6 +73,18 @@ También proponé un título corto para el roadmap (el tema que se trabajó, por
 Respondé SOLO con un JSON válido, sin texto antes ni después:
 {{"titulo": "...", "area": "...", "pasos": [{{"texto": "...", "quien": "cliente"}}],
 "mensaje": "...", "entregables": [{{"titulo": "...", "sop": 33}}], "resumen": "..."{seguimiento}}}"""
+
+_DIAGNOSTICO = """
+
+ESTE ROADMAP RESUELVE UN DIAGNÓSTICO: a {cliente} ya le mandaste el diagnóstico de su cuello de botella (más
+abajo). Los pasos salen de lo que propone el diagnóstico, sobre todo de Solución y Expectativas, en ese
+orden, bajados a tareas concretas en tu voz; si además hay una llamada, sumá lo que se acordó ahí. No
+contradigas el diagnóstico ni sumes nada de "Qué no hacer". El título del roadmap es el cuello de botella
+en pocas palabras (por ejemplo "Seguidores sin conversaciones"), y el mensaje le dice que este es el plan
+para resolverlo.{sin_llamada}"""
+
+_SIN_LLAMADA = """ No hubo llamada: armalo solo con el diagnóstico, y el mensaje no habla de ninguna llamada
+ni de su grabación."""
 
 _SEGUIMIENTO = """
 
@@ -289,7 +302,8 @@ def _corregir_persona(borrador: dict, coach: str, llamar) -> dict:
     return borrador
 
 
-def armar_prompt(coach: str, cliente: str, voz: dict, perfil: dict | None, transcripcion: str, aprendido: str = "", anterior: dict | None = None) -> tuple[str, str]:
+def armar_prompt(coach: str, cliente: str, voz: dict, perfil: dict | None, transcripcion: str, aprendido: str = "", anterior: dict | None = None,
+                 diagnostico: str = "") -> tuple[str, str]:
     from src.services.aprendizaje_service import voz_para_ia
 
     voz = voz_para_ia(voz)  # sin nombres de otros clientes: la IA los copiaba
@@ -299,6 +313,8 @@ def armar_prompt(coach: str, cliente: str, voz: dict, perfil: dict | None, trans
         coach=coach, cliente=cliente, enlace=ENLACE_ROADMAP,
         seguimiento=', "seguimiento": [{"id": 1, "estado": "hecho", "resultado": "..."}]' if anterior else "",
     ) + (_SEGUIMIENTO if anterior else "")
+    if diagnostico:
+        sistema += _DIAGNOSTICO.format(cliente=cliente, sin_llamada="" if transcripcion.strip() else _SIN_LLAMADA)
     previo = ""
     if anterior:
         lineas = "\n".join(f"  {p['id']}. {p['texto']}" + (" [el cliente lo tildó como hecho]" if p.get("hecho") else "") for p in anterior["pasos"])
@@ -312,13 +328,15 @@ Lo que sabemos de {cliente}: {perfil_txt}{previo}
 SOPs del classroom (número, clase y módulo):
 {sops.para_prompt()}
 
+{(chr(10) + "Diagnóstico de cuello de botella que ya le mandaste:" + chr(10) + diagnostico + chr(10)) if diagnostico else ""}
 Transcripción de la llamada:
-{_recortar(corregir_rubro(transcripcion))}"""
+{_recortar(corregir_rubro(transcripcion)) if transcripcion.strip() else "(no hubo llamada)"}"""
     return sistema, usuario
 
 
 class RoadmapIAServices:
-    def generar(self, sesion: dict, cliente_id: int, transcripcion: str | None, llamar=_llamar, llamada_id: int | None = None, fathom_url: str | None = None) -> dict:
+    def generar(self, sesion: dict, cliente_id: int, transcripcion: str | None, llamar=_llamar, llamada_id: int | None = None, fathom_url: str | None = None,
+                diagnostico_id: int | None = None) -> dict:
         if not es_equipo(sesion):
             raise HTTPException(status_code=403, detail="El roadmap lo arma el equipo de ATV.")
         if llamada_id:
@@ -329,8 +347,13 @@ class RoadmapIAServices:
                     raise HTTPException(status_code=404, detail="No existe esa llamada.")
                 transcripcion = ll.transcripcion or ""
                 fathom_url = fathom_url or ll.share_url or ll.url
+        # Un diagnóstico de cuello de botella ya aprobado alcanza solo: el roadmap es para resolverlo (Juampi
+        # manda el diagnóstico y después el roadmap, sin llamada en el medio).
+        diagnostico = cuellos.para_roadmap(diagnostico_id, cliente_id) if diagnostico_id else ""
         if len((transcripcion or "").strip()) < 200:
-            raise HTTPException(status_code=422, detail="Pegá la transcripción completa de la llamada.")
+            if not diagnostico:
+                raise HTTPException(status_code=422, detail="Pegá la transcripción completa de la llamada.")
+            transcripcion = ""
         with db_session:
             c = ClienteExterno.get(id=cliente_id)
             if c is None:
@@ -348,7 +371,7 @@ class RoadmapIAServices:
         # qué pasos dieron resultado con clientes parecidos. Y el roadmap anterior de este cliente.
         aprendido = aprendidos.texto_para_prompt(aprendidos.contexto(sesion["usuario_id"], cliente_id, (perfil or {}).get("nicho")), coach)
         anterior = aprendidos.anterior_del_cliente(cliente_id)
-        sistema, usuario = armar_prompt(coach, cliente, ap.voz_de(voz_id), perfil, transcripcion, aprendido, anterior)
+        sistema, usuario = armar_prompt(coach, cliente, ap.voz_de(voz_id), perfil, transcripcion, aprendido, anterior, diagnostico)
         try:
             borrador = _corregir_persona(_limpiar(_json_de(llamar(sistema, usuario)), anterior), coach, llamar)
             borrador = _sin_cliente_en_atv(_sumar_sops(borrador, llamar), cliente)
@@ -362,5 +385,6 @@ class RoadmapIAServices:
         except Exception:
             logger.exception("No se pudo armar el roadmap con IA")
             raise HTTPException(status_code=502, detail="No se pudo armar el borrador. Probá de nuevo en un minuto.")
-        borrador["borrador_id"] = aprendidos.registrar_borrador(cliente_id, sesion["usuario_id"], voz_id, borrador, transcripcion, fathom_url)
+        fuente = transcripcion + (f"\n\n[Diagnóstico de cuello de botella #{diagnostico_id}]\n{diagnostico}" if diagnostico else "")
+        borrador["borrador_id"] = aprendidos.registrar_borrador(cliente_id, sesion["usuario_id"], voz_id, borrador, fuente.strip(), fathom_url)
         return borrador

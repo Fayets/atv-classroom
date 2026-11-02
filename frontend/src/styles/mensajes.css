@@ -810,6 +810,9 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmi-llamada__deshacer { align-self: center; font-size: 12px; color: var(--m-t3, #6e6e73); }
 .rmi-llamada__deshacer button { border: 0; background: none; padding: 0 0 0 4px; font: inherit; font-weight: 600; color: var(--m-acento, #c0392b); cursor: pointer; }
 .rmi-llamada b { font-size: 12.5px; }
+.rmi-diag { max-width: 100%; }
+.rmi-diag .rmi-llamada__usar { padding-right: 10px; min-width: 0; }
+.rmi-diag b { font-weight: 600; overflow-wrap: anywhere; }
 .rmi-llamada small { font-size: 11px; color: var(--m-t4, #8e8e93); }
 .rmi-llamada.is-on { border-color: var(--m-acento, #c0392b); box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.15); }
 .msj-acciones.rmc.is-vacia { display: none; } /* el armado con IA es un portal: igual se abre */
