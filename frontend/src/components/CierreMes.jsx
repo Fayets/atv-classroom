@@ -212,6 +212,11 @@ export function CierreSync() {
   const [aviso, setAviso] = useState(true)
   const [vuelta, setVuelta] = useState(0) // cada creador arranca un formulario nuevo
   const acciones = useRef(0)
+  // Link "?cierre=2026-10" (lo manda el equipo por el chat): abre el formulario de otro creador de ese mes,
+  // para el que ya completó uno y cerró sin seguir con el siguiente. Va aparte de lo pendiente para que el
+  // refresco de cada 10 minutos no se lo cierre.
+  const pedido = useRef(new URLSearchParams(window.location.search).get('cierre'))
+  const [otro, setOtro] = useState(null)
 
   const refrescar = useCallback(async () => {
     try {
@@ -230,7 +235,18 @@ export function CierreSync() {
     } catch {
       /* sin almacenamiento: se muestra */
     }
-    refrescar().then((p) => p?.vencido && setCartel(true))
+    if (pedido.current) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('cierre')
+      window.history.replaceState(window.history.state, '', url)
+      fetchOtroCreador(pedido.current)
+        .then((p) => {
+          setOtro(p)
+          setFormulario(true)
+        })
+        .catch(() => {})
+    }
+    refrescar().then((p) => !pedido.current && p?.vencido && setCartel(true))
     const cada = setInterval(refrescar, 10 * 60 * 1000)
     return () => clearInterval(cada)
   }, [cliente, refrescar])
@@ -257,7 +273,7 @@ export function CierreSync() {
     sumar()
   }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!cliente || !pendiente) return null
+  if (!cliente || !(otro || pendiente)) return null
 
   const completar = () => {
     setCartel(false)
@@ -274,14 +290,14 @@ export function CierreSync() {
 
   return createPortal(
     <>
-      {!pendiente.vencido && aviso && !formulario ? (
+      {pendiente && !pendiente.vencido && aviso && !formulario ? (
         <div className="cm-aviso" role="status">
           <span><b>Cierre de {pendiente.mes}</b> · tenés hasta el {dia(pendiente.vence_en)}. Son 3 minutos.</span>
           <button type="button" className="cm-aviso__si" onClick={completar}>Completar</button>
           <button type="button" className="cm-aviso__x" onClick={cerrarAviso} aria-label="Cerrar aviso">×</button>
         </div>
       ) : null}
-      {cartel && !formulario ? (
+      {pendiente && cartel && !formulario ? (
         <div className="pausa-fondo" onClick={(e) => e.target === e.currentTarget && setCartel(false)}>
           <div className="pausa-tarjeta cm-cartel" role="dialog" aria-modal="true" aria-labelledby="cm-cartel-titulo">
             <span className="cm-cartel__icono" aria-hidden="true">!</span>
@@ -298,16 +314,20 @@ export function CierreSync() {
         <div className="cm-fondo">
           <Formulario
             key={vuelta}
-            pendiente={pendiente}
-            alCerrar={() => setFormulario(false)}
+            pendiente={otro || pendiente}
+            alCerrar={() => {
+              setFormulario(false)
+              setOtro(null)
+            }}
             alTerminar={() => {
               setFormulario(false)
+              setOtro(null)
               setPendiente(null)
               refrescar()
             }}
             alOtro={async () => {
               try {
-                setPendiente(await fetchOtroCreador(pendiente.periodo))
+                setOtro(await fetchOtroCreador((otro || pendiente).periodo))
                 setVuelta((n) => n + 1)
               } catch {
                 setFormulario(false)
