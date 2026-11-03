@@ -317,3 +317,6 @@ a.fd-boton { text-decoration: none; display: inline-block; }
 .ci-filtro small { margin-left: 4px; font-weight: 400; color: #8e8e93; }
 .ci-filtro button { padding: 3px 10px; border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 6px; background: #fff; font: inherit; font-size: 12px; font-weight: 400; color: #0a64d6; cursor: pointer; }
 .esc-iconos.is-izquierda { right: auto; left: 22px; flex-wrap: wrap; }
+.ci-lado { flex: 1; min-height: 0; display: grid; }
+.ci-lado > .ci-vista { min-height: 0; border-left: 1px solid rgba(0, 0, 0, 0.08); }
+.ci-lado > .ci-vista:first-child { border-left: 0; }

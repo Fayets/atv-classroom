@@ -91,6 +91,27 @@ function Respuestas({ c }) {
   )
 }
 
+// Un cliente con varios creadores tiene un formulario por creador: se abren uno al lado del otro.
+function DelCliente({ g }) {
+  if (g.items.length === 1) return <Respuestas c={g.items[0]} />
+  return (
+    <div className="ci-lado" style={{ gridTemplateColumns: `repeat(${g.items.length}, minmax(0, 1fr))` }}>
+      {g.items.map((c) => <Respuestas key={c.id} c={c} />)}
+    </div>
+  )
+}
+
+// Las respuestas de un mes agrupadas por cliente (un PDF por cliente aunque tenga varios creadores).
+function porCliente(lista) {
+  const grupos = new Map()
+  for (const c of lista) {
+    const g = grupos.get(c.cliente_id) || { id: `g${c.cliente_id}`, cliente_id: c.cliente_id, nombre: c.nombre, items: [] }
+    g.items.push(c)
+    grupos.set(c.cliente_id, g)
+  }
+  return [...grupos.values()]
+}
+
 function Enviar({ datos, alEnviado }) {
   const [periodo, setPeriodo] = useState(datos.sugerido)
   const [confirmar, setConfirmar] = useState(false)
@@ -327,7 +348,8 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
   const q = normal(buscar.trim())
   const completaron = useMemo(() => (mes?.completaron || []).filter((c) => (!q || normal(c.nombre).includes(q)) && (!filtro || filtro.ids.includes(c.id))), [mes, q, filtro])
   const faltan = useMemo(() => (mes?.faltan || []).filter((c) => !q || normal(c.nombre).includes(q)), [mes, q])
-  const actual = mes?.completaron.find((c) => c.id === dentro)
+  const grupos = useMemo(() => porCliente(completaron), [completaron])
+  const actual = grupos.find((g) => g.id === dentro)
 
   function ir(p) {
     setMetricas(false)
@@ -341,7 +363,8 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
   function elegir(f) {
     setFiltro(f)
     setSel(null)
-    if (f.ids.length === 1) setDentro(f.ids[0])
+    const clientes = new Set((mes?.completaron || []).filter((c) => f.ids.includes(c.id)).map((c) => c.cliente_id))
+    if (clientes.size === 1) setDentro(`g${[...clientes][0]}`)
   }
   const atras = () => (dentro ? setDentro(null) : filtro ? setFiltro(null) : ir(null))
 
@@ -363,20 +386,22 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
     window.addEventListener('pointerup', soltar)
   }
 
+  // hecho: c es un cliente con sus formularios (c.items), uno por creador.
+  const creadoresDe = (c) => c.items.map((x) => x.creador).filter(Boolean)
   const archivo = (c, hecho) => (
     <button
-      key={hecho ? `r${c.id}` : `f${c.cliente_id}`}
+      key={hecho ? c.id : `f${c.cliente_id}`}
       type="button"
       className={`fd-item${sel === (hecho ? c.id : `f${c.cliente_id}`) ? ' is-sel' : ''}`}
       onClick={() => setSel(hecho ? c.id : `f${c.cliente_id}`)}
       onDoubleClick={() => hecho && setDentro(c.id)}
-      title={hecho ? `${c.nombre}${c.creador ? ` · ${c.creador}` : ''} · completó el ${fecha(c.completado_en)}` : `${c.nombre} · todavía no lo completó`}
+      title={hecho ? `${c.nombre}${creadoresDe(c).length ? ` · ${creadoresDe(c).join(' y ')}` : ''} · completó el ${fecha(c.items[0].completado_en)}` : `${c.nombre} · todavía no lo completó`}
     >
       <span className="ob-icono">
         <IconoPdf tamano={58} apagado={!hecho} />
         {!hecho && mes?.vencido && !mes?.importado ? <i className="ob-icono__aviso ct-pendiente" title="Se le venció el plazo" /> : null}
       </span>
-      <span>{c.nombre}{hecho && c.creador ? <small className="fd-gris"> · {c.creador}</small> : null}</span>
+      <span>{c.nombre}{hecho && c.items.length > 1 ? <small className="fd-gris"> · {c.items.length} creadores</small> : hecho && creadoresDe(c)[0] ? <small className="fd-gris"> · {creadoresDe(c)[0]}</small> : null}</span>
     </button>
   )
 
@@ -388,7 +413,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
       onPointerDown={alEnfocar}
       onKeyDown={(e) => {
         if (e.target.tagName === 'INPUT') return
-        if (e.key === 'Enter' && sel && !dentro) (periodo ? mes?.completaron.some((c) => c.id === sel) && setDentro(sel) : ir(sel))
+        if (e.key === 'Enter' && sel && !dentro) (periodo ? grupos.some((g) => g.id === sel) && setDentro(sel) : ir(sel))
         if (e.key === 'Backspace' && (dentro || periodo)) atras()
       }}
       tabIndex={-1}
@@ -450,7 +475,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
           {metricas ? (
             <Metricas />
           ) : dentro && actual ? (
-            <Respuestas c={actual} />
+            <DelCliente g={actual} />
           ) : periodo ? (
             !mes ? (
               <p className="fd-vacio">Cargando…</p>
@@ -460,16 +485,16 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
                 {filtro ? (
                   <>
                     <p className="ci-filtro">
-                      <span>{filtro.titulo} <small>{completaron.length}</small></span>
+                      <span>{filtro.titulo} <small>{grupos.length}</small></span>
                       <button type="button" onClick={() => setFiltro(null)}>Ver todo el mes</button>
                     </p>
-                    <div className="fd-grilla">{completaron.map((c) => archivo(c, true))}</div>
+                    <div className="fd-grilla">{grupos.map((c) => archivo(c, true))}</div>
                   </>
                 ) : (
                   <>
                     {!q ? <ResumenMes mes={mes} alElegir={elegir} /> : null}
-                    <h4 className="ci-grupo">Completaron <small>{completaron.length}</small></h4>
-                    {completaron.length ? <div className="fd-grilla">{completaron.map((c) => archivo(c, true))}</div> : <p className="fd-vacio ci-vacio">Todavía nadie.</p>}
+                    <h4 className="ci-grupo">Completaron <small>{grupos.length}</small></h4>
+                    {grupos.length ? <div className="fd-grilla">{grupos.map((c) => archivo(c, true))}</div> : <p className="fd-vacio ci-vacio">Todavía nadie.</p>}
                     <h4 className="ci-grupo">Faltan <small>{faltan.length}</small></h4>
                     {faltan.length ? <div className="fd-grilla">{faltan.map((c) => archivo(c, false))}</div> : <p className="fd-vacio ci-vacio">No falta nadie.</p>}
                   </>
