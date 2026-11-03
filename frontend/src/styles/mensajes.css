@@ -813,10 +813,9 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmi-diag { width: 100%; max-width: 100%; min-width: 0; }
 .rmi-diag .rmi-llamada__usar { flex: 1; padding-right: 10px; min-width: 0; display: flex; flex-direction: row; align-items: center; gap: 12px; }
 .rmi-diag .ob-pdf { flex: none; }
-/* Como un archivo: nombre del PDF, el cuello en una línea y la fecha (Franco, 03-11-2026). */
+/* Como un archivo: "Diagnóstico" y la fecha, nada más (Franco, 03-11-2026). */
 .rmi-diag__texto { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .rmi-diag b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rmi-diag i { font-style: normal; font-size: 12px; color: var(--m-t3, #6e6e73); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rmi-llamada small { font-size: 11px; color: var(--m-t4, #8e8e93); }
 .rmi-llamada.is-on { border-color: var(--m-acento, #c0392b); box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.15); }
 .msj-acciones.rmc.is-vacia { display: none; } /* el armado con IA es un portal: igual se abre */

@@ -441,9 +441,8 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
                       <button type="button" className="rmi-llamada__usar" aria-pressed={diagnostico === x.id} onClick={() => setDiagnostico((d) => (d === x.id ? null : x.id))} disabled={paso === 'armando'}>
                         <IconoPdf tamano={40} />
                         <span className="rmi-diag__texto">
-                          <b>Diagnóstico de {cliente}.pdf</b>
-                          <i>{x.cuello || 'Cuello de botella'}</i>
-                          <small>Enviado el {new Date(x.aprobado_en).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}{diagnostico === x.id ? ' · la llamada es opcional' : ''}</small>
+                          <b>Diagnóstico</b>
+                          <small>{new Date(x.aprobado_en).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}</small>
                         </span>
                       </button>
                     </div>
