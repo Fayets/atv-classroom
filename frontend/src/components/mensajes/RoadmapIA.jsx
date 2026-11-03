@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { enviarMensaje } from '../../api/mensajes'
 import { fetchLlamada, fetchLlamadas, llamadaPorLink, borrarLlamada } from '../../api/llamadas'
 import { crearDoc, generarRoadmap } from '../../api/roadmap'
-import { fetchCuellosCliente } from '../../api/cuellos'
+import { borrarCuello, fetchCuellosCliente } from '../../api/cuellos'
 import { useAuth } from '../../context/AuthContext'
 import { IconoPdf } from '../mac/OnboardingsCarpeta'
 
@@ -310,6 +310,31 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
   useEffect(() => {
     fetchCuellosCliente(clienteId).then((d) => setDiagnosticos(d.aprobados || [])).catch(() => null)
   }, [clienteId])
+  // Borrar un diagnóstico (Franco, 03-11-2026): igual que las llamadas, se va al toque y hay 4 s para deshacer.
+  const [borrandoDiag, setBorrandoDiag] = useState(null)
+  const relojDiag = useRef(null)
+  const pendienteDiag = useRef(null) // si se cierra el modal antes de los 4 s, se borra igual
+  pendienteDiag.current = borrandoDiag
+  useEffect(() => () => {
+    clearTimeout(relojDiag.current)
+    if (pendienteDiag.current) borrarCuello(pendienteDiag.current.id).catch(() => null)
+  }, [])
+  function borrarDiagnostico(x) {
+    if (borrandoDiag) confirmarDiagnostico(borrandoDiag)
+    if (diagnostico === x.id) setDiagnostico(null)
+    setBorrandoDiag(x)
+    clearTimeout(relojDiag.current)
+    relojDiag.current = setTimeout(() => confirmarDiagnostico(x), 4000)
+  }
+  function confirmarDiagnostico(x) {
+    clearTimeout(relojDiag.current)
+    setBorrandoDiag(null)
+    setDiagnosticos((ds) => ds.filter((d) => d.id !== x.id))
+    borrarCuello(x.id).catch((e) => {
+      setDiagnosticos((ds) => (ds.some((d) => d.id === x.id) ? ds : [...ds, x]))
+      setError(e.message || 'No se pudo borrar el diagnóstico.')
+    })
+  }
   const [editarTexto, setEditarTexto] = useState(false)
 
   // Pegás el link y se trae la llamada con su transcripción (de la carpeta Llamadas o del Fathom del equipo).
@@ -436,7 +461,7 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
               <div className="rmi-llamadas">
                 <span>Resolver un diagnóstico</span>
                 <div>
-                  {diagnosticos.map((x) => (
+                  {diagnosticos.filter((x) => x.id !== borrandoDiag?.id).map((x) => (
                     <div key={x.id} className={`rmi-llamada rmi-diag${diagnostico === x.id ? ' is-on' : ''}`}>
                       <button type="button" className="rmi-llamada__usar" aria-pressed={diagnostico === x.id} onClick={() => setDiagnostico((d) => (d === x.id ? null : x.id))} disabled={paso === 'armando'}>
                         <IconoPdf tamano={40} />
@@ -445,8 +470,14 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
                           <small>{new Date(x.aprobado_en).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}</small>
                         </span>
                       </button>
+                      <button type="button" className="rmi-llamada__borrar" onClick={() => borrarDiagnostico(x)} disabled={paso === 'armando'} aria-label="Borrar este diagnóstico" title="Borrar este diagnóstico">✕</button>
                     </div>
                   ))}
+                  {borrandoDiag ? (
+                    <span className="rmi-llamada__deshacer">
+                      Diagnóstico borrado <button type="button" onClick={() => { clearTimeout(relojDiag.current); setBorrandoDiag(null) }}>Deshacer</button>
+                    </span>
+                  ) : null}
                 </div>
               </div>
             ) : null}
