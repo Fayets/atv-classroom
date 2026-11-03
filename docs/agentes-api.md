@@ -1,8 +1,9 @@
 # API de lectura para agentes (`/api/agentes`)
 
 Los agentes de IA del equipo (Command Center, en la Mac de Franco) leen desde acá los chats de los
-clientes, su progreso, sus llamadas y su onboarding para preparar borradores de respuesta. **Los
-mensajes los manda siempre una persona**: esta API no escribe nada.
+clientes, su progreso, sus llamadas y su onboarding para preparar borradores de respuesta, y con
+`POST /api/agentes/consulta` pueden leer **toda la base** (cada tabla de cada esquema, sin secretos).
+**Los mensajes los manda siempre una persona**: esta API no escribe nada.
 
 ## Qué garantiza
 
@@ -11,7 +12,12 @@ mensajes los manda siempre una persona**: esta API no escribe nada.
   toca el esquema: no hay escrituras posibles, ni aunque una consulta las intente.
 - **Nunca canales privados.** Los canales `directo`, `privado` y `dm` no existen para los agentes;
   los endpoints de canales solo aceptan canales de tipo `cliente`. Los mensajes borrados no salen.
-- **Plata solo con permiso.** Totales, pagos y cuotas solo para las claves con el permiso `plata`.
+  Vale también para las tablas del classroom (`classroom__mensajes_canal`, `classroom__canales`,
+  `classroom__adjuntos`, …): esas filas no están.
+- **Plata solo con permiso.** Totales, pagos, cuotas, caja y montos solo para las claves con el
+  permiso `plata`.
+- **Sin secretos.** Contraseñas, hashes, tokens, claves de API, cifrados, sesiones de login y el
+  esquema `neon_auth` no se pueden leer con ninguna clave (ver [Toda la base](#toda-la-base)).
 - **Registro.** Cada pedido deja en el log (`agentes`) el nombre del agente, el método y la ruta.
   Nunca la clave ni el contenido de los mensajes.
 - **Apagada por defecto.** Sin `AGENTES_KEYS` todas las rutas responden 404.
@@ -38,8 +44,9 @@ AGENTES_KEYS={"redactor": {"sha256": "<sha256 de la clave>", "scopes": ["lectura
 ```
 
 - `lectura`: obligatorio para usar la API (sin él, 403).
-- `plata`: opcional; suma las vistas `pagos` y `cuotas`, y las columnas `total_pagado_usd`,
-  `total_adeudado_usd` y `prioridad_cobro` de los clientes. Por defecto, no darlo.
+- `plata`: opcional; suma las vistas `pagos` y `cuotas`, las columnas `total_pagado_usd`,
+  `total_adeudado_usd` y `prioridad_cobro` de los clientes, y en toda la base las tablas y columnas
+  de plata (ver [Toda la base](#toda-la-base)). Por defecto, no darlo.
 - Si el JSON está mal escrito, la API queda apagada (404) y el log lo avisa.
 
 Para revocar una clave: sacar su entrada de `AGENTES_KEYS` y reiniciar el backend.
@@ -51,7 +58,8 @@ Para revocar una clave: sacar su entrada de `AGENTES_KEYS` y reiniciar el backen
 | 404 | API apagada (sin `AGENTES_KEYS`), o el canal / cliente no existe (o el canal no es de cliente) |
 | 401 | Falta `X-Agente-Key` o la clave no es de ningún agente |
 | 403 | La clave no tiene el permiso `lectura` |
-| 400 | La consulta SQL no está permitida o la base la rechazó (`detail` dice por qué) |
+| 400 | La consulta SQL no está permitida, nombra una tabla excluida para esa clave, o la base la rechazó (`detail` dice por qué) |
+| 503 | No se pudo leer el catálogo de la base (probar de nuevo en un rato) |
 | 422 | Parámetros fuera de rango (por ejemplo `limite=500`) |
 
 ## Endpoints
@@ -61,12 +69,22 @@ Las fechas salen en ISO, en UTC (`...Z`).
 
 ### `POST /api/agentes/consulta`
 
-Un `SELECT` (o `WITH … SELECT`) sobre las mismas vistas del chat del cerebro: `clientes`, `canales`,
-`mensajes`, `hechos`, `perfiles`, `onboarding`, `llamadas`, `roadmaps`, `consultas_guia`,
-`solicitudes_sop`, `programas`, `secciones`, `clases`, `progreso`, `frentes`, `proximos_pasos`,
-`observaciones`, `equipo` (y `pagos` / `cuotas` con `plata`). No se pueden nombrar tablas reales,
-esquemas, catálogos de Postgres ni escribir. Tope: 200 filas (`hay_mas` avisa si había más) y
-600 caracteres por celda.
+Un `SELECT` (o `WITH … SELECT`) sobre:
+
+- Las vistas del chat del cerebro: `clientes`, `canales`, `mensajes`, `hechos`, `perfiles`,
+  `onboarding`, `llamadas`, `roadmaps`, `consultas_guia`, `solicitudes_sop`, `programas`, `secciones`,
+  `clases`, `progreso`, `frentes`, `proximos_pasos`, `observaciones`, `equipo` (y `pagos` / `cuotas`
+  con `plata`).
+- **Toda la base**, como `<esquema>__<tabla>` (dos guiones bajos): `ops__leads_audiencia`,
+  `clients__clientes`, `classroom__llamadas`, `roadmaps__tareas`, … Qué hay y con qué columnas lo dice
+  [`GET /api/agentes/tablas`](#get-apiagentestablas).
+
+No se pueden nombrar tablas reales (`esquema.tabla`, aunque sea con comillas o comentarios en el
+medio), catálogos de Postgres (`pg_…`, `information_schema`), funciones que leen tablas por nombre
+(`query_to_xml`, `table_to_xml`, …) ni escribir. Como `onboarding` y `roadmaps` son a la vez vistas y
+esquemas, para nombrar sus columnas usá un alias (`FROM roadmaps r … r.titulo`, no `roadmaps.titulo`);
+lo mismo si le ponés a una tabla un alias igual a un esquema (`FROM ops__leads_audiencia ops` no:
+usá `l`). Tope: 200 filas (`hay_mas` avisa si había más), 600 caracteres por celda y 15 s por consulta.
 
 ```bash
 curl -s -X POST "$BASE/api/agentes/consulta" \
@@ -77,6 +95,100 @@ curl -s -X POST "$BASE/api/agentes/consulta" \
 ```json
 {"columnas": ["tipo", "count"], "filas": [["tema", 5120], ["dolor", 2210]], "cantidad": 2, "hay_mas": false}
 ```
+
+Más ejemplos (el valor de `"sql"`):
+
+```sql
+-- Una tabla cualquiera
+select * from ops__leads_audiencia limit 5
+
+-- Cuántas filas tiene
+select count(*) from ops__leads_audiencia
+
+-- Cruzar esquemas: llamadas de Fathom (classroom) por plan del cliente (clients)
+select c.plan_actual, count(*) from classroom__llamadas l
+join clients__clientes c on c.id = l.cliente_id group by 1 order by 2 desc
+
+-- Roadmaps (esquema roadmaps) con el estado del cliente
+select r.titulo, r.estado, c.nombre, c.estado_cliente from roadmaps__roadmaps r
+left join clients__clientes c on c.id = r.cliente_id_clients limit 20
+
+-- Mezclar con las vistas del cerebro
+select h.tipo, count(*) from hechos h join clients__clientes c on c.id = h.cliente_id
+where c.plan_actual = 'mid' group by 1
+```
+
+### `GET /api/agentes/tablas`
+
+Qué se puede consultar con esta clave: las vistas del cerebro y, por esquema, cada tabla con su nombre
+para consultar (`cte`), si es tabla o vista, las filas aproximadas (`filas_aprox`, de las
+estadísticas de Postgres; `null` si todavía no se midió), sus columnas con el tipo, y lo excluido con
+el motivo (`secreto` o `plata`). Las tablas sin chats privados traen una `nota`. Con `plata`, lo de
+plata deja de figurar como excluido y aparece en las columnas. El catálogo se arma solo, leyendo la
+base cada 10 minutos: una tabla nueva aparece sin tocar código.
+
+```bash
+curl -s "$BASE/api/agentes/tablas" -H "X-Agente-Key: $CLAVE"
+```
+
+```json
+{
+  "vistas": [{"nombre": "clientes", "descripcion": "Clientes de ATV. plan: ..."}],
+  "esquemas": {
+    "ops": {
+      "tablas": [
+        {
+          "tabla": "reuniones_crm", "cte": "ops__reuniones_crm", "tipo": "tabla", "filas_aprox": 501,
+          "columnas": [{"nombre": "id", "tipo": "integer"}, {"nombre": "prospecto", "tipo": "text"}],
+          "columnas_excluidas": [{"nombre": "cash_usd", "motivo": "plata"}]
+        }
+      ],
+      "tablas_excluidas": [{"tabla": "linea_pagos_docs", "cte": "ops__linea_pagos_docs", "motivo": "plata"}]
+    }
+  },
+  "esquemas_excluidos": [{"esquema": "neon_auth", "motivo": "secreto", "tablas": 9}],
+  "totales": {"esquemas": 11, "tablas": 152, "columnas": 1379, "tablas_excluidas": 22, "columnas_excluidas": 31}
+}
+```
+
+### Toda la base
+
+Cada tabla (y vista) de cada esquema se lee como una vista segura `<esquema>__<tabla>`: el servidor
+arma un `WITH` con solo las columnas permitidas y suma solo las tablas que la consulta nombra (así
+las consultas siguen siendo rápidas). La consulta corre en solo lectura y sin acceso a los esquemas
+reales, así que lo que no está en la vista no se puede leer. Las reglas
+(`backend/src/services/agentes_tablas.py`):
+
+**Secreto (ninguna clave lo ve):**
+
+- El esquema `neon_auth` entero.
+- Las tablas `classroom.sesiones`, las que se llaman `sesion`/`sesiones`/`session`/`sessions` o
+  terminan así (`onboarding.sessions`), y las que tienen en el nombre `token`, `credencial`, `secret`,
+  `vault`, `push_sub`/`push_sus`, `push_clave`, `webauthn` u `otp` (`classroom.push_suscripciones`,
+  `classroom.push_claves`). `ops.sesiones_notas` (notas de llamadas de setting) sí entra.
+- Las columnas de contraseñas (`pass…`), `hash`, `token` (no `tokens_entrada`/`tokens_salida`, que
+  son conteos de la IA), `secret…`, `api_key`, `clave_api`/`clave_privada`/`clave_cifrada`…, `cifrad…`,
+  `encrypt…`, `cookie`, `refresh…`, `access_key`, `vapid`, `credencial…`, `otp`, `privad…`/`private…`
+  y `auth`/`oauth`. No caen `autor`, `author`, `hashtag`, `cifras` ni `clave` sola (en esta base es el
+  nombre de un ajuste o de un evento, no una clave secreta).
+
+**Plata (solo con el permiso `plata`):**
+
+- Las tablas `clients.pagos`, `cuotas`, `cuota_comprobantes`, `cuota_eventos`, `pago_imputaciones`,
+  `caja_meta`, `caja_ventas_nuevas`, `analisis_cash`, y cualquier otra con `pago(s)`, `cuota(s)`,
+  `caja` o `cash` en el nombre (`ops.linea_pagos_docs`).
+- Las columnas `monto…`, `importe…`, `precio…`, `pagad…`, `adeudad…`, `cobr…` (`prioridad_cobro`),
+  `cash`, `usd`, `eur`, `ars` y `total_…` (por ejemplo `total_pagado_usd`, `cash_usd`, `costo_usd`,
+  `precio_usd`, `total_analizados`).
+
+**Chats privados:** en las tablas del classroom con canal (`classroom__canales`,
+`classroom__mensajes_canal`, y las que tienen `canal_id`: adjuntos, reacciones, menciones, lecturas,
+sugerencias…) no están las filas de los canales `directo`, `privado` y `dm`, ni los mensajes borrados.
+
+Hoy (3-11-2026) eso deja, sin `plata`, 152 tablas en 11 esquemas con 1379 columnas; afuera quedan
+`neon_auth` (9 tablas), `classroom.sesiones`, `classroom.push_claves`, `classroom.push_suscripciones`,
+`onboarding.sessions`, las 9 tablas de plata y 31 columnas (con `plata`: 161 tablas y 12 columnas
+afuera, todas secretas). La lista exacta y al día la da `GET /api/agentes/tablas`.
 
 ### `GET /api/agentes/canales/pendientes`
 

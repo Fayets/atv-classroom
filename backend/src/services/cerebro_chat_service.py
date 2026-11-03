@@ -130,12 +130,154 @@ VISTAS_PLATA = {
 }
 _COLUMNAS_PLATA = ", c.total_pagado_usd, c.total_adeudado_usd, c.prioridad_cobro"
 
-# Lo que nunca puede aparecer en una consulta: tablas reales, catálogos de Postgres, escrituras.
-_PROHIBIDO = re.compile(
-    r'\b(classroom|clients|public|ops|hiring|pg_catalog|information_schema)\s*"?\s*\.|\bpg_\w+|"\s*\.|;\s*\S'
-    r"|\b(insert|update|delete|drop|alter|create|grant|revoke|truncate|copy|call|do|execute|prepare|listen|notify|vacuum|set|reset|lock)\b",
-    re.I,
+# Lo que nunca puede aparecer en una consulta: tablas reales (esquema.tabla), catálogos de Postgres, escrituras.
+# Se revisa sobre las piezas de la consulta (piezas_sql), no sobre el texto: así ni los textos entre comillas,
+# ni los comentarios, ni las comillas de dólar ($$…$$) esconden un esquema.tabla o una escritura.
+_PALABRAS_PROHIBIDAS = frozenset(
+    "insert update delete drop alter create grant revoke truncate copy call do execute prepare listen notify vacuum set reset lock".split()
 )
+# Funciones que leen tablas por su nombre o corren SQL escrito en un texto (query_to_xml('select … from x.y'),
+# table_to_xml('x.y'), ts_stat('select …')) o que tocan la configuración de la sesión.
+_FUNCIONES_PROHIBIDAS = re.compile(r"pg_\w*|\w*_to_xml\w*|ts_stat|set_config|current_setting|lo_\w+|dblink\w*", re.I)
+# Los esquemas de la base; al correr la consulta se suman los que haya en pg_namespace (por si se crea uno nuevo).
+ESQUEMAS_CONOCIDOS = frozenset({
+    "calendars", "classroom", "clients", "ecosystem", "hiring", "landing", "neon_auth", "onboarding", "ops", "public",
+    "recursos", "roadmaps", "webinar", "pg_catalog", "pg_toast", "information_schema", S,
+})
+_NUMERO = re.compile(
+    r"0[xX][0-9a-fA-F_]+|0[oO][0-7_]+|0[bB][01_]+|(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*)(?:[eE][+-]?\d+)?"
+)
+_DOLAR = re.compile(r"\$([A-Za-z_\x80-\uffff][\w\x80-\uffff]*)?\$")
+
+
+def _es_letra(ch: str) -> bool:
+    return ch.isalpha() or ch == "_" or ord(ch) > 127
+
+
+def _fin_texto(q: str, i: int, barra: bool) -> int:
+    """Dónde termina el texto entre comillas simples que abre en i ('' es una comilla; con E'…' también \\')."""
+    j = i + 1
+    while j < len(q):
+        if barra and q[j] == "\\":
+            j += 2
+        elif q[j] == "'":
+            if q.startswith("''", j):
+                j += 2
+            else:
+                return j + 1
+        else:
+            j += 1
+    raise ValueError("hay un texto entre comillas sin cerrar")
+
+
+def piezas_sql(q: str) -> list[tuple[str, str]]:
+    """La consulta en piezas, como las lee Postgres: ("id", nombre) para los nombres (sin comillas, en minúscula),
+    ("idq", nombre) para los "nombres entre comillas", ("op", c) para cada signo y ("lit", "") para textos y números.
+    Los comentarios no son piezas. ValueError si hay algo que no se acepta ($1, U&"…") o quedó sin cerrar."""
+    piezas, i, n = [], 0, len(q)
+    while i < n:
+        ch = q[i]
+        if ch.isspace():
+            i += 1
+        elif q.startswith("--", i):
+            fin = q.find("\n", i)
+            i = n if fin < 0 else fin + 1
+        elif q.startswith("/*", i):
+            nivel, i = 1, i + 2
+            while nivel:
+                if i >= n:
+                    raise ValueError("hay un comentario /* sin cerrar")
+                if q.startswith("/*", i):
+                    nivel, i = nivel + 1, i + 2
+                elif q.startswith("*/", i):
+                    nivel, i = nivel - 1, i + 2
+                else:
+                    i += 1
+        elif ch == "'":
+            i = _fin_texto(q, i, barra=False)
+            piezas.append(("lit", ""))
+        elif ch == '"':
+            partes, j = [], i + 1
+            while True:
+                fin = q.find('"', j)
+                if fin < 0:
+                    raise ValueError("hay un nombre entre comillas dobles sin cerrar")
+                partes.append(q[j:fin])
+                if q.startswith('""', fin):
+                    partes.append('"')
+                    j = fin + 2
+                else:
+                    i = fin + 1
+                    break
+            piezas.append(("idq", "".join(partes)))
+        elif ch == "$":
+            m = _DOLAR.match(q, i)
+            if not m:
+                raise ValueError("no se aceptan parámetros $1, $2…")
+            fin = q.find(m.group(0), m.end())
+            if fin < 0:
+                raise ValueError("hay un texto entre $$ sin cerrar")
+            i = fin + len(m.group(0))
+            piezas.append(("lit", ""))
+        elif _es_letra(ch):
+            j = i
+            while j < n and (_es_letra(q[j]) or q[j].isdigit() or q[j] == "$"):
+                j += 1
+            palabra = q[i:j]
+            if j < n and q[j] == "'" and palabra.lower() in ("e", "b", "x", "n"):
+                i = _fin_texto(q, j, barra=palabra.lower() == "e")
+                piezas.append(("lit", ""))
+                continue
+            if j < n and q[j] == "&" and palabra.lower() == "u":
+                raise ValueError('no se aceptan nombres ni textos U&"…"')
+            piezas.append(("id", palabra.lower()))
+            i = j
+        elif ch.isdigit() or (ch == "." and i + 1 < n and q[i + 1].isdigit()):
+            i = _NUMERO.match(q, i).end()
+            piezas.append(("lit", ""))
+        else:
+            piezas.append(("op", ch))
+            i += 1
+    return piezas
+
+
+def nombres_sql(piezas: list[tuple[str, str]]) -> set[str]:
+    """Todos los nombres que usa la consulta (tablas, columnas, alias): con esto se sabe qué vistas nombra."""
+    return {v for tipo, v in piezas if tipo in ("id", "idq")}
+
+
+def problema_sql(piezas: list[tuple[str, str]], esquemas) -> str | None:
+    """Por qué la consulta no se puede correr, o None si está bien."""
+    for k, (tipo, v) in enumerate(piezas):
+        siguiente = piezas[k + 1] if k + 1 < len(piezas) else ("", "")
+        if (tipo, v) == ("op", ";"):
+            return "Una sola consulta por vez: sin ';' en el medio."
+        if tipo not in ("id", "idq"):
+            continue
+        if tipo == "id" and v in _PALABRAS_PROHIBIDAS:
+            return f"Solo lectura: «{v}» no está permitido."
+        if v.lower().startswith("pg_") or v.lower() == "information_schema":
+            return "Los catálogos de Postgres (pg_…, information_schema) no se pueden leer."
+        if siguiente == ("op", "(") and _FUNCIONES_PROHIBIDAS.fullmatch(v):
+            return f"La función «{v}» no está permitida."
+        if siguiente == ("op", ".") and v in esquemas:
+            return (
+                f"«{v}» es un esquema de la base: no se nombran tablas reales (esquema.tabla), solo las vistas "
+                f"listadas. Si es el alias de una vista, usá otro (por ejemplo: FROM {v} x … x.columna)."
+            )
+    return None
+
+
+def revisar_sql(consulta: str) -> tuple[str, list[tuple[str, str]], str | None]:
+    """La consulta limpia, sus piezas y el problema que tenga (o None), sin conectarse a la base."""
+    q = (consulta or "").strip().rstrip(";").strip()
+    if not re.match(r"(?is)^(select|with)\b", q):
+        return q, [], "Solo se permiten consultas SELECT (o WITH … SELECT)."
+    try:
+        piezas = piezas_sql(q)
+    except ValueError as exc:
+        return q, [], f"No se pudo leer la consulta: {exc}."
+    return q, piezas, problema_sql(piezas, ESQUEMAS_CONOCIDOS)
 
 
 def vistas_permitidas(plata: bool) -> dict:
@@ -155,24 +297,29 @@ def ejecutar_sql(sesion: dict, consulta: str) -> dict:
     return consultar_vistas(consulta, ve_plata(sesion))
 
 
-def consultar_vistas(consulta: str, plata: bool) -> dict:
-    """Lo mismo que ejecutar_sql sin sesión del classroom (lo usan los agentes): plata dice si entran las vistas de plata."""
-    q = (consulta or "").strip().rstrip(";").strip()
-    if not re.match(r"(?is)^(select|with)\b", q):
-        return {"error": "Solo se permiten consultas SELECT (o WITH … SELECT)."}
-    # Los textos entre comillas simples (lo que se busca con ILIKE) no cuentan para el control.
-    if _PROHIBIDO.search(re.sub(r"'(?:[^']|'')*'", "''", q)):
-        return {"error": "La consulta usa algo no permitido: solo podés leer las vistas listadas, sin esquemas, catálogos ni escrituras."}
-    vistas = vistas_permitidas(plata)
-    ctes = ",\n".join(f'"{nombre}" AS ({sql})' for nombre, (sql, _) in vistas.items())
+def consultar_vistas(consulta: str, plata: bool, tablas: dict | None = None) -> dict:
+    """Lo mismo que ejecutar_sql sin sesión del classroom (lo usan los agentes): plata dice si entran las vistas de plata.
+    tablas: más vistas {nombre: SELECT} (las tablas de toda la base para los agentes); entran solo las que la consulta nombra."""
+    q, piezas, problema = revisar_sql(consulta)
+    if problema:
+        return {"error": problema}
+    nombres = nombres_sql(piezas)
+    ctes = [(nombre, sql) for nombre, (sql, _) in vistas_permitidas(plata).items()]
+    ctes += [(nombre, sql) for nombre, sql in (tablas or {}).items() if nombre in nombres]
+    con_ctes = ",\n".join(f'"{nombre}" AS ({sql})' for nombre, sql in ctes)
     # Si la IA ya arrancó con WITH, sus CTE se suman a las nuestras.
-    final = f"WITH {ctes},\n{q[4:].lstrip()}" if re.match(r"(?i)^with\b", q) else f"WITH {ctes}\n{q}"
+    final = f"WITH {con_ctes},\n{q[4:].lstrip()}" if re.match(r"(?i)^with\b", q) else f"WITH {con_ctes}\n{q}"
     conn = psycopg2.connect(**_psycopg2_connect_kwargs())
     try:
         conn.set_session(readonly=True, autocommit=False)
         with conn.cursor() as cur:
             # Sin search_path a los esquemas reales: solo se resuelven las vistas de arriba.
             cur.execute("SET LOCAL statement_timeout = 15000; SET LOCAL search_path = pg_catalog")
+            # Los esquemas que existen hoy (por si apareció uno nuevo): ninguno se puede nombrar.
+            cur.execute("SELECT nspname FROM pg_namespace")
+            problema = problema_sql(piezas, ESQUEMAS_CONOCIDOS | {str(f[0]) for f in cur.fetchall()})
+            if problema:
+                return {"error": problema}
             cur.execute(final)
             columnas = [d[0] for d in cur.description]
             filas = cur.fetchmany(MAX_FILAS + 1)

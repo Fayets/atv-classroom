@@ -6,6 +6,8 @@ Solo lectura por construcción:
   descarta con rollback al terminar. Acá no hay entidades de Pony ni escrituras.
 - Nunca se leen los canales privados (directo, privado, dm) ni los mensajes borrados.
 - Plata (totales, pagos, cuotas) solo para las claves con el permiso "plata".
+- Toda la base se lee como vistas seguras `<esquema>__<tabla>` (ver agentes_tablas): sin secretos y con la
+  plata solo para "plata". Las tablas reales no se pueden nombrar.
 
 Claves: AGENTES_KEYS es un JSON {"<nombre>": {"sha256": "<hex de la clave>", "scopes": ["lectura"]}}.
 En la base y en el .env solo vive el hash; la clave la tiene el agente. Sin AGENTES_KEYS la API no existe (404).
@@ -15,6 +17,7 @@ import hashlib
 import hmac
 import json
 import logging
+import time
 from contextlib import contextmanager
 from datetime import date, datetime
 
@@ -23,7 +26,7 @@ from decouple import config
 from fastapi import HTTPException, Request
 
 from src.db import DB_SCHEMA, _psycopg2_connect_kwargs
-from src.services import cerebro_chat_service
+from src.services import agentes_tablas, cerebro_chat_service
 
 logger = logging.getLogger("agentes")
 
@@ -32,6 +35,9 @@ ENCABEZADO = "X-Agente-Key"
 MAX_RESUMEN_LLAMADA = 1500
 # Las columnas de plata de la ficha (como en las vistas del cerebro): solo con el permiso "plata".
 _COLUMNAS_PLATA = ("total_pagado_usd", "total_adeudado_usd", "prioridad_cobro")
+# El catálogo de toda la base se relee cada 10 minutos (una tabla nueva aparece sola).
+CATALOGO_SEGUNDOS = 600
+_catalogo_cache = {"datos": None, "hasta": 0.0}
 
 
 # ---------- Claves ----------
@@ -141,15 +147,52 @@ def _json(v):
         return None
 
 
-# ---------- Consulta SQL ----------
+# ---------- Consulta SQL y catálogo de toda la base ----------
+
+
+def _catalogo() -> dict:
+    """El catálogo de todas las tablas (sin mirar permisos), leído en solo lectura y guardado 10 minutos."""
+    ahora = time.monotonic()
+    if _catalogo_cache["datos"] is None or ahora >= _catalogo_cache["hasta"]:
+        try:
+            with _lectura() as cur:
+                datos = agentes_tablas.armar(_filas(cur, agentes_tablas.SQL_CATALOGO))
+        except psycopg2.Error:
+            logger.exception("Agentes: no se pudo leer el catálogo de la base")
+            raise HTTPException(status_code=503, detail="No se pudo leer el catálogo de la base. Probá de nuevo en un rato.")
+        _catalogo_cache.update(datos=datos, hasta=ahora + CATALOGO_SEGUNDOS)
+    return _catalogo_cache["datos"]
 
 
 def consulta(agente: dict, sql: str) -> dict:
-    """La misma consulta del chat del cerebro (vistas permitidas, solo lectura, tope de filas)."""
-    r = cerebro_chat_service.consultar_vistas(sql, ve_plata(agente))
+    """La consulta del chat del cerebro (vistas permitidas, solo lectura, tope de filas) más toda la base como
+    `<esquema>__<tabla>`: entran solo las tablas que la consulta nombra."""
+    plata = ve_plata(agente)
+    _, piezas, problema = cerebro_chat_service.revisar_sql(sql)
+    if problema:
+        raise HTTPException(status_code=400, detail=problema)
+    tablas_base = {}
+    nombres = cerebro_chat_service.nombres_sql(piezas)
+    if any(agentes_tablas.SEPARADOR in n for n in nombres):
+        catalogo = _catalogo()
+        ausentes = agentes_tablas.ausentes(catalogo, plata)
+        vedadas = sorted(nombres & ausentes.keys())
+        if vedadas:
+            nombre = vedadas[0]
+            motivo = "es de plata (pide el permiso plata)" if ausentes[nombre] == agentes_tablas.PLATA else "tiene secretos"
+            raise HTTPException(status_code=400, detail=f"La tabla {nombre} no está disponible para esta clave: {motivo}.")
+        tablas_base = agentes_tablas.ctes(catalogo, plata)
+    r = cerebro_chat_service.consultar_vistas(sql, plata, tablas_base)
     if r.get("error"):
         raise HTTPException(status_code=400, detail=r["error"])
     return r
+
+
+def catalogo_tablas(agente: dict) -> dict:
+    """Qué se puede leer con esta clave: las vistas del cerebro y toda la base por esquema, con lo excluido y por qué."""
+    plata = ve_plata(agente)
+    vistas = [{"nombre": n, "descripcion": d} for n, (_, d) in cerebro_chat_service.vistas_permitidas(plata).items()]
+    return {"vistas": vistas, **agentes_tablas.para_agente(_catalogo(), plata)}
 
 
 # ---------- Canales ----------

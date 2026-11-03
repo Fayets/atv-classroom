@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 
 from src.controllers.agentes_controller import router
 from src.services import agentes_service as svc
+from src.services import agentes_tablas as tablas
 from src.services import cerebro_chat_service as cerebro
 
 CLAVE = "clave-de-prueba-lectura"
@@ -34,6 +35,7 @@ CLAVES = json.dumps({
 
 RUTAS = [
     ("post", "/api/agentes/consulta", {"sql": "SELECT 1"}),
+    ("get", "/api/agentes/tablas", None),
     ("get", "/api/agentes/canales/pendientes", None),
     ("get", "/api/agentes/canales/1/mensajes", None),
     ("get", "/api/agentes/clientes/1/resumen", None),
@@ -101,6 +103,8 @@ def _sin_base(monkeypatch):
     monkeypatch.setattr(svc, "_psycopg2_connect_kwargs", lambda: {})
     monkeypatch.setattr(cerebro, "_psycopg2_connect_kwargs", lambda: {})
     monkeypatch.setenv("AGENTES_KEYS", CLAVES)
+    # El catálogo de toda la base se guarda 10 minutos: cada test arranca sin él.
+    monkeypatch.setattr(svc, "_catalogo_cache", {"datos": None, "hasta": 0.0})
 
 
 @pytest.fixture
@@ -166,7 +170,7 @@ def test_clave_valida_entra_y_queda_registrado_quien_sin_la_clave(http, base, ca
 def test_la_consulta_lleva_plata_solo_con_el_permiso(http, monkeypatch, clave, plata):
     visto = {}
 
-    def falsa(sql, con_plata):
+    def falsa(sql, con_plata, tablas_base=None):
         visto["plata"] = con_plata
         return {"columnas": ["n"], "filas": [[1]], "cantidad": 1, "hay_mas": False}
 
@@ -235,6 +239,357 @@ def test_un_error_de_la_base_vuelve_como_400_legible(http, base):
     conn = base(falla)
     r = _pedir(http, "post", "/api/agentes/consulta", {"sql": "SELECT nada FROM clientes"}, CLAVE)
     assert r.status_code == 400 and "nada" in r.json()["detail"]
+    assert conn.rollback_hecho and conn.cerrada
+
+
+# ---------- Toda la base: <esquema>__<tabla> ----------
+
+S = tablas.S
+COLUMNAS_CATALOGO = ["esquema", "tabla", "tipo_tabla", "columna", "tipo", "filas_aprox"]
+
+
+def _col(esquema, tabla, columna, tipo="text", tipo_tabla="BASE TABLE", filas=10.0):
+    return (esquema, tabla, tipo_tabla, columna, tipo, filas)
+
+
+FILAS_CATALOGO = [
+    _col("ops", "leads_audiencia", "id", "integer", filas=845.0),
+    _col("ops", "leads_audiencia", "nombre", filas=845.0),
+    _col("ops", "leads_audiencia", "autor", filas=845.0),
+    _col("ops", "leads_audiencia", "monto_usd", "numeric", filas=845.0),
+    _col("ops", "sesiones_notas", "id", "integer", filas=-1.0),
+    _col("ops", "sesiones_notas", "resumen", filas=-1.0),
+    _col("ops", "usuarios", "id", "integer"),
+    _col("ops", "usuarios", "username"),
+    _col("ops", "usuarios", "password_hash"),
+    _col("ops", "conexiones_api", "plataforma"),
+    _col("ops", "conexiones_api", "credenciales"),
+    _col(S, "admins", "id", "integer"),
+    _col(S, "admins", "nombre"),
+    _col(S, "admins", "password_hash"),
+    _col(S, "sesiones", "id", "integer"),
+    _col(S, "sesiones", "email"),
+    _col(S, "push_suscripciones", "endpoint"),
+    _col(S, "canales", "id", "integer"),
+    _col(S, "canales", "tipo"),
+    _col(S, "canales", "nombre"),
+    _col(S, "mensajes_canal", "id", "integer"),
+    _col(S, "mensajes_canal", "canal", "integer"),
+    _col(S, "mensajes_canal", "texto"),
+    _col(S, "mensajes_canal", "borrado", "boolean"),
+    _col(S, "reacciones", "canal_id", "integer"),
+    _col(S, "reacciones", "emoji"),
+    _col("clients", "clientes", "id", "integer"),
+    _col("clients", "clientes", "nombre"),
+    _col("clients", "clientes", "total_pagado_usd", "numeric"),
+    _col("clients", "clientes", "prioridad_cobro"),
+    _col("clients", "clientes", "password_hash"),
+    _col("clients", "clientes_con_estado", "id", "integer", tipo_tabla="VIEW", filas=-1.0),
+    _col("clients", "pagos", "cliente_id", "integer"),
+    _col("clients", "pagos", "monto_usd", "numeric"),
+    _col("roadmaps", "roadmaps", "id", "integer"),
+    _col("roadmaps", "roadmaps", "titulo"),
+    _col("roadmaps", "roadmaps", "token"),
+    _col("neon_auth", "user", "id", "uuid"),
+    _col("neon_auth", "user", "email"),
+    _col("neon_auth", "account", "accessToken"),
+]
+
+
+def _catalogo():
+    return tablas.armar([dict(zip(COLUMNAS_CATALOGO, f)) for f in FILAS_CATALOGO])
+
+
+def _base_falsa(sql, params):
+    """Responde el catálogo de arriba, los esquemas de pg_namespace y una fila para lo demás."""
+    if "information_schema.columns" in sql:
+        return COLUMNAS_CATALOGO, list(FILAS_CATALOGO)
+    if "pg_namespace" in sql:
+        return ["nspname"], [(e,) for e in ("ops", S, "clients", "roadmaps", "neon_auth", "public", "pg_catalog")]
+    return ["n"], [(1,)]
+
+
+def _final(conn):
+    return [sql for sql, _ in conn.ejecutadas if sql.startswith("WITH")][-1]
+
+
+@pytest.mark.parametrize("columna", [
+    "password", "password_hash", "password_encrypted", "email_and_password", "token", "token_hash", "webhook_token",
+    "contract_doc_token", "accessToken", "refreshToken", "idToken", "privateKey", "secret", "webhook_secreto_cifrado",
+    "clave_cifrada", "clave_api", "fathom_api_key", "apikey", "credenciales", "privada", "auth", "oauth", "cookie", "otp",
+    "vapid_publica", "access_key_id",
+])
+def test_columnas_secretas(columna):
+    assert tablas.motivo_columna(columna) == tablas.SECRETO
+
+
+@pytest.mark.parametrize("columna", [
+    "monto_usd", "montos", "importe", "precio_lista", "total_pagado_usd", "total_adeudado_usd", "prioridad_cobro",
+    "cash_usd", "costo_usd", "saldo_eur", "monto_ars", "pagado", "total_analizados",
+])
+def test_columnas_de_plata(columna):
+    assert tablas.motivo_columna(columna) == tablas.PLATA
+
+
+@pytest.mark.parametrize("columna", [
+    "autor", "autor_nombre", "author", "clave", "clave_ia", "tokens_entrada", "hashtag", "cifras", "pasos", "session_id",
+    "publica", "email", "facturacion", "ingresos_rango", "europa", "neuro", "pasos_total", "id",
+])
+def test_columnas_que_entran(columna):
+    assert tablas.motivo_columna(columna) is None
+
+
+@pytest.mark.parametrize("esquema,tabla,motivo", [
+    (S, "sesiones", "secreto"),
+    ("neon_auth", "user", "secreto"),
+    ("neon_auth", "organization", "secreto"),
+    ("onboarding", "sessions", "secreto"),
+    (S, "push_suscripciones", "secreto"),
+    (S, "push_claves", "secreto"),
+    ("ops", "api_tokens", "secreto"),
+    ("ops", "credenciales", "secreto"),
+    ("ops", "webauthn_llaves", "secreto"),
+    *[("clients", t, "plata") for t in (
+        "pagos", "cuotas", "cuota_comprobantes", "cuota_eventos", "pago_imputaciones", "caja_meta", "caja_ventas_nuevas",
+        "analisis_cash",
+    )],
+    ("ops", "linea_pagos_docs", "plata"),
+    ("ops", "sesiones_notas", None),
+    ("ops", "leads_audiencia", None),
+    ("clients", "clientes", None),
+    ("onboarding", "forms", None),
+])
+def test_tablas_secretas_y_de_plata(esquema, tabla, motivo):
+    assert tablas.motivo_tabla(esquema, tabla) == motivo
+
+
+def test_los_cte_llevan_solo_las_columnas_permitidas():
+    sin, con = tablas.ctes(_catalogo(), False), tablas.ctes(_catalogo(), True)
+    assert sin["ops__leads_audiencia"] == 'SELECT "id", "nombre", "autor" FROM "ops"."leads_audiencia"'
+    assert con["ops__leads_audiencia"] == 'SELECT "id", "nombre", "autor", "monto_usd" FROM "ops"."leads_audiencia"'
+    assert sin["ops__conexiones_api"] == con["ops__conexiones_api"] == 'SELECT "plataforma" FROM "ops"."conexiones_api"'
+    assert sin["roadmaps__roadmaps"] == 'SELECT "id", "titulo" FROM "roadmaps"."roadmaps"'
+    assert sin["clients__clientes"] == 'SELECT "id", "nombre" FROM "clients"."clientes"'
+    assert con["clients__clientes"] == 'SELECT "id", "nombre", "total_pagado_usd", "prioridad_cobro" FROM "clients"."clientes"'
+    assert "clients__pagos" not in sin
+    assert con["clients__pagos"] == 'SELECT "cliente_id", "monto_usd" FROM "clients"."pagos"'
+    for ctes in (sin, con):
+        assert "ops__sesiones_notas" in ctes and "clients__clientes_con_estado" in ctes
+        for vedada in (f"{S}__sesiones", f"{S}__push_suscripciones", "neon_auth__user", "neon_auth__account"):
+            assert vedada not in ctes
+        texto = "\n".join(ctes.values())
+        assert "password_hash" not in texto and '"token"' not in texto and "credenciales" not in texto
+
+
+def test_las_tablas_de_chats_no_traen_privados_ni_borrados():
+    ctes = tablas.ctes(_catalogo(), True)
+    privados = "NOT IN ('directo', 'privado', 'dm')"
+    assert ctes[f"{S}__canales"].endswith(f"WHERE tipo {privados}")
+    assert f"WHERE NOT borrado AND canal IN (SELECT id FROM \"{S}\".\"canales\" WHERE tipo {privados})" in ctes[f"{S}__mensajes_canal"]
+    assert f"(canal_id IS NULL OR canal_id IN (SELECT id FROM \"{S}\".\"canales\" WHERE tipo {privados}))" in ctes[f"{S}__reacciones"]
+    assert "WHERE" not in ctes["ops__leads_audiencia"]
+
+
+def test_la_consulta_suma_solo_las_tablas_que_nombra(http, base):
+    conn = base(_base_falsa)
+    sql = 'SELECT l.nombre, c.nombre FROM ops__leads_audiencia l JOIN "clients__clientes" c ON c.id = l.id LIMIT 5'
+    r = _pedir(http, "post", "/api/agentes/consulta", {"sql": sql}, CLAVE)
+    assert r.status_code == 200
+    final = _final(conn)
+    assert '"ops__leads_audiencia" AS (SELECT "id", "nombre", "autor" FROM "ops"."leads_audiencia")' in final
+    assert '"clients__clientes" AS (SELECT "id", "nombre" FROM "clients"."clientes")' in final
+    assert '"ops__usuarios" AS' not in final and f'"{S}__admins" AS' not in final and '"clients__pagos" AS' not in final
+    # Las vistas de siempre siguen estando.
+    assert '"clientes" AS (' in final and '"mensajes" AS (' in final
+    assert final.endswith(sql)
+    assert conn.sesion == {"readonly": True, "autocommit": False} and conn.rollback_hecho and conn.cerrada
+
+
+def test_sin_tablas_de_la_base_no_se_lee_el_catalogo(http, base):
+    conn = base(_base_falsa)
+    assert _pedir(http, "post", "/api/agentes/consulta", {"sql": "SELECT count(*) FROM clientes"}, CLAVE).status_code == 200
+    assert not any("information_schema" in sql for sql, _ in conn.ejecutadas)
+
+
+def test_el_catalogo_se_lee_una_vez_y_queda_guardado(http, base):
+    conn = base(_base_falsa)
+    for _ in range(3):
+        r = _pedir(http, "post", "/api/agentes/consulta", {"sql": "SELECT count(*) FROM ops__leads_audiencia"}, CLAVE)
+        assert r.status_code == 200
+    assert _pedir(http, "get", "/api/agentes/tablas", None, CLAVE_PLATA).status_code == 200
+    assert sum("information_schema.columns" in sql for sql, _ in conn.ejecutadas) == 1
+
+
+def test_el_catalogo_se_vuelve_a_leer_a_los_10_minutos(http, base, monkeypatch):
+    conn = base(_base_falsa)
+    reloj = [1000.0]
+    monkeypatch.setattr(svc.time, "monotonic", lambda: reloj[0])
+    _pedir(http, "get", "/api/agentes/tablas", None, CLAVE)
+    reloj[0] += svc.CATALOGO_SEGUNDOS - 1
+    _pedir(http, "get", "/api/agentes/tablas", None, CLAVE)
+    reloj[0] += 2
+    _pedir(http, "get", "/api/agentes/tablas", None, CLAVE)
+    assert sum("information_schema.columns" in sql for sql, _ in conn.ejecutadas) == 2
+
+
+@pytest.mark.parametrize("cte,motivo", [
+    (f"{S}__sesiones", "secretos"),
+    (f"{S}__push_suscripciones", "secretos"),
+    ("neon_auth__user", "secretos"),
+    ("clients__pagos", "plata"),
+])
+def test_una_tabla_excluida_da_400_con_el_motivo(http, base, cte, motivo):
+    conn = base(_base_falsa)
+    r = _pedir(http, "post", "/api/agentes/consulta", {"sql": f"SELECT * FROM {cte}"}, CLAVE)
+    assert r.status_code == 400
+    assert cte in r.json()["detail"] and motivo in r.json()["detail"]
+    assert not any(sql.startswith("WITH") for sql, _ in conn.ejecutadas)
+
+
+def test_con_plata_las_tablas_de_plata_estan(http, base):
+    conn = base(_base_falsa)
+    r = _pedir(http, "post", "/api/agentes/consulta", {"sql": "SELECT sum(monto_usd) FROM clients__pagos"}, CLAVE_PLATA)
+    assert r.status_code == 200
+    assert '"clients__pagos" AS (SELECT "cliente_id", "monto_usd" FROM "clients"."pagos")' in _final(conn)
+
+
+def test_el_tope_de_filas_vale_para_las_tablas(http, base):
+    def responder(sql, params):
+        if sql.startswith("WITH"):
+            return ["id"], [(i,) for i in range(cerebro.MAX_FILAS + 5)]
+        return _base_falsa(sql, params)
+
+    base(responder)
+    r = _pedir(http, "post", "/api/agentes/consulta", {"sql": "SELECT id FROM ops__leads_audiencia"}, CLAVE)
+    assert r.status_code == 200
+    assert r.json()["cantidad"] == cerebro.MAX_FILAS and r.json()["hay_mas"] is True
+
+
+@pytest.mark.parametrize("q", [
+    "SELECT * FROM ops.leads_audiencia",
+    "SELECT * FROM onboarding.sessions",
+    "SELECT * FROM roadmaps.roadmaps",
+    "SELECT * FROM neon_auth.user",
+    'SELECT * FROM "neon_auth"."user"',
+    "SELECT * FROM OPS . usuarios",
+    "SELECT * FROM ops/* nada */.usuarios",
+    "SELECT * FROM calendars.integrantes",
+    "SELECT * FROM public.algo",
+    "SELECT * FROM neondb.ops.usuarios",
+    "SELECT * FROM information_schema.columns",
+    "SELECT * FROM pg_catalog.pg_class",
+    "SELECT * FROM pg_authid",
+    # Lo que la revisión vieja (por texto) dejaba pasar: comillas de dólar, comentarios y E'\''.
+    "SELECT $$'$$, * FROM ops.usuarios, $$'$$",
+    "SELECT $x$'$x$ FROM ops.usuarios",
+    "SELECT 1 -- '\n, (SELECT count(*) FROM classroom.sesiones) -- '",
+    "SELECT E'\\'' , (SELECT 1 FROM ops.usuarios), ''",
+    "SELECT query_to_xml('select * from ops.usuarios', true, false, '')",
+    "SELECT table_to_xml('ops.usuarios', true, false, '')",
+    "SELECT ts_stat('select 1')",
+    "SELECT current_setting('search_path')",
+    'SELECT * FROM U&"ops".usuarios',
+    "SELECT * FROM ops__usuarios WHERE id = $1",
+    "SELECT 1 /* sin cerrar",
+    "SELECT 'sin cerrar",
+    "SELECT roadmaps.titulo FROM roadmaps",
+])
+def test_la_consulta_rechaza_tablas_reales_y_catalogos_sin_conectarse(http, q):
+    # Si algo intentara conectarse, el psycopg2.connect prohibido del fixture haría fallar el test.
+    r = _pedir(http, "post", "/api/agentes/consulta", {"sql": q}, CLAVE_PLATA)
+    assert r.status_code == 400
+    assert r.json()["detail"]
+
+
+def test_un_esquema_nuevo_tambien_se_rechaza(base):
+    def responder(sql, params):
+        if "pg_namespace" in sql:
+            return ["nspname"], [("ventas_nuevas",)]
+        return ["n"], [(1,)]
+
+    conn = base(responder)
+    r = cerebro.consultar_vistas("SELECT * FROM ventas_nuevas.tabla", True)
+    assert "esquema" in r["error"]
+    assert not any(sql.startswith("WITH") for sql, _ in conn.ejecutadas)
+    assert conn.rollback_hecho and conn.cerrada
+
+
+@pytest.mark.parametrize("q", [
+    "SELECT r.titulo FROM roadmaps r",
+    "SELECT count(*) FROM mensajes WHERE texto ILIKE '%delete from ops.usuarios; set create%'",
+    "SELECT 'ops.usuarios' AS x, $$classroom.sesiones$$ AS y -- ops.usuarios\nFROM clientes",
+    "WITH x AS (SELECT id FROM ops__leads_audiencia) SELECT count(*) FROM x",
+])
+def test_textos_comentarios_y_alias_no_chocan_con_el_control(http, base, q):
+    conn = base(_base_falsa)
+    r = _pedir(http, "post", "/api/agentes/consulta", {"sql": q}, CLAVE)
+    assert r.status_code == 200, r.json()
+    assert _final(conn).endswith(q[4:].lstrip() if q.startswith("WITH") else q)
+
+
+def test_piezas_de_la_consulta():
+    q = 'SELECT "Raro""x", Ops__X, \'it\'\'s\', E\'\\\'\' -- ops.y\n FROM /* a /* b */ c */ t'
+    assert cerebro.piezas_sql(q) == [
+        ("id", "select"), ("idq", 'Raro"x'), ("op", ","), ("id", "ops__x"), ("op", ","), ("lit", ""), ("op", ","),
+        ("lit", ""), ("id", "from"), ("id", "t"),
+    ]
+
+
+def test_catalogo_de_tablas_sin_plata(http, base):
+    base(_base_falsa)
+    r = _pedir(http, "get", "/api/agentes/tablas", None, CLAVE)
+    assert r.status_code == 200
+    c = r.json()
+    ops = {t["tabla"]: t for t in c["esquemas"]["ops"]["tablas"]}
+    assert ops["leads_audiencia"] == {
+        "tabla": "leads_audiencia",
+        "cte": "ops__leads_audiencia",
+        "tipo": "tabla",
+        "filas_aprox": 845,
+        "columnas": [{"nombre": "id", "tipo": "integer"}, {"nombre": "nombre", "tipo": "text"}, {"nombre": "autor", "tipo": "text"}],
+        "columnas_excluidas": [{"nombre": "monto_usd", "motivo": "plata"}],
+    }
+    assert ops["sesiones_notas"]["filas_aprox"] is None
+    assert ops["usuarios"]["columnas_excluidas"] == [{"nombre": "password_hash", "motivo": "secreto"}]
+    clients = c["esquemas"]["clients"]
+    assert clients["tablas_excluidas"] == [{"tabla": "pagos", "cte": "clients__pagos", "motivo": "plata"}]
+    clientes = {t["tabla"]: t for t in clients["tablas"]}
+    assert clientes["clientes"]["columnas_excluidas"] == [
+        {"nombre": "total_pagado_usd", "motivo": "plata"},
+        {"nombre": "prioridad_cobro", "motivo": "plata"},
+        {"nombre": "password_hash", "motivo": "secreto"},
+    ]
+    assert clientes["clientes_con_estado"]["tipo"] == "vista"
+    assert {"tabla": "sesiones", "cte": f"{S}__sesiones", "motivo": "secreto"} in c["esquemas"][S]["tablas_excluidas"]
+    assert {"tabla": "push_suscripciones", "cte": f"{S}__push_suscripciones", "motivo": "secreto"} in c["esquemas"][S]["tablas_excluidas"]
+    assert "nota" in {t["tabla"]: t for t in c["esquemas"][S]["tablas"]}["mensajes_canal"]
+    assert "neon_auth" not in c["esquemas"]
+    assert c["esquemas_excluidos"] == [{"esquema": "neon_auth", "motivo": "secreto", "tablas": 2}]
+    nombres_vistas = {v["nombre"] for v in c["vistas"]}
+    assert "clientes" in nombres_vistas and "pagos" not in nombres_vistas
+    assert c["totales"]["tablas_excluidas"] == 5 and c["totales"]["esquemas"] == 4
+
+
+def test_catalogo_de_tablas_con_plata(http, base):
+    base(_base_falsa)
+    c = _pedir(http, "get", "/api/agentes/tablas", None, CLAVE_PLATA).json()
+    clients = c["esquemas"]["clients"]
+    assert clients["tablas_excluidas"] == []
+    clientes = {t["tabla"]: t for t in clients["tablas"]}
+    assert "pagos" in clientes
+    assert clientes["clientes"]["columnas_excluidas"] == [{"nombre": "password_hash", "motivo": "secreto"}]
+    assert {"nombre": "total_pagado_usd", "tipo": "numeric"} in clientes["clientes"]["columnas"]
+    assert "pagos" in {v["nombre"] for v in c["vistas"]}
+
+
+def test_si_no_se_puede_leer_el_catalogo_da_503(http, base):
+    def falla(sql, params):
+        if "information_schema.columns" in sql:
+            raise psycopg2.OperationalError("la base no responde")
+        return ["x"], []
+
+    conn = base(falla)
+    assert _pedir(http, "get", "/api/agentes/tablas", None, CLAVE).status_code == 503
     assert conn.rollback_hecho and conn.cerrada
 
 
@@ -388,7 +743,8 @@ def test_resumen_de_un_cliente_que_no_existe_da_404(http, base):
 def test_el_servicio_no_usa_pony_ni_escribe():
     import inspect
 
-    fuente = inspect.getsource(svc)
-    assert "db_session" not in fuente and "from src.models" not in fuente and "commit()" not in fuente
-    for palabra in ("INSERT ", "UPDATE ", "DELETE ", "ALTER ", "CREATE ", "DROP "):
-        assert palabra not in fuente.upper()
+    for modulo in (svc, tablas):
+        fuente = inspect.getsource(modulo)
+        assert "db_session" not in fuente and "from src.models" not in fuente and "commit()" not in fuente
+        for palabra in ("INSERT ", "UPDATE ", "DELETE ", "ALTER ", "CREATE ", "DROP "):
+            assert palabra not in fuente.upper()

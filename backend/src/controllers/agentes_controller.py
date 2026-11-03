@@ -14,8 +14,15 @@ class Consulta(BaseModel):
 
 @router.post("/consulta")
 def consulta(body: Consulta, agente: dict = Depends(agente_desde_request)):
-    """SELECT sobre las vistas del cerebro (las de plata solo con el permiso "plata"), con tope de filas."""
+    """SELECT sobre las vistas del cerebro y sobre toda la base como <esquema>__<tabla> (sin secretos; la plata
+    solo con el permiso "plata"), con tope de filas."""
     return service.consulta(agente, body.sql)
+
+
+@router.get("/tablas")
+def tablas(agente: dict = Depends(agente_desde_request)):
+    """Qué se puede consultar con esta clave: vistas, y por esquema cada tabla con sus columnas y lo excluido."""
+    return service.catalogo_tablas(agente)
 
 
 @router.get("/canales/pendientes")
