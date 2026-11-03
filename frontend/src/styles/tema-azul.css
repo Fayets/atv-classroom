@@ -253,3 +253,33 @@ html[data-modo="azul"] .mac-atras:disabled { color: rgba(255, 255, 255, 0.22); }
 html[data-modo="azul"] .msj-alerta__icono { color: #eef2f8; }
 html[data-modo="azul"] .msj-alerta__botones button.is-principal { background: #eef2f8; color: #1c2638; }
 html[data-modo="azul"] .msj-alerta__botones button.is-principal:hover { background: #ffffff; }
+
+/* Borrador del roadmap (Crear roadmap): tenía grises, blancos y verdes fijos del tema claro
+   (Franco, 03-11-2026: notas ilegibles, botones blancos, columna derecha clara). */
+html[data-modo="azul"] .msj-modal.rmi.is-doc { background: #222d43; }
+html[data-modo="azul"] .rmi-doc__barra { border-bottom-color: rgba(255, 255, 255, 0.09); }
+html[data-modo="azul"] .rmi-doc__barra .is-ok,
+html[data-modo="azul"] .rmi-estado.is-ok { color: #5fd197; }
+html[data-modo="azul"] .rmi-estado.is-aviso,
+html[data-modo="azul"] .rmi-ayuda b { color: #e8b05c; }
+html[data-modo="azul"] .rmi-hoja { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.25); }
+html[data-modo="azul"] .rmi-hoja__meta input:focus,
+html[data-modo="azul"] .rmi-hoja__meta input:hover { border-bottom-color: rgba(255, 255, 255, 0.25); }
+html[data-modo="azul"] .rmi-hoja__pasos li:hover,
+html[data-modo="azul"] .rmi-hoja__pasos li:focus-within { background: rgba(255, 255, 255, 0.04); }
+html[data-modo="azul"] .rmi-caja { border-color: #8f9bb0; }
+html[data-modo="azul"] .rmi-hoja__mensaje { border-left-color: rgba(255, 255, 255, 0.18); }
+html[data-modo="azul"] .rmi-chip { background: rgba(236, 100, 87, 0.16); }
+html[data-modo="azul"] .rmi-hoja__huecos input { border-color: rgba(232, 176, 92, 0.6); background: rgba(232, 176, 92, 0.12); color: #eef2f8; }
+html[data-modo="azul"] .rmi-hoja__huecos input::placeholder { color: #e8b05c; }
+html[data-modo="azul"] .rmi-hoja__huecos input.is-lleno { border-color: rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.05); color: #f08a7f; }
+html[data-modo="azul"] .rmi-hoja__botones button { background: #3a4a6a; color: #eef2f8; }
+html[data-modo="azul"] .rmi-hoja__botones button.is-primario { background: #ec6457; color: #fff; }
+html[data-modo="azul"] .rmi-nota { color: #c3ccda; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06); }
+html[data-modo="azul"] .rmi-hoja__sop { color: #5fd197; background: rgba(61, 187, 122, 0.14); }
+html[data-modo="azul"] .rmi-nota__sop { color: #5fd197; }
+html[data-modo="azul"] .rmi-nota__falta { color: #e8b05c; }
+html[data-modo="azul"] .rmi-hoja__sop.is-skool { color: #a9b3ff; background: rgba(120, 135, 255, 0.14); }
+html[data-modo="azul"] .rmi-quien.is-atv { background: rgba(236, 100, 87, 0.16); }
+html[data-modo="azul"] .rmi-seguimiento .is-hecho em { background: rgba(61, 187, 122, 0.16); color: #5fd197; }
+html[data-modo="azul"] .rmi-seguimiento .is-parcial em { background: rgba(232, 176, 92, 0.16); color: #e8b05c; }

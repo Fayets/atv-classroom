@@ -802,7 +802,7 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmi-fila input { width: 100%; box-sizing: border-box; }
 .rmi-llamadas { display: grid; gap: 6px; margin-bottom: 12px; }
 .rmi-llamadas > span { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--m-t3, #6e6e73); }
-.rmi-llamadas > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.rmi-llamadas > div { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
 .rmi-llamada { display: flex; align-items: stretch; border: 1px solid var(--m-borde, #d2d2d7); border-radius: 9px; background: var(--m-tarjeta, #fff); overflow: hidden; }
 .rmi-llamada__usar { display: grid; gap: 1px; padding: 6px 4px 6px 10px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
 .rmi-llamada__borrar { border: 0; background: none; padding: 0 9px; font-size: 11px; color: var(--m-t4, #aeaeb2); cursor: pointer; }
@@ -810,9 +810,13 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .rmi-llamada__deshacer { align-self: center; font-size: 12px; color: var(--m-t3, #6e6e73); }
 .rmi-llamada__deshacer button { border: 0; background: none; padding: 0 0 0 4px; font: inherit; font-weight: 600; color: var(--m-acento, #c0392b); cursor: pointer; }
 .rmi-llamada b { font-size: 12.5px; }
-.rmi-diag { max-width: 100%; }
-.rmi-diag .rmi-llamada__usar { padding-right: 10px; min-width: 0; }
-.rmi-diag b { font-weight: 600; overflow-wrap: anywhere; }
+.rmi-diag { width: 100%; max-width: 100%; min-width: 0; }
+.rmi-diag .rmi-llamada__usar { flex: 1; padding-right: 10px; min-width: 0; display: flex; flex-direction: row; align-items: center; gap: 12px; }
+.rmi-diag .ob-pdf { flex: none; }
+/* Como un archivo: nombre del PDF, el cuello en una línea y la fecha (Franco, 03-11-2026). */
+.rmi-diag__texto { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.rmi-diag b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rmi-diag i { font-style: normal; font-size: 12px; color: var(--m-t3, #6e6e73); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rmi-llamada small { font-size: 11px; color: var(--m-t4, #8e8e93); }
 .rmi-llamada.is-on { border-color: var(--m-acento, #c0392b); box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.15); }
 .msj-acciones.rmc.is-vacia { display: none; } /* el armado con IA es un portal: igual se abre */

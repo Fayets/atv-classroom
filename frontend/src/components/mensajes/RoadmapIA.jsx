@@ -5,6 +5,7 @@ import { fetchLlamada, fetchLlamadas, llamadaPorLink, borrarLlamada } from '../.
 import { crearDoc, generarRoadmap } from '../../api/roadmap'
 import { fetchCuellosCliente } from '../../api/cuellos'
 import { useAuth } from '../../context/AuthContext'
+import { IconoPdf } from '../mac/OnboardingsCarpeta'
 
 const ENLACE = '[ROADMAP]'
 const hoy = () => new Date().toISOString().slice(0, 10)
@@ -438,8 +439,12 @@ export default function RoadmapIA({ clienteId, canalId, cliente, llamadaId = nul
                   {diagnosticos.map((x) => (
                     <div key={x.id} className={`rmi-llamada rmi-diag${diagnostico === x.id ? ' is-on' : ''}`}>
                       <button type="button" className="rmi-llamada__usar" aria-pressed={diagnostico === x.id} onClick={() => setDiagnostico((d) => (d === x.id ? null : x.id))} disabled={paso === 'armando'}>
-                        <b>{x.cuello || 'Diagnóstico de cuello de botella'}</b>
-                        <small>Aprobado el {new Date(x.aprobado_en).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}{diagnostico === x.id ? ' · la llamada es opcional' : ''}</small>
+                        <IconoPdf tamano={40} />
+                        <span className="rmi-diag__texto">
+                          <b>Diagnóstico de {cliente}.pdf</b>
+                          <i>{x.cuello || 'Cuello de botella'}</i>
+                          <small>Enviado el {new Date(x.aprobado_en).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}{diagnostico === x.id ? ' · la llamada es opcional' : ''}</small>
+                        </span>
                       </button>
                     </div>
                   ))}
