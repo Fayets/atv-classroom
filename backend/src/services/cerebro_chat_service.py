@@ -138,23 +138,32 @@ _PROHIBIDO = re.compile(
 )
 
 
-def _vistas(sesion: dict) -> dict:
-    plata = ve_plata(sesion)
+def vistas_permitidas(plata: bool) -> dict:
+    """Las vistas que se pueden consultar; las de plata (y las columnas de plata de clientes) solo con plata."""
     vistas = {k: (sql.replace("{plata}", _COLUMNAS_PLATA if plata else ""), d) for k, (sql, d) in VISTAS.items()}
     if plata:
         vistas.update(VISTAS_PLATA)
     return vistas
 
 
+def _vistas(sesion: dict) -> dict:
+    return vistas_permitidas(ve_plata(sesion))
+
+
 def ejecutar_sql(sesion: dict, consulta: str) -> dict:
     """Corre la consulta de la IA sobre las vistas permitidas, en solo lectura. Devuelve filas o un error legible."""
+    return consultar_vistas(consulta, ve_plata(sesion))
+
+
+def consultar_vistas(consulta: str, plata: bool) -> dict:
+    """Lo mismo que ejecutar_sql sin sesión del classroom (lo usan los agentes): plata dice si entran las vistas de plata."""
     q = (consulta or "").strip().rstrip(";").strip()
     if not re.match(r"(?is)^(select|with)\b", q):
         return {"error": "Solo se permiten consultas SELECT (o WITH … SELECT)."}
     # Los textos entre comillas simples (lo que se busca con ILIKE) no cuentan para el control.
     if _PROHIBIDO.search(re.sub(r"'(?:[^']|'')*'", "''", q)):
         return {"error": "La consulta usa algo no permitido: solo podés leer las vistas listadas, sin esquemas, catálogos ni escrituras."}
-    vistas = _vistas(sesion)
+    vistas = vistas_permitidas(plata)
     ctes = ",\n".join(f'"{nombre}" AS ({sql})' for nombre, (sql, _) in vistas.items())
     # Si la IA ya arrancó con WITH, sus CTE se suman a las nuestras.
     final = f"WITH {ctes},\n{q[4:].lstrip()}" if re.match(r"(?i)^with\b", q) else f"WITH {ctes}\n{q}"
