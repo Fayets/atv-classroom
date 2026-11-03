@@ -172,6 +172,21 @@ async def _alertas_de_espera():
         await asyncio.sleep(600)
 
 
+# Los Boost de prueba que ya cumplieron sus días vuelven al plan de antes.
+async def _vencer_pruebas_siempre():
+    from starlette.concurrency import run_in_threadpool
+
+    from src.services import prueba_plan_service
+
+    await asyncio.sleep(60)
+    while True:
+        try:
+            await run_in_threadpool(prueba_plan_service.vencer)
+        except Exception:
+            logging.getLogger("prueba_plan").exception("Pruebas de plan: falló el ciclo")
+        await asyncio.sleep(300)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     ensure_upload_dirs()
@@ -188,8 +203,9 @@ async def lifespan(_app: FastAPI):
     from src.services import push_service
 
     espera = asyncio.create_task(_alertas_de_espera()) if push_service.activo() else None
+    pruebas = asyncio.create_task(_vencer_pruebas_siempre())
     yield
-    for t in (tarea, fathom, avisos, webhooks, espera):
+    for t in (tarea, fathom, avisos, webhooks, espera, pruebas):
         if t:
             t.cancel()
 

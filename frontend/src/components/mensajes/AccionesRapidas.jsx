@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { borrarAccion, compartirClase, crearAccion, editarAccion, fetchAcciones, fetchClasesParaEnviar } from '../../api/acciones'
-import { enviarMensaje, fetchTextoCanal } from '../../api/mensajes'
+import { darPruebaBoost, enviarMensaje, fetchPruebaBoost, fetchTextoCanal, terminarPruebaBoost } from '../../api/mensajes'
+import Alerta from './Alerta'
 import CuelloBotella from './CuelloBotella'
 
 const ESPERA = 4 // segundos para deshacer antes de que salga el mensaje
@@ -229,6 +230,74 @@ function ElegirClase({ onCerrar, onElegir }) {
   )
 }
 
+const PLANES = { entry: 'Entry level', mid: 'Mid level', high: 'High Level', advantage: 'Advantage', boost: 'Boost', mentoria: 'Mentoría', '2k': '2K' }
+const nombrePlan = (p) => PLANES[String(p || '').toLowerCase()] || p || 'sin plan'
+const dia = (iso) => new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'numeric' })
+
+// Boost por 7 días: le pasa el plan a Boost y a los 7 días vuelve solo al que tenía. Admins, Ventas y Sistemas.
+function BoostPrueba({ canalId, cliente }) {
+  const [estado, setEstado] = useState(null)
+  const [confirmar, setConfirmar] = useState(false)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    let vivo = true
+    setEstado(null)
+    setError('')
+    fetchPruebaBoost(canalId)
+      .then((e) => vivo && setEstado(e))
+      .catch(() => vivo && setEstado(null))
+    return () => {
+      vivo = false
+    }
+  }, [canalId])
+  if (!estado?.puede) return null
+  const prueba = estado.prueba
+  if (!prueba && String(estado.plan || '').toLowerCase() === 'boost') return null
+
+  async function hacer() {
+    setConfirmar(false)
+    setError('')
+    try {
+      if (prueba) {
+        const r = await terminarPruebaBoost(canalId)
+        setEstado((e) => ({ ...e, prueba: null, plan: r.plan }))
+      } else {
+        const r = await darPruebaBoost(canalId)
+        setEstado((e) => ({ ...e, prueba: r.prueba, plan: 'boost' }))
+      }
+    } catch (err) {
+      setError(err.message || 'No se pudo.')
+    }
+  }
+
+  return (
+    <li className="msj-accion is-fija">
+      <button
+        type="button"
+        className="msj-accion__boton"
+        onClick={() => setConfirmar(true)}
+        title={prueba ? 'Termina la prueba ahora y vuelve al plan de antes' : `Le da acceso a Boost por ${estado.dias} días y después vuelve solo a su plan`}
+      >
+        <span>{prueba ? `Boost hasta el ${dia(prueba.hasta)}` : `Boost ${estado.dias} días`}</span>
+      </button>
+      {error ? <p className="msj-acciones__error" role="alert">{error}</p> : null}
+      {confirmar ? (
+        <Alerta
+          titulo={prueba ? `¿Terminar el Boost de ${cliente}?` : `¿Darle ${estado.dias} días de Boost a ${cliente}?`}
+          texto={
+            prueba
+              ? `Vuelve ahora a ${nombrePlan(prueba.plan_anterior)} (iba a volver el ${dia(prueba.hasta)}).`
+              : `Pasa de ${nombrePlan(estado.plan)} a Boost y ve todo lo de Boost. El ${dia(new Date(Date.now() + estado.dias * 864e5).toISOString())} vuelve solo a ${nombrePlan(estado.plan)}.`
+          }
+          confirmar={prueba ? 'Terminar prueba' : 'Dar Boost'}
+          onConfirmar={hacer}
+          onCancelar={() => setConfirmar(false)}
+        />
+      ) : null}
+    </li>
+  )
+}
+
 export default function AccionesRapidas({ canalId, cliente, plan = null, alCrearRoadmap = null, clienteId }) {
   const [datos, setDatos] = useState(null)
   const [editando, setEditando] = useState(null) // {} = nueva
@@ -371,6 +440,7 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
               </button>
             </li>
           ) : null}
+          {clienteId ? <BoostPrueba canalId={canalId} cliente={cliente} /> : null}
           <li className="msj-accion is-fija is-contexto">
             <button type="button" className="msj-accion__boton" onClick={() => setEligiendoClase(true)} disabled={Boolean(pendiente)} title="Elegí una clase del classroom y le llega el link en el chat">
               <span>Enviar clase</span>

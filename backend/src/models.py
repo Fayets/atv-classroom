@@ -490,6 +490,22 @@ class MiembroCliente(db.Entity):
     creado_en = Required(datetime, default=datetime.utcnow)
 
 
+class PruebaPlan(db.Entity):
+    """Un plan prestado por unos días (la acción rápida "Boost 7 días"): al vencer, el cliente vuelve a
+    plan_anterior. Si mientras tanto alguien le cambió el plan a mano, se respeta ese cambio."""
+
+    _table_ = (DB_SCHEMA, "pruebas_plan")
+
+    id = PrimaryKey(int, auto=True)
+    cliente_id = Required(int, index=True)
+    plan = Required(str)
+    plan_anterior = Optional(str, nullable=True)
+    desde = Required(datetime, default=datetime.utcnow)
+    hasta = Required(datetime)
+    admin_id = Optional(int, nullable=True)
+    terminada_en = Optional(datetime, nullable=True)
+
+
 class PermisoPlan(db.Entity):
     """Un interruptor de la pantalla Permisos: qué ve un plan (clases, sops, roadmaps, chat, comunidad, ia).
     Lo que no está guardado toma el valor por defecto de permisos_service."""

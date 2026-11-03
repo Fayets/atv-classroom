@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
-from src.services.auth_service import obtener_sesion_desde_request, sesion_desde_token
+from src.services.auth_service import es_equipo, obtener_sesion_desde_request, sesion_desde_token
 from pony.orm import db_session
 
 from src.services.roles_canal import ROLES
@@ -20,6 +20,7 @@ from src.services.mensajeria_service import (
     habilitada_para,
 )
 from src.services import push_service
+from src.services.prueba_plan_service import PruebaPlanServices
 from src.services.vista_previa_service import VistaPreviaServices
 from src.services.tiempo_real import hub
 from src.storage import adjuntos as almacen
@@ -210,6 +211,24 @@ async def cambiar_plan(canal_id: int, body: CanalPlan, sesion: dict = Depends(se
     await hub.emitir({"tipo": "canal", "canal_id": canal_id}, info)
     await hub.emitir({"tipo": "pausa", "canal_id": canal_id, "pausa": False}, info)
     return {"ok": True, "plan": body.plan.strip().lower()}
+
+
+# Boost de prueba por 7 días (acción rápida del panel del chat).
+@router.get("/canales/{canal_id}/prueba-boost")
+async def prueba_boost(canal_id: int, sesion: dict = Depends(sesion_mensajes)):
+    if not es_equipo(sesion):
+        raise HTTPException(status_code=403, detail="Solo el equipo.")
+    return await run_in_threadpool(PruebaPlanServices().estado, sesion, canal_id)
+
+
+@router.post("/canales/{canal_id}/prueba-boost")
+async def dar_prueba_boost(canal_id: int, sesion: dict = Depends(sesion_mensajes)):
+    return await run_in_threadpool(PruebaPlanServices().dar, sesion, canal_id)
+
+
+@router.delete("/canales/{canal_id}/prueba-boost")
+async def terminar_prueba_boost(canal_id: int, sesion: dict = Depends(sesion_mensajes)):
+    return await run_in_threadpool(PruebaPlanServices().terminar, sesion, canal_id)
 
 
 class CanalVencido(BaseModel):

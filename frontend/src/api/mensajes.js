@@ -111,6 +111,11 @@ export function cambiarPlan(canalId, plan) {
   return request(`/api/mensajes/canales/${canalId}/plan`, { method: 'PUT', body: JSON.stringify({ plan }) })
 }
 
+// Boost de prueba por 7 días: { prueba, puede, plan, dias }; dar lo pone, terminar lo devuelve al plan de antes.
+export const fetchPruebaBoost = (canalId) => request(`/api/mensajes/canales/${canalId}/prueba-boost`)
+export const darPruebaBoost = (canalId) => request(`/api/mensajes/canales/${canalId}/prueba-boost`, { method: 'POST' })
+export const terminarPruebaBoost = (canalId) => request(`/api/mensajes/canales/${canalId}/prueba-boost`, { method: 'DELETE' })
+
 // Vencidos: ordena la bandeja (el acceso lo sigue decidiendo la fecha de la ficha). Admins, Ventas y Sistemas.
 export function marcarVencido(canalId, vencido) {
   return request(`/api/mensajes/canales/${canalId}/vencido`, { method: 'PUT', body: JSON.stringify({ vencido }) })

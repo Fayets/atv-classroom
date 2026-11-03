@@ -216,8 +216,9 @@ def actualizar_plan_en_sesiones(cliente_id: int, plan: str) -> None:
         if sesion.get("tipo") == "cliente" and sesion.get("usuario_id") == cliente_id:
             sesion["rol"] = plan
     with db_session:
-        for guardada in SesionGuardada.select(lambda x: x.tipo == "cliente" and x.usuario_id == cliente_id)[:]:
-            guardada.rol = plan
+        for guardada in SesionGuardada.select()[:]:
+            if guardada.tipo == "cliente" and guardada.usuario_id == cliente_id:
+                guardada.rol = plan
 
 
 def _sesion_de_admin(admin: Admin) -> dict:
