@@ -14,7 +14,7 @@ import { paraChat, partir, SECCIONES, unir } from '../../utils/docCuello'
 // Carpeta "Cuellos de botella" (equipo): el cliente mandó un Loom con su traba, Jeremy arma el diagnóstico,
 // Juan lo corrige y lo aprueba. La neurona mide cuánto se parecen Jeremy y el cerebro a lo que deja Juan, y
 // guarda cada corrección como lección.
-const ESTADO = { pidiendo: 'Mandando a Jeremy…', esperando: 'Jeremy lo está armando', borrador: 'Para corregir', aprobado: 'Aprobado', error: 'Con error' }
+const ESTADO = { pidiendo: 'Mandando a Juan AI…', esperando: 'Juan AI lo está armando', borrador: 'Para corregir', aprobado: 'Aprobado', error: 'Con error' }
 const fecha = (iso) => (iso ? new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : '—')
 const pct = (n) => (n === null || n === undefined ? '—' : `${Math.round(n * 100)}%`)
 const normal = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -84,7 +84,7 @@ function Nuevo({ alCreado }) {
       </label>
       {error ? <p className="cb-error" role="alert">{error}</p> : null}
       <div className="cb-acciones">
-        <small className="cb-gris">Jeremy tarda entre 5 y 10 minutos. Lee también su chat, sus llamadas y su último cierre de mes.</small>
+        <small className="cb-gris">Juan AI tarda entre 5 y 10 minutos. Lee también su chat, sus llamadas y su último cierre de mes.</small>
         <button type="submit" className="cb-btn" disabled={enviando || (!loom.trim() && !texto.trim())}>{enviando ? 'Pidiendo…' : 'Pedir diagnóstico'}</button>
       </div>
     </form>
@@ -102,10 +102,10 @@ function Lecciones({ diag, cambios, alListo }) {
   return (
     <div className="cb-lecciones">
       <h4>¿Qué tiene que aprender de tus correcciones?</h4>
-      <p className="cb-gris">Una regla por cada sección que cambiaste. Va en todos los diagnósticos que se pidan de acá en adelante, a Jeremy y al cerebro. Borrá las que no sirvan.</p>
+      <p className="cb-gris">Una regla por cada sección que cambiaste. Va en todos los diagnósticos que se pidan de acá en adelante, a Juan AI y al cerebro. Borrá las que no sirvan.</p>
       {cambios.map((c, i) => (
         <label key={c.seccion} className="cb-campo">
-          <span>{c.seccion} · {pct(c.parecido)} igual a lo de Jeremy</span>
+          <span>{c.seccion} · {pct(c.parecido)} igual a lo de Juan AI</span>
           <textarea rows={2} value={textos[i]} placeholder="Escribí la regla, o dejalo vacío" onChange={(e) => setTextos((t) => t.map((x, j) => (j === i ? e.target.value : x)))} />
         </label>
       ))}
@@ -211,7 +211,7 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
       {d.estado === 'pidiendo' || d.estado === 'esperando' ? (
         <div className="cb-espera">
           <i className="cb-latido" aria-hidden="true" />
-          <p>{d.estado === 'pidiendo' ? 'Leyendo el Loom y juntando lo que sabemos del cliente…' : 'Jeremy lo está armando. Tarda entre 5 y 10 minutos; esta ventana se actualiza sola.'}</p>
+          <p>{d.estado === 'pidiendo' ? 'Leyendo el Loom y juntando lo que sabemos del cliente…' : 'Juan AI lo está armando. Tarda entre 5 y 10 minutos; esta ventana se actualiza sola.'}</p>
           {d.estado === 'esperando' ? <button type="button" className="cb-btn is-suave" onClick={async () => { setD(await reintentarCuello(id)) }}>Volver a mandar</button> : null}
         </div>
       ) : null}
@@ -251,11 +251,11 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
             </div>
           ) : null}
           <div className="cb-medidas">
-            <span>Jeremy <b>{pct(d.coincidencia_jeremy)}</b> igual a tu versión</span>
+            <span>Juan AI <b>{pct(d.coincidencia_jeremy)}</b> igual a tu versión</span>
             <span>Cerebro <b>{pct(d.coincidencia_cerebro)}</b> igual a tu versión</span>
           </div>
           <div className="cb-comp">
-            <div className="cb-comp__cab"><span /><span className="is-jer">Jeremy</span><span className="is-juan">Juan · final</span><span className="is-cer">Cerebro, en silencio</span></div>
+            <div className="cb-comp__cab"><span /><span className="is-jer">Juan AI</span><span className="is-juan">Juan · final</span><span className="is-cer">Cerebro, en silencio</span></div>
             {SECCIONES.map((s) => (
               <div key={s} className="cb-comp__fila">
                 <h5>{s}</h5>
@@ -311,7 +311,7 @@ function Avance({ n }) {
       <h3>¿Ya puede hacerlo sola?</h3>
       <p className="cb-gris">En cada caso el cerebro arma su diagnóstico en silencio y se compara con la versión final que aprobó Juan.</p>
       <div className="cb-fases">
-        {[[1, 'Arma Jeremy, aprende el cerebro', 'El cliente recibe lo de Jeremy corregido por Juan.'],
+        {[[1, 'Arma Juan AI, aprende el cerebro', 'El cliente recibe lo de Juan AI corregido por Juan.'],
           [2, 'Arma el cerebro, Juan corrige', `Cuando la coincidencia pase ${n.umbral * 100}% tres semanas seguidas.`],
           [3, 'Solo el cerebro', 'Juan revisa una muestra.']].map(([f, t, p]) => (
           <div key={f} className={n.fase === f ? 'is-on' : ''}><small>Fase {f}{n.fase === f ? ' · ahora' : ''}</small><b>{t}</b><p>{p}</p></div>
@@ -320,11 +320,11 @@ function Avance({ n }) {
       <div className="cb-kpis">
         <div><small>Casos aprobados</small><b>{n.casos}</b></div>
         <div><small>Cerebro igual a Juan</small><b>{pct(n.coincidencia_cerebro)}</b></div>
-        <div><small>Jeremy igual a Juan</small><b>{pct(n.coincidencia_jeremy)}</b></div>
+        <div><small>Juan AI igual a Juan</small><b>{pct(n.coincidencia_jeremy)}</b></div>
         <div><small>Lecciones</small><b>{n.lecciones.filter((l) => l.activa).length}</b></div>
       </div>
       <div className="cb-graf-caja">
-        <div className="cb-graf-cab"><b>Coincidencia con la versión final de Juan, por semana</b><span><i className="is-cer" />Cerebro <i className="is-jer" />Jeremy</span></div>
+        <div className="cb-graf-cab"><b>Coincidencia con la versión final de Juan, por semana</b><span><i className="is-cer" />Cerebro <i className="is-jer" />Juan AI</span></div>
         <Grafico serie={n.serie} umbral={n.umbral} />
       </div>
     </div>
@@ -504,7 +504,7 @@ export default function CuellosCarpeta({ abierta, alFrente, alEnfocar, alCerrar 
             <p className="fd-vacio">Cargando…</p>
           ) : (
             <>
-              {!lista.jeremy ? <p className="cb-aviso">Falta conectar Jeremy en el servidor: los pedidos van a quedar con error hasta que se configure.</p> : null}
+              {!lista.jeremy ? <p className="cb-aviso">Falta conectar Juan AI en el servidor: los pedidos van a quedar con error hasta que se configure.</p> : null}
               {diags.length ? <div className="fd-grilla">{diags.map(archivo)}</div> : <p className="fd-vacio">Todavía no hay diagnósticos. Tocá Nuevo diagnóstico y pegá el Loom del cliente.</p>}
             </>
           )}

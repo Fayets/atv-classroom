@@ -347,10 +347,10 @@ def _llamar(sistema: str, usuario: str, modelo: str = MODELO, max_tokens: int = 
 
 def _mandar_a_jeremy(payload: dict) -> None:
     if not (JEREMY_URL and JEREMY_SECRET):
-        raise RuntimeError("Falta configurar Jeremy (JEREMY_BOTTLENECK_URL y JEREMY_BOTTLENECK_SECRET).")
+        raise RuntimeError("Falta configurar Juan AI (JEREMY_BOTTLENECK_URL y JEREMY_BOTTLENECK_SECRET).")
     r = httpx.post(JEREMY_URL, json=payload, headers={"x-webhook-secret": JEREMY_SECRET}, timeout=30)
     if r.status_code >= 300:
-        raise RuntimeError(f"Jeremy respondió {r.status_code}.")
+        raise RuntimeError(f"Juan AI respondió {r.status_code}.")
 
 
 # ---------- recorrido ----------
@@ -471,7 +471,7 @@ class CuellosServices:
             if d is None:
                 raise HTTPException(status_code=404, detail="No existe ese diagnóstico.")
             if d.estado not in ("error", "esperando"):
-                raise HTTPException(status_code=409, detail="Este diagnóstico ya volvió de Jeremy.")
+                raise HTTPException(status_code=409, detail="Este diagnóstico ya volvió de Juan AI.")
             d.estado, d.error = "pidiendo", None
         en_fondo(diag_id)
         return self.detalle(diag_id)

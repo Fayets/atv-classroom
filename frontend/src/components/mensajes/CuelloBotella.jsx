@@ -46,7 +46,7 @@ function Pedido({ datos, clienteId, alPedido }) {
 
   return (
     <form className="cb-nuevo" onSubmit={pedir}>
-      {!datos.jeremy ? <p className="cb-aviso">Falta conectar Jeremy en el servidor: el pedido va a quedar con error.</p> : null}
+      {!datos.jeremy ? <p className="cb-aviso">Falta conectar Juan AI en el servidor: el pedido va a quedar con error.</p> : null}
       <div className="cb-fuentes" role="tablist" aria-label="De dónde sale el problema">
         {[['loom', 'Loom'], ['cierre', 'Cierre de mes'], ['texto', 'Contarlo']].map(([id, nombre]) => (
           <button key={id} type="button" role="tab" aria-selected={fuente === id} className={fuente === id ? 'is-on' : ''} onClick={() => setFuente(id)}>{nombre}</button>
