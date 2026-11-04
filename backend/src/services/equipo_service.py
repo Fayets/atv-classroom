@@ -88,6 +88,7 @@ class EquipoServices:
                 raise HTTPException(status_code=409, detail="Tiene que quedar al menos un admin activo.")
             if "nombre" in data and data["nombre"] is not None:
                 admin.nombre = data["nombre"].strip()
+            cambio_rol = bool(data.get("rol")) and data["rol"] != admin.rol
             if data.get("rol"):
                 admin.rol = data["rol"]
             if "area" in data:
@@ -96,7 +97,7 @@ class EquipoServices:
             if data.get("activo") is not None:
                 admin.activo = data["activo"]
             resultado = _a_dict(admin)
-        if baja or data.get("rol"):
+        if baja or cambio_rol:
             # Rol o baja nuevos: que vuelva a entrar con los permisos que le tocan.
             cerrar_sesiones_de_admin(miembro_id)
         return resultado

@@ -11,6 +11,18 @@ import '../styles/actualizaciones.css'
 const VERSION = __VERSION__
 const CADA_MS = 2 * 60 * 1000
 const QUIETO_MS = 4 * 60 * 1000
+// Al volver a la app en el celular la red tarda unos segundos en despertar y los primeros pedidos fallan:
+// eso no es el servidor caído. Se espera antes de juzgar y se confirma varias veces.
+const DESPIERTA_MS = 10 * 1000
+const CONFIRMAR = 3
+const ENTRE_MS = 2000
+let visibleDesde = Date.now()
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) visibleDesde = Date.now()
+  })
+}
+const espera = (ms) => new Promise((ok) => setTimeout(ok, ms))
 
 async function versionPublicada() {
   try {
@@ -56,18 +68,28 @@ export default function Actualizaciones() {
   useEffect(() => {
     let probando = false
     async function alCaer() {
-      if (probando || !navigator.onLine) return
+      if (probando || !navigator.onLine || document.hidden) return
       probando = true
-      // Una falla suelta no alcanza: se confirma antes de tapar la pantalla.
-      if (await servidorResponde()) {
-        probando = false
-        return
+      // Recién vuelto a la app: se deja despertar la red antes de probar.
+      const recien = DESPIERTA_MS - (Date.now() - visibleDesde)
+      if (recien > 0) await espera(recien)
+      // Una falla suelta no alcanza: tiene que fallar varias veces seguidas antes de tapar la pantalla.
+      for (let i = 0; i < CONFIRMAR; i++) {
+        if (!navigator.onLine || document.hidden || (await servidorResponde())) {
+          probando = false
+          return
+        }
+        await espera(ENTRE_MS)
       }
       setCaido(true)
-      while (!(await servidorResponde())) await new Promise((ok) => setTimeout(ok, 2000))
-      // Volvió: casi siempre es un deploy, así que se carga la versión nueva (o se recarga lo que había).
+      while (!(await servidorResponde())) await espera(ENTRE_MS)
+      // Volvió: si hay versión nueva (un deploy) se carga; si no, se saca el cartel sin recargar.
       const v = await versionPublicada()
-      recargar(v)
+      if (v && v !== VERSION && VERSION !== 'dev') recargar(v)
+      else {
+        setCaido(false)
+        probando = false
+      }
     }
     window.addEventListener('atv-caida', alCaer)
     return () => window.removeEventListener('atv-caida', alCaer)

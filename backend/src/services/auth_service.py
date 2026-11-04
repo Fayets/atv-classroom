@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import re
 import secrets
 import time
@@ -13,7 +14,10 @@ from pony.orm import db_session
 from src.db import db
 from src.models import Admin, ClienteExterno, SesionGuardada
 
-TOKEN_TTL = timedelta(days=7)
+# La sesión dura 30 días desde el último uso (se renueva sola una vez por día): quien usa la app no vuelve a
+# loguearse. Antes eran 7 días fijos desde el login y a todos los echaba cada semana.
+TOKEN_TTL = timedelta(days=30)
+RENOVAR_CADA = timedelta(days=1)
 ROLES_EQUIPO = ("admin", "coach")
 
 # Caché en memoria de las sesiones guardadas en la base: evita una consulta por request.
@@ -185,10 +189,26 @@ def _obtener_sesion(token: str) -> dict | None:
                 "miembro_id": guardada.miembro_id,
             }
         _sessions[token] = sesion
-    if time.time() > sesion["expires_at"]:
+    ahora = time.time()
+    if ahora > sesion["expires_at"]:
         cerrar_sesion(token)
         return None
+    if sesion["expires_at"] - ahora < (TOKEN_TTL - RENOVAR_CADA).total_seconds():
+        _renovar(token, sesion)
     return sesion
+
+
+def _renovar(token: str, sesion: dict) -> None:
+    """Corre el vencimiento a 30 días desde ahora (como mucho una vez por día por sesión)."""
+    expira = datetime.utcnow() + TOKEN_TTL
+    sesion["expires_at"] = _a_epoch(expira)
+    try:
+        with db_session:
+            guardada = SesionGuardada.get(token_hash=_hash_token(token))
+            if guardada is not None:
+                guardada.expira_en = expira
+    except Exception:
+        logging.getLogger("auth").exception("No se pudo renovar la sesión")
 
 
 def cerrar_sesion(token: str) -> None:
