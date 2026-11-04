@@ -230,7 +230,7 @@ function ElegirClase({ onCerrar, onElegir }) {
   )
 }
 
-const PLANES = { entry: 'Entry level', mid: 'Mid level', high: 'High Level', advantage: 'Advantage', boost: 'Boost', mentoria: 'Mentoría', '2k': '2K' }
+const PLANES = { entry: 'Entry level', mid: 'Mid level', high: 'High Level', advantage: 'Advantage', dfy: 'DFY', boost: 'Boost', mentoria: 'Mentoría', '2k': '2K' }
 const nombrePlan = (p) => PLANES[String(p || '').toLowerCase()] || p || 'sin plan'
 const dia = (iso) => new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'numeric' })
 

@@ -418,7 +418,7 @@ _ALE = ("Alejandro Ramirez", "+506 7103 0224")
 _JUAMPI = ("Juampi Toledo", "+54 9 3804 66-0274")
 _CONTACTO_POR_PLAN = {
     "mentoria": _ALE, "entry": _ALE, "2k": _ALE,
-    "mid": _JUAMPI, "high": _JUAMPI, "advantage": _JUAMPI, "boost": _JUAMPI,
+    "mid": _JUAMPI, "high": _JUAMPI, "advantage": _JUAMPI, "boost": _JUAMPI, "dfy": _JUAMPI,
 }
 
 

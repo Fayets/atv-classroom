@@ -13,6 +13,7 @@ _COMPARTIDAS: ContextVar[frozenset] = ContextVar("clases_compartidas", default=f
 # Los planes que se pueden bloquear, en el orden del admin. La clave es la de rol_de_plan (advantage → high).
 PLANES_VIDEO = [
     {"id": "high", "nombre": "High Level"},
+    {"id": "dfy", "nombre": "DFY"},
     {"id": "boost", "nombre": "Boost"},
     {"id": "mid", "nombre": "Mid level"},
     {"id": "entry", "nombre": "Entry level"},

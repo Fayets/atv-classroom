@@ -4,6 +4,7 @@ Sin base de datos: lo usan la mensajería y el reparto en vivo."""
 ROLES = [
     {"id": "equipo", "nombre": "Equipo ATV", "planes": []},
     {"id": "high", "nombre": "High Level", "planes": ["advantage", "high"]},
+    {"id": "dfy", "nombre": "DFY", "planes": ["dfy"]},
     {"id": "boost", "nombre": "Boost", "planes": ["boost"]},
     {"id": "mid", "nombre": "Mid level", "planes": ["mid"]},
     {"id": "entry", "nombre": "Entry level", "planes": ["entry"]},

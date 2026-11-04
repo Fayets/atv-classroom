@@ -33,7 +33,7 @@ const FILTROS = [
   { id: 'otros', nombre: 'Pausa y recompra', tag: 'pausa' },
   { id: 'revisar', nombre: 'Dispositivos para revisar', tag: 'revisar' },
 ]
-const PLANES = ['mentoria', 'boost', 'advantage', 'mid', 'entry']
+const PLANES = ['mentoria', 'boost', 'advantage', 'dfy', 'mid', 'entry']
 const bonito = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : '—')
 const normal = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const fecha = (iso) => (iso ? new Date(iso.length === 10 ? `${iso}T00:00:00` : iso).toLocaleDateString('es-AR') : '—')

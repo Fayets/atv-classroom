@@ -102,6 +102,7 @@ export const ACEPTA_ADJUNTOS =
 export const ROLES_CANAL = [
   { id: 'equipo', nombre: 'Equipo ATV' },
   { id: 'high', nombre: 'High Level' },
+  { id: 'dfy', nombre: 'DFY' },
   { id: 'boost', nombre: 'Boost' },
   { id: 'mid', nombre: 'Mid level' },
   { id: 'entry', nombre: 'Entry level' },

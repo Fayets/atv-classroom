@@ -19,7 +19,7 @@ from src.models import ClienteExterno, LimiteEquipo, MiembroCliente, SesionGuard
 LIMITE_POR_DEFECTO = 10
 from src.services.plan_acceso import PLANES_SIN_EQUIPO  # noqa: E402
 
-PLANES = ["mentoria", "boost", "advantage", "mid", "entry", "2k"]
+PLANES = ["mentoria", "boost", "advantage", "dfy", "mid", "entry", "2k"]
 
 ROLES = {
     "socio": "Socio",

@@ -30,6 +30,7 @@ const sinTildes = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, 
 const GRUPOS = [
   // planes[0] es el que se le pone en la ficha al soltar ahí un chat de otro plan.
   { id: 'high', nombre: 'High Level', planes: ['high', 'advantage'] },
+  { id: 'dfy', nombre: 'DFY', planes: ['dfy'] },
   { id: 'boost', nombre: 'Boost', planes: ['boost'] },
   { id: 'mid', nombre: 'Mid level', planes: ['mid'] },
   { id: 'entry', nombre: 'Entry level', planes: ['entry'] },

@@ -562,7 +562,7 @@ def _canales_visibles(sesion: dict, equipo: bool, del_equipo: dict[int, dict]) -
 
 
 # Los planes que acepta la ficha (CHECK de clients.clientes).
-PLANES_FICHA = {"entry", "mid", "high", "mentoria", "boost", "advantage", "2k"}
+PLANES_FICHA = {"entry", "mid", "high", "mentoria", "boost", "advantage", "2k", "dfy"}
 
 
 class MensajeriaServices:
