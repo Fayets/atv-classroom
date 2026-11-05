@@ -1,5 +1,5 @@
-// El PDF del diagnóstico de cuello de botella: sobrio, como pidió Franco. Hoja hueso de la marca de ATV, el isotipo
-// arriba y el texto en carbón, en Poppins y con el estilo del Google Doc de Juan (Diagnóstico HAR PROGRAM): títulos
+// El PDF del diagnóstico de cuello de botella: sobrio, como pidió Franco. Hoja hueso y el texto en carbón,
+// en Poppins y con el estilo del Google Doc de Juan (Diagnóstico HAR PROGRAM): títulos
 // grandes en negrita, subtítulos en negrita, texto con aire. Sale de la versión final que aprobó Juan.
 import { bloques, partir, SECCIONES, TITULOS, tramos } from './docCuello'
 import { loadPdfMake } from './onboardingPdf'
@@ -15,21 +15,6 @@ function poppins(pdfMake) {
 }
 const ANCHO = 595.28
 const ALTO = 841.89
-
-async function isotipo() {
-  try {
-    const r = await fetch('/atv-logo-negro.png')
-    if (!r.ok) return null
-    const blob = await r.blob()
-    return await new Promise((ok) => {
-      const fr = new FileReader()
-      fr.onloadend = () => ok(typeof fr.result === 'string' ? fr.result : null)
-      fr.readAsDataURL(blob)
-    })
-  } catch {
-    return null
-  }
-}
 
 const slug = (t) => (t || 'cliente').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'cliente'
 
@@ -92,7 +77,7 @@ const titulo = (s) => ({ text: TITULOS[s], bold: true, fontSize: 16.5, margin: [
 export async function pdfCuello({ cliente, texto, fecha = new Date(), capturas: base = null }) {
   const pdfMake = await loadPdfMake()
   poppins(pdfMake)
-  const [logo, imgs] = await Promise.all([isotipo(), capturas(base, texto || '')])
+  const imgs = await capturas(base, texto || '')
   const p = partir(texto)
   const contenido = [{ text: `Diagnóstico ${cliente}`, fontSize: 21, bold: true, margin: [0, 0, 0, 12] }]
   for (const s of SECCIONES) {
@@ -104,9 +89,8 @@ export async function pdfCuello({ cliente, texto, fecha = new Date(), capturas: 
 
   const doc = {
     pageSize: 'A4',
-    pageMargins: [64, 80, 64, 60],
+    pageMargins: [64, 60, 64, 60],
     background: () => ({ canvas: [{ type: 'rect', x: 0, y: 0, w: ANCHO, h: ALTO, color: C.hueso }] }),
-    header: () => (logo ? { image: logo, width: 15, margin: [64, 36, 0, 0] } : { text: '' }),
     footer: (pagina, total) => (total > 1 ? { text: `${pagina} / ${total}`, fontSize: 7.5, color: C.piedra, alignment: 'right', margin: [64, 20, 64, 0] } : { text: '' }),
     content: contenido,
     defaultStyle: { font: 'Poppins', fontSize: 10.5, color: C.carbon },

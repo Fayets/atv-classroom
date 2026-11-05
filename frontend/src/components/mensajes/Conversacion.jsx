@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { borrarMensaje, editarMensaje, reaccionar, enviarMensaje, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaEnviada, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto, tildarMensaje } from '../../api/mensajes'
+import { borrarMensaje, buscarEnCanal, editarMensaje, reaccionar, enviarMensaje, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaEnviada, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto, tildarMensaje } from '../../api/mensajes'
 import { fetchVoz } from '../../api/cuenta'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
@@ -36,6 +36,127 @@ function canalesPara(antes, canales) {
     .sort((x, y) => Number(!x.slug.startsWith(q)) - Number(!y.slug.startsWith(q)) || normal(x.nombre).localeCompare(normal(y.nombre)))
     .slice(0, 8)
   return lista.length ? { lista, indice: 0, desde: antes.length - hallado[2].length - 1 } : null
+}
+
+// Un pedazo del mensaje alrededor de lo buscado, con lo encontrado marcado.
+function Recorte({ texto, q }) {
+  const t = (texto || '').replace(/\s+/g, ' ')
+  const i = normal(t).indexOf(normal(q))
+  if (i < 0) return <>{t.slice(0, 140)}</>
+  const desde = Math.max(0, i - 50)
+  return (
+    <>
+      {desde ? '…' : ''}{t.slice(desde, i)}<mark>{t.slice(i, i + q.length)}</mark>{t.slice(i + q.length, i + q.length + 90)}
+    </>
+  )
+}
+
+// Buscador de mensajes de todo el canal (arriba a la derecha, como en Discord). Tocar un resultado lleva al mensaje.
+function BuscadorCanal({ canalId, angosto, onIr }) {
+  const [q, setQ] = useState('')
+  const [abierto, setAbierto] = useState(false)
+  const [visible, setVisible] = useState(!angosto)
+  const [datos, setDatos] = useState(null)
+  const [buscando, setBuscando] = useState(false)
+  const marco = useRef(null)
+  const caja = useRef(null)
+
+  useEffect(() => {
+    const texto = q.trim()
+    setDatos(null)
+    if (texto.length < 2) {
+      setBuscando(false)
+      return undefined
+    }
+    let vivo = true
+    setBuscando(true)
+    const t = setTimeout(() => {
+      buscarEnCanal(canalId, texto)
+        .then((r) => vivo && setDatos(r))
+        .catch(() => vivo && setDatos({ resultados: [], total: 0 }))
+        .finally(() => vivo && setBuscando(false))
+    }, 300)
+    return () => {
+      vivo = false
+      clearTimeout(t)
+    }
+  }, [q, canalId])
+
+  useEffect(() => {
+    if (!abierto) return undefined
+    const afuera = (e) => !marco.current?.contains(e.target) && setAbierto(false)
+    document.addEventListener('pointerdown', afuera)
+    return () => document.removeEventListener('pointerdown', afuera)
+  }, [abierto])
+
+  if (!visible) {
+    return (
+      <button
+        type="button"
+        className="msj-cbuscar__lupa"
+        aria-label="Buscar en el canal"
+        onClick={() => {
+          setVisible(true)
+          requestAnimationFrame(() => caja.current?.focus())
+        }}
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+      </button>
+    )
+  }
+  const texto = q.trim()
+  return (
+    <div className={`msj-cbuscar${angosto ? ' is-angosto' : ''}`} ref={marco}>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+      <input
+        ref={caja}
+        type="search"
+        value={q}
+        placeholder="Buscar en el canal"
+        aria-label="Buscar mensajes en este canal"
+        onChange={(e) => {
+          setQ(e.target.value)
+          setAbierto(true)
+        }}
+        onFocus={() => setAbierto(true)}
+        onKeyDown={(e) => {
+          if (e.key !== 'Escape') return
+          setQ('')
+          setAbierto(false)
+          if (angosto) setVisible(false)
+          e.target.blur()
+        }}
+      />
+      {abierto && texto.length >= 2 ? (
+        <div className="msj-cbuscar__panel">
+          {buscando || !datos ? <p className="msj-cbuscar__nota">Buscando…</p> : null}
+          {datos && !buscando ? (
+            <p className="msj-cbuscar__nota">
+              {datos.total ? `${datos.total.toLocaleString('es-AR')} ${datos.total === 1 ? 'mensaje' : 'mensajes'}${datos.total > datos.resultados.length ? ` · los ${datos.resultados.length} más nuevos` : ''}` : 'No hay mensajes con eso.'}
+            </p>
+          ) : null}
+          {datos && !buscando ? (
+            <ul>
+              {datos.resultados.map((m) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAbierto(false)
+                      onIr(m.id)
+                    }}
+                  >
+                    <span className="msj-cbuscar__quien"><b>{m.autor?.nombre}</b> <small>{etiquetaDia(m.creado_en)} · {hora(m.creado_en)}</small></span>
+                    <span className="msj-cbuscar__texto"><Recorte texto={m.texto} q={texto} /></span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 function SugerenciasMencion({ sugerencias, onElegir }) {
@@ -569,18 +690,28 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const hayMasRef = useRef(false)
   hayMasRef.current = Boolean(datos?.hay_mas)
   async function irAlMensaje(id) {
-    for (let intento = 0; intento < 15; intento++) {
-      const el = lista.current?.querySelector(`[data-mid="${id}"]`)
-      if (el) {
-        el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-        setResaltado(id)
-        setTimeout(() => setResaltado((r) => (r === id ? null : r)), 2000)
-        return
+    const buscarlo = () => lista.current?.querySelector(`[data-mid="${id}"]`)
+    let el = buscarlo()
+    const estaba = Boolean(el)
+    if (!el && hayMasRef.current && mensajes.length && !cargandoRef.current) {
+      // Viejo: se trae de una todo lo que falta hasta él (en un canal grande, página por página no llegaba).
+      cargandoRef.current = true
+      try {
+        const r = await fetchMensajes(canalId, { antesDe: mensajes[0].id, hasta: id })
+        setMensajes((m) => [...r.mensajes, ...m])
+        setDatos((d) => ({ ...d, hay_mas: r.hay_mas }))
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        cargandoRef.current = false
       }
-      if (!hayMasRef.current) return
-      await traerAnteriores.current?.()
       await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)))
+      el = buscarlo()
     }
+    if (!el) return
+    el.scrollIntoView({ block: 'center', behavior: estaba ? 'smooth' : 'auto' })
+    setResaltado(id)
+    setTimeout(() => setResaltado((r) => (r === id ? null : r)), 2000)
   }
 
   // Siempre la última versión de la función, para que el observador no haya que rearmarlo
@@ -1046,6 +1177,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 : canal.descripcion || 'Solo publica el equipo de ATV'}
           </span>
         </div>
+        <BuscadorCanal key={canalId} canalId={canalId} angosto={angosto} onIr={irAlMensaje} />
       </header>
 
       <div className="msj-lista-marco">

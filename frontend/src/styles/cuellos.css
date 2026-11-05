@@ -119,12 +119,11 @@
 @font-face { font-family: "Poppins ATV"; src: url("/fonts/Poppins-SemiBold.ttf") format("truetype"); font-weight: 600; font-style: normal; font-display: swap; }
 @font-face { font-family: "Poppins ATV"; src: url("/fonts/Poppins-Italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: swap; }
 @font-face { font-family: "Poppins ATV"; src: url("/fonts/Poppins-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap; }
-/* Igual que el PDF: hoja hueso, el isotipo y el estilo del Google Doc de Juan. */
+/* Igual que el PDF: hoja hueso y el estilo del Google Doc de Juan. */
 .hc-hoja { --hc-hueso: #f3f0e9; --hc-carbon: #242321; --hc-piedra: #8a847c; --hc-linea: #d9d3c8;
   display: flex; flex-direction: column; padding: 44px 64px 48px; border-radius: 3px; background: var(--hc-hueso); color: var(--hc-carbon);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 14px 36px -18px rgba(0, 0, 0, 0.35);
   font-family: "Poppins ATV", "Poppins", "Helvetica Neue", Arial, sans-serif; font-size: 14px; line-height: 1.6; }
-.hc-logo { width: 18px; height: auto; margin-bottom: 30px; }
 .hc-hoja .hc-cliente { margin: 0 0 10px; font-size: 28px; font-weight: 700; line-height: 1.2; }
 .hc-seccion { margin-top: 14px; }
 .hc-titulo { margin: 0 0 10px; font-size: 22px; font-weight: 700; line-height: 1.3; display: flex; align-items: center; gap: 10px; }

@@ -637,7 +637,7 @@ class MensajeriaServices:
         directos.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
         return anuncios + directos + clientes
 
-    def mensajes(self, sesion: dict, canal_id: int, antes_de: int | None = None, despues_de: int | None = None) -> dict:
+    def mensajes(self, sesion: dict, canal_id: int, antes_de: int | None = None, despues_de: int | None = None, hasta_id: int | None = None) -> dict:
         # SQL directo: Pony no puede descompilar lambdas en Python 3.13.
         tabla = f'"{DB_SCHEMA}"."mensajes_canal"'
         with db_session:
@@ -661,7 +661,22 @@ class MensajeriaServices:
                 # que lo escrito en el classroom (cuando se escribe en los dos lados durante la migración).
                 tope = _PAGINA + 1
                 cursor = MensajeCanal.get(id=int(antes_de)) if antes_de is not None else None
-                if cursor is not None:
+                destino = MensajeCanal.get(id=int(hasta_id)) if hasta_id is not None else None
+                if cursor is not None and destino is not None and destino.canal.id == cid:
+                    # Ir a un mensaje viejo (buscador, citas): todo lo que falta hasta él y una página más atrás,
+                    # sin huecos, para que el scroll siga andando.
+                    t, hasta, td, hd = cursor.creado_en, cursor.id, destino.creado_en, destino.id
+                    tramo = list(MensajeCanal.select_by_sql(
+                        f"SELECT * FROM {tabla} WHERE canal = $cid AND NOT borrado AND (creado_en, id) < ($t, $hasta) "
+                        "AND (creado_en, id) >= ($td, $hd) ORDER BY creado_en DESC, id DESC LIMIT 6000"
+                    ))
+                    lista = tramo + list(MensajeCanal.select_by_sql(
+                        f"SELECT * FROM {tabla} WHERE canal = $cid AND NOT borrado AND (creado_en, id) < ($td, $hd) "
+                        "ORDER BY creado_en DESC, id DESC LIMIT $tope"
+                    ))
+                    hay_mas = len(lista) > len(tramo) + _PAGINA
+                    lista = list(reversed(lista[:len(tramo) + _PAGINA]))
+                elif cursor is not None:
                     t, hasta = cursor.creado_en, cursor.id
                     lista = list(MensajeCanal.select_by_sql(
                         f"SELECT * FROM {tabla} WHERE canal = $cid AND NOT borrado AND (creado_en, id) < ($t, $hasta) "
@@ -671,8 +686,9 @@ class MensajeriaServices:
                     lista = list(MensajeCanal.select_by_sql(
                         f"SELECT * FROM {tabla} WHERE canal = $cid AND NOT borrado ORDER BY creado_en DESC, id DESC LIMIT $tope"
                     ))
-                hay_mas = len(lista) > _PAGINA
-                lista = list(reversed(lista[:_PAGINA]))
+                if destino is None or cursor is None or destino.canal.id != cid:
+                    hay_mas = len(lista) > _PAGINA
+                    lista = list(reversed(lista[:_PAGINA]))
             autores = _Autores()
             adjuntos = _adjuntos_de([m.id for m in lista])
             reacciones = _reacciones_de([m.id for m in lista], autores)
@@ -688,6 +704,30 @@ class MensajeriaServices:
                 "lecturas": self._lecturas(canal),
                 "puede_escribir": self._puede_escribir(sesion, canal),
             }
+
+    def buscar(self, sesion: dict, canal_id: int, q: str) -> dict:
+        """Busca en todo el canal, sin importar mayúsculas ni tildes. Lo más nuevo primero, con tope."""
+        q = (q or "").strip()
+        if len(q) < 2:
+            return {"resultados": [], "total": 0}
+        patron = "%" + _normal(q).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        tabla = f'"{DB_SCHEMA}"."mensajes_canal"'
+        limpio = "translate(lower(texto), 'áàäâéèëêíìïîóòöôúùüûñ', 'aaaaeeeeiiiioooouuuun')"
+        with db_session:
+            canal = _canal_visible(sesion, canal_id)
+            if sesion.get("pausa") and canal.tipo != "cliente":
+                from src.services.auth_service import mensaje_pausa
+
+                raise HTTPException(status_code=423, detail=mensaje_pausa(sesion.get("motivo"), sesion.get("plan")))
+            cid = canal.id
+            donde = f"canal = $cid AND NOT borrado AND {limpio} LIKE $patron"
+            total = int(db.select(f"SELECT count(*) FROM {tabla} WHERE {donde}")[0])
+            lista = list(MensajeCanal.select_by_sql(f"SELECT * FROM {tabla} WHERE {donde} ORDER BY creado_en DESC, id DESC LIMIT 50"))
+            autores = _Autores()
+            return {"total": total, "resultados": [
+                {"id": d["id"], "texto": d["texto"], "autor": d["autor"], "creado_en": d["creado_en"]}
+                for d in (_mensaje_dict(m, autores, {}, {}, {}, {}) for m in lista)
+            ]}
 
     def texto_completo(self, sesion: dict, canal_id: int) -> dict:
         """Toda la conversación del canal en texto plano, para que el coach la descargue (Acciones rápidas)."""

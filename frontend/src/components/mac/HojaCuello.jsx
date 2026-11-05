@@ -132,7 +132,6 @@ export default function HojaCuello({ cliente, partes, original, alCambiar, captu
     <div className="hc-marco">
       <Barra base={capturas} />
       <article className="hc-hoja" aria-label={`Diagnóstico de ${cliente}`}>
-        <img className="hc-logo" src="/atv-logo-negro.png" alt="ATV" />
         <h2 className="hc-cliente">Diagnóstico {cliente}</h2>
         {SECCIONES.map((s) => (
           <section key={s} className="hc-seccion">

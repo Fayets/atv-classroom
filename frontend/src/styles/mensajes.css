@@ -1185,3 +1185,21 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 /* "Sugerida" debajo del nombre: a la derecha, con el nombre centrado, se le montaba encima. */
 .msj-acciones:not(.rmc) .msj-accion.is-sugerida .msj-accion__boton { flex-direction: column; gap: 1px; padding-top: 7px; padding-bottom: 7px; }
 .msj-acciones:not(.rmc) .msj-accion.is-sugerida .msj-accion__boton em { position: static; transform: none; font-size: 10.5px; font-weight: 500; }
+
+/* Buscador de mensajes del canal */
+.msj-cbuscar { position: relative; flex: none; margin-left: auto; width: 230px; max-width: 45%; display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 8px; background: var(--m-relleno, #f2f2f4); color: var(--m-t3); }
+.msj-cbuscar > svg, .msj-cbuscar__lupa svg { width: 14px; height: 14px; flex: none; }
+.msj-cbuscar input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; font-size: 12.5px; color: var(--m-t1); }
+.msj-cbuscar input::placeholder { color: var(--m-t3); }
+.msj-cbuscar.is-angosto { width: 55%; max-width: 55%; }
+.msj-cbuscar__lupa { flex: none; margin-left: auto; width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 8px; background: none; color: var(--m-t2); cursor: pointer; }
+.msj-cbuscar__panel { position: absolute; z-index: 30; top: calc(100% + 6px); right: 0; width: min(400px, calc(100vw - 28px)); max-height: min(460px, 65vh); overflow-y: auto; padding: 6px; border-radius: 12px; background: var(--m-tarjeta, #fff); box-shadow: 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.16), 0 14px 36px -10px rgba(0, 0, 0, 0.3); }
+.msj-cbuscar__panel ul { margin: 0; padding: 0; list-style: none; }
+.msj-cbuscar__nota { margin: 0; padding: 6px 8px; font-size: 11.5px; color: var(--m-t3); }
+.msj-cbuscar__panel button { width: 100%; display: flex; flex-direction: column; gap: 2px; padding: 7px 8px; border: 0; border-radius: 8px; background: none; font: inherit; text-align: left; cursor: pointer; color: var(--m-t1); }
+.msj-cbuscar__panel button:hover { background: var(--m-relleno, #f2f2f4); }
+.msj-cbuscar__quien { font-size: 12px; }
+.msj-cbuscar__quien b { font-weight: 600; }
+.msj-cbuscar__quien small { font-size: 11px; color: var(--m-t3); }
+.msj-cbuscar__texto { font-size: 12.5px; line-height: 1.35; color: var(--m-t2); overflow-wrap: anywhere; }
+.msj-cbuscar__texto mark { border-radius: 3px; padding: 0 1px; background: rgba(255, 196, 0, 0.35); color: inherit; }

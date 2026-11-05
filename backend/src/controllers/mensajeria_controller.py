@@ -147,9 +147,15 @@ def mensajes(
     canal_id: int,
     antes_de: int | None = None,
     despues_de: int | None = None,
+    hasta: int | None = None,
     sesion: dict = Depends(sesion_mensajes),
 ):
-    return service.mensajes(sesion, canal_id, antes_de=antes_de, despues_de=despues_de)
+    return service.mensajes(sesion, canal_id, antes_de=antes_de, despues_de=despues_de, hasta_id=hasta)
+
+
+@router.get("/canales/{canal_id}/buscar")
+def buscar_en_canal(canal_id: int, q: str = "", sesion: dict = Depends(sesion_mensajes)):
+    return service.buscar(sesion, canal_id, q)
 
 
 @router.get("/canales/{canal_id}/texto")

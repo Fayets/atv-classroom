@@ -41,10 +41,13 @@ export function fetchNoLeidos() {
   return request('/api/mensajes/no-leidos')
 }
 
-export function fetchMensajes(canalId, { antesDe, despuesDe } = {}) {
+export const buscarEnCanal = (canalId, q) => request(`/api/mensajes/canales/${canalId}/buscar?q=${encodeURIComponent(q)}`)
+
+export function fetchMensajes(canalId, { antesDe, despuesDe, hasta } = {}) {
   const q = new URLSearchParams()
   if (antesDe != null) q.set('antes_de', antesDe)
   if (despuesDe != null) q.set('despues_de', despuesDe)
+  if (hasta != null) q.set('hasta', hasta)
   const sufijo = q.toString() ? `?${q}` : ''
   return request(`/api/mensajes/canales/${canalId}/mensajes${sufijo}`)
 }
