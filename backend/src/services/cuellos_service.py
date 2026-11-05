@@ -400,6 +400,20 @@ def armar_cerebro(diag_id: int, llamar=_llamar, payload: dict | None = None) -> 
         return False
 
 
+def _mensajes_largos(admin_id: int) -> list[str]:
+    """Sus explicaciones largas a clientes: se parecen más a un documento que los mensajes cortos de la voz."""
+    from src.services.aprendizaje_service import _nombres_ajenos, ocultar_nombres
+
+    with db_session:
+        textos = list(db.select(
+            f'SELECT m.texto FROM "{DB_SCHEMA}"."mensajes_canal" m JOIN "{DB_SCHEMA}"."canales" c ON c.id = m.canal '
+            "WHERE m.autor_tipo = 'admin' AND m.autor_id = $admin_id AND NOT m.borrado AND c.tipo = 'cliente' "
+            "AND length(m.texto) BETWEEN 150 AND 900 ORDER BY m.creado_en DESC LIMIT 18"
+        ))
+    nombres, _ = _nombres_ajenos()
+    return [ocultar_nombres(t, nombres) for t in textos]
+
+
 def _con_voz(texto: str, admin_id: int, llamar) -> tuple[str, list[str]]:
     """El documento reescrito con la voz de un coach, y las secciones que quedaron como estaban."""
     from src.services.aprendizaje_service import voz_de, voz_para_ia
@@ -413,7 +427,9 @@ def _con_voz(texto: str, admin_id: int, llamar) -> tuple[str, list[str]]:
     voz = voz_para_ia(voz_de(admin_id))
     if not voz.get("ejemplos"):
         raise HTTPException(status_code=409, detail=f"Todavía no hay mensajes de {nombre} para aprender su voz.")
-    partes, sin_cambiar = cuellos_tono.reescribir(secciones(texto, con_marcas=True), nombre, _describir_voz(voz.get("rasgos") or {}), voz["ejemplos"], llamar)
+    rasgos = voz.get("rasgos") or {}
+    ejemplos = _mensajes_largos(admin_id) + voz["ejemplos"]
+    partes, sin_cambiar = cuellos_tono.reescribir(secciones(texto, con_marcas=True), nombre, _describir_voz(rasgos), ejemplos, rasgos, llamar)
     return "\n\n".join(f"# {s}\n{partes[s].strip()}" for s in SECCIONES if partes.get(s)), sin_cambiar
 
 
