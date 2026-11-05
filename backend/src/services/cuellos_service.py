@@ -400,6 +400,23 @@ def armar_cerebro(diag_id: int, llamar=_llamar, payload: dict | None = None) -> 
         return False
 
 
+def _con_voz(texto: str, admin_id: int, llamar) -> tuple[str, list[str]]:
+    """El documento reescrito con la voz de un coach, y las secciones que quedaron como estaban."""
+    from src.services.aprendizaje_service import voz_de, voz_para_ia
+    from src.services.sugerencias_service import _describir_voz
+
+    with db_session:
+        coach = Admin.get(id=admin_id)
+        if coach is None:
+            raise HTTPException(status_code=404, detail="No existe ese coach.")
+        nombre = coach.nombre or coach.email
+    voz = voz_para_ia(voz_de(admin_id))
+    if not voz.get("ejemplos"):
+        raise HTTPException(status_code=409, detail=f"Todavía no hay mensajes de {nombre} para aprender su voz.")
+    partes, sin_cambiar = cuellos_tono.reescribir(secciones(texto, con_marcas=True), nombre, _describir_voz(voz.get("rasgos") or {}), voz["ejemplos"], llamar)
+    return "\n\n".join(f"# {s}\n{partes[s].strip()}" for s in SECCIONES if partes.get(s)), sin_cambiar
+
+
 def _no_vacio(texto: str) -> None:
     """Un documento sin texto en ninguna sección nunca pisa al borrador (pasó con la ventana abierta esperando a Jeremy)."""
     if not any(secciones(texto).values()):
@@ -535,10 +552,18 @@ class CuellosServices:
             if texto is not None:
                 _no_vacio(texto)
                 d.version_final = texto
-            final, jeremy, cerebro = d.version_final or "", d.version_jeremy or "", d.version_cerebro
+            # Con tono, la base es el borrador ya reescrito: el cambio de voz no cuenta como corrección de Juan.
+            final, jeremy, cerebro, voz_id = d.version_final or "", d.version_tono or d.version_jeremy or "", d.version_cerebro, d.tono_admin_id
             d.coincidencia_jeremy = coincidencia(jeremy, final)
             d.coincidencia_cerebro = coincidencia(cerebro, final) if cerebro else None
             d.estado, d.aprobado_por, d.aprobado_en = "aprobado", sesion["usuario_id"], datetime.utcnow()
+        if cerebro and voz_id:
+            # Para que la comparación sea justa, el cerebro se mide con la misma voz.
+            try:
+                cerebro_con_voz, _ = _con_voz(cerebro, voz_id, llamar)
+                _poner(diag_id, coincidencia_cerebro=coincidencia(cerebro_con_voz, final))
+            except HTTPException:
+                pass
         propuestas = []
         for c in cambios(jeremy, final):
             propuestas.append({**c, "propuesta": _proponer_leccion(c, llamar)})
@@ -634,44 +659,31 @@ class CuellosServices:
                 "captura_base": f"/api/cuellos/captura/{d.token}" if id_loom(d.loom_url) else None,
                 "doc_activo": google_docs_service.activo(),
                 "doc_url": d.doc_url,
-                # Lo que sale al cliente: con el tono del coach si se eligió uno.
-                "version_envio": d.version_tono or d.version_final,
-                "tono_admin_id": d.tono_admin_id,
+                "version_tono": d.version_tono,
+                "tono_admin_id": d.tono_admin_id,  # None: todavía no se eligió · 0: como lo escribió Juan AI
                 "lecciones": [{"id": l.id, "seccion": l.seccion, "texto": l.texto} for l in list(CuelloLeccion.select(lambda l: l.diagnostico_id == diag_id))],
             }
 
     def tono(self, diag_id: int, admin_id: int | None = None, texto: str | None = None, llamar=_llamar) -> dict:
-        """Elige con qué voz sale el diagnóstico aprobado (sin admin_id vuelve a la versión de Juan) o guarda lo que
-        se corrigió a mano sobre esa voz. Si ya había un Google Doc, se arma uno nuevo al enviar."""
-        from src.services.aprendizaje_service import voz_de, voz_para_ia
-        from src.services.sugerencias_service import _describir_voz
-
+        """Lo primero al abrir el borrador: con qué voz sale. Reescribe lo que hay (texto: lo que venía corrigiendo Juan)
+        y eso es lo que se corrige y se aprueba. Sin admin_id queda como lo escribió Juan AI."""
         with db_session:
             d = CuelloDiagnostico.get(id=diag_id)
             if d is None:
                 raise HTTPException(status_code=404, detail="No existe ese diagnóstico.")
-            if d.estado != "aprobado":
-                raise HTTPException(status_code=409, detail="Primero hay que aprobar la versión final.")
-            final = d.version_final or ""
+            if d.estado != "borrador":
+                raise HTTPException(status_code=409, detail="El tono se elige antes de aprobar.")
             if texto is not None:
                 _no_vacio(texto)
-                d.version_tono, d.doc_url = texto, None
-                return {**self.detalle(diag_id), "sin_cambiar": []}
+            base = texto if texto is not None else (d.version_final or d.version_jeremy or "")
             if admin_id is None:
-                d.version_tono, d.tono_admin_id, d.doc_url = None, None, None
+                d.version_final, d.tono_admin_id = base, 0
                 return {**self.detalle(diag_id), "sin_cambiar": []}
-            coach = Admin.get(id=admin_id)
-            if coach is None:
-                raise HTTPException(status_code=404, detail="No existe ese coach.")
-            nombre = coach.nombre or coach.email
-        voz = voz_para_ia(voz_de(admin_id))
-        if not voz.get("ejemplos"):
-            raise HTTPException(status_code=409, detail=f"Todavía no hay mensajes de {nombre} para aprender su voz.")
-        partes, sin_cambiar = cuellos_tono.reescribir(secciones(final, con_marcas=True), nombre, _describir_voz(voz.get("rasgos") or {}), voz["ejemplos"], llamar)
+        nuevo, sin_cambiar = _con_voz(base, admin_id, llamar)
         with db_session:
             d = CuelloDiagnostico[diag_id]
-            d.version_tono = "\n\n".join(f"# {s}\n{partes[s].strip()}" for s in SECCIONES if partes.get(s))
-            d.tono_admin_id, d.doc_url = admin_id, None
+            # version_tono es el punto de partida: lo que Juan cambie desde acá es lo que aprende la neurona.
+            d.version_final, d.version_tono, d.tono_admin_id = nuevo, nuevo, admin_id
         return {**self.detalle(diag_id), "sin_cambiar": sin_cambiar}
 
     def google_doc(self, diag_id: int, html: str) -> dict:

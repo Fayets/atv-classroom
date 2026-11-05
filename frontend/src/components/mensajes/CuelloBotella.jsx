@@ -117,7 +117,7 @@ export default function CuelloBotella({ clienteId, canalId, cliente, alCerrar, a
     try {
       const primero = (cliente || '').trim().split(/\s+/)[0]
       if (mandar.doc_activo) {
-        const html = mandar.doc_url ? '' : await htmlCuello({ cliente: mandar.cliente, texto: mandar.version_envio, capturas: mandar.captura_base })
+        const html = mandar.doc_url ? '' : await htmlCuello({ cliente: mandar.cliente, texto: mandar.version_final, capturas: mandar.captura_base })
         const { url } = await crearDocCuello(mandar.id, html)
         await enviarMensaje(canalId, `${primero}, te dejo el diagnóstico de tu cuello de botella y el roadmap para resolverlo 👇\n${url}`)
         setMandar(null)
@@ -125,7 +125,7 @@ export default function CuelloBotella({ clienteId, canalId, cliente, alCerrar, a
         alCerrar()
         return
       }
-      const { blob, nombre } = await pdfCuello({ cliente: mandar.cliente, texto: mandar.version_envio, fecha: new Date(mandar.aprobado_en || Date.now()), capturas: mandar.captura_base })
+      const { blob, nombre } = await pdfCuello({ cliente: mandar.cliente, texto: mandar.version_final, fecha: new Date(mandar.aprobado_en || Date.now()), capturas: mandar.captura_base })
       const adjunto = await subirAdjunto(canalId, new File([blob], nombre, { type: 'application/pdf' }))
       await enviarMensaje(canalId, `${primero}, te dejo el diagnóstico de tu cuello de botella y el roadmap para resolverlo 👇`, null, [], [adjunto.id])
       setMandar(null)

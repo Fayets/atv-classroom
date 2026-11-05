@@ -148,6 +148,11 @@
 .cb-menu button.is-peligro { color: #d23c2f; }
 .cb-menu button.is-peligro:hover { background: #d23c2f; color: #fff; }
 .cb-menu hr { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid rgba(0, 0, 0, 0.1); }
-.cb-tono { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.cb-tono { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
+.cb-tono h4 { margin: 0; font-size: 15px; font-weight: 650; }
+.cb-tono.is-fila { flex-direction: row; align-items: center; flex-wrap: wrap; }
+.cb-tono__voces { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .cb-tono label { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .cb-tono select { height: 30px; padding: 0 8px; border: 1px solid rgba(0, 0, 0, 0.14); border-radius: 7px; background: #fff; font: inherit; font-size: 13px; color: #1d1d1f; }
+/* Con la ventana agrandada, el Dock tapaba Aprobar. */
+.fd-ventana.is-grande .cb-pie { padding-bottom: 84px; }

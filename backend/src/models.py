@@ -894,7 +894,7 @@ class CuelloDiagnostico(db.Entity):
     coincidencia_jeremy = Optional(float, nullable=True)  # 0..1 contra la final de Juan
     coincidencia_cerebro = Optional(float, nullable=True)
     doc_url = Optional(str, nullable=True)  # el Google Doc que se le mandó al cliente
-    # La final con la voz del coach que lo manda: es lo que sale al cliente. La final queda para la neurona.
+    # El borrador reescrito con la voz del coach, antes de que Juan lo corrija: la base contra la que aprende la neurona.
     version_tono = Optional(str, nullable=True)
     tono_admin_id = Optional(int, nullable=True)
     aprobado_por = Optional(int, nullable=True)

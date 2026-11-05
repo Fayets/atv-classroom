@@ -1,8 +1,8 @@
-"""El diagnóstico aprobado, con la voz del coach que se lo manda al cliente.
+"""El borrador del diagnóstico, con la voz del coach que se lo manda al cliente.
 
 Se reescribe sección por sección y en paralelo (el corte de nginx es a los 60 s). La IA solo cambia cómo está
-dicho: el código controla que sigan los mismos números, capturas y subtítulos, y si no, esa sección queda como la
-aprobó Juan. La versión final no se toca: es contra la que aprende la neurona."""
+dicho: el código controla que sigan los mismos números, capturas y subtítulos, y si no, esa sección queda como
+estaba."""
 
 import re
 from concurrent.futures import ThreadPoolExecutor
@@ -12,7 +12,7 @@ _INSTRUCCIONES = """Reescribís una sección de un diagnóstico que ATV le manda
 Cambiás SOLO cómo está dicho: vocabulario, ritmo, cercanía, las muletillas y giros de {coach}.
 - No agregás ni sacás ideas, datos, números, ejemplos ni pasos. Todo lo que dice el original tiene que seguir diciéndolo.
 - Mantené el formato línea por línea: los subtítulos que empiezan con ###, las viñetas con -, los ejemplos con >, las negritas con ** y las líneas [captura MM:SS] exactamente donde están.
-- Es un documento para leer, no un chat: mayúscula al empezar, puntuación normal y palabras enteras (nada de "x" por "por" ni "q"), aunque {coach} en el chat escriba distinto. Sin emojis.
+- Es un documento para leer, no un chat: mayúscula al empezar, puntuación normal y palabras enteras (nada de "x" por "por", ni "q", ni letras estiradas como "queridoo"), aunque {coach} en el chat escriba distinto. Sin emojis.
 - Voseo rioplatense, hablándole directo al cliente.
 - No menciones que es una reescritura. Devolvé solo la sección, sin títulos nuevos ni comentarios."""
 

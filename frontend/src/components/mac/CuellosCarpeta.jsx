@@ -126,38 +126,25 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
   const [error, setError] = useState('')
   const [verTrans, setVerTrans] = useState(false)
   const [bajando, setBajando] = useState(false)
-  // La voz del coach que manda el diagnóstico: se elige después de aprobarlo.
+  // Con qué voz sale: se pregunta apenas llega el borrador, y eso es lo que se corrige y se aprueba.
   const [voces, setVoces] = useState([])
   const [tonando, setTonando] = useState(false)
-  const [parteTono, setParteTono] = useState(null)
   const [sinCambiar, setSinCambiar] = useState([])
-  const aprobado = d?.estado === 'aprobado'
+  const enBorrador = d?.estado === 'borrador'
   useEffect(() => {
-    if (aprobado) fetchVoz().then((r) => setVoces(r.opciones || [])).catch(() => setVoces([]))
-  }, [aprobado])
+    if (enBorrador) fetchVoz().then((r) => setVoces(r.opciones || [])).catch(() => setVoces([]))
+  }, [enBorrador])
 
-  async function elegirTono(valor) {
+  async function elegirTono(adminId) {
     setTonando(true)
     setError('')
     try {
-      const r = await tonoCuello(d.id, { admin_id: valor ? Number(valor) : null })
+      const r = await tonoCuello(d.id, { admin_id: adminId, texto: partes ? unir(partes) : null })
       setD(r)
-      setParteTono(null)
+      setPartes(partir(r.version_final))
       setSinCambiar(r.sin_cambiar || [])
     } catch (e) {
       setError(e.message || 'No se pudo cambiar el tono.')
-    } finally {
-      setTonando(false)
-    }
-  }
-  async function guardarTono() {
-    setTonando(true)
-    setError('')
-    try {
-      setD(await tonoCuello(d.id, { texto: unir(parteTono) }))
-      setParteTono(null)
-    } catch (e) {
-      setError(e.message || 'No se pudo guardar.')
     } finally {
       setTonando(false)
     }
@@ -166,7 +153,7 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
   async function pdf() {
     setBajando(true)
     try {
-      await descargarPdfCuello({ cliente: d.cliente, texto: d.version_envio, fecha: new Date(d.aprobado_en || Date.now()), capturas: d.captura_base })
+      await descargarPdfCuello({ cliente: d.cliente, texto: d.version_final, fecha: new Date(d.aprobado_en || Date.now()), capturas: d.captura_base })
     } catch (e) {
       setError(e.message || 'No se pudo armar el PDF.')
     } finally {
@@ -200,7 +187,7 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
   }, [d?.estado])
 
   if (!d) return <p className="fd-vacio">{error || 'Cargando…'}</p>
-  const jeremy = partir(d.version_jeremy)
+  const jeremy = partir(d.version_tono || d.version_jeremy)
   const cerebro = partir(d.version_cerebro)
 
   async function guardar() {
@@ -260,10 +247,33 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
         </div>
       ) : null}
 
-      {d.estado === 'borrador' && partes ? (
+      {d.estado === 'borrador' && partes && d.tono_admin_id === null ? (
+        <div className="cb-tono">
+          <h4>¿Con qué tono lo querés?</h4>
+          {tonando ? <p className="cb-gris">Reescribiendo con su voz… tarda menos de un minuto.</p> : (
+            <div className="cb-tono__voces">
+              {voces.map((v) => <button key={v.id} type="button" className="cb-btn is-suave" onClick={() => elegirTono(v.id)}>{v.nombre}</button>)}
+              <button type="button" className="cb-link" onClick={() => elegirTono(null)}>Dejarlo como está</button>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {d.estado === 'borrador' && partes && d.tono_admin_id !== null ? (
         <>
+          <div className="cb-tono is-fila">
+            <label>
+              <b>Tono de voz</b>
+              <select value={d.tono_admin_id || ''} disabled={tonando} onChange={(e) => e.target.value && elegirTono(Number(e.target.value))}>
+                {d.tono_admin_id ? null : <option value="">Como lo escribió Juan AI</option>}
+                {voces.map((v) => <option key={v.id} value={v.id}>{v.nombre}</option>)}
+              </select>
+            </label>
+            {tonando ? <small className="cb-gris">Reescribiendo con su voz… tarda menos de un minuto.</small> : null}
+            {!tonando && sinCambiar.length ? <small className="cb-gris">Quedaron como estaban: {sinCambiar.join(', ')}.</small> : null}
+          </div>
           <p className="cb-gris">Así sale el PDF. Escribí directo sobre el documento: lo que cambies es lo que va a aprender la neurona.</p>
-          <HojaCuello key={`${d.id}-${d.respondido_en}`} cliente={d.cliente} partes={partes} original={jeremy} alCambiar={setPartes} capturas={d.captura_base} />
+          <HojaCuello key={`${d.id}-${d.respondido_en}-${d.tono_admin_id}-${(d.version_tono || '').length}`} cliente={d.cliente} partes={partes} original={jeremy} alCambiar={setPartes} capturas={d.captura_base} />
           <div className="cb-acciones cb-pie">
             <small className="cb-gris">{d.cerebro_listo ? 'El cerebro ya armó su versión: la vas a ver cuando apruebes.' : 'El cerebro todavía está armando su versión.'}</small>
             <span className="cb-btns">
@@ -278,29 +288,10 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
         <>
           {cambios && cambios.length ? <Lecciones diag={d} cambios={cambios} alListo={() => { setCambios(null); alCambiar() }} /> : null}
           {!(cambios && cambios.length) ? (
-            <div className="cb-tono">
-              <label>
-                <b>Tono de voz</b>
-                <select value={d.tono_admin_id || ''} disabled={tonando} onChange={(e) => elegirTono(e.target.value)}>
-                  <option value="">Como quedó aprobado</option>
-                  {voces.map((v) => <option key={v.id} value={v.id}>{v.nombre}</option>)}
-                </select>
-              </label>
-              {tonando ? <small className="cb-gris">Reescribiendo con su voz… tarda menos de un minuto.</small> : null}
-              {!tonando && sinCambiar.length ? <small className="cb-gris">Quedaron como estaban: {sinCambiar.join(', ')}.</small> : null}
-              {d.tono_admin_id ? (
-                <>
-                  <HojaCuello key={`tono-${d.tono_admin_id}-${d.version_envio.length}`} cliente={d.cliente} partes={parteTono || partir(d.version_envio)} original={partir(d.version_envio)} alCambiar={setParteTono} capturas={d.captura_base} />
-                  {parteTono ? <span className="cb-btns"><button type="button" className="cb-btn" disabled={tonando} onClick={guardarTono}>Guardar cambios</button></span> : null}
-                </>
-              ) : null}
-            </div>
-          ) : null}
-          {!(cambios && cambios.length) ? (
             <div className="cb-acciones cb-enviar">
-              <small className="cb-gris">{bajando ? 'Armando el PDF…' : d.tono_admin_id ? 'Sale con la voz elegida.' : 'El documento final de Juan.'}</small>
+              <small className="cb-gris">{bajando ? 'Armando el PDF…' : 'El documento final de Juan.'}</small>
               <span className="cb-btns">
-                <button type="button" className="cb-btn is-suave" onClick={() => navigator.clipboard?.writeText(paraChat(d.version_envio)).catch(() => {})}>Copiar texto</button>
+                <button type="button" className="cb-btn is-suave" onClick={() => navigator.clipboard?.writeText(paraChat(d.version_final)).catch(() => {})}>Copiar texto</button>
                 <button type="button" className={`cb-btn${alEnviar ? ' is-suave' : ''}`} disabled={bajando} onClick={pdf}>Descargar PDF</button>
                 {alEnviar ? <button type="button" className="cb-btn" onClick={() => alEnviar(d)}>{d.doc_activo ? 'Enviar Doc al chat' : 'Enviar PDF al chat'}</button> : null}
               </span>
