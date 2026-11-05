@@ -246,7 +246,7 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
               <span className="cb-btns">
                 <button type="button" className="cb-btn is-suave" onClick={() => navigator.clipboard?.writeText(paraChat(d.version_final)).catch(() => {})}>Copiar texto</button>
                 <button type="button" className={`cb-btn${alEnviar ? ' is-suave' : ''}`} disabled={bajando} onClick={pdf}>Descargar PDF</button>
-                {alEnviar ? <button type="button" className="cb-btn" onClick={() => alEnviar(d)}>Enviar PDF al chat</button> : null}
+                {alEnviar ? <button type="button" className="cb-btn" onClick={() => alEnviar(d)}>{d.doc_activo ? 'Enviar Doc al chat' : 'Enviar PDF al chat'}</button> : null}
               </span>
             </div>
           ) : null}

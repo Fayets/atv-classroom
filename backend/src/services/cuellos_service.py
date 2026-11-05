@@ -28,7 +28,7 @@ from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
 from src.models import Admin, Canal, ClienteExterno, CuelloDiagnostico, CuelloLeccion, Llamada, MensajeCanal
-from src.services import cuellos_capturas, gasto_ia
+from src.services import cuellos_capturas, gasto_ia, google_docs_service
 
 logger = logging.getLogger(__name__)
 
@@ -632,8 +632,26 @@ class CuellosServices:
                 "secciones": SECCIONES,
                 # Las capturas del Loom: <base>/<segundo>.jpg, sin sesión (la dirección lleva el token).
                 "captura_base": f"/api/cuellos/captura/{d.token}" if id_loom(d.loom_url) else None,
+                "doc_activo": google_docs_service.activo(),
+                "doc_url": d.doc_url,
                 "lecciones": [{"id": l.id, "seccion": l.seccion, "texto": l.texto} for l in list(CuelloLeccion.select(lambda l: l.diagnostico_id == diag_id))],
             }
+
+    def google_doc(self, diag_id: int, html: str) -> dict:
+        """El diagnóstico aprobado como Google Doc. Si ya se creó, devuelve el mismo link."""
+        with db_session:
+            d = CuelloDiagnostico.get(id=diag_id)
+            if d is None:
+                raise HTTPException(status_code=404, detail="No existe ese diagnóstico.")
+            if d.estado != "aprobado":
+                raise HTTPException(status_code=409, detail="Primero hay que aprobar la versión final.")
+            if d.doc_url:
+                return {"url": d.doc_url}
+            titulo = f"Diagnóstico {_nombres_clientes({d.cliente_id}).get(d.cliente_id, '')}".strip()
+        url = google_docs_service.crear(titulo, html)
+        with db_session:
+            CuelloDiagnostico[diag_id].doc_url = url
+        return {"url": url}
 
     def neurona(self) -> dict:
         """La carpeta de Franco: cuánto se parece el cerebro (y Jeremy) a lo que deja Juan, semana a semana."""

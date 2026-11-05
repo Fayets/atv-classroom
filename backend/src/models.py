@@ -893,6 +893,7 @@ class CuelloDiagnostico(db.Entity):
     version_final = Optional(str, nullable=True)
     coincidencia_jeremy = Optional(float, nullable=True)  # 0..1 contra la final de Juan
     coincidencia_cerebro = Optional(float, nullable=True)
+    doc_url = Optional(str, nullable=True)  # el Google Doc que se le mandó al cliente
     aprobado_por = Optional(int, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
     respondido_en = Optional(datetime, nullable=True)

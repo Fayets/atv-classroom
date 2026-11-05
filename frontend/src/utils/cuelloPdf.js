@@ -74,6 +74,40 @@ function cuerpo(texto, imgs = {}) {
 // Los títulos como en el Doc de Juan: "2. Causas" grande y en negrita.
 const titulo = (s) => ({ text: TITULOS[s], bold: true, fontSize: 16.5, margin: [0, 10, 0, 8] })
 
+const escapar = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+const conNegrita = (t) => tramos(t).map((x) => (x.negrita ? `<b>${escapar(x.texto)}</b>` : escapar(x.texto))).join('')
+
+// El mismo documento en HTML, para que Google lo convierta en un Doc.
+export async function htmlCuello({ cliente, texto, capturas: base = null }) {
+  const imgs = await capturas(base, texto || '')
+  const p = partir(texto)
+  const fuente = 'font-family:Poppins,Arial,sans-serif;'
+  const partes = [`<h1 style="${fuente}font-size:21pt">Diagnóstico ${escapar(cliente || '')}</h1>`]
+  for (const s of SECCIONES) {
+    if (!p[s]) continue
+    if (TITULOS[s]) partes.push(`<h2 style="${fuente}font-size:16pt">${escapar(TITULOS[s])}</h2>`)
+    let lista = []
+    const cerrarLista = () => {
+      if (lista.length) partes.push(`<ul>${lista.join('')}</ul>`)
+      lista = []
+    }
+    for (const b of bloques(p[s])) {
+      if (b.tipo === 'item') {
+        lista.push(`<li style="${fuente}font-size:11pt">${conNegrita(b.texto)}</li>`)
+        continue
+      }
+      cerrarLista()
+      if (b.tipo === 'captura') {
+        if (imgs[b.seg]) partes.push(`<p><img src="${imgs[b.seg]}" width="600"></p>`)
+      } else if (b.tipo === 'sub') partes.push(`<h3 style="${fuente}font-size:12.5pt">${conNegrita(b.texto)}</h3>`)
+      else if (b.tipo === 'cita') partes.push(`<p style="${fuente}font-size:11pt;margin-left:24pt">${conNegrita(b.texto)}</p>`)
+      else partes.push(`<p style="${fuente}font-size:11pt">${conNegrita(b.texto)}</p>`)
+    }
+    cerrarLista()
+  }
+  return `<!doctype html><html><head><meta charset="utf-8"></head><body>${partes.join('')}</body></html>`
+}
+
 export async function pdfCuello({ cliente, texto, fecha = new Date(), capturas: base = null }) {
   const pdfMake = await loadPdfMake()
   poppins(pdfMake)
