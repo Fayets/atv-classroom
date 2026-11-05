@@ -81,27 +81,29 @@ const conNegrita = (t) => tramos(t).map((x) => (x.negrita ? `<b>${escapar(x.text
 export async function htmlCuello({ cliente, texto, capturas: base = null }) {
   const imgs = await capturas(base, texto || '')
   const p = partir(texto)
+  // Google Docs importa sin aire: el interlineado y la separación van explícitos en cada bloque.
   const fuente = 'font-family:Poppins,Arial,sans-serif;'
-  const partes = [`<h1 style="${fuente}font-size:21pt">Diagnóstico ${escapar(cliente || '')}</h1>`]
+  const texto11 = `${fuente}font-size:11pt;line-height:1.6;`
+  const partes = [`<h1 style="${fuente}font-size:21pt;margin:0 0 18pt 0">Diagnóstico ${escapar(cliente || '')}</h1>`]
   for (const s of SECCIONES) {
     if (!p[s]) continue
-    if (TITULOS[s]) partes.push(`<h2 style="${fuente}font-size:16pt">${escapar(TITULOS[s])}</h2>`)
+    if (TITULOS[s]) partes.push(`<h2 style="${fuente}font-size:16pt;margin:28pt 0 10pt 0">${escapar(TITULOS[s])}</h2>`)
     let lista = []
     const cerrarLista = () => {
-      if (lista.length) partes.push(`<ul>${lista.join('')}</ul>`)
+      if (lista.length) partes.push(`<ul style="margin:0 0 12pt 0">${lista.join('')}</ul>`)
       lista = []
     }
     for (const b of bloques(p[s])) {
       if (b.tipo === 'item') {
-        lista.push(`<li style="${fuente}font-size:11pt">${conNegrita(b.texto)}</li>`)
+        lista.push(`<li style="${texto11}margin:0 0 4pt 0">${conNegrita(b.texto)}</li>`)
         continue
       }
       cerrarLista()
       if (b.tipo === 'captura') {
-        if (imgs[b.seg]) partes.push(`<p><img src="${imgs[b.seg]}" width="600"></p>`)
-      } else if (b.tipo === 'sub') partes.push(`<h3 style="${fuente}font-size:12.5pt">${conNegrita(b.texto)}</h3>`)
-      else if (b.tipo === 'cita') partes.push(`<p style="${fuente}font-size:11pt;margin-left:24pt">${conNegrita(b.texto)}</p>`)
-      else partes.push(`<p style="${fuente}font-size:11pt">${conNegrita(b.texto)}</p>`)
+        if (imgs[b.seg]) partes.push(`<p style="margin:12pt 0 16pt 0"><img src="${imgs[b.seg]}" width="600"></p>`)
+      } else if (b.tipo === 'sub') partes.push(`<h3 style="${fuente}font-size:12.5pt;margin:18pt 0 8pt 0">${conNegrita(b.texto)}</h3>`)
+      else if (b.tipo === 'cita') partes.push(`<p style="${texto11}margin:4pt 0 12pt 24pt">${conNegrita(b.texto)}</p>`)
+      else partes.push(`<p style="${texto11}margin:0 0 12pt 0">${conNegrita(b.texto)}</p>`)
     }
     cerrarLista()
   }
