@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  aprobarCuello, borrarCuello, desactivarLeccion, fetchClientesCuellos, fetchCuello, fetchCuellos, fetchNeurona,
+  aprobarCuello, tonoCuello, borrarCuello, desactivarLeccion, fetchClientesCuellos, fetchCuello, fetchCuellos, fetchNeurona,
   guardarCuello, guardarLecciones, pedirCuello, reintentarCuello,
 } from '../../api/cuellos'
+import { fetchVoz } from '../../api/cuenta'
 import { IconoCarpeta } from './Finder'
 import HojaCuello from './HojaCuello'
 import { IconoPdf } from './OnboardingsCarpeta'
@@ -125,11 +126,47 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
   const [error, setError] = useState('')
   const [verTrans, setVerTrans] = useState(false)
   const [bajando, setBajando] = useState(false)
+  // La voz del coach que manda el diagnóstico: se elige después de aprobarlo.
+  const [voces, setVoces] = useState([])
+  const [tonando, setTonando] = useState(false)
+  const [parteTono, setParteTono] = useState(null)
+  const [sinCambiar, setSinCambiar] = useState([])
+  const aprobado = d?.estado === 'aprobado'
+  useEffect(() => {
+    if (aprobado) fetchVoz().then((r) => setVoces(r.opciones || [])).catch(() => setVoces([]))
+  }, [aprobado])
+
+  async function elegirTono(valor) {
+    setTonando(true)
+    setError('')
+    try {
+      const r = await tonoCuello(d.id, { admin_id: valor ? Number(valor) : null })
+      setD(r)
+      setParteTono(null)
+      setSinCambiar(r.sin_cambiar || [])
+    } catch (e) {
+      setError(e.message || 'No se pudo cambiar el tono.')
+    } finally {
+      setTonando(false)
+    }
+  }
+  async function guardarTono() {
+    setTonando(true)
+    setError('')
+    try {
+      setD(await tonoCuello(d.id, { texto: unir(parteTono) }))
+      setParteTono(null)
+    } catch (e) {
+      setError(e.message || 'No se pudo guardar.')
+    } finally {
+      setTonando(false)
+    }
+  }
 
   async function pdf() {
     setBajando(true)
     try {
-      await descargarPdfCuello({ cliente: d.cliente, texto: d.version_final, fecha: new Date(d.aprobado_en || Date.now()), capturas: d.captura_base })
+      await descargarPdfCuello({ cliente: d.cliente, texto: d.version_envio, fecha: new Date(d.aprobado_en || Date.now()), capturas: d.captura_base })
     } catch (e) {
       setError(e.message || 'No se pudo armar el PDF.')
     } finally {
@@ -241,10 +278,29 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
         <>
           {cambios && cambios.length ? <Lecciones diag={d} cambios={cambios} alListo={() => { setCambios(null); alCambiar() }} /> : null}
           {!(cambios && cambios.length) ? (
+            <div className="cb-tono">
+              <label>
+                <b>Tono de voz</b>
+                <select value={d.tono_admin_id || ''} disabled={tonando} onChange={(e) => elegirTono(e.target.value)}>
+                  <option value="">Como quedó aprobado</option>
+                  {voces.map((v) => <option key={v.id} value={v.id}>{v.nombre}</option>)}
+                </select>
+              </label>
+              {tonando ? <small className="cb-gris">Reescribiendo con su voz… tarda menos de un minuto.</small> : null}
+              {!tonando && sinCambiar.length ? <small className="cb-gris">Quedaron como estaban: {sinCambiar.join(', ')}.</small> : null}
+              {d.tono_admin_id ? (
+                <>
+                  <HojaCuello key={`tono-${d.tono_admin_id}-${d.version_envio.length}`} cliente={d.cliente} partes={parteTono || partir(d.version_envio)} original={partir(d.version_envio)} alCambiar={setParteTono} capturas={d.captura_base} />
+                  {parteTono ? <span className="cb-btns"><button type="button" className="cb-btn" disabled={tonando} onClick={guardarTono}>Guardar cambios</button></span> : null}
+                </>
+              ) : null}
+            </div>
+          ) : null}
+          {!(cambios && cambios.length) ? (
             <div className="cb-acciones cb-enviar">
-              <small className="cb-gris">{bajando ? 'Armando el PDF…' : 'El documento final de Juan, con la marca de ATV.'}</small>
+              <small className="cb-gris">{bajando ? 'Armando el PDF…' : d.tono_admin_id ? 'Sale con la voz elegida.' : 'El documento final de Juan.'}</small>
               <span className="cb-btns">
-                <button type="button" className="cb-btn is-suave" onClick={() => navigator.clipboard?.writeText(paraChat(d.version_final)).catch(() => {})}>Copiar texto</button>
+                <button type="button" className="cb-btn is-suave" onClick={() => navigator.clipboard?.writeText(paraChat(d.version_envio)).catch(() => {})}>Copiar texto</button>
                 <button type="button" className={`cb-btn${alEnviar ? ' is-suave' : ''}`} disabled={bajando} onClick={pdf}>Descargar PDF</button>
                 {alEnviar ? <button type="button" className="cb-btn" onClick={() => alEnviar(d)}>{d.doc_activo ? 'Enviar Doc al chat' : 'Enviar PDF al chat'}</button> : null}
               </span>

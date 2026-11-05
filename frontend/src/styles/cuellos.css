@@ -149,3 +149,6 @@
 .cb-menu button.is-peligro { color: #d23c2f; }
 .cb-menu button.is-peligro:hover { background: #d23c2f; color: #fff; }
 .cb-menu hr { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid rgba(0, 0, 0, 0.1); }
+.cb-tono { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.cb-tono label { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.cb-tono select { height: 30px; padding: 0 8px; border: 1px solid rgba(0, 0, 0, 0.14); border-radius: 7px; background: #fff; font: inherit; font-size: 13px; color: #1d1d1f; }

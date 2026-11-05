@@ -28,7 +28,7 @@ from pony.orm import db_session
 
 from src.db import DB_SCHEMA, db
 from src.models import Admin, Canal, ClienteExterno, CuelloDiagnostico, CuelloLeccion, Llamada, MensajeCanal
-from src.services import cuellos_capturas, gasto_ia, google_docs_service
+from src.services import cuellos_capturas, cuellos_tono, gasto_ia, google_docs_service
 
 logger = logging.getLogger(__name__)
 
@@ -114,11 +114,11 @@ def _clave(titulo: str) -> str | None:
     return _CLAVES.get(t)
 
 
-def secciones(texto: str) -> dict[str, str]:
+def secciones(texto: str, con_marcas: bool = False) -> dict[str, str]:
     """El documento partido por sus "# Sección". Lo que no cae en una sección conocida se ignora."""
     salida: dict[str, list[str]] = {}
     actual = None
-    for linea in cuellos_capturas.sin_marcas(texto).splitlines():
+    for linea in (texto if con_marcas else cuellos_capturas.sin_marcas(texto)).splitlines():
         m = re.match(r"^\s*#\s+(?!#)(.+?)\s*$", linea)
         if m:
             actual = _clave(m.group(1))
@@ -634,8 +634,45 @@ class CuellosServices:
                 "captura_base": f"/api/cuellos/captura/{d.token}" if id_loom(d.loom_url) else None,
                 "doc_activo": google_docs_service.activo(),
                 "doc_url": d.doc_url,
+                # Lo que sale al cliente: con el tono del coach si se eligió uno.
+                "version_envio": d.version_tono or d.version_final,
+                "tono_admin_id": d.tono_admin_id,
                 "lecciones": [{"id": l.id, "seccion": l.seccion, "texto": l.texto} for l in list(CuelloLeccion.select(lambda l: l.diagnostico_id == diag_id))],
             }
+
+    def tono(self, diag_id: int, admin_id: int | None = None, texto: str | None = None, llamar=_llamar) -> dict:
+        """Elige con qué voz sale el diagnóstico aprobado (sin admin_id vuelve a la versión de Juan) o guarda lo que
+        se corrigió a mano sobre esa voz. Si ya había un Google Doc, se arma uno nuevo al enviar."""
+        from src.services.aprendizaje_service import voz_de, voz_para_ia
+        from src.services.sugerencias_service import _describir_voz
+
+        with db_session:
+            d = CuelloDiagnostico.get(id=diag_id)
+            if d is None:
+                raise HTTPException(status_code=404, detail="No existe ese diagnóstico.")
+            if d.estado != "aprobado":
+                raise HTTPException(status_code=409, detail="Primero hay que aprobar la versión final.")
+            final = d.version_final or ""
+            if texto is not None:
+                _no_vacio(texto)
+                d.version_tono, d.doc_url = texto, None
+                return {**self.detalle(diag_id), "sin_cambiar": []}
+            if admin_id is None:
+                d.version_tono, d.tono_admin_id, d.doc_url = None, None, None
+                return {**self.detalle(diag_id), "sin_cambiar": []}
+            coach = Admin.get(id=admin_id)
+            if coach is None:
+                raise HTTPException(status_code=404, detail="No existe ese coach.")
+            nombre = coach.nombre or coach.email
+        voz = voz_para_ia(voz_de(admin_id))
+        if not voz.get("ejemplos"):
+            raise HTTPException(status_code=409, detail=f"Todavía no hay mensajes de {nombre} para aprender su voz.")
+        partes, sin_cambiar = cuellos_tono.reescribir(secciones(final, con_marcas=True), nombre, _describir_voz(voz.get("rasgos") or {}), voz["ejemplos"], llamar)
+        with db_session:
+            d = CuelloDiagnostico[diag_id]
+            d.version_tono = "\n\n".join(f"# {s}\n{partes[s].strip()}" for s in SECCIONES if partes.get(s))
+            d.tono_admin_id, d.doc_url = admin_id, None
+        return {**self.detalle(diag_id), "sin_cambiar": sin_cambiar}
 
     def google_doc(self, diag_id: int, html: str) -> dict:
         """El diagnóstico aprobado como Google Doc. Si ya se creó, devuelve el mismo link."""

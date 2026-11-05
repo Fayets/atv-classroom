@@ -147,6 +147,8 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "cierres_envios", "importado", "BOOLEAN NOT NULL DEFAULT FALSE")
                 if _tabla_existe(cur, "cuellos_diagnosticos"):
                     _agregar_columna(cur, "cuellos_diagnosticos", "doc_url", "TEXT")
+                    _agregar_columna(cur, "cuellos_diagnosticos", "version_tono", "TEXT")
+                    _agregar_columna(cur, "cuellos_diagnosticos", "tono_admin_id", "INTEGER")
                 if _tabla_existe(cur, "cierres_respuestas"):
                     _agregar_columna(cur, "cierres_respuestas", "creador", "VARCHAR NOT NULL DEFAULT ''")
                     cur.execute(f'ALTER TABLE "{DB_SCHEMA}"."cierres_respuestas" DROP CONSTRAINT IF EXISTS unq_cierres_respuestas__periodo_cliente_id')
