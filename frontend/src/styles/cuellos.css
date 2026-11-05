@@ -41,7 +41,7 @@
 @keyframes cb-latido { 50% { opacity: 0.25; } }
 .cb-seccion h4 { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8e8e93; }
 .cb-seccion h4 em { font-style: normal; color: #c0392b; letter-spacing: 0; text-transform: none; }
-.cb-pie { position: sticky; bottom: -24px; padding: 12px 0; background: #fff; border-top: 1px solid #ececf0; }
+.cb-pie { position: sticky; bottom: 0; padding: 12px 0; background: #fff; border-top: 1px solid #ececf0; }
 
 .cb-lecciones { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 10px; background: rgba(31, 138, 76, 0.07); }
 .cb-lecciones h4, .cb-aprendido h4 { margin: 0; font-size: 14px; }
@@ -100,7 +100,6 @@
 .cb-modal__cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 22px; border-bottom: 1px solid #ececf0; }
 .cb-modal__cab h2 { margin: 0; font-size: 16px; }
 .cb-modal__cuerpo { overflow-y: auto; min-height: 0; }
-.cb-modal__cuerpo .cb-pie { bottom: -24px; }
 .cb-enviar { padding: 12px 14px; border-radius: 10px; background: rgba(192, 57, 43, 0.05); }
 .cb-confirmar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 22px; border-top: 1px solid #ececf0; background: #fffaf9; }
 .cb-confirmar p { margin: 0; font-size: 13px; }
