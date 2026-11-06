@@ -18,12 +18,12 @@ def activo() -> bool:
     return bool(_url())
 
 
-def crear(titulo: str, html: str) -> str:
-    """Crea el Doc y devuelve la dirección para compartir."""
+def crear(titulo: str, html: str, editor: str | None = None) -> str:
+    """Crea el Doc y devuelve la dirección para compartir. editor: el mail de quien lo va a corregir antes de mandarlo."""
     if not activo():
         raise HTTPException(status_code=409, detail="Falta conectar la cuenta de Google.")
     try:
-        r = requests.post(_url(), json={"titulo": titulo, "html": html}, timeout=90)
+        r = requests.post(_url(), json={"titulo": titulo, "html": html, "editor": editor}, timeout=90)
         url = r.json().get("url") if r.ok else None
     except (requests.RequestException, ValueError):
         url = None

@@ -702,7 +702,20 @@ class CuellosServices:
             d.version_final, d.version_tono, d.tono_admin_id = nuevo, nuevo, admin_id
         return {**self.detalle(diag_id), "sin_cambiar": sin_cambiar}
 
-    def google_doc(self, diag_id: int, html: str) -> dict:
+    def reabrir(self, diag_id: int) -> dict:
+        """Atrás desde el aprobado: vuelve a borrador con lo que tenía, para seguir corrigiendo."""
+        with db_session:
+            d = CuelloDiagnostico.get(id=diag_id)
+            if d is None:
+                raise HTTPException(status_code=404, detail="No existe ese diagnóstico.")
+            if d.estado != "aprobado":
+                raise HTTPException(status_code=409, detail="Ese diagnóstico no está aprobado.")
+            d.estado, d.aprobado_por, d.aprobado_en = "borrador", None, None
+            d.coincidencia_jeremy = d.coincidencia_cerebro = None
+            d.doc_url = None
+        return self.detalle(diag_id)
+
+    def google_doc(self, diag_id: int, html: str, editor: str | None = None) -> dict:
         """El diagnóstico aprobado como Google Doc. Si ya se creó, devuelve el mismo link."""
         with db_session:
             d = CuelloDiagnostico.get(id=diag_id)
@@ -713,7 +726,7 @@ class CuellosServices:
             if d.doc_url:
                 return {"url": d.doc_url}
             titulo = f"Diagnóstico {_nombres_clientes({d.cliente_id}).get(d.cliente_id, '')}".strip()
-        url = google_docs_service.crear(titulo, html)
+        url = google_docs_service.crear(titulo, html, editor)
         with db_session:
             CuelloDiagnostico[diag_id].doc_url = url
         return {"url": url}

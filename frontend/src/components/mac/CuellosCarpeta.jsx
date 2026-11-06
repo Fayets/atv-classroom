@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  aprobarCuello, tonoCuello, borrarCuello, desactivarLeccion, fetchClientesCuellos, fetchCuello, fetchCuellos, fetchNeurona,
+  aprobarCuello, crearDocCuello, reabrirCuello, tonoCuello, borrarCuello, desactivarLeccion, fetchClientesCuellos, fetchCuello, fetchCuellos, fetchNeurona,
   guardarCuello, guardarLecciones, pedirCuello, reintentarCuello,
 } from '../../api/cuellos'
 import { fetchVoz } from '../../api/cuenta'
@@ -9,7 +9,7 @@ import { IconoCarpeta } from './Finder'
 import HojaCuello from './HojaCuello'
 import { IconoPdf } from './OnboardingsCarpeta'
 import '../../styles/cuellos.css'
-import { descargarPdfCuello } from '../../utils/cuelloPdf'
+import { descargarPdfCuello, htmlCuello } from '../../utils/cuelloPdf'
 import { paraChat, partir, SECCIONES, unir } from '../../utils/docCuello'
 
 // Carpeta "Cuellos de botella" (equipo): el cliente mandó un Loom con su traba, Jeremy arma el diagnóstico,
@@ -130,6 +130,8 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
   const [voces, setVoces] = useState([])
   const [tonando, setTonando] = useState(false)
   const [sinCambiar, setSinCambiar] = useState([])
+  const [preguntar, setPreguntar] = useState(false) // Atrás desde el borrador: vuelve a la pregunta del tono
+  const [creandoDoc, setCreandoDoc] = useState(false)
   const enBorrador = d?.estado === 'borrador'
   useEffect(() => {
     if (enBorrador) fetchVoz().then((r) => setVoces(r.opciones || [])).catch(() => setVoces([]))
@@ -143,10 +145,38 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
       setD(r)
       setPartes(partir(r.version_final))
       setSinCambiar(r.sin_cambiar || [])
+      setPreguntar(false)
     } catch (e) {
       setError(e.message || 'No se pudo cambiar el tono.')
     } finally {
       setTonando(false)
+    }
+  }
+
+  // Primero se crea el Doc y se corrige en Google; recién después se manda el link.
+  async function crearDoc() {
+    setCreandoDoc(true)
+    setError('')
+    try {
+      const html = await htmlCuello({ cliente: d.cliente, texto: d.version_final, capturas: d.captura_base })
+      const { url } = await crearDocCuello(d.id, html)
+      setD((x) => ({ ...x, doc_url: url }))
+    } catch (e) {
+      setError(e.message || 'No se pudo crear el Google Doc.')
+    } finally {
+      setCreandoDoc(false)
+    }
+  }
+  async function reabrir() {
+    setError('')
+    try {
+      const r = await reabrirCuello(d.id)
+      setD(r)
+      setCambios(null)
+      setPartes(partir(r.version_final))
+      corrigiendo.current = true
+    } catch (e) {
+      setError(e.message || 'No se pudo volver atrás.')
     }
   }
 
@@ -247,7 +277,13 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
         </div>
       ) : null}
 
-      {d.estado === 'borrador' && partes && d.tono_admin_id === null ? (
+      {d.estado === 'aprobado' || (d.estado === 'borrador' && d.tono_admin_id !== null && !preguntar) ? (
+        <button type="button" className="cb-link cb-atras" onClick={() => (d.estado === 'aprobado' ? reabrir() : setPreguntar(true))}>
+          ‹ Atrás
+        </button>
+      ) : null}
+
+      {d.estado === 'borrador' && partes && (d.tono_admin_id === null || preguntar) ? (
         <div className="cb-tono">
           <h4>¿Con qué tono lo querés?</h4>
           {tonando ? <p className="cb-gris">Reescribiendo con su voz… tarda menos de un minuto.</p> : (
@@ -259,7 +295,7 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
         </div>
       ) : null}
 
-      {d.estado === 'borrador' && partes && d.tono_admin_id !== null ? (
+      {d.estado === 'borrador' && partes && d.tono_admin_id !== null && !preguntar ? (
         <>
           <div className="cb-tono is-fila">
             <label>
@@ -293,7 +329,9 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
               <span className="cb-btns">
                 <button type="button" className="cb-btn is-suave" onClick={() => navigator.clipboard?.writeText(paraChat(d.version_final)).catch(() => {})}>Copiar texto</button>
                 <button type="button" className={`cb-btn${alEnviar ? ' is-suave' : ''}`} disabled={bajando} onClick={pdf}>Descargar PDF</button>
-                {alEnviar ? <button type="button" className="cb-btn" onClick={() => alEnviar(d)}>{d.doc_activo ? 'Enviar Doc al chat' : 'Enviar PDF al chat'}</button> : null}
+                {d.doc_activo && !d.doc_url ? <button type="button" className="cb-btn" disabled={creandoDoc} onClick={crearDoc}>{creandoDoc ? 'Creando el Doc…' : 'Crear Google Doc'}</button> : null}
+                {d.doc_url ? <a className="cb-btn is-suave" href={d.doc_url} target="_blank" rel="noopener noreferrer">Abrir y editar en Google Docs</a> : null}
+                {alEnviar && (d.doc_url || !d.doc_activo) ? <button type="button" className="cb-btn" onClick={() => alEnviar(d)}>{d.doc_activo ? 'Enviar Doc al chat' : 'Enviar PDF al chat'}</button> : null}
               </span>
             </div>
           ) : null}

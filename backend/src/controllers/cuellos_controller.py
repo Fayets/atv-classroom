@@ -120,8 +120,13 @@ async def tono(diag_id: int, body: Tono, _sesion: dict = Depends(requerir_equipo
 
 
 @router.post("/{diag_id}/google-doc")
-async def google_doc(diag_id: int, body: DocHtml, _sesion: dict = Depends(requerir_equipo)):
-    return await run_in_threadpool(service.google_doc, diag_id, body.html)
+async def google_doc(diag_id: int, body: DocHtml, sesion: dict = Depends(requerir_equipo)):
+    return await run_in_threadpool(service.google_doc, diag_id, body.html, sesion.get("email"))
+
+
+@router.post("/{diag_id}/reabrir")
+async def reabrir(diag_id: int, _sesion: dict = Depends(requerir_equipo)):
+    return await run_in_threadpool(service.reabrir, diag_id)
 
 
 @router.post("/{diag_id}/aprobar")

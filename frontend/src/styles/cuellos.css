@@ -156,3 +156,5 @@
 .cb-tono select { height: 30px; padding: 0 8px; border: 1px solid rgba(0, 0, 0, 0.14); border-radius: 7px; background: #fff; font: inherit; font-size: 13px; color: #1d1d1f; }
 /* Con la ventana agrandada, el Dock tapaba Aprobar. */
 .fd-ventana.is-grande .cb-pie { padding-bottom: 84px; }
+.cb-atras { align-self: flex-start; margin: 0 0 6px; }
+a.cb-btn { display: inline-flex; align-items: center; text-decoration: none; }

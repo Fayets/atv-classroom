@@ -144,6 +144,7 @@ export default function CuelloBotella({ clienteId, canalId, cliente, alCerrar, a
         <div className="cb-modal__cab">
           <h2 id="cb-modal-titulo">Cuello de botella · {cliente}</h2>
           <span className="cb-btns">
+            {diagId && nuevo ? <button type="button" className="cb-link" onClick={() => setNuevo(false)}>‹ Atrás</button> : null}
             {diagId && !nuevo ? <button type="button" className="cb-link" onClick={() => setNuevo(true)}>Pedir uno nuevo</button> : null}
             <button type="button" className="cb-btn is-suave" onClick={alCerrar}>Cerrar</button>
           </span>
