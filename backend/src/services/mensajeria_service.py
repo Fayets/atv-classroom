@@ -550,7 +550,7 @@ def _canales_visibles(sesion: dict, equipo: bool, del_equipo: dict[int, dict]) -
                 otro = {"id": None, "nombre": " ↔ ".join(nombres[i] for i in ids), "clientes": ids}
             else:
                 otro_id = next((i for i in ids if i != sesion["usuario_id"]), None)
-                otro = {"id": otro_id, "nombre": nombres.get(otro_id) or "Cliente", "foto_url": None}
+                otro = {"id": otro_id, "nombre": nombres.get(otro_id) or "Cliente", "foto_url": foto_de("cliente", otro_id) if otro_id else None}
         cliente = clientes.get(canal.cliente_id) if canal.cliente_id else None
         # Clientes sin acceso fuera de la bandeja, salvo los que el equipo acomodó en Pausa, Vencidos o Inactivos:
         # moverlos de un grupo a otro no los puede hacer desaparecer.
