@@ -99,7 +99,9 @@ export default function Escritorio({ children }) {
   // Cada app recuerda dónde quedó (canal abierto, vista), como una ventana de Mac.
   const ultimaRuta = useRef({})
   useEffect(() => {
-    ultimaRuta.current[actual] = pathname + search
+    // "/" no es una pantalla: al equipo lo manda a Mensajes. Si se guardaba como lo último de Classroom, el Dock
+    // llevaba ahí y la ventana quedaba en blanco.
+    if (pathname !== '/') ultimaRuta.current[actual] = pathname + search
   }, [actual, pathname, search])
 
   const apps = [
