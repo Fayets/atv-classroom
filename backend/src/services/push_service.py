@@ -138,7 +138,9 @@ def _equipo_activo() -> list[tuple[int, str, str]]:
 
 def destinatarios(mensaje: dict, canal_id: int) -> list[tuple[list[PushSuscripcion], dict]]:
     """Qué dispositivos reciben este mensaje y con qué texto. Nunca quien lo escribió."""
-    from src.services.mensajeria_service import _participantes, canales_de_coach
+    from src.services.auth_service import _tiene_acceso
+    from src.services.mensajeria_service import _EVERYONE, _info, _participantes, canales_de_coach
+    from src.services.tiempo_real import puede_ver
 
     autor = mensaje.get("autor") or {}
     del_equipo = autor.get("tipo") == "equipo"
@@ -203,6 +205,13 @@ def destinatarios(mensaje: dict, canal_id: int) -> list[tuple[list[PushSuscripci
         otros = [i for i in _participantes(canal) if i != autor.get("id")]
         subs = [s for s in list(PushSuscripcion.select()) if s.tipo == "cliente" and s.usuario_id in otros]
         sumar(subs, nombre_autor, texto)
+    elif canal.tipo == "grupo" and not del_equipo and _EVERYONE.search(mensaje.get("texto") or ""):
+        # @everyone de un cliente en la comunidad: a los clientes que ven ese canal. Al equipo no le abre alertas.
+        info = _info(canal)
+        en_pausa = {c.cliente_id for c in list(Canal.select()) if c.tipo == "cliente" and (c.pausa or c.inactivo)}
+        ven = {c.id for c in list(ClienteExterno.select())
+               if c.id not in en_pausa and _tiene_acceso(c) and puede_ver({"rol": c.plan_actual or "mentoria", "usuario_id": c.id, "tipo": "cliente"}, info)}
+        sumar([s for s in list(PushSuscripcion.select()) if s.tipo == "cliente" and s.usuario_id in ven], f"{nombre_autor} en #{canal.nombre}", texto)
     elif canal.tipo in ("grupo", "anuncios") and del_equipo and "anuncio" in canal.nombre.lower():
         en_pausa = {c.cliente_id for c in list(Canal.select()) if c.tipo == "cliente" and c.pausa}
         subs = [s for s in list(PushSuscripcion.select()) if s.tipo == "cliente" and s.usuario_id not in en_pausa]

@@ -871,7 +871,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     const hallado = antes.match(/(^|\s)@([A-Za-zÁÉÍÓÚÜÑáéíóúüñ]*)$/)
     if (!hallado || (!equipo.length && !participantes.length)) return null
     const q = normal(hallado[2])
-    const todos = isEquipo && (!q || 'everyone'.startsWith(q) || 'todos'.startsWith(q)) ? [EVERYONE] : []
+    const todos = (isEquipo || esGrupo) && (!q || 'everyone'.startsWith(q) || 'todos'.startsWith(q)) ? [EVERYONE] : []
     const delCliente = participantes
       .filter((p) => normal(p.nombre) !== normal(user?.nombre || ''))
       .filter((p) => !q || normal(p.nombre).split(/\s+/).some((x) => x.startsWith(q)))
@@ -1246,7 +1246,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 onTouchCancel={soltarPresion}
                 onContextMenu={TACTIL ? (e) => e.preventDefault() : undefined}
                 className={`msj-m${resaltado === m.id ? ' is-resaltado' : ''}${eligiendo === m.id ? ' is-eligiendo' : ''}${agrupado ? ' is-agrupado' : ''}${par ? ' is-par' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${
-                  !mio && m.texto && (meNombra(m) || (m.autor?.tipo === 'equipo' && ES_EVERYONE.test(m.texto))) ? ' is-mencion' : ''
+                  !mio && m.texto && (meNombra(m) || ((m.autor?.tipo === 'equipo' || esGrupo) && ES_EVERYONE.test(m.texto))) ? ' is-mencion' : ''
                 }`}
               >
                 {m.respuesta_a ? (
