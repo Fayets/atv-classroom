@@ -91,6 +91,7 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "admins", "rol", "VARCHAR NOT NULL DEFAULT 'admin'")
                 _agregar_columna(cur, "admins", "area", "VARCHAR")
                 _agregar_columna(cur, "admins", "google_sub", "VARCHAR")
+                _agregar_columna(cur, "admins", "email_alterno", "VARCHAR")
                 _agregar_columna(cur, "admins", "foto_url", "VARCHAR")
                 _agregar_columna(cur, "admins", "voz_tab", "INTEGER")
                 _agregar_columna(cur, "admins", "borrado", "BOOLEAN NOT NULL DEFAULT FALSE")

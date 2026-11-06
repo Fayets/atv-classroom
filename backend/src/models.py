@@ -20,6 +20,8 @@ class Admin(db.Entity):
     rol = Required(str, default="admin")
     area = Optional(str, nullable=True)
     google_sub = Optional(str, nullable=True)
+    # Otro mail para entrar a esta misma cuenta con contraseña (quien la usa no tiene su Google): scripts/acceso_admin.py
+    email_alterno = Optional(str, nullable=True)
     foto_url = Optional(str, nullable=True)
     voz_tab = Optional(int, nullable=True)  # con la voz de quién le sugiere el Tab (vacío = la propia)
     # Borrado del equipo: no aparece más ni entra, pero la fila queda para que sus mensajes y altas

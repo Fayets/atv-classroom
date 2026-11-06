@@ -70,7 +70,7 @@ def _calcular_dias_restantes(fecha_vencimiento: date | None) -> int | None:
 def _buscar_admin_por_email(email: str) -> Admin | None:
     email_norm = _normalizar_email(email)
     for admin in Admin.select()[:]:
-        if admin.email.strip().lower() == email_norm:
+        if admin.email.strip().lower() == email_norm or (admin.email_alterno or "").strip().lower() == email_norm:
             return admin
     return None
 
