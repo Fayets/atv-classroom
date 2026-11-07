@@ -1203,3 +1203,17 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-cbuscar__quien small { font-size: 11px; color: var(--m-t3); }
 .msj-cbuscar__texto { font-size: 12.5px; line-height: 1.35; color: var(--m-t2); overflow-wrap: anywhere; }
 .msj-cbuscar__texto mark { border-radius: 3px; padding: 0 1px; background: rgba(255, 196, 0, 0.35); color: inherit; }
+
+/* Color fijo por persona y reacciones con color. Claro acá; azul en tema-azul.css. */
+:root {
+  --nc-0: #d9423a; --nc-1: #be185d; --nc-2: #0369a1; --nc-3: #c2410c; --nc-4: #4d7c0f; --nc-5: #0f766e;
+  --nc-6: #7e22ce; --nc-7: #b45309; --nc-8: #15803d; --nc-9: #1d4ed8; --nc-10: #a21caf; --nc-11: #0e7490;
+  --nc-sobre: #fff;
+}
+.msj-av--ini.con-color { background: var(--av); color: var(--nc-sobre); }
+.msj-reac.con-color { background: color-mix(in srgb, var(--k) 16%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--k) 40%, transparent); color: var(--m-t1); }
+.msj-reac.con-color.is-mia { background: color-mix(in srgb, var(--k) 30%, transparent); box-shadow: inset 0 0 0 1.5px var(--k); }
+@media (hover: hover) {
+  .msj-reac.con-color:hover { background: color-mix(in srgb, var(--k) 24%, transparent); }
+  .msj-reac.con-color.is-mia:hover { background: color-mix(in srgb, var(--k) 38%, transparent); }
+}

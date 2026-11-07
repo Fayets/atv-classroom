@@ -46,6 +46,23 @@ export function haceCuanto(iso) {
   return `hace ${dias} ${dias === 1 ? 'día' : 'días'}`
 }
 
+// Color fijo de cada persona: sale del nombre, así también se pinta en las citas, que solo traen el nombre.
+// Los 12 tonos son --nc-0..11 (mensajes.css para claro, tema-azul.css para azul).
+const TONOS = 12
+export function colorPersona(nombre) {
+  const clave = (nombre || '').trim().toLowerCase()
+  if (!clave) return null
+  let h = 0
+  for (const letra of clave) h = (h * 31 + letra.codePointAt(0)) >>> 0
+  return `var(--nc-${h % TONOS})`
+}
+
+const TONO_REACCION = { '❤️': 0, '🔥': 7, '🚀': 9, '👏': 3, '🙌': 3, '💪': 3, '😂': 7, '🎉': 6, '👍': 2, '✅': 8, '💯': 0, '🤝': 5 }
+export function colorReaccion(emoji) {
+  const tono = TONO_REACCION[emoji]
+  return tono == null ? colorPersona(emoji) : `var(--nc-${tono})`
+}
+
 export function iniciales(nombre) {
   const partes = (nombre || '?').trim().split(/\s+/)
   return ((partes[0]?.[0] || '') + (partes[1]?.[0] || '')).toUpperCase() || '?'

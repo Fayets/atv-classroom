@@ -26,6 +26,9 @@ html[data-modo="azul"] .msj-root {
   --m-link: #9cc2ff;
   --m-osc: 255, 255, 255;
   --m-vidrio: rgba(43, 56, 82, 0.97);
+  --nc-0: #ff6b5e; --nc-1: #f472b6; --nc-2: #38bdf8; --nc-3: #fb923c; --nc-4: #a3e635; --nc-5: #2dd4bf;
+  --nc-6: #c084fc; --nc-7: #fbbf24; --nc-8: #4ade80; --nc-9: #60a5fa; --nc-10: #e879f9; --nc-11: #67e8f9;
+  --nc-sobre: #141a28;
 }
 
 html[data-modo="azul"]:root {
@@ -205,6 +208,7 @@ html[data-modo="azul"] .msj-root.is-mac .msj-lateral { background: #222d44; }
 html[data-modo="azul"] .msj-root.is-mac .msj-panel,
 html[data-modo="azul"] .msj-panel { background: #222d44; }
 html[data-modo="azul"] .msj-av--ini:not(.is-equipo) { background: linear-gradient(#5b6b8c, #46567a); color: #eef2f8; }
+html[data-modo="azul"] .msj-av--ini.con-color { background: var(--av); color: var(--nc-sobre); }
 html[data-modo="azul"] .mac-nav { background: rgba(255, 255, 255, 0.07); }
 html[data-modo="azul"] .mac-nav a.is-on { background: #344463; box-shadow: none; }
 html[data-modo="azul"] .trabado__caja button { background: #eef2f8; color: #202b41; }

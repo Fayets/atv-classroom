@@ -5,7 +5,7 @@ import { fetchVoz } from '../../api/cuenta'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
 import { pedirCartelPausa } from '../Pausa'
-import { ACEPTA_ADJUNTOS, ES_EVERYONE, claveAutor, claveGrupo, etiquetaDia, hora, mismoDia, nombreRol, normal, peso, primerNombre } from '../../utils/mensajes'
+import { ACEPTA_ADJUNTOS, ES_EVERYONE, claveAutor, claveGrupo, colorPersona, colorReaccion, etiquetaDia, hora, mismoDia, nombreRol, normal, peso, primerNombre } from '../../utils/mensajes'
 import Adjuntos from './Adjuntos'
 import Alerta from './Alerta'
 import Avatar from './Avatar'
@@ -146,7 +146,7 @@ function BuscadorCanal({ canalId, angosto, onIr }) {
                       onIr(m.id)
                     }}
                   >
-                    <span className="msj-cbuscar__quien"><b>{m.autor?.nombre}</b> <small>{etiquetaDia(m.creado_en)} · {hora(m.creado_en)}</small></span>
+                    <span className="msj-cbuscar__quien"><b style={{ color: colorPersona(m.autor?.nombre) }}>{m.autor?.nombre}</b> <small>{etiquetaDia(m.creado_en)} · {hora(m.creado_en)}</small></span>
                     <span className="msj-cbuscar__texto"><Recorte texto={m.texto} q={texto} /></span>
                   </button>
                 </li>
@@ -1259,7 +1259,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                     onKeyDown={(e) => e.key === 'Enter' && irAlMensaje(m.respuesta_a.id)}
                   >
                     <span className="msj-m__codo" aria-hidden="true" />
-                    <b>@{m.respuesta_a.autor_nombre}</b>
+                    <b style={{ color: colorPersona(m.respuesta_a.autor_nombre) }}>@{m.respuesta_a.autor_nombre}</b>
                     <span className={m.respuesta_a.texto == null ? 'is-eliminado' : ''}>{m.respuesta_a.texto ?? 'Mensaje original eliminado'}</span>
                   </div>
                 ) : null}
@@ -1274,7 +1274,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                   <div className="msj-m__cuerpo">
                     {agrupado ? null : (
                       <div className="msj-m__head">
-                        <b className={`msj-m__nombre${m.autor.tipo === 'equipo' ? ' is-equipo' : ''}`} role="button" tabIndex={0} onClick={(e) => verPerfil(e, m.autor)} onKeyDown={(e) => e.key === 'Enter' && verPerfil(e, m.autor)}>
+                        <b className={`msj-m__nombre${m.autor.tipo === 'equipo' ? ' is-equipo' : ''}`} style={{ color: colorPersona(m.autor.nombre) }} role="button" tabIndex={0} onClick={(e) => verPerfil(e, m.autor)} onKeyDown={(e) => e.key === 'Enter' && verPerfil(e, m.autor)}>
                           {m.autor.nombre}
                         </b>
                         {m.autor.tipo === 'equipo' ? <span className="msj-rol">ATV</span> : null}
@@ -1309,7 +1309,8 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                             <button
                               key={r.emoji}
                               type="button"
-                              className={`msj-reac${mia ? ' is-mia' : ''}`}
+                              className={`msj-reac con-color${mia ? ' is-mia' : ''}`}
+                              style={{ '--k': colorReaccion(r.emoji) }}
                               title={r.nombres.join(', ')}
                               aria-pressed={mia}
                               onClick={() => alternarReaccion(m, r.emoji)}
@@ -1456,7 +1457,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
           {respondiendo ? (
             <div className="msj-redactar__resp">
               <span>
-                Respondiendo a <b>{respondiendo.autor.nombre}</b>
+                Respondiendo a <b style={{ color: colorPersona(respondiendo.autor.nombre) }}>{respondiendo.autor.nombre}</b>
               </span>
               <button type="button" onClick={() => setRespondiendo(null)} aria-label="Cancelar respuesta">
                 ✕
