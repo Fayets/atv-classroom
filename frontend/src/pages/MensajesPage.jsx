@@ -408,6 +408,8 @@ export default function MensajesPage() {
   const [params, setParams] = useSearchParams()
   const [canales, setCanales] = useState(null)
   const [error, setError] = useState('')
+  // Aparte de `error`: se borra sola cuando la bandeja vuelve a cargar y no tapa una lista que ya está.
+  const [errorCarga, setErrorCarga] = useState('')
   const [buscar, setBuscar] = useState('')
   const [pensamiento, setPensamiento] = useState(null) // lo que pensó el Tab, para el panel de la derecha
   const recarga = useRef(null)
@@ -432,6 +434,7 @@ export default function MensajesPage() {
   const cargando = useRef(false)
   const otraCarga = useRef(false)
   const cargarRef = useRef(null)
+  const reintento = useRef(null)
   const cargar = useCallback(() => {
     if (cargando.current) {
       otraCarga.current = true
@@ -440,8 +443,15 @@ export default function MensajesPage() {
     cargando.current = true
     const pedidos = [
       fetchCanales()
-        .then((l) => setCanales(ordenarBandeja(l || [])))
-        .catch((err) => setError(err.message || 'No se pudieron cargar los canales.')),
+        .then((l) => {
+          setCanales(ordenarBandeja(l || []))
+          setErrorCarga('')
+        })
+        .catch((err) => {
+          setErrorCarga(err.message || 'No se pudieron cargar los canales.')
+          clearTimeout(reintento.current)
+          reintento.current = setTimeout(() => cargarRef.current(), 5000)
+        }),
     ]
     if (isEquipo) pedidos.push(fetchSenas().then(setSenas).catch(() => null))
     Promise.all(pedidos).finally(() => {
@@ -458,6 +468,7 @@ export default function MensajesPage() {
 
   useEffect(() => {
     cargar()
+    return () => clearTimeout(reintento.current)
   }, [cargar])
 
   // Un mensaje se suma a su fila acá mismo. Antes cada aviso (y cada "leído" de cualquiera)
@@ -933,7 +944,7 @@ export default function MensajesPage() {
           ) : null}
           {vista === 'bandeja' ? (
           <>
-          {error ? <p className="msj-error">{error}</p> : null}
+          {error || (!canales && errorCarga) ? <p className="msj-error">{error || errorCarga}</p> : null}
           {cambioPlan ? (
             <Alerta
               titulo={`¿Pasar a ${cambioPlan.canal.cliente.nombre || cambioPlan.canal.nombre} a ${cambioPlan.grupo.nombre}?`}

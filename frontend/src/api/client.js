@@ -84,13 +84,26 @@ function avisarCaida() {
   window.dispatchEvent(new Event('atv-caida'))
 }
 
+// Al volver a la app, Safari corta los pedidos hasta que despierta la red ("Load failed").
+// Las lecturas se reintentan solas; lo que escribe no, para no mandarlo dos veces.
+const ESPERAS_MS = [400, 1200, 2500]
+const espera = (ms) => new Promise((listo) => setTimeout(listo, ms))
+
 async function pedir(url, opciones) {
+  const lectura = !opciones.method || opciones.method === 'GET'
   let res
-  try {
-    res = await fetch(url, opciones)
-  } catch (err) {
-    avisarCaida()
-    throw err
+  for (let intento = 0; !res; intento += 1) {
+    try {
+      res = await fetch(url, opciones)
+    } catch (err) {
+      if (err?.name === 'AbortError') throw err
+      if (lectura && intento < ESPERAS_MS.length) {
+        await espera(ESPERAS_MS[intento])
+        continue
+      }
+      avisarCaida()
+      throw new ApiError('No pudimos conectar. Probá de nuevo en un momento.', 0)
+    }
   }
   if (res.status === 502 || res.status === 503 || res.status === 504) avisarCaida()
   return res
