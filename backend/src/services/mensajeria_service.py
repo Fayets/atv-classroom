@@ -554,7 +554,8 @@ def _canales_visibles(sesion: dict, equipo: bool, del_equipo: dict[int, dict]) -
         cliente = clientes.get(canal.cliente_id) if canal.cliente_id else None
         # Clientes sin acceso fuera de la bandeja, salvo los que el equipo acomodó en Pausa, Vencidos o Inactivos:
         # moverlos de un grupo a otro no los puede hacer desaparecer.
-        acomodado = canal.vencido or canal.inactivo or canal.pausa
+        # Los que están "inactivo" en atv-clients van solos al grupo Inactivos (Franco, 09-11-2026).
+        acomodado = canal.vencido or canal.inactivo or canal.pausa or (cliente is not None and cliente.estado_cliente == "inactivo")
         if equipo and canal.tipo == "cliente" and (cliente is None or (not _tiene_acceso(cliente) and not acomodado)):
             continue
         visibles.append((canal, otro, cliente))
@@ -619,7 +620,7 @@ class MensajeriaServices:
                         "roles": _roles_de(canal) if canal.tipo == "grupo" and equipo else None,
                         "creado_por": canal.creado_por if equipo else None,
                         "orden": canal.orden,
-                        "inactivo": bool(canal.inactivo) if equipo else False,
+                        "inactivo": bool(canal.inactivo or (cliente is not None and cliente.estado_cliente == "inactivo")) if equipo else False,
                         "pausa": bool(canal.pausa) if equipo else False,
                         "vencido": bool(canal.vencido) if equipo else False,
                         "puede_administrar": self._puede_administrar(sesion, canal),

@@ -82,3 +82,17 @@ def test_pasarlo_de_vencidos_a_inactivos_no_lo_esconde(mundo):
     assert item is not None and item["inactivo"] is True and item["vencido"] is False
     svc.marcar_inactivo(mundo["ventas"], mundo["canal_id"], False)
     assert _en_bandeja(mundo["ventas"], mundo["canal_id"]) is None  # sin grupo y sin acceso: no está
+
+
+def test_inactivo_en_atv_clients_cae_solo_en_inactivos(mundo):
+    db_cid = mundo["cliente_id"]
+    with db_session:
+        db.execute("UPDATE clients.clientes SET estado_cliente = 'inactivo', fecha_vencimiento = $f WHERE id = $cid",
+                   {"f": date.today() + timedelta(days=60), "cid": db_cid})
+    try:
+        item = _en_bandeja(mundo["ventas"], mundo["canal_id"])
+        assert item is not None and item["inactivo"] is True and item["pausa"] is False and item["vencido"] is False
+    finally:
+        with db_session:
+            db.execute("UPDATE clients.clientes SET estado_cliente = 'vencido', fecha_vencimiento = $f WHERE id = $cid",
+                       {"f": date.today() - timedelta(days=10), "cid": db_cid})
