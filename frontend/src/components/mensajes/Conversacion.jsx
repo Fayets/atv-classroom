@@ -1295,7 +1295,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                       />
                     ) : (
                       <>
-                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} personas={personasChat} yo={meNombra(m) ? miPrimerNombre : null} canales={canales} onAbrirCanal={onAbrirCanal} secciones={esUpdates} tildes={m.tildes} onTildar={esUpdates && isEquipo ? (clave, hecho) => tildarRenglon(m.id, clave, hecho) : undefined} /> : null}
+                        {m.texto ? <TextoMensaje texto={m.texto} nombres={nombresEquipo} personas={personasChat} yo={meNombra(m) ? miPrimerNombre : null} canales={canales} onAbrirCanal={onAbrirCanal} secciones={esUpdates} tildes={m.tildes} onTildar={esUpdates && isEquipo ? (clave, hecho) => tildarRenglon(m.id, clave, hecho) : undefined} clienteId={isEquipo ? item?.cliente?.id ?? null : null} /> : null}
                         <Enlaces texto={m.texto} />
                         <Adjuntos adjuntos={m.adjuntos} alCargar={bajarSiEstabaAbajo} />
                       </>

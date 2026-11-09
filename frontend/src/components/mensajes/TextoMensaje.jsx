@@ -76,9 +76,24 @@ function ConMenciones({ texto, nombres, personas, yo, canales, onAbrirCanal }) {
 // entre ** y resalta las @menciones y los canales de clientes nombrados por su slug (sin HTML del usuario).
 // Con `secciones` (canal #updates) cada párrafo que arranca con "@Persona" va con una barra a la izquierda y,
 // con `onTildar`, cada renglón lleva su casilla: tildado pasa al final del bloque con ✅; destildado vuelve a su lugar.
-export default function TextoMensaje({ texto, nombres, personas, yo, canales, onAbrirCanal, secciones = false, tildes = [], onTildar }) {
+// El link a /roadmap que el coach le pasa al cliente no dice de quién es: el cliente ve el suyo. Si lo abre
+// alguien del equipo desde el chat de ese cliente, se le suma ?cliente= y ve el tablero como lo ve el cliente.
+function hrefPara(url, clienteId) {
+  if (!clienteId) return url
+  try {
+    const u = new window.URL(url)
+    const propio = u.origin === window.location.origin || u.hostname === 'classroom.atvos.io'
+    if (!propio || u.pathname.replace(/\/+$/, '') !== '/roadmap' || u.searchParams.has('cliente')) return url
+    u.searchParams.set('cliente', clienteId)
+    return u.origin === window.location.origin ? u.toString() : `${window.location.origin}${u.pathname}${u.search}${u.hash}`
+  } catch {
+    return url
+  }
+}
+
+export default function TextoMensaje({ texto, nombres, personas, yo, canales, onAbrirCanal, secciones = false, tildes = [], onTildar, clienteId = null }) {
   const limpio = conEmojis(texto)
-  const linea = (t) => <Linea texto={t} nombres={nombres} personas={personas} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} />
+  const linea = (t) => <Linea texto={t} nombres={nombres} personas={personas} yo={yo} canales={canales} onAbrirCanal={onAbrirCanal} clienteId={clienteId} />
   if (!secciones || !/(^|\n)@/.test(limpio)) return <p className="msj-texto">{linea(limpio)}</p>
   // La clave de un tilde es el renglón sin sus marcas (cliente + tarea), tal como está escrito: si Mauri edita el
   // update y cambia el contador o el ícono, lo tildado sigue tildado.
@@ -121,11 +136,11 @@ export default function TextoMensaje({ texto, nombres, personas, yo, canales, on
 }
 
 
-function Linea({ texto, nombres, personas, yo, canales, onAbrirCanal }) {
+function Linea({ texto, nombres, personas, yo, canales, onAbrirCanal, clienteId }) {
   const partes = texto.split(URL)
   return partes.map((parte, i) =>
     i % 2 === 1 ? (
-      <a key={i} href={parte} target="_blank" rel="noopener noreferrer">
+      <a key={i} href={hrefPara(parte, clienteId)} target="_blank" rel="noopener noreferrer">
         {parte}
       </a>
     ) : (

@@ -143,6 +143,10 @@ export default function RoadmapPage() {
   const arrastre = useRef(null)
 
   useEffect(() => {
+    if (isEquipo && !clienteId) {
+      setError('Este link muestra el roadmap del cliente que lo abre. Abrilo desde el chat del cliente para ver el suyo.')
+      return
+    }
     const pedir = isEquipo && clienteId ? fetchRoadmap(clienteId) : fetchMiRoadmap()
     pedir.then(setDatos).catch((e) => setError(e.message || 'No se pudo cargar el roadmap.'))
   }, [isEquipo, clienteId])
