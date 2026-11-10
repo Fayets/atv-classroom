@@ -77,3 +77,44 @@ export function Recursos({ recursos }) {
     </ul>
   )
 }
+
+// La etiqueta de un recurso en las fichas de SOPs: logo de Miro y de Loom, y un clip para los links
+// (Franco, 10-11-2026). El resto (PDF, DOC, SHEET…) sigue como texto.
+export function EtiquetaRecurso({ recurso }) {
+  const { tag, label } = tipoRecurso(recurso)
+  if (tag === 'MIRO') {
+    return (
+      <span className="im-logo" title={label}>
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <rect width="24" height="24" rx="5" fill="#FFD02F" />
+          <path d="M15.9 5.5h-2.2l1.9 3.4-4.2-3.4H9.2l2.1 3.9-4.4-3.9H4.7l2.2 5L4.7 18.5h2.2l4.4-8.2-2.1 8.2h2.2l4.2-8.6-1.9 8.6h2.2l3.4-9.8z" fill="#050038" />
+        </svg>
+      </span>
+    )
+  }
+  if (tag === 'LOOM') {
+    return (
+      <span className="im-logo" title={label}>
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <circle cx="12" cy="12" r="12" fill="#625DF5" />
+          <g fill="#fff">
+            {[0, 45, 90, 135].map((g) => (
+              <rect key={g} x="10.6" y="3.6" width="2.8" height="16.8" rx="1.4" transform={`rotate(${g} 12 12)`} />
+            ))}
+          </g>
+          <circle cx="12" cy="12" r="3.1" fill="#625DF5" />
+        </svg>
+      </span>
+    )
+  }
+  if (tag === 'LINK') {
+    return (
+      <span className="im-logo im-logo--clip" title={label}>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M21.4 11.1l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" />
+        </svg>
+      </span>
+    )
+  }
+  return <span>{tag}</span>
+}

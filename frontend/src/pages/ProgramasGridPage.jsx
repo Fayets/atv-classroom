@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError, fetchProgramas, fetchSopsClassroom } from '../api/client'
 import AppHeader from '../components/AppHeader'
-import { Chevron } from '../components/frentes/piezas'
+import { Chevron, EtiquetaRecurso } from '../components/frentes/piezas'
 import Isotipo from '../components/marca/Isotipo'
 import { tipoRecurso, tituloLindo, urlRecurso } from '../utils/frentes'
 import { getModuloCoverUrl } from '../utils/modules'
@@ -229,7 +229,7 @@ function Estante({ modulo: m, indice, abierta, onAbrir }) {
           <div className="mt-estante__docs">
             {sop.documentos.map((d) => (
               <a key={d.id} href={urlRecurso(d.url)} target="_blank" rel="noopener noreferrer" className="im-sopchip">
-                <span>{tipoRecurso(d).tag}</span>
+                <EtiquetaRecurso recurso={d} />
                 {/^(documento|planilla|formulario) google/i.test(d.titulo) ? tipoRecurso(d).label : d.titulo}
               </a>
             ))}

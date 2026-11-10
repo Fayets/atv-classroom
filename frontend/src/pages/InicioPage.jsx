@@ -4,7 +4,7 @@ import { ApiError } from '../api/client'
 import { eliminarFrente, fetchFrentes, preguntarGuia } from '../api/frentes'
 import AppHeader from '../components/AppHeader'
 import AccesoRestante from '../components/AccesoRestante'
-import { Chevron } from '../components/frentes/piezas'
+import { Chevron, EtiquetaRecurso } from '../components/frentes/piezas'
 import Pasos from '../components/frentes/Pasos'
 import SolicitudSop from '../components/frentes/SolicitudSop'
 import { Hoy, Programa } from '../components/inicio/Hoy'
@@ -197,7 +197,7 @@ export default function InicioPage() {
                                       <div className="im-rec__sops">
                                         {r.recursos.map((rec) => (
                                           <a key={rec.id ?? rec.url} href={urlRecurso(rec.url)} target="_blank" rel="noopener noreferrer" className="im-sopchip">
-                                            <span>{tipoRecurso(rec).tag}</span>
+                                            <EtiquetaRecurso recurso={rec} />
                                             {/^(documento|planilla|formulario) google/i.test(rec.titulo) ? tipoRecurso(rec).label : rec.titulo}
                                           </a>
                                         ))}
@@ -243,7 +243,7 @@ export default function InicioPage() {
                                     <div className="im-rec__sops">
                                       {r.recursos.map((rec) => (
                                         <a key={rec.id ?? rec.url} href={urlRecurso(rec.url)} target="_blank" rel="noopener noreferrer" className="im-sopchip">
-                                          <span>{tipoRecurso(rec).tag}</span>
+                                          <EtiquetaRecurso recurso={rec} />
                                           {/^(documento|planilla|formulario) google/i.test(rec.titulo) ? tipoRecurso(rec).label : rec.titulo}
                                         </a>
                                       ))}

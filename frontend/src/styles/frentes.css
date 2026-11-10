@@ -321,6 +321,8 @@
 .im-sopchip { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--pc-t1); text-decoration: none; padding: 5px 10px 5px 5px; border-radius: 999px; background: var(--pc-s2); box-shadow: inset 0 0 0 1px var(--pc-line2); transition: background-color 150ms ease; }
 .im-sopchip span { font-size: 9.5px; font-weight: 600; letter-spacing: 0.05em; padding: 3px 6px; border-radius: 999px; background: rgba(107, 149, 216, 0.16); color: #a4c0ec; }
 .im-sopchip:hover { background: var(--pc-s3); }
+.im-sopchip .im-logo { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border-radius: 999px; background: transparent; }
+.im-sopchip .im-logo--clip { background: var(--pc-s3); color: var(--pc-t2); }
 .im-rec__ver { text-decoration: none; }
 .im-frentebox { width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 12px; border: 1px dashed rgba(214, 92, 92, 0.4); }
 .im-frentebox > div { display: flex; flex-direction: column; gap: 2px; }
