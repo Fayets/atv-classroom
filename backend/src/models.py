@@ -919,3 +919,43 @@ class CuelloLeccion(db.Entity):
     texto = Required(str)
     activa = Required(bool, default=True)
     creado_en = Required(datetime, default=datetime.utcnow)
+
+
+class PilotoConfig(db.Entity):
+    """Cómo responde el piloto en nombre de cada persona del equipo. modo: "apagado", "borrador" (la IA
+    deja la respuesta escrita y la persona la manda) o "automatico" (la manda sola). bloqueados_json: los
+    temas que nunca salen solos aunque esté en automático: quedan como borrador "para vos"."""
+
+    _table_ = (DB_SCHEMA, "piloto_config")
+
+    admin_id = PrimaryKey(int)
+    modo = Required(str, default="apagado")
+    bloqueados_json = Optional(str, nullable=True)
+    actualizado_en = Required(datetime, default=datetime.utcnow)
+    actualizado_por = Optional(int, nullable=True)
+
+
+class PilotoBorrador(db.Entity):
+    """Cada respuesta que escribió el piloto. estado: "pendiente" (esperando a la persona), "enviado" (tal
+    cual), "editado" (la cambió antes de mandarla), "descartado", "automatico" (salió solo) o "vencido" (el
+    cliente siguió escribiendo o alguien contestó a mano antes). Lo que se mandó de verdad enseña la voz."""
+
+    _table_ = (DB_SCHEMA, "piloto_borradores")
+
+    id = PrimaryKey(int, auto=True)
+    canal_id = Required(int, index=True)
+    admin_id = Required(int, index=True)  # quien contesta (y en cuyo nombre sale)
+    voz_id = Optional(int, nullable=True)  # con la voz de quién se escribió (la que eligió para el Tab)
+    hasta_mensaje_id = Required(int)  # el último mensaje del cliente que contesta
+    texto = Required(str)
+    tema = Optional(str, nullable=True)  # dato, estrategia, plata, baja_o_queja, otro
+    seguro = Required(bool, default=True)
+    para_vos = Required(bool, default=False)  # en automático, no salió solo por el tema o la duda
+    motivo = Optional(str, nullable=True)
+    fuentes_json = Optional(str, nullable=True)  # qué usó: onboarding, llamadas, clases
+    estado = Required(str, default="pendiente")
+    mensaje_id = Optional(int, nullable=True, index=True)  # el mensaje que salió
+    texto_final = Optional(str, nullable=True)
+    cambio_pct = Optional(int, nullable=True)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    resuelto_en = Optional(datetime, nullable=True)

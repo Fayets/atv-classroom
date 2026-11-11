@@ -348,3 +348,34 @@ def resumen_cliente(agente: dict, cliente_id: int, mensajes: int, llamadas: int)
             "ficha": _json(onboarding["ficha_json"]) if onboarding else None,
         },
     }
+
+
+# ---------- Piloto y llamadas (lo que usa Leverage) ----------
+def puede_piloto(agente: dict) -> None:
+    """Cambiar el modo del piloto escribe: pide el permiso "piloto" además de lectura."""
+    if "piloto" not in agente.get("scopes", []):
+        raise HTTPException(status_code=403, detail='Esta clave no tiene el permiso "piloto".')
+
+
+_SQL_LLAMADAS_COACH = f"""SELECT l.id, l.titulo, l.inicio, l.duracion_min, l.cliente_id, k.nombre AS cliente,
+  l.resumen, l.puntos_json{{transcripcion}}
+FROM "{S}"."llamadas" l LEFT JOIN "clients"."clientes" k ON k.id = l.cliente_id
+WHERE l.admin_id = %(coach)s AND l.id > %(despues_de)s ORDER BY l.id LIMIT %(limite)s"""
+
+
+def llamadas_de_coach(agente: dict, coach_id: int, despues_de: int, limite: int, transcripcion: bool) -> dict:
+    """Las llamadas de Fathom de un coach, en orden, de a páginas (despues_de = el último id que ya tenés)."""
+    sql = _SQL_LLAMADAS_COACH.replace("{transcripcion}", ", l.transcripcion" if transcripcion else "")
+    with _lectura() as cur:
+        coach = next(iter(_filas(cur, f'SELECT id, nombre FROM "{S}"."admins" WHERE id = %(coach)s', {"coach": coach_id})), None)
+        if coach is None:
+            raise HTTPException(status_code=404, detail="No existe esa persona del equipo.")
+        filas = _filas(cur, sql, {"coach": coach_id, "despues_de": despues_de, "limite": limite + 1})
+    hay_mas = len(filas) > limite
+    filas = filas[:limite]
+    salida = []
+    for f in filas:
+        f = _limpio(f)
+        f["puntos"] = _json(f.pop("puntos_json", None))
+        salida.append(f)
+    return {"coach": _limpio(coach), "llamadas": salida, "hay_mas": hay_mas, "ultimo_id": salida[-1]["id"] if salida else despues_de}

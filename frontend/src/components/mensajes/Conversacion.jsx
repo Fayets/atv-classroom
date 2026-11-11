@@ -14,6 +14,7 @@ import GrabarAudio, { puedeGrabar } from './GrabarAudio'
 import SelectorEmojis from './SelectorEmojis'
 import TextoMensaje from './TextoMensaje'
 import VistoPor from './VistoPor'
+import { SelectorPiloto, TarjetaBorrador, usePiloto } from './Piloto'
 import { buscarAtajos, conEmojis } from '../../utils/emojis'
 import { textoAlGuardar, textoParaEditar } from '../../utils/updates'
 import { contarAccion } from '../../api/cierre'
@@ -501,6 +502,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const aceptadaIA = useRef(null)
   const campo = useRef(null)
   const iaActiva = Boolean(isEquipo && datos?.canal?.tipo === 'cliente')
+  const piloto = usePiloto(canalId, iaActiva, suscribir)
   // En #updates cada bloque "@Persona …" lleva una barra a la izquierda (lo pidió Mauri; en los chats no).
   const esUpdates = datos?.canal?.tipo === 'grupo' && /updates/i.test(datos?.canal?.nombre || '')
 
@@ -1177,6 +1179,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 : canal.descripcion || 'Solo publica el equipo de ATV'}
           </span>
         </div>
+        {iaActiva && piloto.datos ? (
+          <SelectorPiloto modo={piloto.datos.modo} onCambio={(modo) => piloto.setDatos((d) => (d ? { ...d, modo } : d))} />
+        ) : null}
         <BuscadorCanal key={canalId} canalId={canalId} angosto={angosto} onIr={irAlMensaje} />
       </header>
 
@@ -1301,6 +1306,11 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                       </>
                     )}
                     {m.editado && !m.borrado ? <span className="msj-editado">(editado)</span> : null}
+                    {piloto.datos?.marcas?.[m.id] !== undefined ? (
+                      <span className="msj-m__piloto" title="Lo mandó el piloto solo">
+                        Piloto · en la voz de {piloto.datos.marcas[m.id] || 'quien lleva el chat'}
+                      </span>
+                    ) : null}
                     {real && !m.borrado && m.reacciones?.length ? (
                       <div className="msj-reacciones">
                         {m.reacciones.map((r) => {
@@ -1453,6 +1463,11 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       ) : datos.puede_escribir ? (
         <>
         {solo1a1 ? <p className="msj-aviso-1a1">Este chat es para pedir tus sesiones 1 a 1. Las consultas las trabajamos en la sesión.</p> : null}
+        {iaActiva && piloto.datos?.borrador ? (
+          <div className="msj-redactar msj-redactar--borrador">
+            <TarjetaBorrador borrador={piloto.datos.borrador} onListo={piloto.recargar} />
+          </div>
+        ) : null}
         <form className="msj-redactar" onSubmit={mandar}>
           {respondiendo ? (
             <div className="msj-redactar__resp">

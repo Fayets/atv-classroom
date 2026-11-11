@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, Query
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
 from src.services import agentes_service as service
 from src.services.agentes_service import agente_desde_request
 
-# Solo lectura para los agentes de IA del equipo (ver docs/agentes-api.md). Sin AGENTES_KEYS todo da 404.
+# Para los agentes de IA del equipo (ver docs/agentes-api.md): lectura, y el modo del piloto con el permiso "piloto".
+# Sin AGENTES_KEYS todo da 404.
 router = APIRouter(prefix="/api/agentes", tags=["agentes"])
 
 
@@ -44,3 +46,76 @@ def resumen_cliente(
     agente: dict = Depends(agente_desde_request),
 ):
     return service.resumen_cliente(agente, cliente_id, mensajes, llamadas)
+
+
+@router.get("/llamadas")
+def llamadas_coach(
+    coach: int,
+    despues_de: int = Query(0, ge=0),
+    limite: int = Query(50, ge=1, le=200),
+    transcripcion: bool = False,
+    agente: dict = Depends(agente_desde_request),
+):
+    """Las llamadas de Fathom de una persona del equipo (resumen y puntos; la transcripción si se pide)."""
+    return service.llamadas_de_coach(agente, coach, despues_de, limite, transcripcion)
+
+
+@router.get("/piloto")
+async def piloto_resumen(agente: dict = Depends(agente_desde_request)):
+    """El modo del piloto de cada persona, lo que hizo hoy y lo que quedó para el equipo."""
+    from src.services import piloto_service
+
+    return await run_in_threadpool(piloto_service.resumen)
+
+
+class ModoPiloto(BaseModel):
+    modo: str | None = None
+    bloqueados: list[str] | None = None
+
+
+@router.put("/piloto/{admin_id}")
+async def piloto_modo(admin_id: int, body: ModoPiloto, agente: dict = Depends(agente_desde_request)):
+    from src.services import piloto_service
+
+    service.puede_piloto(agente)
+    return await run_in_threadpool(piloto_service.guardar_config, admin_id, body.modo, body.bloqueados, None)
+
+
+@router.get("/piloto/borradores")
+async def piloto_borradores(agente: dict = Depends(agente_desde_request)):
+    """Los borradores del piloto que esperan que alguien los apruebe, con lo que escribió el cliente."""
+    from src.services import piloto_service
+
+    service.puede_piloto(agente)
+    return {"borradores": await run_in_threadpool(piloto_service.borradores_pendientes)}
+
+
+class EnvioBorrador(BaseModel):
+    texto: str | None = Field(default=None, max_length=4000)
+
+
+@router.post("/piloto/borradores/{borrador_id}/enviar")
+async def piloto_enviar(borrador_id: int, body: EnvioBorrador, agente: dict = Depends(agente_desde_request)):
+    """El dueño lo aprobó en Leverage: sale en el chat en nombre de quien lo lleva."""
+    import asyncio
+
+    from src.services import piloto_service, push_service
+    from src.services.tiempo_real import hub
+
+    service.puede_piloto(agente)
+    mensaje, canal = await run_in_threadpool(piloto_service.enviar_por_agente, borrador_id, body.texto)
+    await hub.emitir({"tipo": "mensaje", "mensaje": mensaje}, canal)
+    await hub.emitir_equipo_del_canal({"tipo": "piloto", "canal_id": canal["id"]}, canal)
+    asyncio.create_task(run_in_threadpool(push_service.avisar_mensaje, mensaje, canal["id"]))
+    return {"ok": True, "mensaje_id": mensaje["id"], "canal_id": canal["id"]}
+
+
+@router.post("/piloto/borradores/{borrador_id}/descartar")
+async def piloto_descartar(borrador_id: int, agente: dict = Depends(agente_desde_request)):
+    from src.services import piloto_service
+    from src.services.tiempo_real import hub
+
+    service.puede_piloto(agente)
+    canal = await run_in_threadpool(piloto_service.descartar_por_agente, borrador_id)
+    await hub.emitir_equipo_del_canal({"tipo": "piloto", "canal_id": canal["id"]}, canal)
+    return {"ok": True}

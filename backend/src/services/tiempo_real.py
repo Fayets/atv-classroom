@@ -167,6 +167,12 @@ class Hub:
         for ws in list(self._conexiones):
             self.enviar(ws, evento)
 
+    async def emitir_equipo_del_canal(self, evento: dict, canal: dict) -> None:
+        """Solo al equipo que ve el canal: lo del piloto (borradores, qué salió solo) no le llega al cliente."""
+        for ws, sesion in list(self._conexiones.items()):
+            if sesion.get("rol") in ("admin", "coach") and not sesion.get("miembro_id") and puede_ver(sesion, canal):
+                self.enviar(ws, evento)
+
     async def emitir(self, evento: dict, canal: dict, excepto: WebSocket | None = None) -> None:
         for ws, sesion in list(self._conexiones.items()):
             if ws is not excepto and puede_ver(sesion, canal):

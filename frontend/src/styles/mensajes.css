@@ -1217,3 +1217,45 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
   .msj-reac.con-color:hover { background: color-mix(in srgb, var(--k) 24%, transparent); }
   .msj-reac.con-color.is-mia:hover { background: color-mix(in srgb, var(--k) 38%, transparent); }
 }
+
+/* Piloto: modo de quien mira (en la barra), borrador pendiente (arriba de escribir) y marca en lo que salió solo. */
+.msj-piloto { position: relative; flex: none; }
+.msj-piloto__boton { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border: 1px solid var(--m-linea2); border-radius: 8px; background: var(--m-tarjeta); color: var(--m-t2); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.msj-piloto__boton:hover { border-color: var(--m-t4); }
+.msj-piloto__punto { width: 7px; height: 7px; border-radius: 50%; background: var(--m-t4); }
+.msj-piloto__boton.is-borrador .msj-piloto__punto { background: var(--m-aviso); }
+.msj-piloto__boton.is-automatico .msj-piloto__punto { background: var(--m-ok); }
+.msj-piloto__panel { position: absolute; z-index: 30; top: calc(100% + 6px); right: 0; width: 330px; padding: 12px; border: 1px solid var(--m-linea2); border-radius: 12px; background: var(--m-tarjeta); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14); display: flex; flex-direction: column; gap: 10px; }
+.msj-piloto__modos { display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: var(--m-campo); }
+.msj-piloto__modos button { flex: 1 1 auto; white-space: nowrap; padding: 6px 4px; border: 0; border-radius: 7px; background: transparent; color: var(--m-t3); font: inherit; font-size: 12.5px; cursor: pointer; }
+.msj-piloto__modos button.is-on { background: var(--m-tarjeta); color: var(--m-t1); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }
+.msj-piloto__ayuda { margin: 0; color: var(--m-t3); font-size: 12.5px; line-height: 1.45; }
+.msj-piloto__temas { display: flex; flex-wrap: wrap; gap: 6px; }
+.msj-piloto__temas > b { width: 100%; font-size: 12px; color: var(--m-t2); }
+.msj-piloto__tema { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--m-linea2); border-radius: 999px; font-size: 12.5px; cursor: pointer; user-select: none; }
+.msj-piloto__tema input { margin: 0; accent-color: var(--m-acento); }
+.msj-piloto__tema.is-on { border-color: transparent; background: var(--m-acento-suave); color: var(--m-acento); font-weight: 600; }
+
+.msj-redactar.msj-redactar--borrador { padding-bottom: 8px; }
+.msj-borrador { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border: 1px solid rgba(183, 121, 31, 0.35); border-radius: 14px; background: rgba(183, 121, 31, 0.07); }
+.msj-borrador.is-para-vos { border-color: rgba(192, 57, 43, 0.3); background: var(--m-acento-suave); }
+.msj-borrador__cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.msj-borrador__cab b { font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--m-aviso); }
+.msj-borrador.is-para-vos .msj-borrador__cab b { color: var(--m-acento); }
+.msj-borrador__cab span { font-size: 12px; color: var(--m-t3); }
+.msj-borrador__texto { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--m-t1); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 30vh; overflow-y: auto; }
+.msj-borrador__campo { width: 100%; box-sizing: border-box; min-height: 80px; max-height: 30vh; padding: 8px 10px; border: 1px solid var(--m-linea2); border-radius: 10px; background: var(--m-tarjeta); color: var(--m-t1); font: inherit; font-size: 14.5px; line-height: 1.5; resize: vertical; field-sizing: content; }
+.msj-borrador__campo:focus { outline: 2px solid var(--m-acento-suave); }
+.msj-borrador__acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.msj-borrador__acciones button { padding: 7px 14px; border: 1px solid var(--m-linea2); border-radius: 9px; background: var(--m-tarjeta); color: var(--m-t1); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.msj-borrador__acciones button.is-principal { border-color: transparent; background: var(--m-acento); color: #fff; font-weight: 600; }
+.msj-borrador__acciones button.is-suave { border-color: transparent; background: transparent; color: var(--m-t3); }
+.msj-borrador__acciones button:disabled { opacity: 0.55; cursor: default; }
+.msj-borrador__nota { margin-left: auto; font-size: 12px; color: var(--m-t4); }
+.msj-borrador__error { margin-left: auto; font-size: 12px; color: var(--m-acento); }
+.msj-m__piloto { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 999px; background: var(--m-campo); color: var(--m-t3); font-size: 11px; font-weight: 600; }
+@media (max-width: 600px) {
+  .msj-piloto__largo { display: none; }
+  .msj-piloto__panel { position: fixed; top: auto; right: 12px; left: 12px; width: auto; }
+  .msj-borrador__nota { display: none; }
+}

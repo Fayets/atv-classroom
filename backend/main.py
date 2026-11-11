@@ -27,6 +27,7 @@ from src.controllers.consultas_controller import router as consultas_router
 from src.controllers.biblioteca_controller import router as biblioteca_router
 from src.controllers.contexto_controller import router as contexto_router
 from src.controllers.errores_controller import router as errores_router
+from src.controllers.piloto_controller import router as piloto_router
 from src.controllers.fathom_webhook_controller import router as fathom_webhook_router
 from src.controllers.chat_controller import router as chat_router
 from src.controllers.clase_controller import router as clase_router
@@ -187,6 +188,34 @@ async def _vencer_pruebas_siempre():
         await asyncio.sleep(300)
 
 
+# Piloto: contesta a los clientes en la voz de cada persona del equipo (borrador o automático, lo elige cada uno).
+_PILOTO = config("PILOTO", default=False, cast=bool)
+_PILOTO_CADA_SEG = config("PILOTO_CADA_SEG", default=60, cast=int)
+
+
+async def _piloto_siempre():
+    from starlette.concurrency import run_in_threadpool
+
+    from src.services import piloto_service, push_service
+    from src.services.tiempo_real import hub
+
+    await asyncio.sleep(45)
+    while True:
+        try:
+            for ev in await run_in_threadpool(piloto_service.ciclo):
+                canal = ev.get("canal") or await run_in_threadpool(piloto_service.info_canal, ev["canal_id"])
+                if ev["tipo"] == "mensaje":
+                    await hub.emitir({"tipo": "mensaje", "mensaje": ev["mensaje"]}, canal)
+                    # Al cliente le llega la notificación como con cualquier mensaje del equipo.
+                    asyncio.create_task(run_in_threadpool(push_service.avisar_mensaje, ev["mensaje"], canal["id"]))
+                await hub.emitir_equipo_del_canal({"tipo": "piloto", "canal_id": ev["canal_id"]}, canal)
+                if ev["tipo"] == "borrador":
+                    await hub.emitir_a_equipo(ev["admin_id"], {"tipo": "piloto_borrador", "canal_id": ev["canal_id"], "para_vos": ev.get("para_vos", False)})
+        except Exception:
+            logging.getLogger("piloto").exception("Piloto: falló el ciclo")
+        await asyncio.sleep(_PILOTO_CADA_SEG)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     ensure_upload_dirs()
@@ -204,8 +233,9 @@ async def lifespan(_app: FastAPI):
 
     espera = asyncio.create_task(_alertas_de_espera()) if push_service.activo() else None
     pruebas = asyncio.create_task(_vencer_pruebas_siempre())
+    piloto = asyncio.create_task(_piloto_siempre()) if _PILOTO and config("ANTHROPIC_API_KEY", default="") else None
     yield
-    for t in (tarea, fathom, avisos, webhooks, espera, pruebas):
+    for t in (tarea, fathom, avisos, webhooks, espera, pruebas, piloto):
         if t:
             t.cancel()
 
@@ -253,6 +283,7 @@ app.include_router(biblioteca_router)
 app.include_router(contexto_router)
 app.include_router(fathom_webhook_router)
 app.include_router(sugerencias_router)
+app.include_router(piloto_router)
 app.include_router(programa_router)
 app.include_router(clase_router)
 app.include_router(frente_router)

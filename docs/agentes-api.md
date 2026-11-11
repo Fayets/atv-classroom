@@ -254,6 +254,20 @@ curl -s "$BASE/api/agentes/clientes/345/resumen?mensajes=20&llamadas=3" -H "X-Ag
 }
 ```
 
+### Piloto y llamadas (lo que usa Leverage)
+
+El piloto contesta a los clientes en la voz de cada coach (`backend/src/services/piloto_service.py`). Corre en el
+servidor con `PILOTO=1`. Cambiar algo pide el permiso `piloto` en la clave, además de `lectura`.
+
+| Ruta | Permiso | Qué hace |
+|---|---|---|
+| `GET /api/agentes/piloto` | lectura | Modo de cada coach, lo de hoy (salieron solos, enviados, editados) y lo que quedó para el equipo |
+| `PUT /api/agentes/piloto/{admin_id}` | piloto | Cambia el modo (`apagado`, `borrador`, `automatico`) o los temas que no salen solos |
+| `GET /api/agentes/piloto/borradores` | piloto | Borradores pendientes, con lo que escribió el cliente |
+| `POST /api/agentes/piloto/borradores/{id}/enviar` | piloto | Lo manda en nombre del coach que lleva el chat (`{"texto": null}` = tal cual) |
+| `POST /api/agentes/piloto/borradores/{id}/descartar` | piloto | Lo descarta |
+| `GET /api/agentes/llamadas?coach=ID&despues_de=0&limite=50&transcripcion=false` | lectura | Llamadas de Fathom de un coach, de a páginas |
+
 ## Puesta en producción (VPS)
 
 1. Generar una clave por agente (comando de arriba). Guardar la clave en Command Center.
