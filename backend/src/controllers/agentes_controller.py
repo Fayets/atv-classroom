@@ -28,9 +28,15 @@ def tablas(agente: dict = Depends(agente_desde_request)):
 
 
 @router.get("/canales/pendientes")
-def canales_pendientes(agente: dict = Depends(agente_desde_request)):
-    """Chats de clientes cuyo último mensaje es del cliente: el que más espera primero."""
-    return service.canales_pendientes(agente)
+def canales_pendientes(
+    dias: int = Query(14, ge=1, le=365),
+    para: str | None = Query(None, max_length=120),
+    todos: bool = False,
+    agente: dict = Depends(agente_desde_request),
+):
+    """Chats de clientes cuyo último mensaje es del cliente, el que más espera primero. Por defecto solo clientes
+    activos y de los últimos 14 días; `para` (id, mail o nombre) deja los que lleva esa persona o donde la etiquetaron."""
+    return service.canales_pendientes(agente, dias, para, todos)
 
 
 @router.get("/canales/{canal_id}/mensajes")

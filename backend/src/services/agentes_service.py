@@ -199,13 +199,22 @@ def catalogo_tablas(agente: dict) -> dict:
 
 _SQL_ULTIMOS = f"""SELECT c.id AS canal_id, c.tipo, c.nombre AS canal_nombre, c.cliente_id, c.pausa, c.inactivo, c.vencido,
   k.nombre AS cliente_nombre, k.plan_actual, k.estado_cliente, e.estado_efectivo,
-  m.id AS mensaje_id, m.autor_tipo, coalesce(m.autor_nombre, mc.nombre, k.nombre) AS autor_nombre, m.texto, m.creado_en
+  m.id AS mensaje_id, m.autor_tipo, coalesce(m.autor_nombre, mc.nombre, k.nombre) AS autor_nombre, m.texto, m.creado_en,
+  r.autor_id AS responsable_id, ra.nombre AS responsable_nombre,
+  (SELECT array_agg(DISTINCT men.admin_id) FROM "{S}"."menciones" men
+    WHERE men.canal_id = c.id AND men.respondida_en IS NULL AND men.creado_en > coalesce(r.creado_en, '-infinity'::timestamp)) AS mencionados
 FROM "{S}"."canales" c
 JOIN LATERAL (
   SELECT x.id, x.autor_tipo, x.autor_id, x.autor_nombre, x.miembro_id, x.texto, x.creado_en
   FROM "{S}"."mensajes_canal" x WHERE x.canal = c.id AND NOT x.borrado
   ORDER BY x.creado_en DESC, x.id DESC LIMIT 1
 ) m ON true
+LEFT JOIN LATERAL (
+  SELECT y.autor_id, y.creado_en FROM "{S}"."mensajes_canal" y
+  WHERE y.canal = c.id AND y.autor_tipo <> 'cliente' AND NOT y.borrado
+  ORDER BY y.creado_en DESC, y.id DESC LIMIT 1
+) r ON true
+LEFT JOIN "{S}"."admins" ra ON ra.id = r.autor_id
 LEFT JOIN clients.clientes k ON k.id = c.cliente_id
 LEFT JOIN clients.clientes_con_estado e ON e.id = c.cliente_id
 LEFT JOIN "{S}"."miembros_cliente" mc ON mc.id = m.miembro_id
@@ -237,6 +246,9 @@ def pendientes_de(filas: list[dict], ahora: datetime) -> list[dict]:
                     "creado_en": _iso(f["creado_en"]),
                 },
                 "minutos_esperando": espera,
+                # Quién lleva el chat (el último del equipo que escribió) y a quién etiquetó el cliente sin respuesta.
+                "responsable": {"id": f.get("responsable_id"), "nombre": f.get("responsable_nombre")} if f.get("responsable_id") else None,
+                "mencionados": [int(x) for x in (f.get("mencionados") or [])],
                 "_desde": f["creado_en"],
             }
         )
@@ -246,11 +258,57 @@ def pendientes_de(filas: list[dict], ahora: datetime) -> list[dict]:
     return salida
 
 
-def canales_pendientes(agente: dict) -> dict:
+# Lo que cuenta como cliente con quien se trabaja hoy. Vencidos, en pausa e inactivos no esperan respuesta del equipo.
+ESTADOS_ACTIVOS = {"vigente", "proximo_a_vencer", "no_va_a_renovar", "llamada_recompra", "estan_bien"}
+
+
+def activo(p: dict) -> bool:
+    canal = p["canal"]
+    if canal["inactivo"] or canal["pausa"] or canal["vencido"]:
+        return False
+    estado = p["cliente"].get("estado_efectivo") or p["cliente"].get("estado_cliente")
+    return estado is None or estado in ESTADOS_ACTIVOS
+
+
+def filtrar_pendientes(pendientes: list[dict], dias: int, persona: int | None, todos: bool) -> list[dict]:
+    """Por defecto, solo clientes activos y lo de los últimos `dias`. Con persona, los chats que lleva o donde la etiquetaron."""
+    salida = pendientes if todos else [p for p in pendientes if activo(p) and p["minutos_esperando"] <= dias * 1440]
+    if persona is not None:
+        salida = [p for p in salida if (p["responsable"] or {}).get("id") == persona or persona in p["mencionados"]]
+    return salida
+
+
+_SQL_EQUIPO = f'SELECT id, nombre, email, email_alterno FROM "{S}"."admins" WHERE activo AND NOT borrado'
+
+
+def persona_de(equipo: list[dict], quien: str) -> dict:
+    """De quién son los pendientes: id, mail o nombre (o solo el primer nombre, si no hay dos iguales)."""
+    q = (quien or "").strip().lower()
+    if q.isdigit():
+        hallada = [a for a in equipo if a["id"] == int(q)]
+    else:
+        hallada = [a for a in equipo if q in {(a.get("email") or "").lower(), (a.get("email_alterno") or "").lower(), (a.get("nombre") or "").lower()}]
+        if not hallada:
+            hallada = [a for a in equipo if (a.get("nombre") or "").lower().split(" ")[:1] == [q]]
+    if len(hallada) != 1:
+        nombres = ", ".join(a["nombre"] for a in equipo if a.get("nombre"))
+        raise HTTPException(status_code=404, detail=f"No sé quién es «{quien}» en el equipo. Están: {nombres}.")
+    return hallada[0]
+
+
+def canales_pendientes(agente: dict, dias: int = 14, para: str | None = None, todos: bool = False) -> dict:
     with _lectura() as cur:
         filas = _filas(cur, _SQL_ULTIMOS)
+        equipo = _filas(cur, _SQL_EQUIPO) if para else []
     pendientes = pendientes_de(filas, datetime.utcnow())
-    return {"pendientes": pendientes, "cantidad": len(pendientes)}
+    persona = persona_de(equipo, para) if para else None
+    lista = filtrar_pendientes(pendientes, dias, persona["id"] if persona else None, todos)
+    return {
+        "pendientes": lista,
+        "cantidad": len(lista),
+        "de": persona["nombre"] if persona else None,
+        "criterio": "todos los chats" if todos else f"clientes activos, últimos {dias} días, el que más espera primero",
+    }
 
 
 _SQL_CANAL = f'SELECT id, tipo, cliente_id, nombre FROM "{S}"."canales" WHERE id = %(canal)s'

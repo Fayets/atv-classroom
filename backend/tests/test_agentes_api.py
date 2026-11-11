@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 import psycopg2
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
 from src.controllers.agentes_controller import router
@@ -158,7 +158,7 @@ def test_clave_valida_entra_y_queda_registrado_quien_sin_la_clave(http, base, ca
     with caplog.at_level(logging.INFO, logger="agentes"):
         r = _pedir(http, "get", "/api/agentes/canales/pendientes", None, CLAVE)
     assert r.status_code == 200
-    assert r.json() == {"pendientes": [], "cantidad": 0}
+    assert r.json() == {"pendientes": [], "cantidad": 0, "de": None, "criterio": "clientes activos, últimos 14 días, el que más espera primero"}
     assert "redactor" in caplog.text and "/api/agentes/canales/pendientes" in caplog.text
     assert CLAVE not in caplog.text and _h(CLAVE) not in caplog.text
 
@@ -748,3 +748,29 @@ def test_el_servicio_no_usa_pony_ni_escribe():
         assert "db_session" not in fuente and "from src.models" not in fuente and "commit()" not in fuente
         for palabra in ("INSERT ", "UPDATE ", "DELETE ", "ALTER ", "CREATE ", "DROP "):
             assert palabra not in fuente.upper()
+
+
+def test_pendientes_por_defecto_solo_activos_y_recientes_y_por_persona():
+    filas = [
+        _ultimo(1, "cliente", 60, responsable_id=7, responsable_nombre="Franco"),
+        _ultimo(2, "cliente", 60 * 24 * 98, responsable_id=7),  # 98 días: ya no espera
+        _ultimo(3, "cliente", 30, inactivo=True, responsable_id=7),  # archivado en Inactivos
+        _ultimo(4, "cliente", 20, estado_efectivo="vencido", responsable_id=7),
+        _ultimo(5, "cliente", 10, responsable_id=9, responsable_nombre="Mauri", mencionados=[7]),  # lo etiquetaron a Franco
+        _ultimo(6, "cliente", 5, responsable_id=9, responsable_nombre="Mauri"),
+    ]
+    p = svc.pendientes_de(filas, AHORA)
+    assert [x["canal_id"] for x in svc.filtrar_pendientes(p, 14, None, False)] == [1, 5, 6]
+    assert [x["canal_id"] for x in svc.filtrar_pendientes(p, 14, 7, False)] == [1, 5]
+    assert len(svc.filtrar_pendientes(p, 14, None, True)) == 6
+    assert next(x for x in p if x["canal_id"] == 1)["responsable"] == {"id": 7, "nombre": "Franco"}
+
+
+def test_persona_por_id_mail_o_nombre():
+    equipo = [{"id": 7, "nombre": "Franco Ayet", "email": "f@atv.com", "email_alterno": None}, {"id": 9, "nombre": "Mauri", "email": "m@atv.com", "email_alterno": None}]
+    assert svc.persona_de(equipo, "franco")["id"] == 7
+    assert svc.persona_de(equipo, "M@ATV.com")["id"] == 9
+    assert svc.persona_de(equipo, "9")["nombre"] == "Mauri"
+    with pytest.raises(HTTPException) as e:
+        svc.persona_de(equipo, "juampi")
+    assert "Mauri" in e.value.detail
