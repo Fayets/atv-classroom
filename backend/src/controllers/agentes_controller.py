@@ -125,3 +125,35 @@ async def piloto_descartar(borrador_id: int, agente: dict = Depends(agente_desde
     canal = await run_in_threadpool(piloto_service.descartar_por_agente, borrador_id)
     await hub.emitir_equipo_del_canal({"tipo": "piloto", "canal_id": canal["id"]}, canal)
     return {"ok": True}
+
+
+@router.get("/voz")
+def voz_persona(quien: str = Query(min_length=1, max_length=120), agente: dict = Depends(agente_desde_request)):
+    """Cómo escribe alguien del equipo, aprendido por el Tab: rasgos, ejemplos reales, reglas y correcciones."""
+    from src.services.voz_agentes import voz_de_persona
+
+    return voz_de_persona(agente, quien)
+
+
+class PedidoCuello(BaseModel):
+    cliente: str = Field(min_length=1, max_length=200)
+    loom: str | None = Field(default=None, max_length=500)
+    texto: str | None = Field(default=None, max_length=8000)
+    contexto: str | None = Field(default=None, max_length=500)
+    pedido_por: str = Field(min_length=1, max_length=120)
+
+
+@router.post("/cuellos")
+async def pedir_cuello(body: PedidoCuello, agente: dict = Depends(agente_desde_request)):
+    """Pide el diagnóstico de cuello de botella de un cliente (Loom o texto). Juan lo aprueba en el classroom."""
+    from src.services import cuellos_agentes
+
+    service.puede_piloto(agente)
+    return await run_in_threadpool(cuellos_agentes.pedir, agente, body.cliente, body.loom, body.texto, body.contexto, body.pedido_por)
+
+
+@router.get("/cuellos/{diag_id}")
+async def ver_cuello(diag_id: int, agente: dict = Depends(agente_desde_request)):
+    from src.services import cuellos_agentes
+
+    return await run_in_threadpool(cuellos_agentes.ver, agente, diag_id)

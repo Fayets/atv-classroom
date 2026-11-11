@@ -242,3 +242,42 @@ def test_leverage_trae_y_manda_borradores(base):
     with pytest.raises(HTTPException):
         p.enviar_por_agente(mio["id"], None)
     assert all(b["id"] != mio["id"] for b in p.borradores_pendientes())
+
+
+def test_voz_aprendida_para_juan_ia(base):
+    import json as _json
+
+    from src.models import ReglaVoz, SugerenciaIA, VozEquipo
+    from src.services import voz_agentes as ag
+
+    with db_session:
+        VozEquipo(admin_id=base["juan"], rasgos_json=_json.dumps({"palabras_promedio": 14, "todo_minuscula_pct": 80, "punto_final_pct": 5, "mensajes": 300, "muletillas": ["lo vemos"]}), muestras_json="[]")
+        ReglaVoz(voz_id=base["juan"], texto="no repitas una pregunta que ya hice", creado_por=base["juan"])
+        SugerenciaIA(admin_id=base["juan"], canal_id=base["canal"], sugerencia="Hola! Te recomiendo revisar la clase 4.", usada=True,
+                     enviado="dale, mira la clase 4 y lo vemos", cambio_pct=60, voz_id=base["juan"])
+    v = ag.voz_de_persona({"scopes": ["lectura"]}, str(base["juan"]))
+    assert v["persona"]["id"] == base["juan"]
+    assert "minúscula" in v["como_escribe"] and '"lo vemos"' in v["como_escribe"]
+    assert v["reglas"] == ["no repitas una pregunta que ya hice"]
+    assert {"la_ia_propuso": "Hola! Te recomiendo revisar la clase 4.", "mando": "dale, mira la clase 4 y lo vemos"} in v["correcciones"]
+
+
+def test_cuello_pedido_desde_leverage(base):
+    from src.models import ClienteExterno, CuelloDiagnostico
+    from src.services import cuellos_agentes as ca
+
+    with db_session:
+        cli = ClienteExterno(nombre="Lucía Méndez", email="lucia-cuello@prueba.com", plan_actual="avanzado", estado_cliente="vigente")
+        db.flush()
+        cid = cli.id
+    en_fondo = []
+    r = ca.pedir({"scopes": ["lectura", "piloto"]}, "lucía", "https://www.loom.com/share/0123456789abcdef0123456789abcdef", None, "no vende", "Mauri", en_fondo=en_fondo.append)
+    assert r["cliente"] == "Lucía Méndez" and r["estado"] == "pidiendo" and r["borrador"] is None and en_fondo == [r["id"]]
+    with db_session:
+        d = CuelloDiagnostico[r["id"]]
+        assert d.cliente_id == cid and d.admin_id == base["mauri"] and d.contexto == "no vende"
+        d.estado, d.version_jeremy, d.version_cerebro = "borrador", "## Diagnóstico\nle falta la oferta", "secreto del cerebro"
+    v = ca.ver({"scopes": ["lectura"]}, r["id"])
+    assert v["borrador"] == "## Diagnóstico\nle falta la oferta" and "secreto" not in str(v)
+    with pytest.raises(HTTPException):
+        ca.pedir({"scopes": ["piloto"]}, "nadie-con-este-nombre", "https://www.loom.com/share/abc", None, None, "Mauri")
