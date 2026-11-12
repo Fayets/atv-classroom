@@ -649,8 +649,10 @@ export default function MensajesPage() {
     const mapa = new Map((canales || []).filter((c) => c.cliente?.slug).map((c) => [c.cliente.slug, { id: c.id, nombre: c.nombre }]))
     for (const c of canales || []) {
       if (c.tipo !== 'grupo' && c.tipo !== 'anuncios') continue
-      const slug = normal(c.nombre).replace(/^[^a-z0-9]+/, '').trim().replace(/\s+/g, '-')
-      if (slug && !mapa.has(slug)) mapa.set(slug, { id: c.id, nombre: c.nombre, comunidad: true })
+      // El nombre tal cual, sin el emoji ni el separador: "presentación" (la clave va sin tildes para encontrarlo igual).
+      const etiqueta = c.nombre.toLowerCase().replace(/^[^\p{L}\p{N}]+/u, '').trim().replace(/\s+/g, '-')
+      const slug = normal(etiqueta)
+      if (slug && !mapa.has(slug)) mapa.set(slug, { id: c.id, nombre: c.nombre, etiqueta, comunidad: true })
     }
     return mapa
   }, [canales])

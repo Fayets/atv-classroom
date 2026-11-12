@@ -34,7 +34,7 @@ function ConCanales({ texto, canales, onAbrirCanal }) {
     if (!canal) return <Fragment key={i}>{canalesDe[i + 1] && parte.endsWith('#') ? parte.slice(0, -1) : parte}</Fragment>
     return (
       <button key={i} type="button" className="msj-canal" title={`Abrir el chat de ${canal.nombre}`} onClick={() => onAbrirCanal(canal.id)}>
-        {parte}
+        {canal.etiqueta || parte}
       </button>
     )
   })

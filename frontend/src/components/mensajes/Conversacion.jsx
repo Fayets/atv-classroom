@@ -32,7 +32,7 @@ function canalesPara(antes, canales) {
   if (!hallado || !canales?.size) return null
   const q = normal(hallado[2])
   const lista = [...canales.entries()]
-    .map(([slug, c]) => ({ id: `canal-${c.id}`, slug, nombre: c.nombre, esCanal: true }))
+    .map(([slug, c]) => ({ id: `canal-${c.id}`, slug, etiqueta: c.etiqueta || slug, nombre: c.nombre, esCanal: true }))
     .filter((c) => !q || c.slug.includes(q) || normal(c.nombre).split(/\s+/).some((p) => p.startsWith(q)))
     .sort((x, y) => Number(!x.slug.startsWith(q)) - Number(!y.slug.startsWith(q)) || normal(x.nombre).localeCompare(normal(y.nombre)))
     .slice(0, 8)
@@ -198,7 +198,7 @@ function SugerenciasCanal({ sugerencias, onElegir }) {
           >
             <span className="msj-canal-sug" aria-hidden="true">#</span>
             <b>{c.nombre}</b>
-            <span className="msj-sug-slug">{c.slug}</span>
+            <span className="msj-sug-slug">{c.etiqueta}</span>
           </button>
         </li>
       ))}
@@ -902,7 +902,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     const caret = el?.selectionStart ?? texto.length
     const desde = sugerencias?.desde ?? caret
     if (miembro.esCanal) {
-      const marca = `#${miembro.slug}`
+      const marca = `#${miembro.etiqueta || miembro.slug}`
       setTexto(`${texto.slice(0, desde)}${marca} ${texto.slice(caret)}`)
       setSugerencias(null)
       requestAnimationFrame(() => {
@@ -1777,7 +1777,7 @@ function Edicion({ texto, canales, mencionar, rapidos, onGuardar, onCancelar }) 
   function elegirCanal(c) {
     const el = caja.current
     const caret = el?.selectionStart ?? valor.length
-    const marca = c.esCanal ? `#${c.slug}` : mencionar.marca(c)
+    const marca = c.esCanal ? `#${c.etiqueta}` : mencionar.marca(c)
     if (!c.esCanal) mencionados.current.set(marca, c.esCliente ? null : c.id)
     setValor(`${valor.slice(0, sugerencias.desde)}${marca} ${valor.slice(caret)}`)
     setSugerencias(null)
