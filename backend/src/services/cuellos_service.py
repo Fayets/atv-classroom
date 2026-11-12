@@ -166,7 +166,7 @@ Un párrafo: cómo fue y en qué momento se ganó o se perdió.
 
 # Momentos clave
 ### Minuto MM:SS: qué pasó
-Lo que dijo y qué decir en su lugar. (de 1 a 3)
+Lo que dijo y qué decir en su lugar, con "> Hoy: ..." y "> Cómo quedaría: ...". (de 1 a 3)
 
 # Objeciones y respuesta
 - **"La objeción":** cómo responderla.
@@ -190,7 +190,7 @@ Con sus números: chats → pitches → aplicaciones o agendas → llamadas. Dó
 
 # Chat por chat
 ### Chat con: quién (sin apellido)
-El mensaje que frenó la conversación y cómo quedaría. (de 1 a 3)
+El mensaje que frenó la conversación, con "> Hoy: ..." y "> Cómo quedaría: ...". (de 1 a 3)
 
 # Mensajes listos para usar
 Apertura, calificación y pase a la llamada, en líneas "> ".
@@ -210,7 +210,7 @@ Un párrafo: el salto más grande y por qué.
 
 # Cambios en orden
 ### 1. Título
-Qué cambiar, con lo de hoy y cómo quedaría. (de 1 a 3)
+Qué cambiar, con "> Hoy: ..." y "> Cómo quedaría: ...". (de 1 a 3)
 
 # Qué no tocar
 - **Lo que funciona:** por qué.
