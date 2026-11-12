@@ -7,11 +7,11 @@ const URL = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g
 const NEGRITA = /\*\*([^*\n]+?)\*\*/g // **texto**, como en Discord (lo traído de allá y los anuncios del equipo)
 
 // Con puntos adentro: hay canales como "biblio.info" o "nico.grimaldo" (el punto final de una oración no entra).
-const PALABRA = /([A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9](?:…|\.\.\.)?)/g
+const PALABRA = /([A-Za-z0-9À-ÿ][A-Za-z0-9À-ÿ.-]*[A-Za-z0-9À-ÿ](?:…|\.\.\.)?)/g
 
 // El canal de un cliente nombrado como en los updates ("kilian-gabi", o cortado: "la-biblia-de-los-productos-digi…").
 function canalDe(palabra, canales) {
-  const p = palabra.toLowerCase()
+  const p = normal(palabra)
   if (canales.has(p)) return canales.get(p)
   const corte = p.match(/^(.+?)(?:…|\.\.\.)$/)
   if (!corte || corte[1].length < 8) return null
@@ -22,7 +22,12 @@ function canalDe(palabra, canales) {
 function ConCanales({ texto, canales, onAbrirCanal }) {
   if (!canales?.size || !onAbrirCanal) return texto
   const partes = texto.split(PALABRA)
-  const canalesDe = partes.map((parte, i) => (i % 2 === 1 ? canalDe(parte, canales) : null))
+  // Los de la comunidad ("general", "equipo", "clases") son palabras comunes: solo valen escritos como "#nombre".
+  const canalesDe = partes.map((parte, i) => {
+    if (i % 2 === 0) return null
+    const c = canalDe(parte, canales)
+    return c && (!c.comunidad || (partes[i - 1] || '').endsWith('#')) ? c : null
+  })
   return partes.map((parte, i) => {
     const canal = canalesDe[i]
     // El link ya lleva su "#": si se escribió "#slug" (o salió del autocompletado), no se repite.

@@ -18,7 +18,7 @@ import { useEscritorio } from '../context/EscritorioContext'
 import NuevoCliente from '../components/mensajes/NuevoCliente'
 import { useAuth } from '../context/AuthContext'
 import { useMensajeria } from '../context/MensajeriaContext'
-import { cuandoCorto, haceCuanto } from '../utils/mensajes'
+import { cuandoCorto, haceCuanto, normal } from '../utils/mensajes'
 import '../styles/mensajes.css'
 import ContextoCliente from '../components/mensajes/ContextoCliente'
 import '../styles/contexto.css'
@@ -643,7 +643,17 @@ export default function MensajesPage() {
     onDrop: (e) => soltar(e, grupoId),
   })
   const item = canales?.find((c) => c.id === activo)
-  const porSlug = useMemo(() => new Map((canales || []).filter((c) => c.cliente?.slug).map((c) => [c.cliente.slug, { id: c.id, nombre: c.nombre }])), [canales])
+  // Lo que se puede nombrar con "#": los chats de clientes por su slug y los canales de la comunidad por su nombre sin
+  // emoji ni tildes ("👋︙presentación" → presentacion). Estos últimos solo se vuelven link con el "#" adelante.
+  const porSlug = useMemo(() => {
+    const mapa = new Map((canales || []).filter((c) => c.cliente?.slug).map((c) => [c.cliente.slug, { id: c.id, nombre: c.nombre }]))
+    for (const c of canales || []) {
+      if (c.tipo !== 'grupo' && c.tipo !== 'anuncios') continue
+      const slug = normal(c.nombre).replace(/^[^a-z0-9]+/, '').trim().replace(/\s+/g, '-')
+      if (slug && !mapa.has(slug)) mapa.set(slug, { id: c.id, nombre: c.nombre, comunidad: true })
+    }
+    return mapa
+  }, [canales])
   const abrir = (id) => setParams(vista === 'alertas' ? { v: 'alertas', c: String(id) } : { c: String(id) })
   const cambiarVista = (v) => setParams(v === 'alertas' ? { v: 'alertas' } : {})
 
