@@ -8,18 +8,32 @@ import CuelloBotella from './CuelloBotella'
 const ESPERA = 4 // segundos para deshacer antes de que salga el mensaje
 
 // El primer mensaje del canal privado (lo que antes se pegaba a mano en Discord). Fija para todo el equipo.
-const BIENVENIDA = `{nombre}, ¡bienvenido/a a ATV! 🙌 Este es tu canal privado con el equipo: acá vas a tener el seguimiento durante todo el programa.
+const BIENVENIDA = `{nombre}, este es tu canal privado dentro de ATV.
 
-✅ ONBOARDING — hacelo hoy
-1. Revisá tu mail: te llegó el link al onboarding y tu contraseña.
-2. Recorré todos los pasos hasta el final: firmá tu contrato y mirá el video de bienvenida completo.
-3. Completá el formulario de onboarding (el paso "Tu perfil"): es obligatorio, con eso preparamos tu primera sesión.
-4. En "Tus recursos" están tus datos para entrar al classroom y la invitación al Discord de la comunidad.
+Acá vas a tener seguimiento directo con el equipo durante todo el programa. Cualquier duda, avance o entrega, la traés por acá.
 
-📅 DESPUÉS
-Presentate en este canal (quién sos y qué querés lograr) y avisanos cuando termines: te pasamos el link para agendar tu primera sesión.
+✅ ONBOARDING OBLIGATORIO — hacelo hoy
 
-Si no te llegó el mail o algo no anda, escribinos acá y lo resolvemos.`
+Paso 1 — Revisá tu mail
+Te llegó un correo de ATV con el link al onboarding y tu contraseña de acceso.
+
+Paso 2 — Completá el onboarding
+Entrá al link, iniciá sesión y recorré todos los pasos hasta el final:
+
+1. Bienvenida
+2. Firmá tu contrato
+3. Cómo trabajamos
+4. Tus recursos: tu usuario y contraseña para entrar al classroom
+5. Video de bienvenida (obligatorio verlo completo)
+6. Tu perfil: el formulario, con eso preparamos tu primera sesión
+7. Próximos pasos
+
+📅 Paso 3 — Después del onboarding
+Presentate en #presentación (quién sos y qué querés lograr) y avisanos por acá cuando termines todo: te mandamos el link de Calendly de Juan para coordinar tu primera sesión.
+
+Si algo no te llega al mail, avisanos acá y lo resolvemos.
+
+¡Bienvenido a ATV!`
 // 2K: sin Discord ni comunidad, y el chat es solo para pedir las sesiones 1 a 1.
 const BIENVENIDA_2K = `{nombre}, ¡bienvenido/a a ATV! 🙌 Este es tu canal privado: por acá pedís tus sesiones 1 a 1 con el equipo.
 
