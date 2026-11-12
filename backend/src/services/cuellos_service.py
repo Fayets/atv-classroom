@@ -107,7 +107,7 @@ _REGLAS_FEEDBACK = """Reglas de este formato (es un feedback, no un diagnóstico
 - Hablá solo de lo que el cliente pidió revisar. Si ves un problema más grande fuera de eso, nombralo en una sola línea al final de la última sección, sin desarrollarlo.
 - Empezá por lo que ya funciona y decí que eso no se toca.
 - Máximo 3 cambios, ordenados por cuánto mueven la plata. Si algo está bien, escribí "está bien como está": no busques errores para llenar. Una sección puede ser corta.
-- Cada cambio va con lo de hoy y cómo quedaría, listo para copiar, en líneas que empiezan con "> " (primero "> Hoy: ..." y después "> Cómo quedaría: ...").
+- Cada cambio va con lo de hoy y cómo quedaría, listo para copiar, en líneas que empiezan con "> " (primero "> Hoy: ..." y después "> Cómo quedaría: ..."), en la sección donde se explica ese cambio. Las listas de resumen no lo repiten.
 - Usá los números del cliente si los hay. Si un dato no está, no lo inventes.
 - Si lo que mandó el cliente es un Loom, poné "[captura MM:SS]" en una línea sola debajo de cada cambio, con el minuto donde se ve. Si no es un Loom, no pongas capturas.
 - Tono directo, en español rioplatense, con voseo, hablándole al cliente. Que se lea como armado por el equipo, no por una IA.
@@ -126,10 +126,10 @@ FORMATOS = {
 
 # Story por story
 ### Story N: qué es
-Qué cambiar y por qué. Las que están bien van juntas en una línea: "Stories 1, 2 y 4: están bien como están".
+Una o dos frases con qué cambiar y por qué, y debajo "> Hoy: ..." y "> Cómo quedaría: ...". Las que están bien van juntas en una línea: "Stories 1, 2 y 4: están bien como están".
 
 # Los 3 cambios que más mueven
-- **Cambio:** en una línea. (de 1 a 3)
+- **Cambio:** en una sola línea, sin repetir el Hoy / Cómo quedaría (ya está en Story por story). De 1 a 3, ordenados por cuánto mueven la plata.
 
 # Próxima secuencia
 La secuencia para probar, story por story, en líneas "> ".
@@ -146,7 +146,7 @@ La secuencia para probar, story por story, en líneas "> ".
 
 # Pieza por pieza
 ### Pieza: cuál es
-Gancho (0 a 3 s), desarrollo y CTA: solo lo que hay que cambiar. Las que están bien, en una línea.
+Gancho (0 a 3 s), desarrollo y CTA: solo lo que hay que cambiar, en una o dos frases, y debajo "> Hoy: ..." y "> Cómo quedaría: ...". Las que están bien, en una línea.
 
 # El patrón que se repite
 Un párrafo: lo que se repite en todas las piezas (para bien o para mal).
@@ -595,10 +595,16 @@ def _no_vacio(texto: str) -> None:
         raise HTTPException(status_code=422, detail="El documento quedó vacío: cerrá y volvé a abrir el diagnóstico antes de guardar.")
 
 
+# Si a Jeremy le llega un formato que no reconoce, arma el cuello de botella y lo avisa en la primera línea de la
+# primera sección (no antes: lo que va antes del primer "# " no se lee). Juan la ve en la hoja y no se aprueba con ella.
+NOTA_FORMATO = "nota para juan"
+
+
 def cuello(texto: str) -> str:
     """El cuello de botella en una frase: la primera del Diagnóstico ("El problema no es el tráfico. ...")."""
     partes = secciones(texto)
-    primera = next((l.strip() for l in (partes.get("Diagnóstico") or next(iter(partes.values()), "")).splitlines() if l.strip()), "")
+    primera = next((l.strip() for l in (partes.get("Diagnóstico") or next(iter(partes.values()), "")).splitlines()
+                    if l.strip() and not _norm(l).lstrip("*-> ").startswith(NOTA_FORMATO)), "")
     primera = re.sub(r"\*\*|^[-•>]\s*", "", primera)
     return primera if len(primera) <= 140 else primera[:139].rsplit(" ", 1)[0] + "…"
 
@@ -728,6 +734,8 @@ class CuellosServices:
             if texto is not None:
                 _no_vacio(texto)
                 d.version_final = texto
+            if NOTA_FORMATO in _norm(d.version_final or ""):
+                raise HTTPException(status_code=422, detail="Borrá la \"Nota para Juan\" del documento antes de aprobarlo: no le puede llegar al cliente.")
             # Con tono, la base es el borrador ya reescrito: el cambio de voz no cuenta como corrección de Juan.
             final, jeremy, cerebro, voz_id = d.version_final or "", d.version_tono or d.version_jeremy or "", d.version_cerebro, d.tono_admin_id
             d.coincidencia_jeremy = coincidencia(jeremy, final)
