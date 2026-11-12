@@ -22,6 +22,7 @@ class Pedido(BaseModel):
     texto: str | None = None
     contexto: str | None = None
     cierre_periodo: str | None = None
+    formato: str | None = None  # cuello · historias · reels · llamada · setting · embudo
 
 
 class Texto(BaseModel):
@@ -91,7 +92,8 @@ async def neurona(_sesion: dict = Depends(requerir_equipo)):
 
 @router.post("")
 async def pedir(body: Pedido, sesion: dict = Depends(requerir_equipo)):
-    return await run_in_threadpool(lambda: service.pedir(sesion, body.cliente_id, body.loom_url, body.texto, body.contexto, cierre_periodo=body.cierre_periodo))
+    return await run_in_threadpool(lambda: service.pedir(sesion, body.cliente_id, body.loom_url, body.texto, body.contexto, cierre_periodo=body.cierre_periodo,
+                                                         formato=body.formato))
 
 
 @router.get("/{diag_id}")

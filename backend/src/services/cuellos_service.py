@@ -98,6 +98,158 @@ Qué hacer y cómo, con un ejemplo concreto en una línea "> ".
 Una o dos frases con la idea de fondo que el cliente se tiene que llevar."""
 
 
+# ---------- formatos ----------
+# Pedido de Franco y Juan (12-11-2026): no todo lo que manda un cliente es un "cuello de botella". Cuando pide feedback
+# de algo puntual (unas stories), la consigna de 8 secciones obligatorias hacía que Jeremy inventara errores para
+# llenarlas. Ahora el coach elige el formato al pedirlo y viaja como "formato" en el pedido (un solo trigger en
+# Jeremy, acordado con él). Las secciones de cada formato son también las que sabe leer el classroom.
+_REGLAS_FEEDBACK = """Reglas de este formato (es un feedback, no un diagnóstico):
+- Hablá solo de lo que el cliente pidió revisar. Si ves un problema más grande fuera de eso, nombralo en una sola línea al final de la última sección, sin desarrollarlo.
+- Empezá por lo que ya funciona y decí que eso no se toca.
+- Máximo 3 cambios, ordenados por cuánto mueven la plata. Si algo está bien, escribí "está bien como está": no busques errores para llenar. Una sección puede ser corta.
+- Cada cambio va con lo de hoy y cómo quedaría, listo para copiar, en líneas que empiezan con "> " (primero "> Hoy: ..." y después "> Cómo quedaría: ...").
+- Usá los números del cliente si los hay. Si un dato no está, no lo inventes.
+- Si lo que mandó el cliente es un Loom, poné "[captura MM:SS]" en una línea sola debajo de cada cambio, con el minuto donde se ve. Si no es un Loom, no pongas capturas.
+- Tono directo, en español rioplatense, con voseo, hablándole al cliente. Que se lea como armado por el equipo, no por una IA.
+
+Formato de salida: texto plano, sin HTML ni tablas. Podés usar **negrita**, viñetas con "- ", subtítulos con "### " y ejemplos con "> ". Respetá exactamente estas secciones y este orden:
+"""
+
+FORMATOS = {
+    "cuello": {"nombre": "Cuello de botella", "titulo": "Diagnóstico", "secciones": SECCIONES},
+    "historias": {
+        "nombre": "Feedback de historias", "titulo": "Feedback de historias",
+        "secciones": ["Lo que ya funciona", "Story por story", "Los 3 cambios que más mueven", "Próxima secuencia", "Qué mirar"],
+        "pide": "feedback de una secuencia de historias (stories)",
+        "esqueleto": """# Lo que ya funciona
+- **Qué funciona:** por qué, y que no lo toque.
+
+# Story por story
+### Story N: qué es
+Qué cambiar y por qué. Las que están bien van juntas en una línea: "Stories 1, 2 y 4: están bien como están".
+
+# Los 3 cambios que más mueven
+- **Cambio:** en una línea. (de 1 a 3)
+
+# Próxima secuencia
+La secuencia para probar, story por story, en líneas "> ".
+
+# Qué mirar
+- **Métrica concreta de cada story:** respuestas por story, toques al link o al sticker, salidas en la story del CTA. Cuánto da hoy si lo sabemos y a cuánto apuntar.""",
+    },
+    "reels": {
+        "nombre": "Feedback de reels y contenido", "titulo": "Feedback de contenido",
+        "secciones": ["Lo que ya funciona", "Pieza por pieza", "El patrón que se repite", "Guion del próximo", "Qué mirar"],
+        "pide": "feedback de sus reels o su contenido",
+        "esqueleto": """# Lo que ya funciona
+- **Qué funciona:** por qué, y que no lo toque.
+
+# Pieza por pieza
+### Pieza: cuál es
+Gancho (0 a 3 s), desarrollo y CTA: solo lo que hay que cambiar. Las que están bien, en una línea.
+
+# El patrón que se repite
+Un párrafo: lo que se repite en todas las piezas (para bien o para mal).
+
+# Guion del próximo
+El guion del próximo reel, en líneas "> ": gancho, desarrollo, CTA.
+
+# Qué mirar
+- **Métrica concreta de cada pieza:** retención a los 3 segundos, vistas completas, comentarios con la palabra del CTA, seguidores por reel. Cuánto da hoy si lo sabemos y a cuánto apuntar.""",
+    },
+    "llamada": {
+        "nombre": "Revisión de llamada de venta", "titulo": "Revisión de llamada",
+        "secciones": ["Cómo fue la llamada", "Momentos clave", "Objeciones y respuesta", "Lo que hay que sostener", "Guion de la próxima", "Cómo quedó"],
+        "pide": "una revisión de una llamada de venta",
+        "esqueleto": """# Cómo fue la llamada
+Un párrafo: cómo fue y en qué momento se ganó o se perdió.
+
+# Momentos clave
+### Minuto MM:SS: qué pasó
+Lo que dijo y qué decir en su lugar. (de 1 a 3)
+
+# Objeciones y respuesta
+- **"La objeción":** cómo responderla.
+
+# Lo que hay que sostener
+- **Lo que hizo bien:** por qué, y que lo repita.
+
+# Guion de la próxima
+Las frases clave para la próxima llamada, en líneas "> ".
+
+# Cómo quedó
+- **Disposición del lead:** cerró, seña, lo piensa, no califica.
+- **Próximo paso acordado:** qué, quién y cuándo. Si no quedó ninguno, decilo.""",
+    },
+    "setting": {
+        "nombre": "Revisión de chats de setting", "titulo": "Revisión de setting",
+        "secciones": ["Dónde se cae la conversación", "Chat por chat", "Mensajes listos para usar", "Qué medir"],
+        "pide": "una revisión de sus chats de setting (DMs o WhatsApp)",
+        "esqueleto": """# Dónde se cae la conversación
+Con sus números: chats → pitches → aplicaciones o agendas → llamadas. Dónde está el salto más grande. Si falta un número, decí cuál hay que medir.
+
+# Chat por chat
+### Chat con: quién (sin apellido)
+El mensaje que frenó la conversación y cómo quedaría. (de 1 a 3)
+
+# Mensajes listos para usar
+Apertura, calificación y pase a la llamada, en líneas "> ".
+
+# Qué medir
+- **Paso:** cuántos de cada 10 pasan hoy y a cuántos apuntar.""",
+    },
+    "embudo": {
+        "nombre": "Revisión de embudo u oferta", "titulo": "Revisión de embudo",
+        "secciones": ["El recorrido hoy", "Dónde se pierde la gente", "Cambios en orden", "Qué no tocar", "Qué medir"],
+        "pide": "una revisión de su embudo u oferta (landing, VSL, aplicación)",
+        "esqueleto": """# El recorrido hoy
+- **Paso:** con su número si lo tenemos (anuncio → landing → VSL → aplicación → llamada).
+
+# Dónde se pierde la gente
+Un párrafo: el salto más grande y por qué.
+
+# Cambios en orden
+### 1. Título
+Qué cambiar, con lo de hoy y cómo quedaría. (de 1 a 3)
+
+# Qué no tocar
+- **Lo que funciona:** por qué.
+
+# Qué medir
+- **Paso a paso:** qué medir semana contra semana.""",
+    },
+}
+# Todas las secciones que sabe leer el classroom, sin repetir.
+TODAS = list(dict.fromkeys(s for f in FORMATOS.values() for s in f["secciones"]))
+
+
+def formato_valido(formato: str | None) -> str:
+    formato = (formato or "cuello").strip().lower()
+    if formato not in FORMATOS:
+        raise HTTPException(status_code=422, detail="Ese formato no existe.")
+    return formato
+
+
+def instrucciones(formato: str) -> str:
+    """La consigna de cada formato (la misma que tiene Jeremy): la del cuello de botella o la de un feedback."""
+    if formato == "cuello":
+        return INSTRUCCIONES
+    f = FORMATOS[formato]
+    return (f"Sos parte del equipo de coaches de ATV (Aumenta Tu Valor). Un cliente nos mandó algo para revisar y nos pidió "
+            f"{f['pide']}: con un Loom, con su reporte de cierre de mes o escribiéndolo. Tu trabajo es armar el feedback como "
+            f"lo escribe Juan. Este documento lo revisa y corrige Juan antes de que llegue al cliente.\n\n"
+            f"{_REGLAS_FEEDBACK}\n{f['esqueleto']}")
+
+
+def secciones_de(formato: str | None) -> list[str]:
+    return FORMATOS.get(formato or "cuello", FORMATOS["cuello"])["secciones"]
+
+
+def _orden(*partes: dict) -> list[str]:
+    """Las secciones de uno o más documentos, en el orden en que aparecen."""
+    return list(dict.fromkeys(k for p in partes for k in p))
+
+
 # ---------- texto ----------
 
 def _norm(t: str) -> str:
@@ -105,7 +257,7 @@ def _norm(t: str) -> str:
     return "".join(c for c in t if unicodedata.category(c) != "Mn").strip()
 
 
-_CLAVES = {**{_norm(s): s for s in SECCIONES}, **{_norm(k): v for k, v in _ALIAS.items()}}
+_CLAVES = {**{_norm(s): s for s in TODAS}, **{_norm(k): v for k, v in _ALIAS.items()}}
 
 
 def _clave(titulo: str) -> str | None:
@@ -144,7 +296,7 @@ def coincidencia(version: str, final: str) -> float:
     """Cuánto se parece una versión a la final de Juan: sección por sección, pesado por lo largo de la final."""
     sv, sf = secciones(version), secciones(final)
     total = peso = 0.0
-    for s in SECCIONES:
+    for s in _orden(sf, sv):
         f = sf.get(s, "")
         w = max(len(_palabras(f)), 1) if (f or sv.get(s)) else 0
         if not w:
@@ -158,7 +310,7 @@ def cambios(jeremy: str, final: str) -> list[dict]:
     """Las secciones que Juan cambió de verdad (no un retoque de una palabra)."""
     sj, sf = secciones(jeremy), secciones(final)
     salida = []
-    for s in SECCIONES:
+    for s in _orden(sj, sf):
         a, b = sj.get(s, ""), sf.get(s, "")
         p = parecido(a, b)
         if p < 0.97:
@@ -309,6 +461,8 @@ def armar_payload(d: dict, ctx: dict, lecciones: str) -> dict:
     contexto = d.get("contexto") or perfil.get("que_vende") or perfil.get("nicho_texto") or ""
     return {
         "diagnostico_id": str(d["id"]),
+        # Qué documento armar: "cuello" o uno de los feedback (historias, reels, llamada, setting, embudo).
+        "formato": d.get("formato") or "cuello",
         "cliente": ctx["cliente"],
         "plan": ctx["plan"],
         "contexto": contexto,
@@ -367,7 +521,8 @@ def procesar(diag_id: int, llamar=_llamar, mandar=_mandar_a_jeremy, leer_loom=tr
     try:
         with db_session:
             d = CuelloDiagnostico.get(id=diag_id)
-            datos = {"id": d.id, "cliente_id": d.cliente_id, "loom_url": d.loom_url, "contexto": d.contexto, "transcripcion": d.transcripcion, "token": d.token}
+            datos = {"id": d.id, "cliente_id": d.cliente_id, "loom_url": d.loom_url, "contexto": d.contexto, "transcripcion": d.transcripcion, "token": d.token,
+                     "formato": d.formato or "cuello"}
         if not datos["transcripcion"]:
             if not datos["loom_url"]:
                 raise ValueError("Falta el Loom o el texto del cliente.")
@@ -391,9 +546,10 @@ def armar_cerebro(diag_id: int, llamar=_llamar, payload: dict | None = None) -> 
                 d = CuelloDiagnostico.get(id=diag_id)
                 if d is None or d.version_cerebro or not d.transcripcion:
                     return False
-                datos = {"id": d.id, "cliente_id": d.cliente_id, "contexto": d.contexto, "transcripcion": d.transcripcion, "token": d.token}
+                datos = {"id": d.id, "cliente_id": d.cliente_id, "contexto": d.contexto, "transcripcion": d.transcripcion, "token": d.token,
+                         "formato": d.formato or "cuello"}
             payload = armar_payload(datos, contexto_cliente(datos["cliente_id"]), lecciones_texto())
-        _poner(diag_id, version_cerebro=llamar(INSTRUCCIONES, _mensaje_cerebro(payload)))
+        _poner(diag_id, version_cerebro=llamar(instrucciones(payload.get("formato") or "cuello"), _mensaje_cerebro(payload)))
         return True
     except Exception:  # noqa: BLE001 — sin la versión del cerebro el caso igual sirve para Juan
         logger.exception("Cuello %s: el cerebro no pudo armar su versión", diag_id)
@@ -430,7 +586,7 @@ def _con_voz(texto: str, admin_id: int, llamar) -> tuple[str, list[str]]:
     rasgos = voz.get("rasgos") or {}
     ejemplos = _mensajes_largos(admin_id) + voz["ejemplos"]
     partes, sin_cambiar = cuellos_tono.reescribir(secciones(texto, con_marcas=True), nombre, _describir_voz(rasgos), ejemplos, rasgos, llamar)
-    return "\n\n".join(f"# {s}\n{partes[s].strip()}" for s in SECCIONES if partes.get(s)), sin_cambiar
+    return "\n\n".join(f"# {s}\n{partes[s].strip()}" for s in partes if partes.get(s)), sin_cambiar
 
 
 def _no_vacio(texto: str) -> None:
@@ -441,7 +597,8 @@ def _no_vacio(texto: str) -> None:
 
 def cuello(texto: str) -> str:
     """El cuello de botella en una frase: la primera del Diagnóstico ("El problema no es el tráfico. ...")."""
-    primera = next((l.strip() for l in secciones(texto).get("Diagnóstico", "").splitlines() if l.strip()), "")
+    partes = secciones(texto)
+    primera = next((l.strip() for l in (partes.get("Diagnóstico") or next(iter(partes.values()), "")).splitlines() if l.strip()), "")
     primera = re.sub(r"\*\*|^[-•>]\s*", "", primera)
     return primera if len(primera) <= 140 else primera[:139].rsplit(" ", 1)[0] + "…"
 
@@ -472,19 +629,22 @@ def _resumen(d: CuelloDiagnostico, nombres: dict) -> dict:
         "creado_en": d.creado_en.isoformat() + "Z", "respondido_en": d.respondido_en.isoformat() + "Z" if d.respondido_en else None,
         "aprobado_en": d.aprobado_en.isoformat() + "Z" if d.aprobado_en else None,
         "coincidencia_jeremy": d.coincidencia_jeremy, "coincidencia_cerebro": d.coincidencia_cerebro,
+        "formato": d.formato or "cuello",
     }
 
 
 class CuellosServices:
     def pedir(self, sesion: dict, cliente_id: int, loom_url: str | None, texto: str | None, contexto: str | None, en_fondo=_en_segundo_plano,
-              cierre_periodo: str | None = None) -> dict:
+              cierre_periodo: str | None = None, formato: str | None = None) -> dict:
         """El cliente cuenta su traba de una de tres formas: un Loom, su reporte de cierre de mes o escrita."""
         loom_url, texto = (loom_url or "").strip() or None, (texto or "").strip() or None
+        formato = formato_valido(formato)
         if cierre_periodo:
             texto = texto_cierre(cliente_id, cierre_periodo) + (f"\n\nLo que agrega el equipo:\n{texto}" if texto else "")
             loom_url = None
         elif texto and not loom_url:
-            texto = f"Lo que contó el cliente sobre su traba:\n{texto}"
+            texto = (f"Lo que contó el cliente sobre su traba:\n{texto}" if formato == "cuello"
+                     else f"Lo que mandó el cliente para revisar:\n{texto}")
         if not loom_url and not texto:
             raise HTTPException(status_code=422, detail="Pegá el Loom, elegí un cierre de mes o contá su problema.")
         if loom_url and not id_loom(loom_url):
@@ -492,7 +652,7 @@ class CuellosServices:
         with db_session:
             _cliente(cliente_id)
             d = CuelloDiagnostico(cliente_id=cliente_id, admin_id=sesion["usuario_id"], loom_url=loom_url, transcripcion=texto,
-                                  contexto=(contexto or "").strip()[:500] or None, token=secrets.token_urlsafe(24))
+                                  contexto=(contexto or "").strip()[:500] or None, token=secrets.token_urlsafe(24), formato=formato)
             d.flush()
             diag_id = d.id
         en_fondo(diag_id)
@@ -592,7 +752,7 @@ class CuellosServices:
                 raise HTTPException(status_code=409, detail="Primero se aprueba el diagnóstico.")
             for l in lecciones:
                 texto = (l.get("texto") or "").strip()
-                if texto and l.get("seccion") in SECCIONES:
+                if texto and l.get("seccion") in TODAS:
                     CuelloLeccion(diagnostico_id=diag_id, seccion=l["seccion"], antes=(l.get("antes") or "")[:4000],
                                   despues=(l.get("despues") or "")[:4000], texto=texto[:400])
         return self.neurona()
@@ -670,7 +830,9 @@ class CuellosServices:
                 # La del cerebro recién se muestra aprobado: Juan corrige sin verla.
                 "version_cerebro": d.version_cerebro if aprobado else None,
                 "cerebro_listo": bool(d.version_cerebro),
-                "secciones": SECCIONES,
+                "secciones": secciones_de(d.formato),
+                "formato": d.formato or "cuello",
+                "formatos": [{"id": k, "nombre": v["nombre"], "titulo": v["titulo"]} for k, v in FORMATOS.items()],
                 # Las capturas del Loom: <base>/<segundo>.jpg, sin sesión (la dirección lleva el token).
                 "captura_base": f"/api/cuellos/captura/{d.token}" if id_loom(d.loom_url) else None,
                 "doc_activo": google_docs_service.activo(),

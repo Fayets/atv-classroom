@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { bloques, marcaCaptura, minuto, SECCIONES, TITULOS, tramos } from '../../utils/docCuello'
+import { bloques, marcaCaptura, minuto, tituloDocumento, tituloSeccion, tramos } from '../../utils/docCuello'
 
 // El diagnóstico tal como sale en el PDF (sobrio: hoja hueso, el logo y el texto), con el formato y el estilo del documento de Juan, y editable ahí mismo: cada
 // sección es un bloque editable con subtítulos, párrafos, viñetas, ejemplos y negritas. Al escribir se lee de
@@ -131,11 +131,11 @@ export default function HojaCuello({ cliente, partes, original, alCambiar, captu
   return (
     <div className="hc-marco">
       <Barra base={capturas} />
-      <article className="hc-hoja" aria-label={`Diagnóstico de ${cliente}`}>
-        <h2 className="hc-cliente">Diagnóstico {cliente}</h2>
-        {SECCIONES.map((s) => (
+      <article className="hc-hoja" aria-label={`${tituloDocumento(partes)} de ${cliente}`}>
+        <h2 className="hc-cliente">{tituloDocumento(partes)} {cliente}</h2>
+        {Object.keys(partes).map((s) => (
           <section key={s} className="hc-seccion">
-            {TITULOS[s] ? <h3 className="hc-titulo">{TITULOS[s]} {marca(s)}</h3> : marca(s)}
+            {tituloSeccion(s, partes) ? <h3 className="hc-titulo">{tituloSeccion(s, partes)} {marca(s)}</h3> : marca(s)}
             <Seccion texto={partes[s]} alCambiar={cambio(s)} base={capturas} />
           </section>
         ))}

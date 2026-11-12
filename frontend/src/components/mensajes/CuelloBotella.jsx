@@ -15,8 +15,20 @@ const MES = (p) => {
   return t[0].toUpperCase() + t.slice(1)
 }
 
+// Qué se arma: el cuello de botella o un feedback de lo que el cliente pidió revisar (cuellos_service.FORMATOS).
+// Con el feedback, Juan AI no sale a buscar un cuello de botella: revisa solo eso y marca hasta 3 cambios.
+const FORMATOS = [
+  ['cuello', 'Cuello de botella', 'Está trabado y no sabe por qué'],
+  ['historias', 'Feedback de historias', 'Pidió que revisemos sus stories'],
+  ['reels', 'Feedback de reels y contenido', 'Reels, guiones o publicaciones'],
+  ['llamada', 'Revisión de llamada de venta', 'Una grabación o un Fathom'],
+  ['setting', 'Revisión de chats de setting', 'Sus DMs o WhatsApp'],
+  ['embudo', 'Revisión de embudo u oferta', 'Landing, VSL, aplicación u oferta'],
+]
+
 // El cliente cuenta su traba de una de tres formas: un Loom, su reporte de cierre de mes o escrita.
 function Pedido({ datos, clienteId, alPedido }) {
+  const [formato, setFormato] = useState('cuello')
   const [fuente, setFuente] = useState('loom')
   const [loom, setLoom] = useState('')
   const [periodo, setPeriodo] = useState(datos.cierres?.[0]?.periodo || '')
@@ -37,6 +49,7 @@ function Pedido({ datos, clienteId, alPedido }) {
         cierre_periodo: fuente === 'cierre' ? periodo : null,
         texto: texto.trim() || null,
         contexto: contexto.trim() || null,
+        formato,
       }))
     } catch (err) {
       setError(err.message || 'No se pudo pedir el diagnóstico.')
@@ -47,6 +60,14 @@ function Pedido({ datos, clienteId, alPedido }) {
   return (
     <form className="cb-nuevo" onSubmit={pedir}>
       {!datos.jeremy ? <p className="cb-aviso">Falta conectar Juan AI en el servidor: el pedido va a quedar con error.</p> : null}
+      <label className="cb-campo">
+        <span>Qué hay que armar</span>
+        <select id="cb-formato" value={formato} onChange={(e) => setFormato(e.target.value)}>
+          {FORMATOS.map(([id, nombre, cuando]) => (
+            <option key={id} value={id}>{nombre} · {cuando}</option>
+          ))}
+        </select>
+      </label>
       <div className="cb-fuentes" role="tablist" aria-label="De dónde sale el problema">
         {[['loom', 'Loom'], ['cierre', 'Cierre de mes'], ['texto', 'Contarlo']].map(([id, nombre]) => (
           <button key={id} type="button" role="tab" aria-selected={fuente === id} className={fuente === id ? 'is-on' : ''} onClick={() => setFuente(id)}>{nombre}</button>
@@ -70,7 +91,7 @@ function Pedido({ datos, clienteId, alPedido }) {
         ) : <p className="cb-gris">Este cliente todavía no completó ningún cierre de mes.</p>
       ) : null}
       <label className="cb-campo">
-        <span>{fuente === 'texto' ? 'Su problema, en sus palabras' : 'Algo más que quieras sumar (opcional)'}</span>
+        <span>{fuente === 'texto' ? (formato === 'cuello' ? 'Su problema, en sus palabras' : 'Lo que mandó para revisar') : 'Algo más que quieras sumar (opcional)'}</span>
         <textarea id="cb-texto-chat" rows={fuente === 'texto' ? 5 : 2} value={texto} onChange={(e) => setTexto(e.target.value)} autoFocus={fuente === 'texto'} />
       </label>
       <label className="cb-campo">
@@ -80,7 +101,7 @@ function Pedido({ datos, clienteId, alPedido }) {
       {error ? <p className="cb-error" role="alert">{error}</p> : null}
       <div className="cb-acciones">
         <small className="cb-gris">Lee también su chat, sus llamadas y su último cierre de mes. Tarda entre 5 y 10 minutos.</small>
-        <button type="submit" className="cb-btn" disabled={enviando || !listo}>{enviando ? 'Pidiendo…' : 'Detectar cuello de botella'}</button>
+        <button type="submit" className="cb-btn" disabled={enviando || !listo}>{enviando ? 'Pidiendo…' : formato === 'cuello' ? 'Detectar cuello de botella' : 'Pedir el feedback'}</button>
       </div>
     </form>
   )

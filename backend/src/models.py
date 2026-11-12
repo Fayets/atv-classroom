@@ -899,6 +899,7 @@ class CuelloDiagnostico(db.Entity):
     # El borrador reescrito con la voz del coach, antes de que Juan lo corrija: la base contra la que aprende la neurona.
     version_tono = Optional(str, nullable=True)
     tono_admin_id = Optional(int, nullable=True)
+    formato = Optional(str, nullable=True, default="cuello")  # cuello · historias · reels · llamada · setting · embudo
     aprobado_por = Optional(int, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
     respondido_en = Optional(datetime, nullable=True)

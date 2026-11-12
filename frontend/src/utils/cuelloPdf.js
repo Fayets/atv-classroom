@@ -1,7 +1,7 @@
 // El PDF del diagnóstico de cuello de botella: sobrio, como pidió Franco. Hoja hueso y el texto en carbón,
 // en Poppins y con el estilo del Google Doc de Juan (Diagnóstico HAR PROGRAM): títulos
 // grandes en negrita, subtítulos en negrita, texto con aire. Sale de la versión final que aprobó Juan.
-import { bloques, partir, SECCIONES, TITULOS, tramos } from './docCuello'
+import { bloques, partir, tituloDocumento, tituloSeccion, tramos } from './docCuello'
 import { loadPdfMake } from './onboardingPdf'
 
 const C = { hueso: '#F3F0E9', carbon: '#242321', piedra: '#8A847C' }
@@ -72,7 +72,7 @@ function cuerpo(texto, imgs = {}) {
 }
 
 // Los títulos como en el Doc de Juan: "2. Causas" grande y en negrita.
-const titulo = (s) => ({ text: TITULOS[s], bold: true, fontSize: 16.5, margin: [0, 10, 0, 8] })
+const titulo = (t) => ({ text: t, bold: true, fontSize: 16.5, margin: [0, 10, 0, 8] })
 
 const escapar = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const conNegrita = (t) => tramos(t).map((x) => (x.negrita ? `<b>${escapar(x.texto)}</b>` : escapar(x.texto))).join('')
@@ -84,10 +84,11 @@ export async function htmlCuello({ cliente, texto, capturas: base = null }) {
   // Google Docs importa sin aire: el interlineado y la separación van explícitos en cada bloque.
   const fuente = 'font-family:Poppins,Arial,sans-serif;'
   const texto11 = `${fuente}font-size:11pt;line-height:1.6;`
-  const partes = [`<h1 style="${fuente}font-size:21pt;margin:0 0 18pt 0">Diagnóstico ${escapar(cliente || '')}</h1>`]
-  for (const s of SECCIONES) {
+  const partes = [`<h1 style="${fuente}font-size:21pt;margin:0 0 18pt 0">${tituloDocumento(p)} ${escapar(cliente || '')}</h1>`]
+  for (const s of Object.keys(p)) {
     if (!p[s]) continue
-    if (TITULOS[s]) partes.push(`<h2 style="${fuente}font-size:16pt;margin:28pt 0 10pt 0">${escapar(TITULOS[s])}</h2>`)
+    const t = tituloSeccion(s, p)
+    if (t) partes.push(`<h2 style="${fuente}font-size:16pt;margin:28pt 0 10pt 0">${escapar(t)}</h2>`)
     let lista = []
     const cerrarLista = () => {
       if (lista.length) partes.push(`<ul style="margin:0 0 12pt 0">${lista.join('')}</ul>`)
@@ -115,12 +116,13 @@ export async function pdfCuello({ cliente, texto, fecha = new Date(), capturas: 
   poppins(pdfMake)
   const imgs = await capturas(base, texto || '')
   const p = partir(texto)
-  const contenido = [{ text: `Diagnóstico ${cliente}`, fontSize: 21, bold: true, margin: [0, 0, 0, 12] }]
-  for (const s of SECCIONES) {
+  const contenido = [{ text: `${tituloDocumento(p)} ${cliente}`, fontSize: 21, bold: true, margin: [0, 0, 0, 12] }]
+  for (const s of Object.keys(p)) {
     if (!p[s]) continue
+    const t = tituloSeccion(s, p)
     // El título y el primer bloque van juntos: un título nunca queda solo al pie de la página.
     const [primero, ...resto] = cuerpo(p[s], imgs)
-    contenido.push({ stack: [...(TITULOS[s] ? [titulo(s)] : [{ text: '', margin: [0, 10, 0, 0] }]), ...(primero ? [primero] : [])], unbreakable: true }, ...resto)
+    contenido.push({ stack: [...(t ? [titulo(t)] : [{ text: '', margin: [0, 10, 0, 0] }]), ...(primero ? [primero] : [])], unbreakable: true }, ...resto)
   }
 
   const doc = {
@@ -130,10 +132,10 @@ export async function pdfCuello({ cliente, texto, fecha = new Date(), capturas: 
     footer: (pagina, total) => (total > 1 ? { text: `${pagina} / ${total}`, fontSize: 7.5, color: C.piedra, alignment: 'right', margin: [64, 20, 64, 0] } : { text: '' }),
     content: contenido,
     defaultStyle: { font: 'Poppins', fontSize: 10.5, color: C.carbon },
-    info: { title: `Cuello de botella · ${cliente}`, author: 'ATV — Aumenta Tu Valor' },
+    info: { title: `${tituloDocumento(p)} · ${cliente}`, author: 'ATV — Aumenta Tu Valor' },
   }
   const blob = await pdfMake.createPdf(doc).getBlob()
-  return { blob, nombre: `cuello-de-botella-${slug(cliente)}-${fecha.toISOString().slice(0, 10)}.pdf` }
+  return { blob, nombre: `${slug(tituloDocumento(p))}-${slug(cliente)}-${fecha.toISOString().slice(0, 10)}.pdf` }
 }
 
 export async function descargarPdfCuello(datos) {

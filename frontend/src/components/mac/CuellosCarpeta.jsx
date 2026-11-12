@@ -143,7 +143,7 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
     try {
       const r = await tonoCuello(d.id, { admin_id: adminId, texto: partes ? unir(partes) : null })
       setD(r)
-      setPartes(partir(r.version_final))
+      setPartes(partir(r.version_final, r.formato))
       setSinCambiar(r.sin_cambiar || [])
       setPreguntar(false)
     } catch (e) {
@@ -173,7 +173,7 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
       const r = await reabrirCuello(d.id)
       setD(r)
       setCambios(null)
-      setPartes(partir(r.version_final))
+      setPartes(partir(r.version_final, r.formato))
       corrigiendo.current = true
     } catch (e) {
       setError(e.message || 'No se pudo volver atrás.')
@@ -199,7 +199,7 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
       setD(x)
       const seguir = x.estado === 'borrador' && corrigiendo.current
       corrigiendo.current = x.estado === 'borrador'
-      setPartes((p) => (seguir && p ? p : partir(x.version_final)))
+      setPartes((p) => (seguir && p ? p : partir(x.version_final, x.formato)))
     }).catch((e) => setError(e.message))
   }
   useEffect(() => {
@@ -217,8 +217,8 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
   }, [d?.estado])
 
   if (!d) return <p className="fd-vacio">{error || 'Cargando…'}</p>
-  const jeremy = partir(d.version_tono || d.version_jeremy)
-  const cerebro = partir(d.version_cerebro)
+  const jeremy = partir(d.version_tono || d.version_jeremy, d.formato)
+  const cerebro = partir(d.version_cerebro, d.formato)
 
   async function guardar() {
     setGuardando(true)
@@ -341,11 +341,11 @@ export function Diagnostico({ id, alCambiar = () => {}, alEnviar }) {
           </div>
           <div className="cb-comp">
             <div className="cb-comp__cab"><span /><span className="is-jer">Juan AI</span><span className="is-juan">Juan · final</span><span className="is-cer">Cerebro, en silencio</span></div>
-            {SECCIONES.map((s) => (
+            {Object.keys(jeremy).map((s) => (
               <div key={s} className="cb-comp__fila">
                 <h5>{s}</h5>
-                <p className={jeremy[s] !== partir(d.version_final)[s] ? 'is-corregida' : ''}>{jeremy[s] || '—'}</p>
-                <p>{partir(d.version_final)[s] || '—'}</p>
+                <p className={jeremy[s] !== partir(d.version_final, d.formato)[s] ? 'is-corregida' : ''}>{jeremy[s] || '—'}</p>
+                <p>{partir(d.version_final, d.formato)[s] || '—'}</p>
                 <p>{cerebro[s] || (d.version_cerebro === null ? 'No llegó a armarla.' : '—')}</p>
               </div>
             ))}
