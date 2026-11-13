@@ -900,6 +900,7 @@ class CuelloDiagnostico(db.Entity):
     version_tono = Optional(str, nullable=True)
     tono_admin_id = Optional(int, nullable=True)
     formato = Optional(str, nullable=True, default="cuello")  # cuello · historias · reels · llamada · setting · embudo
+    nota = Optional(str, nullable=True)  # lo que agrega el coach junto al Loom (va al final de la transcripción)
     aprobado_por = Optional(int, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
     respondido_en = Optional(datetime, nullable=True)

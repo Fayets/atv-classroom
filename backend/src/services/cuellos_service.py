@@ -522,11 +522,13 @@ def procesar(diag_id: int, llamar=_llamar, mandar=_mandar_a_jeremy, leer_loom=tr
         with db_session:
             d = CuelloDiagnostico.get(id=diag_id)
             datos = {"id": d.id, "cliente_id": d.cliente_id, "loom_url": d.loom_url, "contexto": d.contexto, "transcripcion": d.transcripcion, "token": d.token,
-                     "formato": d.formato or "cuello"}
+                     "formato": d.formato or "cuello", "nota": d.nota}
         if not datos["transcripcion"]:
             if not datos["loom_url"]:
                 raise ValueError("Falta el Loom o el texto del cliente.")
             datos["transcripcion"] = leer_loom(datos["loom_url"])
+            if datos["nota"]:
+                datos["transcripcion"] += f"\n\nLo que agrega el equipo:\n{datos['nota']}"
             _poner(diag_id, transcripcion=datos["transcripcion"])
         payload = armar_payload(datos, contexto_cliente(datos["cliente_id"]), lecciones_texto())
         mandar(payload)
@@ -651,6 +653,12 @@ class CuellosServices:
         elif texto and not loom_url:
             texto = (f"Lo que contó el cliente sobre su traba:\n{texto}" if formato == "cuello"
                      else f"Lo que mandó el cliente para revisar:\n{texto}")
+        # Con Loom, lo que escribe el coach es un agregado: el Loom se transcribe igual y la nota va al final.
+        # Antes quedaba como la transcripción y el Loom no se leía nunca: Jeremy recibía dos renglones y sin
+        # minutos no había capturas (Julian Lucero, 13-11-2026).
+        nota = None
+        if loom_url and texto and not cierre_periodo:
+            nota, texto = texto[:4000], None
         if not loom_url and not texto:
             raise HTTPException(status_code=422, detail="Pegá el Loom, elegí un cierre de mes o contá su problema.")
         if loom_url and not id_loom(loom_url):
@@ -658,7 +666,8 @@ class CuellosServices:
         with db_session:
             _cliente(cliente_id)
             d = CuelloDiagnostico(cliente_id=cliente_id, admin_id=sesion["usuario_id"], loom_url=loom_url, transcripcion=texto,
-                                  contexto=(contexto or "").strip()[:500] or None, token=secrets.token_urlsafe(24), formato=formato)
+                                  contexto=(contexto or "").strip()[:500] or None, token=secrets.token_urlsafe(24), formato=formato,
+                                  nota=nota)
             d.flush()
             diag_id = d.id
         en_fondo(diag_id)
