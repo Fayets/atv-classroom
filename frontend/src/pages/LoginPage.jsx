@@ -5,6 +5,7 @@ import GoogleButton from '../components/GoogleButton'
 import { useAuth } from '../context/AuthContext'
 import '../styles/login.css'
 import Isotipo from '../components/marca/Isotipo'
+import { VOLVER_A } from './LeveragePage'
 
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -15,6 +16,18 @@ function validarEmail(value) {
   if (!limpio) return 'Ingresá tu email.'
   if (!EMAIL_REGEX.test(limpio)) return 'Ese email no parece válido.'
   return ''
+}
+
+// Si venía de conectar ATV Leverage, vuelve ahí después de entrar (lo deja LeveragePage). Solo esa ruta.
+function destino(porDefecto) {
+  try {
+    const volver = sessionStorage.getItem(VOLVER_A)
+    sessionStorage.removeItem(VOLVER_A)
+    if (volver && volver.startsWith('/leverage/conectar?')) return volver
+  } catch {
+    /* sin almacenamiento: va a la pantalla de siempre */
+  }
+  return porDefecto
 }
 
 export default function LoginPage() {
@@ -30,7 +43,7 @@ export default function LoginPage() {
   const [cargando, setCargando] = useState(false)
 
   useEffect(() => {
-    if (isAuthenticated) navigate(isEquipo ? '/mensajes' : '/', { replace: true })
+    if (isAuthenticated) navigate(destino(isEquipo ? '/mensajes' : '/'), { replace: true })
   }, [isAuthenticated, isEquipo, navigate])
 
   useEffect(() => {
@@ -49,7 +62,7 @@ export default function LoginPage() {
       setCargando(true)
       try {
         await loginGoogle(credencial)
-        navigate('/mensajes', { replace: true })
+        navigate(destino('/mensajes'), { replace: true })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'No pudimos iniciar tu sesión con Google.')
       } finally {
@@ -73,7 +86,7 @@ export default function LoginPage() {
     setCargando(true)
     try {
       const user = await login(email.trim(), contrasena.trim())
-      navigate(['admin', 'coach'].includes(user.rol) ? '/mensajes' : '/', { replace: true })
+      navigate(destino(['admin', 'coach'].includes(user.rol) ? '/mensajes' : '/'), { replace: true })
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setError('El email o la contraseña no coinciden.')

@@ -27,6 +27,7 @@ import CerebroPage from './pages/CerebroPage'
 import EquipoPage from './pages/EquipoPage'
 import FrentePage from './pages/FrentePage'
 import HomePage from './pages/HomePage'
+import LeveragePage from './pages/LeveragePage'
 import LoginPage from './pages/LoginPage'
 import MensajesPage from './pages/MensajesPage'
 import PlaceholderPage from './pages/PlaceholderPage'
@@ -89,6 +90,7 @@ function AppRoutes() {
       <MarcoEquipo>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/leverage/conectar" element={<LeveragePage />} />
         <Route
           path="/"
           element={

@@ -961,3 +961,32 @@ class PilotoBorrador(db.Entity):
     cambio_pct = Optional(int, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
     resuelto_en = Optional(datetime, nullable=True)
+
+
+class ClaveLeverage(db.Entity):
+    """La clave personal con la que el ATV Leverage de alguien del equipo lee el classroom (la API de agentes).
+    Sale de "Entrar con el classroom" en Leverage: la persona acepta acá y su Leverage queda con su clave. Solo se
+    guarda el sha256. Se corta desde el mismo Leverage (desconectar) o si la persona deja el equipo."""
+
+    _table_ = (DB_SCHEMA, "claves_leverage")
+
+    id = PrimaryKey(int, auto=True)
+    admin_id = Required(int, index=True)
+    sha256 = Required(str, unique=True)
+    creada_en = Required(datetime, default=datetime.utcnow)
+    usada_en = Optional(datetime, nullable=True)
+    revocada_en = Optional(datetime, nullable=True)
+
+
+class CodigoLeverage(db.Entity):
+    """El código de un solo uso que el classroom le pasa a Leverage después de que la persona aceptó. Leverage lo
+    cambia por la clave. Dura 5 minutos y está atado a la dirección de vuelta que pidió ese Leverage."""
+
+    _table_ = (DB_SCHEMA, "codigos_leverage")
+
+    id = PrimaryKey(int, auto=True)
+    admin_id = Required(int)
+    sha256 = Required(str, unique=True)
+    vuelta = Required(str)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    usado_en = Optional(datetime, nullable=True)

@@ -27,6 +27,20 @@ def tablas(agente: dict = Depends(agente_desde_request)):
     return service.catalogo_tablas(agente)
 
 
+@router.get("/yo")
+def yo(agente: dict = Depends(agente_desde_request)):
+    """Quién es esta clave: la persona del equipo si es la de su ATV Leverage, o solo el nombre si es general."""
+    return {"nombre": agente["nombre"], "persona": agente.get("persona"), "scopes": agente["scopes"]}
+
+
+@router.post("/desconectar")
+def desconectar(agente: dict = Depends(agente_desde_request)):
+    """La persona desconecta su ATV Leverage: su clave deja de andar."""
+    from src.services import leverage_service
+
+    return leverage_service.desconectar(agente)
+
+
 @router.get("/canales/pendientes")
 def canales_pendientes(
     dias: int = Query(14, ge=1, le=365),

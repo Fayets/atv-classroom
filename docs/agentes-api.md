@@ -51,6 +51,15 @@ AGENTES_KEYS={"redactor": {"sha256": "<sha256 de la clave>", "scopes": ["lectura
 
 Para revocar una clave: sacar su entrada de `AGENTES_KEYS` y reiniciar el backend.
 
+### Claves personales de ATV Leverage
+
+Además de las de `AGENTES_KEYS`, cada persona del equipo puede conectar su ATV Leverage con su cuenta
+("Entrar con el classroom", en Ajustes de Leverage): acepta en `/leverage/conectar` y su Leverage queda con
+una clave suya. Esas claves viven en la tabla `claves_leverage` (solo el sha256) y tienen `lectura` y
+`piloto`, más `plata` si la persona es admin o de ventas o sistemas (como `ve_plata`). Dejan de andar si la
+persona desconecta su Leverage (`POST /api/agentes/desconectar`) o si sale del equipo. `GET /api/agentes/yo`
+dice de quién es la clave. El circuito está en `src/services/leverage_service.py`.
+
 ## Respuestas de error
 
 | Código | Cuándo |

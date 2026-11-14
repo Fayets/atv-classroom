@@ -40,6 +40,7 @@ from src.controllers.sugerencias_controller import router as sugerencias_router
 from src.controllers.tools_controller import router as tools_router
 from src.controllers.cuellos_controller import router as cuellos_router
 from src.controllers.agentes_controller import router as agentes_router
+from src.controllers.leverage_controller import router as leverage_router
 from src.db import init_db
 from src.schemas import HealthResponse
 from src.storage.recursos import UPLOADS_DIR, ensure_upload_dirs
@@ -292,6 +293,7 @@ app.include_router(mensajes_router)
 app.include_router(cierre_router)
 app.include_router(mensajes_ws_router)
 app.include_router(agentes_router)
+app.include_router(leverage_router)
 
 ensure_upload_dirs()
 # En producción solo /api llega al backend: los PDF se sirven por /api/uploads (y /uploads para links viejos).

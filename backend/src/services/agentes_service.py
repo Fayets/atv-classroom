@@ -79,6 +79,16 @@ def agente_desde_request(request: Request) -> dict:
         if hmac.compare_digest(huella, datos["sha256"]) and agente is None:
             agente = {"nombre": nombre, "scopes": datos["scopes"]}
     if agente is None:
+        # Las claves personales de ATV Leverage ("Entrar con el classroom") viven en la base.
+        from src.services.leverage_service import agente_de_clave
+
+        try:
+            agente = agente_de_clave(huella)
+        except Exception:
+            # Si la base no responde, la clave personal no se puede validar: se rechaza como cualquier otra.
+            logger.exception("Agentes: no se pudo buscar la clave personal")
+            agente = None
+    if agente is None:
         logger.warning("Agentes: clave rechazada en %s %s", request.method, request.url.path)
         raise HTTPException(status_code=401, detail="Clave de agente inválida.")
     if "lectura" not in agente["scopes"]:
@@ -437,3 +447,4 @@ def llamadas_de_coach(agente: dict, coach_id: int, despues_de: int, limite: int,
         f["puntos"] = _json(f.pop("puntos_json", None))
         salida.append(f)
     return {"coach": _limpio(coach), "llamadas": salida, "hay_mas": hay_mas, "ultimo_id": salida[-1]["id"] if salida else despues_de}
+
