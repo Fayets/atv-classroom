@@ -134,3 +134,24 @@ def test_la_api_de_agentes_acepta_la_clave_personal(base, monkeypatch):
     assert cliente.get("/api/agentes/yo", headers={"X-Agente-Key": "lev_inventada"}).status_code == 401
     assert cliente.post("/api/agentes/desconectar", headers={"X-Agente-Key": c["clave"]}).json() == {"desconectado": True}
     assert cliente.get("/api/agentes/yo", headers={"X-Agente-Key": c["clave"]}).status_code == 401
+
+
+def test_dejar_un_mensaje_listo_solo_a_nombre_de_la_persona(base, monkeypatch):
+    """POST /api/agentes/piloto/borradores: con la clave personal queda a nombre de esa persona; con la general, no."""
+    from src.controllers.agentes_controller import router
+    from src.services import agentes_service, piloto_service
+
+    general = "clave-general-con-piloto"
+    monkeypatch.setattr(agentes_service, "_claves", lambda: {"leverage-piloto": {"sha256": hashlib.sha256(general.encode()).hexdigest(), "scopes": ["lectura", "piloto"]}})
+    pedidos = []
+    monkeypatch.setattr(piloto_service, "preparar_por_persona", lambda admin_id, texto, canal_id=None, cliente_id=None: pedidos.append((admin_id, texto, canal_id, cliente_id)) or {"id": 9, "estado": "pendiente"})
+    c = svc.canjear(_codigo_de(svc.autorizar({"rol": "coach", "usuario_id": 2}, VUELTA, ESTADO)["url"]), VUELTA)
+    app = FastAPI()
+    app.include_router(router)
+    cliente = TestClient(app)
+    r = cliente.post("/api/agentes/piloto/borradores", headers={"X-Agente-Key": c["clave"]}, json={"cliente_id": 68, "texto": "buenas! ya miro la landing"})
+    assert r.status_code == 200
+    assert pedidos == [(2, "buenas! ya miro la landing", None, 68)]
+    assert cliente.post("/api/agentes/piloto/borradores", headers={"X-Agente-Key": general}, json={"cliente_id": 68, "texto": "x"}).status_code == 403
+    assert cliente.post("/api/agentes/piloto/borradores", headers={"X-Agente-Key": c["clave"]}, json={"texto": "x"}).status_code == 422
+    assert len(pedidos) == 1

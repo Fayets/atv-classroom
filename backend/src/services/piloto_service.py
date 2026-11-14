@@ -508,6 +508,37 @@ def borradores_pendientes(limite: int = 50) -> list[dict]:
     return salida
 
 
+def preparar_por_persona(admin_id: int, texto: str, canal_id: int | None = None, cliente_id: int | None = None) -> dict:
+    """Un mensaje que alguien del equipo le pidió a su CSM de Leverage que mande: queda como borrador pendiente a su
+    nombre, con el botón para mandarlo en su Bandeja de Leverage (y en el classroom, como cualquier borrador del piloto).
+    No sale hasta que esa persona lo aprueba."""
+    texto = (texto or "").strip()
+    if not texto:
+        raise HTTPException(status_code=422, detail="El mensaje está vacío.")
+    with db_session:
+        if canal_id is None and cliente_id is not None:
+            canal = Canal.select_by_sql(
+                f'SELECT * FROM "{DB_SCHEMA}"."canales" WHERE tipo = \'cliente\' AND cliente_id = $cliente_id ORDER BY id LIMIT 1'
+            )
+            canal = canal[0] if canal else None
+        else:
+            canal = Canal.get(id=canal_id) if canal_id is not None else None
+        if canal is None or canal.tipo != "cliente":
+            raise HTTPException(status_code=404, detail="Ese cliente no tiene chat en el classroom.")
+        cid = canal.id
+        # Vale hasta que alguien del equipo escriba en ese chat: ahí se vence, como los borradores del piloto.
+        hasta = next(iter(db.select(f'SELECT max(id) FROM "{DB_SCHEMA}"."mensajes_canal" WHERE canal = $cid')), None) or 0
+        b = PilotoBorrador(
+            canal_id=cid, admin_id=admin_id, hasta_mensaje_id=hasta, texto=texto[:4000], tema="otro", seguro=True,
+            para_vos=False, motivo="Lo dejó listo tu CSM en Leverage", fuentes_json=json.dumps(["leverage"]),
+        )
+        db.flush()
+        quien = Admin.get(id=admin_id)
+        datos = _borrador_dict(b)
+        datos.update(cliente=canal.nombre, coach=(quien.nombre or quien.email) if quien else None, voz=None, cliente_escribio=[])
+    return datos
+
+
 def enviar_por_agente(borrador_id: int, texto: str | None) -> tuple[dict, dict]:
     """Lo aprobó el dueño desde Leverage: sale en nombre de quien lleva el chat, con lo que haya corregido."""
     with db_session:

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
@@ -112,6 +112,27 @@ async def piloto_borradores(agente: dict = Depends(agente_desde_request)):
 
 class EnvioBorrador(BaseModel):
     texto: str | None = Field(default=None, max_length=4000)
+
+
+class MensajePreparado(BaseModel):
+    texto: str = Field(min_length=1, max_length=4000)
+    canal_id: int | None = None
+    cliente_id: int | None = None
+
+
+@router.post("/piloto/borradores")
+def piloto_preparar(body: MensajePreparado, agente: dict = Depends(agente_desde_request)):
+    """El CSM de Leverage deja listo un mensaje a nombre de la persona dueña de la clave: queda pendiente, con el botón
+    para mandarlo. Solo con una clave personal: la general no es de nadie y no puede hablar en nombre de alguien."""
+    from src.services import piloto_service
+
+    service.puede_piloto(agente)
+    persona = agente.get("persona")
+    if not persona:
+        raise HTTPException(status_code=403, detail="Para dejar un mensaje a tu nombre, entrá con el classroom desde Leverage.")
+    if body.canal_id is None and body.cliente_id is None:
+        raise HTTPException(status_code=422, detail="Falta el cliente.")
+    return piloto_service.preparar_por_persona(persona["id"], body.texto, body.canal_id, body.cliente_id)
 
 
 @router.post("/piloto/borradores/{borrador_id}/enviar")
