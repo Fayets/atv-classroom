@@ -523,6 +523,15 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 .msj-grupo__titulo span { flex: 1; }
 .msj-grupo__titulo small { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { .msj-grupo__titulo svg { transition: none; } }
+/* Inactivos por dentro: "Del classroom" y las categorías viejas de Discord (Inactivos 1…7). */
+.msj-subgrupo { margin-left: 10px; }
+.msj-subgrupo__titulo { display: flex; align-items: center; gap: 7px; width: 100%; margin: 2px 0; padding: 4px 8px; border: 0; background: none; color: var(--m-t4, #8e8e93); font: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; border-radius: 6px; }
+.msj-subgrupo__titulo:hover { color: var(--m-t1, #1d1d1f); }
+.msj-subgrupo__titulo svg { width: 9px; height: 9px; flex: none; transition: transform 160ms ease; }
+.msj-subgrupo__titulo.is-abierto svg { transform: rotate(90deg); }
+.msj-subgrupo__titulo span { flex: 1; }
+.msj-subgrupo__titulo small { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .msj-subgrupo__titulo svg { transition: none; } }
 
 /* filas tipo canal de Discord */
 .msj-fila { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 30px; margin: 1px 0; padding: 4px 10px 4px 14px; border: 0; border-radius: 6px; background: none; color: var(--m-t4, #8e8e93); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }

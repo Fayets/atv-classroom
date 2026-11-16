@@ -74,7 +74,9 @@ function ordenarBandeja(lista) {
   const clientes = lista
     .filter((c) => c.tipo === 'cliente')
     .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }))
-  return [...anuncios, ...directos, ...clientes]
+  // Chats viejos de Discord (dentro de Inactivos): el que se cerró más tarde arriba, como los manda el servidor.
+  const archivos = lista.filter((c) => c.tipo === 'archivo').sort((a, b) => comparar(fechaUltimo(b), fechaUltimo(a)))
+  return [...anuncios, ...directos, ...clientes, ...archivos]
 }
 
 // Un mensaje nuevo cambia su fila (último mensaje, sin leer, si espera respuesta) y el orden: se
@@ -570,6 +572,17 @@ export default function MensajesPage() {
   // Como en Discord: todo cliente vive en su grupo; lo urgente se ve por el punto y el contador.
   const resto = filtrados.filter((c) => c.tipo === 'cliente')
   const grupos = useMemo(() => (isEquipo ? agrupar(resto) : []), [isEquipo, resto])
+  // Chats viejos traídos de Discord, por su categoría ("❌ Canales inactivos 5" → "5"): van dentro de Inactivos.
+  const archivos = useMemo(() => {
+    const porNumero = new Map()
+    for (const c of filtrados) {
+      if (c.tipo !== 'archivo') continue
+      const n = String(c.archivo || '1')
+      if (!porNumero.has(n)) porNumero.set(n, [])
+      porNumero.get(n).push(c)
+    }
+    return [...porNumero.entries()].sort((a, b) => Number(b[0]) - Number(a[0])).map(([n, canales]) => ({ id: `inactivos-${n}`, nombre: `Inactivos ${n}`, canales }))
+  }, [filtrados])
   // Como en Discord: los grupos arrancan cerrados; cerrados igual muestran lo que tiene novedades.
   const [abiertos, setAbiertos] = useState([])
   const [creando, setCreando] = useState(false)
@@ -660,10 +673,32 @@ export default function MensajesPage() {
   const cambiarVista = (v) => setParams(v === 'alertas' ? { v: 'alertas' } : {})
 
   // Un grupo de clientes de la bandeja (por plan, o Inactivos), con su zona para soltar chats.
+  // Una carpeta dentro de Inactivos: "Del classroom" o "Inactivos N" de Discord.
+  const subcarpeta = (sc, arrastrable) => {
+    const abierta = Boolean(buscar.trim()) || abiertos.includes(sc.id)
+    const visibles = abierta ? sc.canales : sc.canales.filter((c) => c.id === activo)
+    return (
+      <div key={sc.id} className="msj-subgrupo">
+        <button type="button" className={`msj-subgrupo__titulo${abierta ? ' is-abierto' : ''}`} onClick={() => alternarGrupo(sc.id)} aria-expanded={abierta}>
+          <svg viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M3 2l4 3-4 3z" fill="currentColor" />
+          </svg>
+          <span>{sc.nombre}</span>
+          <small>{sc.canales.length || ''}</small>
+        </button>
+        {visibles.map((c) => (
+          <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} hash={!arrastrable} arrastrable={arrastrable} />
+        ))}
+      </div>
+    )
+  }
+
   const grupoDe = (g) => {
     const abierto = Boolean(buscar.trim()) || abiertos.includes(g.id)
+    const conArchivo = g.id === 'inactivos' && archivos.length > 0
     const visibles = abierto ? g.canales : g.canales.filter((c) => c.id === activo || c.no_leidos > 0 || c.menciones > 0 || escriben[c.id])
     const novedades = g.canales.filter((c) => c.no_leidos > 0).length
+    const total = g.canales.length + (conArchivo ? archivos.reduce((n, a) => n + a.canales.length, 0) : 0)
     return (
       <section key={g.id} className={`msj-grupo${g.id === 'inactivos' ? ' is-inactivos' : ''}${g.id === 'pausa' ? ' is-pausa' : ''}${g.id === 'vencidos' ? ' is-vencidos' : ''}${soltandoEn === g.id ? ' is-soltar' : ''}`} aria-label={g.nombre} {...zonaDeSoltar(g.id)}>
         <button type="button" className={`msj-grupo__titulo${abierto ? ' is-abierto' : ''}${novedades ? ' con-novedades' : ''}`} onClick={() => alternarGrupo(g.id)} aria-expanded={abierto}>
@@ -672,9 +707,20 @@ export default function MensajesPage() {
           </svg>
           <span>{g.nombre}</span>
           {novedades ? <i className="msj-grupo__punto" aria-label={`${novedades} con mensajes sin leer`} /> : null}
-          <small>{g.canales.length || ''}</small>
+          <small>{total || ''}</small>
         </button>
-        {visibles.map((c) => (
+        {conArchivo ? (
+          abierto ? (
+            <>
+              {g.canales.length ? subcarpeta({ id: 'inactivos-classroom', nombre: 'Del classroom', canales: g.canales }, true) : null}
+              {archivos.map((a) => subcarpeta(a, false))}
+            </>
+          ) : (
+            [...visibles, ...archivos.flatMap((a) => a.canales.filter((c) => c.id === activo))].map((c) => (
+              <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} arrastrable={c.tipo !== 'archivo'} hash={c.tipo === 'archivo'} />
+            ))
+          )
+        ) : visibles.map((c) => (
           <FilaCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} arrastrable />
         ))}
         {g.id === 'inactivos' && !g.canales.length && soltandoEn === g.id ? <p className="msj-grupo__vacio">Soltalo acá: queda inactivo y solo va a poder leer su canal</p> : null}

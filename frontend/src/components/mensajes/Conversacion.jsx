@@ -1176,7 +1176,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 : 'Tu canal privado con el equipo de ATV'
               : esGrupo
                 ? canal.descripcion || (isEquipo ? `Lo ven: ${(item?.roles || []).map(nombreRol).join(', ') || 'el equipo'}` : 'Canal de la comunidad ATV')
-                : canal.descripcion || 'Solo publica el equipo de ATV'}
+                : item?.tipo === 'archivo'
+                  ? `Archivo de Discord · Inactivos ${item.archivo || ''}`.trim()
+                  : canal.descripcion || 'Solo publica el equipo de ATV'}
           </span>
         </div>
         {iaActiva && piloto.datos ? (
@@ -1217,7 +1219,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                   ? isEquipo
                     ? `Canal grupal. Lo ven: ${(item?.roles || []).map(nombreRol).join(', ') || 'el equipo'}.`
                     : 'Un espacio para hablar con el equipo y con otros clientes de ATV.'
-                  : 'Novedades del equipo de ATV para todos los clientes.'}
+                  : item?.tipo === 'archivo'
+                    ? 'Chat de un cliente que pasó a inactivos en Discord. Lo ve solo el equipo de ATV.'
+                    : 'Novedades del equipo de ATV para todos los clientes.'}
             </span>
           </div>
         )}
@@ -1618,7 +1622,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
         </form>
         </>
       ) : (
-        <p className="msj-solo-lectura">En este canal publica solo el equipo de ATV.</p>
+        <p className="msj-solo-lectura">{item?.tipo === 'archivo' ? 'Chat archivado de Discord: se lee, no se escribe.' : 'En este canal publica solo el equipo de ATV.'}</p>
       )}
       {perfil ? <TarjetaPerfil {...perfil} accion={perfilDe?.(perfil.autor)} onCerrar={() => setPerfil(null)} /> : null}
       {opciones ? (

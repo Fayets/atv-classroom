@@ -623,6 +623,7 @@ class MensajeriaServices:
                         "inactivo": bool(canal.inactivo or (cliente is not None and cliente.estado_cliente == "inactivo")) if equipo else False,
                         "pausa": bool(canal.pausa) if equipo else False,
                         "vencido": bool(canal.vencido) if equipo else False,
+                        "archivo": canal.archivo if canal.tipo == "archivo" else None,
                         "puede_administrar": self._puede_administrar(sesion, canal),
                     }
                 )
@@ -636,7 +637,10 @@ class MensajeriaServices:
         # Mensajes directos: el último con movimiento arriba, como en Discord.
         directos = [c for c in items if c["tipo"] in ("directo", "privado", "dm")]
         directos.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
-        return anuncios + directos + clientes
+        # Chats viejos de Discord (Inactivos 1…7): como en Discord, el que se cerró más tarde arriba.
+        archivos = [c for c in items if c["tipo"] == "archivo"]
+        archivos.sort(key=lambda c: c["ultimo"]["creado_en"] if c["ultimo"] else "", reverse=True)
+        return anuncios + directos + clientes + archivos
 
     def mensajes(self, sesion: dict, canal_id: int, antes_de: int | None = None, despues_de: int | None = None, hasta_id: int | None = None) -> dict:
         # SQL directo: Pony no puede descompilar lambdas en Python 3.13.
@@ -771,6 +775,8 @@ class MensajeriaServices:
 
     @staticmethod
     def _puede_escribir(sesion: dict, canal: Canal) -> bool:
+        if canal.tipo == "archivo":
+            return False  # chat viejo de Discord: se lee, no se escribe
         if es_equipo(sesion):
             return True
         if canal.tipo == "grupo":

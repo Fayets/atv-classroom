@@ -64,7 +64,7 @@ def puede_ver(sesion: dict, canal: dict) -> bool:
             return "equipo" in roles or canal.get("creado_por") == sesion["usuario_id"] or canal.get("id") in sesion.get("canales_coach", set())
         return cliente_ve(rol, roles)
     if rol == "coach":
-        return canal["tipo"] == "cliente"
+        return canal["tipo"] in ("cliente", "archivo")
     return canal["tipo"] == "cliente" and canal["cliente_id"] == sesion["usuario_id"]
 
 

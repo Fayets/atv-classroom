@@ -126,6 +126,7 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "consultas_guia", "resultados", "INTEGER")
                 _agregar_columna(cur, "canales", "participantes_json", "TEXT")
                 _agregar_columna(cur, "canales", "orden", "INTEGER")
+                _agregar_columna(cur, "canales", "archivo", "TEXT")
                 # Dispositivos de cada sesión (para ver si comparten la cuenta).
                 _agregar_columna(cur, "sesiones", "user_agent", "TEXT")
                 _agregar_columna(cur, "sesiones", "ciudad", "VARCHAR")

@@ -212,7 +212,8 @@ class Canal(db.Entity):
     """Mensajería: "cliente" es el canal privado de un cliente con todo el equipo;
     "anuncios" es un canal que leen todos y donde escribe solo el equipo;
     "grupo" es un canal creado por alguien del equipo que ven (y usan) los roles elegidos;
-    "directo" es un mensaje privado entre dos personas del equipo (solo lo ven ellas dos)."""
+    "directo" es un mensaje privado entre dos personas del equipo (solo lo ven ellas dos);
+    "archivo" es el chat de un cliente viejo traído de Discord: solo lectura, solo para el equipo."""
 
     _table_ = (DB_SCHEMA, "canales")
 
@@ -233,6 +234,9 @@ class Canal(db.Entity):
     # Cliente vencido, arrastrado a "Vencidos": solo ordena la bandeja (el acceso lo decide la fecha de la ficha)
     # y hace que su chat se siga viendo aunque ya no tenga acceso.
     vencido = Required(bool, default=False)
+    # tipo "archivo": un chat viejo de cliente traído de Discord (las categorías "Canales inactivos N").
+    # Acá va el N; lo ve solo el equipo, dentro de Inactivos, y nadie escribe (scripts/migrar_inactivos.py).
+    archivo = Optional(str, nullable=True)
     ultimo_mensaje_en = Optional(datetime, nullable=True)
     creado_en = Required(datetime, default=datetime.utcnow)
     mensajes = Set("MensajeCanal")
