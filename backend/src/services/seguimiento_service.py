@@ -5,7 +5,7 @@ sale (Juampi, Juan, Ale, Lucas, Nick…) y a quién: canales de la comunidad (un
 privado de cada cliente de las ofertas que tilde (o de clientes sueltos). Sale ya o a la hora que elija.
 - {nombre} se completa con el nombre de pila de cada cliente (en un canal se borra).
 - Con @everyone en un canal de la comunidad, a los clientes que lo ven les llega la notificación.
-- Lo ve solo quien está en SEGUIMIENTO_EMAILS (Mauri).
+- La ven los admins y quien está en SEGUIMIENTO_EMAILS (Mauri).
 """
 import json
 import logging
@@ -43,12 +43,13 @@ def puede(sesion: dict) -> bool:
         return False
     with db_session:
         admin = Admin.get(id=sesion["usuario_id"])
-        return bool(admin and admin.activo and (admin.email or "").strip().lower() in _EMAILS)
+        # Los admins y Mauri (que es coach en una de sus cuentas): pedido de Franco del 16-11-2026.
+        return bool(admin and admin.activo and not admin.borrado and (admin.rol == "admin" or (admin.email or "").strip().lower() in _EMAILS))
 
 
 def _exigir(sesion: dict) -> None:
     if not puede(sesion):
-        raise HTTPException(status_code=403, detail="Esta pantalla es solo de Mauri.")
+        raise HTTPException(status_code=403, detail="Esta pantalla es de los admins.")
 
 
 def _nombre_canal(nombre: str) -> str:

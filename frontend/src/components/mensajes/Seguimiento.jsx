@@ -9,7 +9,7 @@ import {
 } from '../../api/seguimiento'
 import { colorPersona } from '../../utils/mensajes'
 
-// #seguimiento (solo Mauri): recordar las clases a nombre de otra cuenta, a canales de la comunidad o al chat
+// #seguimiento (admins y Mauri): recordar las clases a nombre de otra cuenta, a canales de la comunidad o al chat
 // de cada cliente de las ofertas elegidas. Ya o a la hora que elija.
 const PLANTILLAS = {
   recordatorio: '@everyone {nombre}! hoy tenemos clase en vivo 🔥\ntraé la duda que te esté frenando esta semana que la resolvemos ahí',
@@ -120,7 +120,7 @@ export default function Seguimiento({ onVolver }) {
       <header className="seg__head">
         <button type="button" className="seg__volver" onClick={onVolver} aria-label="Volver">‹</button>
         <h2># seguimiento</h2>
-        <span>solo lo ves vos</span>
+        <span>lo ven los admins</span>
       </header>
 
       <div className="seg__cuerpo">
