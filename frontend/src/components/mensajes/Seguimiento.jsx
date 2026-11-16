@@ -136,11 +136,11 @@ export default function Seguimiento({ onVolver }) {
           <div className="seg__bloque">
             <span className="seg__rotulo">Dónde</span>
             <div className="seg__segmento" role="tablist" aria-label="Dónde sale">
-              <button type="button" role="tab" aria-selected={donde === 'chat'} className={donde === 'chat' ? 'is-on' : ''} onClick={() => setDonde('chat')}>Chat de cada uno</button>
+              <button type="button" role="tab" aria-selected={donde === 'chat'} className={donde === 'chat' ? 'is-on' : ''} onClick={() => setDonde('chat')}>Grupos de clientes</button>
               <button type="button" role="tab" aria-selected={donde === 'canal'} className={donde === 'canal' ? 'is-on' : ''} onClick={() => setDonde('canal')}>Canales</button>
             </div>
             <small className="seg__nota">
-              {donde === 'chat' ? 'Le llega a cada cliente en su chat privado, con su nombre.' : 'Un mensaje por canal. Con @everyone les llega la notificación a todos los que lo ven.'}
+              {donde === 'chat' ? 'Como los grupos de la bandeja (Boost, Mid level, Entry…): le llega a cada cliente de esos grupos en su chat, con su nombre.' : 'Un mensaje por canal. Con @everyone les llega la notificación a todos los que lo ven.'}
             </small>
           </div>
 

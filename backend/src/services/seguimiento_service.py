@@ -30,7 +30,7 @@ OFERTAS = [
     {"id": "boost", "nombre": "Boost", "planes": ["boost"]},
     {"id": "mid", "nombre": "Mid level", "planes": ["mid"]},
     {"id": "entry", "nombre": "Entry level", "planes": ["entry"]},
-    {"id": "mentoria", "nombre": "Mentoría", "planes": ["mentoria"]},
+    {"id": "mentoria", "nombre": "Mentoria", "planes": ["mentoria"]},
     {"id": "2k", "nombre": "2K", "planes": ["2k"]},
 ]
 _PLANES = {o["id"]: set(o["planes"]) for o in OFERTAS}
@@ -57,8 +57,8 @@ def _nombre_canal(nombre: str) -> str:
 
 
 def _clientes_activos() -> list[ClienteExterno]:
-    """Clientes con acceso, sin los que el equipo puso en Pausa o Inactivos."""
-    fuera = {c.cliente_id for c in list(Canal.select()) if c.tipo == "cliente" and (c.pausa or c.inactivo)}
+    """Los mismos que la bandeja muestra en cada grupo: con acceso, sin Pausa, Vencidos ni Inactivos."""
+    fuera = {c.cliente_id for c in list(Canal.select()) if c.tipo == "cliente" and (c.pausa or c.inactivo or c.vencido)}
     return [c for c in list(ClienteExterno.select()) if c.id not in fuera and _tiene_acceso(c)]
 
 
