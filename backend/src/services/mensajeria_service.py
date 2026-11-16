@@ -866,8 +866,9 @@ class MensajeriaServices:
                     registrar_descartada(yo[1], canal.id, m)
             nuevas = []
             # En un privado entre clientes no se etiqueta al equipo: no tiene que enterarse de esa charla.
-            etiquetados = set() if canal.tipo in ("privado", "dm") else _detectar_menciones(texto, menciones, _nombres_del_cliente(canal))
-            if es_equipo(sesion) and _EVERYONE.search(texto):
+            # #seguimiento (automatico): el @everyone es para los clientes; al equipo no le abre alertas.
+            etiquetados = set() if canal.tipo in ("privado", "dm") or automatico else _detectar_menciones(texto, menciones, _nombres_del_cliente(canal))
+            if es_equipo(sesion) and _EVERYONE.search(texto) and not automatico:
                 etiquetados |= _equipo_que_ve(canal, sesion["usuario_id"])
             for admin_id in etiquetados:
                 if yo == ("admin", admin_id):
