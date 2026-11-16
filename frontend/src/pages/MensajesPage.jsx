@@ -4,6 +4,8 @@ import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchSenas } from '../api/altas'
 import { pedirCartelPausa } from '../components/Pausa'
 import { NotificacionesCartel } from '../components/Notificaciones'
+import Seguimiento from '../components/mensajes/Seguimiento'
+import { fetchAccesoSeguimiento } from '../api/seguimiento'
 import { abrirDirecto, abrirDm, abrirPrivado, buscarClientes, cambiarPlan, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, marcarVencido, ordenarCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
@@ -432,6 +434,9 @@ export default function MensajesPage() {
   const [senasAbiertas, setSenasAbiertas] = useState(false)
   const [onboardingDe, setOnboardingDe] = useState(null)
   const senaActiva = enMensajes ? Number(params.get('s')) || null : null
+  // #seguimiento: la pantalla de Mauri para recordar las clases a nombre de otra cuenta.
+  const enSeguimiento = enMensajes && params.get('seg') === '1'
+  const [puedeSeguimiento, setPuedeSeguimiento] = useState(false)
   // Nunca dos cargas a la vez: si piden otra mientras tanto, se hace una más al terminar.
   const cargando = useRef(false)
   const otraCarga = useRef(false)
@@ -549,7 +554,7 @@ export default function MensajesPage() {
   const yaEntro = useRef(false)
   useEffect(() => {
     if (activo) yaEntro.current = true // entró a un chat (también desde una notificación): ya no se lo lleva solo
-    if (!enMensajes || activo || senaActiva || !canales?.length) return
+    if (!enMensajes || activo || senaActiva || enSeguimiento || !canales?.length) return
     if (!isEquipo) {
       if (yaEntro.current) return
       yaEntro.current = true
@@ -559,7 +564,7 @@ export default function MensajesPage() {
       const primero = canales.find((c) => c.tipo === 'cliente') || canales[0]
       setParams({ c: String(primero.id) }, { replace: true })
     }
-  }, [enMensajes, activo, canales, isEquipo, vista, setParams, senaActiva])
+  }, [enMensajes, activo, canales, isEquipo, vista, setParams, senaActiva, enSeguimiento])
 
   const filtrados = useMemo(() => {
     if (!canales) return []
@@ -740,6 +745,9 @@ export default function MensajesPage() {
   const [delEquipo, setDelEquipo] = useState([])
   useEffect(() => {
     if (isEquipo) fetchEquipoChat().then((l) => setDelEquipo(l || [])).catch(() => null)
+  }, [isEquipo])
+  useEffect(() => {
+    if (isEquipo) fetchAccesoSeguimiento().then((r) => setPuedeSeguimiento(Boolean(r?.puede))).catch(() => null)
   }, [isEquipo])
   const directos = (canales || []).filter((c) => c.tipo === 'directo')
   const personas = delEquipo
@@ -964,6 +972,11 @@ export default function MensajesPage() {
             <FilaCanal c={c} activo={c.id === activo} onAbrir={abrir} escribe={escriben[c.id]?.nombre} hash onEditar={setEditando} />
           </div>
         ))}
+        {puedeSeguimiento ? (
+          <button type="button" className={`msj-fila${enSeguimiento ? ' is-activo' : ''}`} onClick={() => setParams({ seg: '1' })} title="Recordar las clases a nombre de otra cuenta">
+            <span className="msj-fila__nombre"><em className="msj-fila__hash">#</em>seguimiento</span>
+          </button>
+        ) : null}
         {isEquipo && !canalesGrupo.length ? <p className="msj-grupo__vacio">Todavía no hay canales. Creá uno con el +.</p> : null}
       </section>
     ) : null
@@ -972,7 +985,7 @@ export default function MensajesPage() {
     <div className={`app-shell msj-root${isEquipo ? ' is-mac' : ''}`}>
       <AppHeader />
       <NotificacionesCartel />
-      <div className={`msj-layout${activo || senaActiva ? ' ver-conv' : ' ver-lista'}${isEquipo && item?.cliente ? ' con-panel' : ''}`}>
+      <div className={`msj-layout${activo || senaActiva || enSeguimiento ? ' ver-conv' : ' ver-lista'}${isEquipo && item?.cliente ? ' con-panel' : ''}`}>
         <aside className="msj-lateral" aria-label="Canales">
           <div className="msj-lateral__head">
             <h1>Mensajes</h1>
@@ -1058,7 +1071,9 @@ export default function MensajesPage() {
         </aside>
 
         <main className="msj-centro">
-          {senaActiva && isEquipo ? (
+          {enSeguimiento && puedeSeguimiento ? (
+            <Seguimiento onVolver={() => setParams({})} />
+          ) : senaActiva && isEquipo ? (
             <PanelSena sena={sena} alHacerOnboarding={() => setOnboardingDe(sena)} />
           ) : activo && item?.bloqueado ? (
             <CanalBloqueado item={item} />

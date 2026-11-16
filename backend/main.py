@@ -41,6 +41,7 @@ from src.controllers.tools_controller import router as tools_router
 from src.controllers.cuellos_controller import router as cuellos_router
 from src.controllers.agentes_controller import router as agentes_router
 from src.controllers.leverage_controller import router as leverage_router
+from src.controllers.seguimiento_controller import router as seguimiento_router
 from src.db import init_db
 from src.schemas import HealthResponse
 from src.storage.recursos import UPLOADS_DIR, ensure_upload_dirs
@@ -234,9 +235,12 @@ async def lifespan(_app: FastAPI):
 
     espera = asyncio.create_task(_alertas_de_espera()) if push_service.activo() else None
     pruebas = asyncio.create_task(_vencer_pruebas_siempre())
+    from src.controllers.seguimiento_controller import programados_siempre
+
+    seguimiento = asyncio.create_task(programados_siempre())
     piloto = asyncio.create_task(_piloto_siempre()) if _PILOTO and config("ANTHROPIC_API_KEY", default="") else None
     yield
-    for t in (tarea, fathom, avisos, webhooks, espera, pruebas, piloto):
+    for t in (tarea, fathom, avisos, webhooks, espera, pruebas, piloto, seguimiento):
         if t:
             t.cancel()
 
@@ -294,6 +298,7 @@ app.include_router(cierre_router)
 app.include_router(mensajes_ws_router)
 app.include_router(agentes_router)
 app.include_router(leverage_router)
+app.include_router(seguimiento_router)
 
 ensure_upload_dirs()
 # En producción solo /api llega al backend: los PDF se sirven por /api/uploads (y /uploads para links viejos).

@@ -801,7 +801,10 @@ class MensajeriaServices:
         respuesta_a: int | None,
         menciones: list[int] | None = None,
         adjuntos: list[int] | None = None,
+        automatico: bool = False,
     ) -> tuple[dict, dict]:
+        """automatico: lo manda #seguimiento a nombre de otra cuenta. Sin freno de ráfaga, no cierra las
+        alertas de esa persona ni cuenta como su voz para el aprendizaje."""
         texto = (texto or "").strip()
         adjuntos = list(dict.fromkeys(adjuntos or []))
         if not texto and not adjuntos:
@@ -811,7 +814,8 @@ class MensajeriaServices:
         if len(texto) > MAX_TEXTO:
             raise HTTPException(status_code=422, detail=f"El mensaje supera los {MAX_TEXTO} caracteres.")
         yo = _yo(sesion)
-        _frenar_rafaga(yo)
+        if not automatico:
+            _frenar_rafaga(yo)
         with db_session:
             canal = _canal_visible(sesion, canal_id)
             if not self._puede_escribir(sesion, canal):
@@ -848,7 +852,7 @@ class MensajeriaServices:
             for a in propios:
                 a.mensaje_id = m.id
             self._marcar(canal.id, yo, m.id)
-            if yo[0] == "admin":
+            if yo[0] == "admin" and not automatico:
                 # Escribir en el canal responde las alertas abiertas de quien escribe.
                 for abierta in list(Mencion.select_by_sql(
                     f'SELECT * FROM "{DB_SCHEMA}"."menciones" WHERE canal_id = $cid AND admin_id = $aid AND respondida_en IS NULL',

@@ -212,6 +212,13 @@ def destinatarios(mensaje: dict, canal_id: int) -> list[tuple[list[PushSuscripci
         ven = {c.id for c in list(ClienteExterno.select())
                if c.id not in en_pausa and _tiene_acceso(c) and puede_ver({"rol": c.plan_actual or "mentoria", "usuario_id": c.id, "tipo": "cliente"}, info)}
         sumar([s for s in list(PushSuscripcion.select()) if s.tipo == "cliente" and s.usuario_id in ven], f"{nombre_autor} en #{canal.nombre}", texto)
+    elif canal.tipo in ("grupo", "anuncios") and del_equipo and mensaje.get("aviso_clientes"):
+        # #seguimiento con @everyone en un canal de la comunidad: a cada cliente que ve ese canal.
+        info = _info(canal)
+        fuera = {c.cliente_id for c in list(Canal.select()) if c.tipo == "cliente" and (c.pausa or c.inactivo)}
+        ven = {c.id for c in list(ClienteExterno.select())
+               if c.id not in fuera and _tiene_acceso(c) and puede_ver({"rol": c.plan_actual or "mentoria", "usuario_id": c.id, "tipo": "cliente"}, info)}
+        sumar([s for s in list(PushSuscripcion.select()) if s.tipo == "cliente" and s.usuario_id in ven], f"{nombre_autor} · ATV", texto)
     elif canal.tipo in ("grupo", "anuncios") and del_equipo and "anuncio" in canal.nombre.lower():
         en_pausa = {c.cliente_id for c in list(Canal.select()) if c.tipo == "cliente" and c.pausa}
         subs = [s for s in list(PushSuscripcion.select()) if s.tipo == "cliente" and s.usuario_id not in en_pausa]

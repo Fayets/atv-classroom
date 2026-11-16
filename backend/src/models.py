@@ -994,3 +994,22 @@ class CodigoLeverage(db.Entity):
     vuelta = Required(str)
     creado_en = Required(datetime, default=datetime.utcnow)
     usado_en = Optional(datetime, nullable=True)
+
+
+class SeguimientoEnvio(db.Entity):
+    """Un mensaje de #seguimiento (la pantalla de Mauri): a nombre de otra cuenta del equipo, a canales de
+    la comunidad o al chat de cada cliente de una oferta. Sale en el momento o programado (`cuando`)."""
+
+    _table_ = (DB_SCHEMA, "seguimiento_envios")
+
+    id = PrimaryKey(int, auto=True)
+    creado_por = Required(int)  # quien lo armó (Mauri)
+    cuenta_id = Required(int)  # a nombre de quién sale
+    destino_json = Required(str)  # {"donde": "canal"|"chat", "canales": [...], "ofertas": [...], "clientes": [...]}
+    texto = Required(str)
+    cuando = Required(datetime)  # UTC; si ya pasó, sale en la próxima vuelta
+    estado = Required(str, default="pendiente")  # pendiente · enviando · enviado · cancelado · error
+    enviados = Required(int, default=0)
+    error = Optional(str, nullable=True)
+    creado_en = Required(datetime, default=datetime.utcnow)
+    enviado_en = Optional(datetime, nullable=True)
