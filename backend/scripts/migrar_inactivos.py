@@ -20,14 +20,13 @@ import mimetypes
 import re
 import shutil
 import sys
+import unicodedata
 from collections import Counter
 from pathlib import Path
 
 from pony.orm import db_session
 
 from scripts.migrar_discord import (
-    CUENTA_DE,
-    EQUIPO_SIEMPRE,
     NOMBRE_VISIBLE,
     _hacer_lugar,
     archivo_del_adjunto,
@@ -36,6 +35,29 @@ from scripts.migrar_discord import (
     parsear,
 )
 from src.db import DB_SCHEMA, db, init_db
+
+
+# Equipo = solo quien está HOY en el equipo (Franco, 16-11-2026): nombre en Discord → nombre de su cuenta.
+# Los que ya no están (Nazareno, Thiago, Fede…) quedan con su nombre de Discord, como cualquiera.
+EQUIPO_ACTUAL = {
+    "Juan Cruz": "Juan Cruz", "juancarrizo": "Juan Cruz", "Juan Pablo": "Juampi", "Lucas": "Lucas",
+    "Nick Xanderz": "Nick", "Fayet": "Franco", "Franco": "Franco", "Maite": "Maite",
+    "Alejandro Ramírez": "Alejandro", "Walter Mauricio": "Mauri", "Cris Songer": "Cristian",
+}
+
+
+def _tokens(texto: str) -> list[str]:
+    sin = unicodedata.normalize("NFD", texto.lower())
+    sin = "".join(c for c in sin if unicodedata.category(c) != "Mn")
+    return [t for t in re.split(r"[^a-z0-9]+", sin) if t]
+
+
+def su_propio_chat(autor: str, canal_discord: str) -> bool:
+    """Mucha gente del equipo fue cliente antes: en su propio chat viejo (#nick-xanderz, #alejandro-ramirez)
+    figura como cliente. Hace falta nombre y apellido para no confundir a dos "Lucas"."""
+    del_autor = _tokens(autor)
+    # El canal se llama exactamente como él: "Juan Pablo" no es el dueño de #juan-pablo-cruz.
+    return len(del_autor) >= 2 and del_autor == _tokens(canal_discord)
 
 
 def _opcion(nombre: str) -> str | None:
@@ -81,12 +103,13 @@ def main() -> None:
     with db_session:
         ya = {(c.archivo, c.nombre) for c in list(Canal.select()) if c.tipo == "archivo"}
         cuentas = {}
-        for a in list(Admin.select()):
-            if a.activo and a.nombre:
+        # Con Google primero: Mauri tiene dos cuentas y la que usa es la de Google.
+        for a in sorted(list(Admin.select()), key=lambda a: a.google_sub is None):
+            if a.activo and not a.borrado and a.nombre:
                 cuentas.setdefault(a.nombre, a.id)
 
-    equipo = set(CUENTA_DE) | EQUIPO_SIEMPRE | equipo_extra
-    canales, por_autor = [], Counter()
+    cuenta_de = {**EQUIPO_ACTUAL, **{n: n for n in equipo_extra}}
+    canales, por_autor, propios = [], Counter(), Counter()
     guardadas = perdidas = salteados = faltan = 0
     for cat in resumen:
         numero = str(cat["numero"])
@@ -119,8 +142,10 @@ def main() -> None:
                     texto = (texto + "\n" if texto else "") + "\n".join(notas)
                 if not texto and not archivos:
                     continue
-                es_equipo = autor in equipo
-                admin_id = cuentas.get(CUENTA_DE.get(autor, autor)) if es_equipo else None
+                es_equipo = autor in cuenta_de and not su_propio_chat(autor, info["canal"])
+                if autor in cuenta_de and not es_equipo:
+                    propios[(autor, nombre)] += 1
+                admin_id = cuentas.get(cuenta_de[autor]) if es_equipo else None
                 mensajes.append({
                     "orden": (m["fecha"], orden),
                     "autor_tipo": "admin" if es_equipo else "cliente",
@@ -140,6 +165,10 @@ def main() -> None:
         de_esta = [c for c in canales if c["numero"] == numero]
         print(f"  Inactivos {numero}: {len(de_esta)} canales, {sum(len(c['mensajes']) for c in de_esta)} mensajes")
     print(f"Imágenes que se copian: {guardadas} · adjuntos que quedan como nota: {perdidas}")
+    if propios:
+        print("Del equipo, pero en su propio chat de cuando era cliente (ahí figura como cliente):")
+        for (autor, canal), n in propios.most_common():
+            print(f"  {n:6}  {autor} en #{canal}")
     print("Quién escribe más (revisá que el equipo esté bien marcado; si falta alguien: --equipo=\"Nombre\"):")
     for (autor, lado), n in por_autor.most_common(30):
         print(f"  {n:6}  {autor}  [{lado}]")
