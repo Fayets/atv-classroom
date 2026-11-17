@@ -236,3 +236,8 @@ export function agregarReglaVoz(texto, sugerenciaId = null) {
 export function borrarReglaVoz(id) {
   return request(`/api/mensajes/reglas-voz/${id}`, { method: 'DELETE' })
 }
+
+// Mover a mano al grupo Señas (sena=true) o sacarlo de ahí (false). Señas se arma solo, esto lo corrige.
+export function marcarSena(clienteId, sena) {
+  return request(`/api/mensajes/clientes/${clienteId}/sena`, { method: 'PUT', body: JSON.stringify({ sena }) })
+}

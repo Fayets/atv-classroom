@@ -79,6 +79,19 @@ _SOLO_SENAS = (
     f"""WHERE coalesce(k.canal_discord, '') = '' AND k.estado_cliente <> 'inactivo' AND NOT EXISTS (
       SELECT 1 FROM "{DB_SCHEMA}"."canales" ch JOIN "{DB_SCHEMA}"."mensajes_canal" m ON m.canal = ch.id WHERE ch.cliente_id = k.id)"""
 )
+# El grupo Señas de Mensajes: las de arriba, salvo las que el equipo sacó a mano, más las que puso a mano (canales.sena).
+_GRUPO_SENAS = (
+    f"""WHERE k.estado_cliente <> 'inactivo' AND (
+      EXISTS (SELECT 1 FROM "{DB_SCHEMA}"."canales" ch WHERE ch.cliente_id = k.id AND ch.tipo = 'cliente' AND ch.sena IS TRUE)
+      OR (coalesce(k.canal_discord, '') = ''
+          AND NOT EXISTS (SELECT 1 FROM "{DB_SCHEMA}"."canales" ch WHERE ch.cliente_id = k.id AND ch.tipo = 'cliente' AND ch.sena IS FALSE)
+          AND NOT EXISTS (SELECT 1 FROM "{DB_SCHEMA}"."canales" ch JOIN "{DB_SCHEMA}"."mensajes_canal" m ON m.canal = ch.id WHERE ch.cliente_id = k.id)))"""
+)
+
+
+def ids_en_senas() -> set[int]:
+    """Los clientes que hoy están en el grupo Señas (dentro de un db_session)."""
+    return {int(i) for i in db.select("SELECT k.id FROM clients.clientes k " + _GRUPO_SENAS)}
 
 
 # Fichas que alguien ya creó en atv-clients (con su canal, a veces con el mail provisorio que deja el bot
@@ -177,7 +190,7 @@ class AltaServices:
         with db_session:
             filas = db.select(
                 "SELECT id, nombre, plan_actual, fecha_inicio, total_pagado_usd, observaciones FROM clients.clientes k "
-                + _SOLO_SENAS + " ORDER BY fecha_inicio NULLS LAST, id"
+                + _GRUPO_SENAS + " ORDER BY fecha_inicio NULLS LAST, id"
             )
         inversa = {v: k for k, v in PLANES.items()}
         hoy = date.today()

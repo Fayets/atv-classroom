@@ -234,6 +234,9 @@ class Canal(db.Entity):
     # Cliente vencido, arrastrado a "Vencidos": solo ordena la bandeja (el acceso lo decide la fecha de la ficha)
     # y hace que su chat se siga viendo aunque ya no tenga acceso.
     vencido = Required(bool, default=False)
+    # Señas a mano (pedido de Mauri, 17-11-2026): None = lo decide solo (ficha sin onboarding ni mensajes);
+    # True = el equipo lo puso en Señas; False = lo sacó de Señas y va a su grupo aunque no tenga mensajes.
+    sena = Optional(bool, nullable=True)
     # tipo "archivo": un chat viejo de cliente traído de Discord (las categorías "Canales inactivos N").
     # Acá va el N; lo ve solo el equipo, dentro de Inactivos, y nadie escribe (scripts/migrar_inactivos.py).
     archivo = Optional(str, nullable=True)

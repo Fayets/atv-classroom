@@ -182,6 +182,10 @@ class CanalInactivo(BaseModel):
     inactivo: bool
 
 
+class ClienteSena(BaseModel):
+    sena: bool
+
+
 class CanalPausa(BaseModel):
     pausa: bool
 
@@ -196,6 +200,12 @@ async def ordenar_canales(body: OrdenCanales, sesion: dict = Depends(sesion_mens
     await run_in_threadpool(service.ordenar_canales, sesion, body.ids)
     await hub.emitir_a_todos({"tipo": "canal"})
     return {"ok": True}
+
+
+@router.put("/clientes/{cliente_id}/sena")
+async def marcar_sena(cliente_id: int, body: ClienteSena, sesion: dict = Depends(sesion_mensajes)):
+    """Mover a mano al grupo Señas (o sacarlo de ahí)."""
+    return await run_in_threadpool(service.marcar_sena, sesion, cliente_id, body.sena)
 
 
 @router.put("/canales/{canal_id}/inactivo")

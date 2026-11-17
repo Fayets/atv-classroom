@@ -584,8 +584,10 @@ class MensajeriaServices:
             for canal, otro, cliente in visibles:
                 datos = resumen.get(canal.id, {})
                 ultimo = datos.get("ultimo")
-                if equipo and canal.tipo == "cliente" and not (cliente.canal_discord or "").strip() and not ultimo:
-                    continue  # seña sin onboarding: va en el grupo Señas, no como chat vacío en su plan
+                if equipo and canal.tipo == "cliente" and (
+                    canal.sena is True or (canal.sena is not False and not (cliente.canal_discord or "").strip() and not ultimo)
+                ):
+                    continue  # en el grupo Señas (solo, o porque el equipo lo puso ahí): no como chat en su plan
                 items.append(
                     {
                         "id": canal.id,
@@ -1202,6 +1204,20 @@ class MensajeriaServices:
             for i, cid in enumerate(dict.fromkeys(ids)):
                 if cid in canales:
                     canales[cid].orden = i
+
+    def marcar_sena(self, sesion: dict, cliente_id: int, sena: bool) -> dict:
+        """Mueve a mano un cliente al grupo Señas (sena=True) o lo saca (False): Señas se arma solo, pero
+        el equipo tiene que poder corregirlo. Del lado del cliente no cambia nada (ni acceso ni chat)."""
+        if not es_equipo(sesion):
+            raise HTTPException(status_code=403, detail="Solo el equipo ordena la bandeja.")
+        with db_session:
+            if ClienteExterno.get(id=cliente_id) is None:
+                raise HTTPException(status_code=404, detail="No existe ese cliente.")
+            canal = _canal_del_cliente(cliente_id)
+            canal.sena = bool(sena)
+            if sena:
+                canal.pausa = canal.inactivo = canal.vencido = False  # está en un solo grupo a la vez
+            return {"canal_id": canal.id, "cliente_id": cliente_id, "sena": bool(sena)}
 
     def marcar_inactivo(self, sesion: dict, canal_id: int, inactivo: bool) -> dict:
         """Pasa el chat de un cliente a "Inactivos" (o lo saca). Como Pausa, le corta el acceso (solo lee su

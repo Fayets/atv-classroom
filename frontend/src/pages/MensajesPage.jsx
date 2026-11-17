@@ -6,7 +6,7 @@ import { pedirCartelPausa } from '../components/Pausa'
 import { NotificacionesCartel } from '../components/Notificaciones'
 import Seguimiento from '../components/mensajes/Seguimiento'
 import { fetchAccesoSeguimiento } from '../api/seguimiento'
-import { abrirDirecto, abrirDm, abrirPrivado, buscarClientes, cambiarPlan, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, marcarVencido, ordenarCanales } from '../api/mensajes'
+import { abrirDirecto, abrirDm, abrirPrivado, buscarClientes, cambiarPlan, fetchCanales, fetchEquipoChat, marcarInactivo, marcarPausa, marcarSena, marcarVencido, ordenarCanales } from '../api/mensajes'
 import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alerta from '../components/mensajes/Alerta'
@@ -268,26 +268,34 @@ const DIAS_ALERTA = 7
 const usd = (n) => `USD ${Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 })}`
 const hace = (d) => (d == null ? '' : d === 0 ? 'hoy' : d === 1 ? 'hace 1 día' : `hace ${d} días`)
 
-function SeccionSenas({ senas, abierta, alAlternar, activa, alAbrir }) {
-  if (!senas?.length) return null
-  const atrasadas = senas.filter((x) => (x.dias ?? 0) > DIAS_ALERTA).length
-  const visibles = abierta ? senas : senas.filter((x) => x.id === activa)
+function SeccionSenas({ senas, abierta, alAlternar, activa, alAbrir, zona, soltando }) {
+  // Vacía igual se muestra mientras se arrastra un chat, para poder soltarlo acá.
+  if (!senas?.length && !soltando) return null
+  const lista = senas || []
+  const atrasadas = lista.filter((x) => (x.dias ?? 0) > DIAS_ALERTA).length
+  const visibles = abierta ? lista : lista.filter((x) => x.id === activa)
   return (
-    <section className="msj-grupo is-senas" aria-label="Señas">
+    <section className={`msj-grupo is-senas${soltando === 'senas' ? ' is-soltar' : ''}`} aria-label="Señas" {...zona}>
       <button type="button" className={`msj-grupo__titulo${abierta ? ' is-abierto' : ''}${!abierta && atrasadas ? ' con-novedades' : ''}`} onClick={alAlternar} aria-expanded={abierta}>
         <svg viewBox="0 0 10 10" aria-hidden="true">
           <path d="M3 2l4 3-4 3z" fill="currentColor" />
         </svg>
         <span>Señas</span>
-        <small>{senas.length}</small>
+        <small>{lista.length || ''}</small>
       </button>
+      {!lista.length ? <p className="msj-grupo__vacio">Soltalo acá: pasa a Señas</p> : null}
       {visibles.map((x) => (
         <button
           key={x.id}
           type="button"
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData('application/x-atv-sena', String(x.id))
+            e.dataTransfer.effectAllowed = 'move'
+          }}
           className={`msj-fila msj-sena${x.id === activa ? ' is-activo' : ''}${(x.dias ?? 0) > DIAS_ALERTA ? ' is-atrasada' : ''}`}
           onClick={() => alAbrir(x.id)}
-          title={`${x.nombre} · ${x.plan || 'sin programa'}${x.monto ? ` · ${usd(x.monto)}` : ''} · seña ${hace(x.dias)}`}
+          title={`${x.nombre} · ${x.plan || 'sin programa'}${x.monto ? ` · ${usd(x.monto)}` : ''} · seña ${hace(x.dias)}\n\nArrastralo a otro grupo para sacarlo de Señas`}
         >
           <span className="msj-fila__nombre">{x.nombre}</span>
           <small className="msj-sena__dias">{x.monto ? `${usd(x.monto)} · ` : ''}{hace(x.dias)}</small>
@@ -616,7 +624,7 @@ export default function MensajesPage() {
   }, [])
   const alArrastrarEnLateral = useCallback((e) => {
     const el = lateral.current
-    if (!el || !e.dataTransfer.types.includes('application/x-atv-canal')) return
+    if (!el || (!e.dataTransfer.types.includes('application/x-atv-canal') && !e.dataTransfer.types.includes('application/x-atv-sena'))) return
     const r = el.getBoundingClientRect()
     const borde = Math.min(90, r.height / 4)
     const y = e.clientY
@@ -637,6 +645,20 @@ export default function MensajesPage() {
     }
     desplazar.current.cuadro = requestAnimationFrame(paso)
   }, [])
+  // Mientras se arrastra un chat, Señas se muestra aunque esté vacía (para poder soltarlo ahí).
+  const [arrastrando, setArrastrando] = useState(false)
+  useEffect(() => {
+    const empieza = (e) => e.dataTransfer?.types?.includes('application/x-atv-canal') && setArrastrando(true)
+    const termina = () => setArrastrando(false)
+    document.addEventListener('dragstart', empieza)
+    document.addEventListener('dragend', termina)
+    document.addEventListener('drop', termina)
+    return () => {
+      document.removeEventListener('dragstart', empieza)
+      document.removeEventListener('dragend', termina)
+      document.removeEventListener('drop', termina)
+    }
+  }, [])
   useEffect(() => {
     document.addEventListener('dragend', frenarDesplazamiento)
     document.addEventListener('drop', frenarDesplazamiento)
@@ -650,9 +672,33 @@ export default function MensajesPage() {
   async function soltar(e, grupoId) {
     e.preventDefault()
     setSoltandoEn(null)
+    // Una seña soltada en cualquier otro grupo sale de Señas y va al grupo de su plan.
+    const senaId = Number(e.dataTransfer.getData('application/x-atv-sena'))
+    if (senaId) {
+      if (grupoId === 'senas') return
+      try {
+        await marcarSena(senaId, false)
+        cargar()
+      } catch (err) {
+        setError(err.message || 'No se pudo sacar de Señas.')
+      }
+      return
+    }
     const id = Number(e.dataTransfer.getData('application/x-atv-canal'))
     const canal = canales?.find((c) => c.id === id)
     if (!canal) return
+    // Un chat soltado en Señas va a Señas (a mano): sale de su grupo.
+    if (grupoId === 'senas') {
+      if (!canal.cliente) return
+      setCanales((l) => l.filter((c) => c.id !== id))
+      try {
+        await marcarSena(canal.cliente.id, true)
+      } catch (err) {
+        setError(err.message || 'No se pudo pasar a Señas.')
+      }
+      cargar()
+      return
+    }
     // Soltarlo en el grupo de otro plan le cambia el plan en la ficha (y lo que puede ver): se pregunta antes.
     const grupo = GRUPOS.find((g) => g.id === grupoId)
     if (grupo && canal.cliente && !grupo.planes.includes((canal.cliente.plan || '').toLowerCase())) {
@@ -693,7 +739,7 @@ export default function MensajesPage() {
   }
   const zonaDeSoltar = (grupoId) => ({
     onDragOver: (e) => {
-      if (!e.dataTransfer.types.includes('application/x-atv-canal')) return
+      if (!e.dataTransfer.types.includes('application/x-atv-canal') && !e.dataTransfer.types.includes('application/x-atv-sena')) return
       e.preventDefault()
       e.dataTransfer.dropEffect = 'move'
       if (soltandoEn !== grupoId) setSoltandoEn(grupoId)
@@ -778,7 +824,7 @@ export default function MensajesPage() {
 
   const abrirSena = (id) => setParams({ s: String(id) })
   const seccionSenas = isEquipo ? (
-    <SeccionSenas key="senas" senas={buscar.trim() ? senas?.filter((x) => sinTildes(x.nombre).includes(sinTildes(buscar.trim()))) : senas} abierta={senasAbiertas || Boolean(buscar.trim())} alAlternar={() => setSenasAbiertas((a) => !a)} activa={senaActiva} alAbrir={abrirSena} />
+    <SeccionSenas key="senas" senas={buscar.trim() ? senas?.filter((x) => sinTildes(x.nombre).includes(sinTildes(buscar.trim()))) : senas} abierta={senasAbiertas || Boolean(buscar.trim())} alAlternar={() => setSenasAbiertas((a) => !a)} activa={senaActiva} alAbrir={abrirSena} zona={zonaDeSoltar('senas')} soltando={arrastrando ? soltandoEn || 'algo' : null} />
   ) : null
   const sena = senas?.find((x) => x.id === senaActiva)
 

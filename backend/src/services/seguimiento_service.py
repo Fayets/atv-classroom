@@ -60,7 +60,10 @@ def _nombre_canal(nombre: str) -> str:
 
 def _clientes_activos() -> list[ClienteExterno]:
     """Los mismos que la bandeja muestra en cada grupo: con acceso, sin Pausa, Vencidos ni Inactivos."""
-    fuera = {c.cliente_id for c in list(Canal.select()) if c.tipo == "cliente" and (c.pausa or c.inactivo or c.vencido)}
+    from src.services.alta_service import ids_en_senas
+
+    # Ni Pausa, Vencidos ni Inactivos, ni las Señas (no tienen onboarding: un mensaje las sacaba de Señas).
+    fuera = {c.cliente_id for c in list(Canal.select()) if c.tipo == "cliente" and (c.pausa or c.inactivo or c.vencido)} | ids_en_senas()
     return [c for c in list(ClienteExterno.select()) if c.id not in fuera and _tiene_acceso(c)]
 
 
