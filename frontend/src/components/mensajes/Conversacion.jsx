@@ -160,7 +160,7 @@ function BuscadorCanal({ canalId, angosto, onIr }) {
   )
 }
 
-function SugerenciasMencion({ sugerencias, onElegir }) {
+export function SugerenciasMencion({ sugerencias, onElegir }) {
   return (
     <ul className="msj-sugerencias" role="listbox" aria-label="Etiquetar a alguien">
       {sugerencias.lista.map((m, i) => (
@@ -1874,7 +1874,7 @@ function Edicion({ texto, canales, mencionar, rapidos, onGuardar, onCancelar }) 
   )
 }
 
-function CaraMas() {
+export function CaraMas() {
   return (
     <svg className="msj-cara-mas" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M20.5 11.5a8.5 8.5 0 1 1-8-8.5" />

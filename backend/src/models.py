@@ -1006,7 +1006,8 @@ class SeguimientoEnvio(db.Entity):
     creado_por = Required(int)  # quien lo armó (Mauri)
     cuenta_id = Required(int)  # a nombre de quién sale
     destino_json = Required(str)  # {"donde": "canal"|"chat", "canales": [...], "ofertas": [...], "clientes": [...]}
-    texto = Required(str)
+    texto = Required(str)  # todos los globitos juntos (para la lista de envíos)
+    mensajes_json = Optional(str, nullable=True)  # modo secuencia: ["globito 1", "globito 2", ...] en ese orden
     cuando = Required(datetime)  # UTC; si ya pasó, sale en la próxima vuelta
     estado = Required(str, default="pendiente")  # pendiente · enviando · enviado · cancelado · error
     enviados = Required(int, default=0)

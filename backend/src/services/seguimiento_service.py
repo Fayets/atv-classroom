@@ -36,6 +36,7 @@ OFERTAS = [
 _PLANES = {o["id"]: set(o["planes"]) for o in OFERTAS}
 _NOMBRE = re.compile(r"\{\s*nombre\s*\}", re.I)
 MAX_TEXTO = 4000
+MAX_GLOBITOS = 10
 
 
 def puede(sesion: dict) -> bool:
@@ -77,7 +78,7 @@ class SeguimientoServices:
         _exigir(sesion)
         with db_session:
             cuentas = [
-                {"id": a.id, "nombre": a.nombre, "foto_url": a.foto_url}
+                {"id": a.id, "nombre": a.nombre, "foto_url": a.foto_url, "rol": a.rol, "area": a.area}
                 for a in sorted(list(Admin.select()), key=lambda a: (a.nombre or "").lower())
                 if a.activo and not a.borrado and a.nombre
             ]
@@ -117,13 +118,17 @@ class SeguimientoServices:
         elegidos = [c for c in _clientes_activos() if (c.plan_actual or "").lower() in planes or c.id in sueltos]
         return [(_canal_del_cliente(c.id).id, c) for c in elegidos]
 
-    def _validar(self, sesion: dict, datos: dict) -> tuple[int, dict, str, datetime]:
+    def _validar(self, sesion: dict, datos: dict) -> tuple[int, dict, list[str], datetime]:
         _exigir(sesion)
-        texto = (datos.get("texto") or "").strip()
-        if not texto:
+        # Modo secuencia: varios globitos que salen uno atrás del otro. Sin "mensajes", un solo globito ("texto").
+        crudos = datos.get("mensajes") if isinstance(datos.get("mensajes"), list) else [datos.get("texto")]
+        mensajes = [str(m).strip() for m in crudos if str(m or "").strip()]
+        if not mensajes:
             raise HTTPException(status_code=422, detail="Escribí el mensaje.")
-        if len(texto) > MAX_TEXTO:
-            raise HTTPException(status_code=422, detail=f"El mensaje supera los {MAX_TEXTO} caracteres.")
+        if len(mensajes) > MAX_GLOBITOS:
+            raise HTTPException(status_code=422, detail=f"Una secuencia puede tener hasta {MAX_GLOBITOS} mensajes.")
+        if any(len(m) > MAX_TEXTO for m in mensajes):
+            raise HTTPException(status_code=422, detail=f"Un mensaje supera los {MAX_TEXTO} caracteres.")
         destino = datos.get("destino") or {}
         if destino.get("donde") not in ("canal", "chat"):
             raise HTTPException(status_code=422, detail="Elegí dónde sale: canal o chat de cada uno.")
@@ -140,14 +145,15 @@ class SeguimientoServices:
             except ValueError:
                 raise HTTPException(status_code=422, detail="La fecha no es válida.")
             cuando = momento.astimezone(timezone.utc).replace(tzinfo=None) if momento.tzinfo else momento
-        return cuenta.id, destino, texto, cuando
+        return cuenta.id, destino, mensajes, cuando
 
     def crear(self, sesion: dict, datos: dict) -> dict:
         """Lo guarda; si es para ahora, el controlador lo manda en el momento (despachar)."""
-        cuenta_id, destino, texto, cuando = self._validar(sesion, datos)
+        cuenta_id, destino, mensajes, cuando = self._validar(sesion, datos)
         with db_session:
             ya = cuando <= datetime.utcnow()
-            e = SeguimientoEnvio(creado_por=sesion["usuario_id"], cuenta_id=cuenta_id, destino_json=json.dumps(destino), texto=texto,
+            e = SeguimientoEnvio(creado_por=sesion["usuario_id"], cuenta_id=cuenta_id, destino_json=json.dumps(destino),
+                                 texto="\n\n".join(mensajes), mensajes_json=json.dumps(mensajes, ensure_ascii=False),
                                  cuando=cuando, estado="enviando" if ya else "pendiente")
             commit()  # despachar lo lee desde otro hilo
             return {"id": e.id, "ya": ya}
@@ -163,24 +169,32 @@ class SeguimientoServices:
             sesion = {"rol": cuenta.rol or "admin", "usuario_id": cuenta.id, "nombre": cuenta.nombre}
             destino = json.loads(e.destino_json)
             destinos = [(canal_id, (_de_pila(c) if c else None)) for canal_id, c in self._destinos(destino)]
-            texto = e.texto
-        salida, errores = [], []
+            globitos = json.loads(e.mensajes_json) if e.mensajes_json else [e.texto]
+        salida, errores, alcanzados = [], [], 0
         for canal_id, nombre in destinos:
-            propio = _NOMBRE.sub(nombre or "", texto)
-            propio = re.sub(r"[ \t]{2,}", " ", propio).replace(" !", "!").replace(" ,", ",").strip()
-            try:
-                mensaje, canal = mensajeria.enviar(sesion, canal_id, propio, None, automatico=True)
-                if destino.get("donde") == "canal" and _EVERYONE.search(propio):
-                    mensaje["aviso_clientes"] = True
-                salida.append((mensaje, canal))
-            except HTTPException as err:
-                errores.append(f"canal {canal_id}: {err.detail}")
-            except Exception as err:  # uno que falla no frena al resto
-                logger.exception("Seguimiento %s: falló el canal %s", envio_id, canal_id)
-                errores.append(f"canal {canal_id}: {err}")
+            llego = False
+            for texto in globitos:  # en orden: cada uno queda después del anterior en el chat
+                propio = _NOMBRE.sub(nombre or "", texto)
+                propio = re.sub(r"[ \t]{2,}", " ", propio).replace(" !", "!").replace(" ,", ",").strip()
+                if not propio:
+                    continue
+                try:
+                    mensaje, canal = mensajeria.enviar(sesion, canal_id, propio, None, automatico=True)
+                    if destino.get("donde") == "canal" and _EVERYONE.search(propio):
+                        mensaje["aviso_clientes"] = True
+                    salida.append((mensaje, canal))
+                    llego = True
+                except HTTPException as err:
+                    errores.append(f"canal {canal_id}: {err.detail}")
+                    break  # si no entró uno, el resto de la secuencia tampoco va a ese chat
+                except Exception as err:  # uno que falla no frena al resto
+                    logger.exception("Seguimiento %s: falló el canal %s", envio_id, canal_id)
+                    errores.append(f"canal {canal_id}: {err}")
+                    break
+            alcanzados += llego
         with db_session:
             e = SeguimientoEnvio.get(id=envio_id)
-            e.enviados, e.enviado_en = len(salida), datetime.utcnow()
+            e.enviados, e.enviado_en = alcanzados, datetime.utcnow()
             e.estado = "enviado" if salida else "error"
             e.error = "; ".join(errores)[:2000] or None
         return salida
@@ -217,6 +231,7 @@ class SeguimientoServices:
                 salida.append({
                     "id": e.id, "cuenta": nombres.get(e.cuenta_id), "texto": e.texto, "a_quien": a_quien,
                     "cuando": _iso(e.cuando), "estado": e.estado, "enviados": e.enviados, "error": e.error,
+                    "globitos": len(json.loads(e.mensajes_json)) if e.mensajes_json else 1,
                 })
             return salida
 

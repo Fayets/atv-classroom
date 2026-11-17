@@ -13,12 +13,13 @@ service = SeguimientoServices()
 
 
 async def despachar(envio_id: int) -> int:
-    """Manda un envío y lo avisa en vivo (bandejas abiertas y celulares), como un mensaje escrito a mano."""
+    """Manda un envío y lo avisa en vivo (bandejas abiertas y celulares), como un mensaje escrito a mano.
+    Devuelve a cuántos chats (o canales) llegó."""
     salida = await run_in_threadpool(service.preparar, envio_id)
     for mensaje, canal in salida:
         await hub.emitir({"tipo": "mensaje", "mensaje": mensaje}, canal)
         await run_in_threadpool(push_service.avisar_mensaje, mensaje, canal["id"])
-    return len(salida)
+    return len({canal["id"] for _, canal in salida})  # chats (o canales) a los que llegó, no globitos
 
 
 @router.get("/acceso")
