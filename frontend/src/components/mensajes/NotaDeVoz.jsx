@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
-const reloj = (s) => (Number.isFinite(s) && s >= 0 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : '0:00')
+// Un tiempo que no puede ser (el salto al final para medir, Infinity, NaN) nunca se muestra.
+const valido = (s) => Number.isFinite(s) && s >= 0 && s < 1e6
+const reloj = (s) => (valido(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : '0:00')
 
 // Reproductor de audio propio. El del navegador no sirve para las notas grabadas en el classroom: el webm
 // de MediaRecorder no trae la duración, así que la barra aparecía llena desde el principio. Acá la duración
@@ -23,26 +25,43 @@ export default function NotaDeVoz({ src }) {
         setDuracion(a.duration)
         return
       }
+      // En el iPhone Safari no carga nada hasta que tocan play: si ya está sonando no se salta (cortaría el
+      // audio) y la duración llega sola por durationchange.
+      if (!a.paused) return
+      // Si el salto nunca vuelve, a los 1,5 s se deshace igual, para que el audio no quede parado en un
+      // tiempo imposible (lo que mostraba 1.66e+99).
+      let hecho = false
       const listo = () => {
+        if (hecho) return
+        hecho = true
+        clearTimeout(espera)
         a.removeEventListener('timeupdate', listo)
-        if (Number.isFinite(a.duration)) setDuracion(a.duration)
-        a.currentTime = 0
+        if (Number.isFinite(a.duration) && a.duration > 0) setDuracion(a.duration)
+        if (!valido(a.currentTime) || a.currentTime > 0) a.currentTime = 0
       }
+      const espera = setTimeout(listo, 1500)
       a.addEventListener('timeupdate', listo)
       a.currentTime = 1e101
     }
+    // Safari va descubriendo la duración mientras suena: se toma apenas la sabe.
+    const cambio = () => Number.isFinite(a.duration) && a.duration > 0 && setDuracion(a.duration)
     a.addEventListener('loadedmetadata', medir)
+    a.addEventListener('durationchange', cambio)
     if (a.readyState >= 1) medir()
-    return () => a.removeEventListener('loadedmetadata', medir)
+    return () => {
+      a.removeEventListener('loadedmetadata', medir)
+      a.removeEventListener('durationchange', cambio)
+    }
   }, [src])
 
   const pintar = () => {
     const a = audio.current
     if (!a) return
-    const total = Number.isFinite(a.duration) && a.duration > 0 ? a.duration : duracion
-    const p = total ? Math.min(1, a.currentTime / total) : 0
+    const total = valido(a.duration) && a.duration > 0 ? a.duration : duracion
+    const ahora = valido(a.currentTime) ? a.currentTime : 0
+    const p = total && valido(total) ? Math.min(1, ahora / total) : 0
     if (barra.current) barra.current.style.transform = `scaleX(${p})`
-    if (tiempo.current) tiempo.current.textContent = reloj(a.paused && a.currentTime === 0 ? total : a.currentTime)
+    if (tiempo.current) tiempo.current.textContent = reloj(a.paused && ahora === 0 ? total : ahora)
   }
 
   useEffect(() => {
@@ -62,14 +81,18 @@ export default function NotaDeVoz({ src }) {
   function alternar() {
     const a = audio.current
     if (!a) return
-    if (a.paused) a.play().catch(() => setSonando(false))
+    if (a.paused) {
+      // Si quedó parado en un tiempo imposible (o al final), arranca de cero.
+      if (!valido(a.currentTime) || (duracion && a.currentTime >= duracion)) a.currentTime = 0
+      a.play().catch(() => setSonando(false))
+    }
     else a.pause()
   }
 
   // Tocar la barra salta a ese punto.
   function saltar(e) {
     const a = audio.current
-    const total = Number.isFinite(a?.duration) && a.duration > 0 ? a.duration : duracion
+    const total = valido(a?.duration) && a.duration > 0 ? a.duration : duracion
     if (!a || !total) return
     const r = e.currentTarget.getBoundingClientRect()
     a.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * total
