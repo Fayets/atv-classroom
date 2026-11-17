@@ -605,6 +605,47 @@ export default function MensajesPage() {
   // Arrastrar un chat a "Inactivos" lo archiva; a "Pausa" le corta el acceso al cliente (solo lee su
   // canal); soltarlo en cualquier otro grupo lo devuelve a la normalidad.
   const [soltandoEn, setSoltandoEn] = useState(null)
+  // Arrastrando un chat cerca del borde de arriba o de abajo, la barra se desplaza sola (pedido de Mauri):
+  // así se llega a Pausa, Vencidos o Inactivos aunque estén fuera de la vista. Con refs y rAF, sin re-render.
+  const lateral = useRef(null)
+  const desplazar = useRef({ vel: 0, cuadro: 0, ultimo: 0 })
+  const frenarDesplazamiento = useCallback(() => {
+    desplazar.current.vel = 0
+    cancelAnimationFrame(desplazar.current.cuadro)
+    desplazar.current.cuadro = 0
+  }, [])
+  const alArrastrarEnLateral = useCallback((e) => {
+    const el = lateral.current
+    if (!el || !e.dataTransfer.types.includes('application/x-atv-canal')) return
+    const r = el.getBoundingClientRect()
+    const borde = Math.min(90, r.height / 4)
+    const y = e.clientY
+    const vel = y < r.top + borde ? -Math.ceil(((r.top + borde - y) / borde) * 22) : y > r.bottom - borde ? Math.ceil(((y - (r.bottom - borde)) / borde) * 22) : 0
+    desplazar.current.vel = vel
+    desplazar.current.ultimo = performance.now()
+    if (!vel || desplazar.current.cuadro) return
+    const paso = () => {
+      const v = desplazar.current.vel
+      // El navegador manda dragover todo el tiempo mientras se arrastra; si dejan de llegar (se fue de la ventana), se frena.
+      if (!v || !lateral.current || performance.now() - desplazar.current.ultimo > 300) {
+        desplazar.current.vel = 0
+        desplazar.current.cuadro = 0
+        return
+      }
+      lateral.current.scrollTop += v
+      desplazar.current.cuadro = requestAnimationFrame(paso)
+    }
+    desplazar.current.cuadro = requestAnimationFrame(paso)
+  }, [])
+  useEffect(() => {
+    document.addEventListener('dragend', frenarDesplazamiento)
+    document.addEventListener('drop', frenarDesplazamiento)
+    return () => {
+      document.removeEventListener('dragend', frenarDesplazamiento)
+      document.removeEventListener('drop', frenarDesplazamiento)
+      frenarDesplazamiento()
+    }
+  }, [frenarDesplazamiento])
   const [cambioPlan, setCambioPlan] = useState(null) // { canal, grupo }: se confirma antes de tocar la ficha
   async function soltar(e, grupoId) {
     e.preventDefault()
@@ -986,7 +1027,13 @@ export default function MensajesPage() {
       <AppHeader />
       <NotificacionesCartel />
       <div className={`msj-layout${activo || senaActiva || enSeguimiento ? ' ver-conv' : ' ver-lista'}${isEquipo && item?.cliente ? ' con-panel' : ''}`}>
-        <aside className="msj-lateral" aria-label="Canales">
+        <aside
+          className="msj-lateral"
+          aria-label="Canales"
+          ref={lateral}
+          onDragOverCapture={alArrastrarEnLateral}
+          onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget) && frenarDesplazamiento()}
+        >
           <div className="msj-lateral__head">
             <h1>Mensajes</h1>
             <EstadoConexion conectado={conectado} />
