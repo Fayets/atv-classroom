@@ -27,6 +27,7 @@ from fastapi import HTTPException, Request
 
 from src.db import DB_SCHEMA, _psycopg2_connect_kwargs
 from src.services import agentes_tablas, cerebro_chat_service
+from src.storage import adjuntos as almacen
 
 logger = logging.getLogger("agentes")
 
@@ -335,10 +336,23 @@ ORDER BY m.creado_en DESC, m.id DESC
 LIMIT %(limite)s"""
 
 
+_SQL_ADJUNTOS = f"""SELECT id, mensaje_id, nombre, tipo_mime, tamano FROM "{S}"."adjuntos"
+WHERE mensaje_id = ANY(%(ids)s) ORDER BY id"""
+
+
 def _mensajes(cur, canal_id: int, limite: int) -> list[dict]:
-    """Los últimos `limite` mensajes del canal, en orden de lectura (el más viejo primero)."""
+    """Los últimos `limite` mensajes del canal, en orden de lectura (el más viejo primero), con sus adjuntos.
+    Cada adjunto va con un link firmado que vence a las 24 h: así el agente puede abrir la imagen o el PDF que mandó
+    el cliente sin tener sesión."""
     filas = _filas(cur, _SQL_MENSAJES, {"canal": canal_id, "limite": limite})
-    return [_limpio(f) for f in reversed(filas)]
+    ids = [f["id"] for f in filas]
+    adjuntos: dict[int, list[dict]] = {}
+    if ids:
+        for a in _filas(cur, _SQL_ADJUNTOS, {"ids": ids}):
+            adjuntos.setdefault(a["mensaje_id"], []).append(
+                {"nombre": a["nombre"], "tipo": a["tipo_mime"], "tamano": a["tamano"], "url": almacen.firmar(a["id"])}
+            )
+    return [{**_limpio(f), "adjuntos": adjuntos.get(f["id"], [])} for f in reversed(filas)]
 
 
 def mensajes_canal(agente: dict, canal_id: int, limite: int) -> dict:

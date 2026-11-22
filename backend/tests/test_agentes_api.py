@@ -672,7 +672,7 @@ def test_mensajes_de_un_canal_de_cliente_en_orden_de_lectura(http, base):
     cuerpo = r.json()
     assert cuerpo["cliente_id"] == 7
     assert [m["id"] for m in cuerpo["mensajes"]] == [1, 2]
-    sql, params = conn.ejecutadas[-1]
+    sql, params = next((s, p) for s, p in conn.ejecutadas if "mensajes_canal" in s)
     assert "NOT m.borrado" in sql and "c.tipo = 'cliente'" in sql
     assert params == {"canal": 9, "limite": 2}
 
@@ -704,6 +704,8 @@ def _responder_resumen(sql, params):
         return ["id", "autor_tipo", "autor_nombre", "texto", "respuesta_a", "creado_en", "editado_en"], [
             (1, "cliente", "Ana", "hola", None, AHORA, None),
         ]
+    if '"adjuntos"' in sql:
+        return ["id", "mensaje_id", "nombre", "tipo_mime", "tamano"], [(70, 1, "metricas.png", "image/png", 2048)]
     if "llamadas" in sql:
         return ["id", "titulo", "inicio", "duracion_min", "coach", "resumen"], [(4, "Llamada 1", AHORA, 45, "Coach", "Se habló de X")]
     if "cerebro_onboarding" in sql:
@@ -725,6 +727,10 @@ def test_resumen_del_cliente_con_plata_solo_con_permiso(http, base, clave, plata
         "ultimas_clases": [{"id": 11, "titulo": "Clase 1", "modulo": "Start Here", "completado_en": "2026-11-03T12:00:00Z"}],
     }
     assert cuerpo["canal_id"] == 55 and [m["texto"] for m in cuerpo["mensajes"]] == ["hola"]
+    # Lo que mandó el cliente adjunto viaja con su link firmado, para que el agente lo abra.
+    adjunto = cuerpo["mensajes"][0]["adjuntos"][0]
+    assert adjunto["nombre"] == "metricas.png" and adjunto["tipo"] == "image/png"
+    assert adjunto["url"].startswith("/api/mensajes/adjuntos/70?f=")
     assert cuerpo["llamadas"][0]["titulo"] == "Llamada 1" and "transcripcion" not in cuerpo["llamadas"][0]
     assert cuerpo["onboarding"] == {"respondido": True, "respondido_en": "2026-11-03T12:00:00Z", "ficha": {"oferta": "curso"}}
     # Nada de transcripciones completas ni de tablas de plata.
