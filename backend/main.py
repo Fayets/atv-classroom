@@ -11,6 +11,7 @@ from src.controllers.admin_controller import router as admin_router
 from src.controllers.auth_controller import router as auth_router
 from src.controllers.cerebro_controller import router as cerebro_router
 from src.controllers.cierre_controller import router as cierre_router
+from src.controllers.onboarding_equipo_controller import router as onboarding_equipo_router
 from src.controllers.clientes_controller import router as clientes_router
 from src.controllers.cuenta_controller import router as cuenta_router
 from src.controllers.acciones_controller import router as acciones_router
@@ -295,6 +296,7 @@ app.include_router(frente_router)
 app.include_router(chat_router)
 app.include_router(mensajes_router)
 app.include_router(cierre_router)
+app.include_router(onboarding_equipo_router)
 app.include_router(mensajes_ws_router)
 app.include_router(agentes_router)
 app.include_router(leverage_router)

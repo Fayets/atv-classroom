@@ -4,6 +4,8 @@ import { borrarAccion, compartirClase, crearAccion, editarAccion, fetchAcciones,
 import { darPruebaBoost, enviarMensaje, fetchPruebaBoost, fetchTextoCanal, terminarPruebaBoost } from '../../api/mensajes'
 import Alerta from './Alerta'
 import CuelloBotella from './CuelloBotella'
+import OnboardingEquipoModal from './OnboardingEquipoModal'
+import { fetchOnboardingEquipo } from '../../api/onboardingEquipo'
 
 const ESPERA = 4 // segundos para deshacer antes de que salga el mensaje
 
@@ -343,6 +345,19 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
 
   const [cuello, setCuello] = useState(false)
   const cerrarCuello = useCallback(() => setCuello(false), [])
+  // Onboarding del equipo del cliente: solo aparece si el cliente sumó a alguien a su chat.
+  const [equipo, setEquipo] = useState([])
+  const [viendoEquipo, setViendoEquipo] = useState(false)
+  const cerrarEquipo = useCallback(() => setViendoEquipo(false), [])
+  useEffect(() => {
+    setEquipo([])
+    if (!clienteId) return
+    let vivo = true
+    fetchOnboardingEquipo(clienteId).then((r) => vivo && setEquipo(r.miembros || [])).catch(() => null)
+    return () => {
+      vivo = false
+    }
+  }, [clienteId])
   useEffect(() => {
     fetchAcciones()
       .then(setDatos)
@@ -454,6 +469,14 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
               </button>
             </li>
           ) : null}
+          {equipo.length ? (
+            <li className="msj-accion is-fija">
+              <button type="button" className="msj-accion__boton" onClick={() => setViendoEquipo(true)} title="Pedirle su propio onboarding a alguien del equipo del cliente">
+                <span>Onboarding del equipo</span>
+                {equipo.some((m) => m.estado === 'pedido') ? <em>Pendiente</em> : equipo.some((m) => m.estado === 'completado') ? <em className="is-ok">Completado</em> : null}
+              </button>
+            </li>
+          ) : null}
           {clienteId ? <BoostPrueba canalId={canalId} cliente={cliente} /> : null}
           <li className="msj-accion is-fija is-contexto">
             <button type="button" className="msj-accion__boton" onClick={() => setEligiendoClase(true)} disabled={Boolean(pendiente)} title="Elegí una clase del classroom y le llega el link en el chat">
@@ -476,6 +499,7 @@ export default function AccionesRapidas({ canalId, cliente, plan = null, alCrear
         </button>
       ) : null}
 
+      {viendoEquipo ? <OnboardingEquipoModal miembros={equipo} alCambiar={setEquipo} alCerrar={cerrarEquipo} /> : null}
       {cuello ? (
         <CuelloBotella
           clienteId={clienteId}

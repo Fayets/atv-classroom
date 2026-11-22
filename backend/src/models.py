@@ -499,6 +499,22 @@ class MiembroCliente(db.Entity):
     creado_en = Required(datetime, default=datetime.utcnow)
 
 
+class OnboardingMiembro(db.Entity):
+    """El formulario de onboarding de alguien del equipo de un cliente (Franco, 22-11-2026: Yousef, socio de
+    Mehdi, maneja otro creador y el onboarding del mail lo llenó Mehdi con lo suyo). El coach se lo pide y a
+    él le aparece el cartel, como el cierre de mes, hasta que lo complete. Mismas 49 preguntas, mismo formato."""
+
+    _table_ = (DB_SCHEMA, "onboarding_miembros")
+
+    id = PrimaryKey(int, auto=True)
+    miembro_id = Required(int, unique=True)
+    cliente_id = Required(int, index=True)
+    pedido_por = Required(int)
+    pedido_en = Required(datetime, default=datetime.utcnow)
+    respuestas_json = Optional(str, nullable=True)  # {"1": "...", ...} igual que onboarding.forms
+    completado_en = Optional(datetime, nullable=True)
+
+
 class PruebaPlan(db.Entity):
     """Un plan prestado por unos días (la acción rápida "Boost 7 días"): al vencer, el cliente vuelve a
     plan_anterior. Si mientras tanto alguien le cambió el plan a mano, se respeta ese cambio."""
