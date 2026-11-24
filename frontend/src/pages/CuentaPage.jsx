@@ -4,11 +4,13 @@ import AppHeader from '../components/AppHeader'
 import CuposEquipo from '../components/cuenta/CuposEquipo'
 import TuEquipo from '../components/cuenta/TuEquipo'
 import TusDispositivos from '../components/cuenta/TusDispositivos'
+import Tarjeta from '../components/cuenta/Tarjeta'
 import VozTab from '../components/cuenta/VozTab'
 import { NotificacionesCuenta } from '../components/Notificaciones'
 import FathomCuenta from '../components/cuenta/FathomCuenta'
 import { useAuth } from '../context/AuthContext'
 import '../styles/cuenta.css'
+import '../styles/cuenta-rediseno.css'
 import { getUserInitials } from '../utils/user'
 
 // 120 → "4 meses", 45 → "45 días": en meses cuando cae cerca de un número redondo.
@@ -20,15 +22,7 @@ function duracion(dias) {
 
 const fecha = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—')
 
-// Mi cuenta: una tarjeta por sección. Para sumar algo nuevo, se agrega otra <Seccion>.
-function Seccion({ titulo, children }) {
-  return (
-    <section className="cuenta-seccion">
-      <h2>{titulo}</h2>
-      <div className="cuenta-seccion__cuerpo">{children}</div>
-    </section>
-  )
-}
+// Mi cuenta: una tarjeta por sección (components/cuenta/Tarjeta). Para sumar algo nuevo, se agrega otra.
 
 function Dato({ nombre, children }) {
   return (
@@ -96,13 +90,14 @@ export default function CuentaPage() {
       <main className="cuenta">
         <header className="cuenta__cabeza">
           <h1>Mi cuenta</h1>
+          <p>Tu perfil, tus dispositivos y cómo te avisa el classroom.</p>
         </header>
         {error ? <p className="cuenta__error" role="alert">{error}</p> : null}
         {!c && !error ? <p className="cuenta__cargando">Cargando…</p> : null}
 
         {c ? (
           <>
-            <Seccion titulo="Perfil">
+            <section className="cuenta-heroe" aria-label="Perfil">
               <div className="cuenta-perfil">
                 <div className={`cuenta-foto${subiendo ? ' is-subiendo' : ''}`}>
                   {c.foto_url ? <img src={c.foto_url} alt="" referrerPolicy="no-referrer" /> : <span>{getUserInitials(c.nombre)}</span>}
@@ -120,6 +115,16 @@ export default function CuentaPage() {
                     <p className="cuenta-perfil__nombre">{c.nombre}</p>
                   )}
                   <p className="cuenta-perfil__mail">{c.email}</p>
+                  <div className="cuenta-chips">
+                    {c.tipo === 'cliente' ? (
+                      c.plan_nombre ? <span className="cuenta-chip is-acento">{c.plan_nombre}</span> : null
+                    ) : (
+                      <>
+                        {c.rol_nombre ? <span className="cuenta-chip is-acento">{c.rol_nombre}</span> : null}
+                        {c.area ? <span className="cuenta-chip">{c.area.charAt(0).toUpperCase() + c.area.slice(1)}</span> : null}
+                      </>
+                    )}
+                  </div>
                   <div className="cuenta-perfil__botones">
                     <input ref={selector} type="file" accept="image/jpeg,image/png,image/webp,image/heic" hidden onChange={elegirFoto} />
                     <button type="button" className="cuenta-boton" onClick={() => selector.current?.click()} disabled={subiendo}>
@@ -133,10 +138,14 @@ export default function CuentaPage() {
                   </div>
                 </div>
               </div>
-            </Seccion>
+              <button type="button" className="cuenta-boton is-peligro cuenta-heroe__salir" onClick={logout}>
+                Cerrar sesión
+              </button>
+            </section>
 
+            <div className="cuenta-grilla">
             {c.tipo === 'cliente' ? (
-              <Seccion titulo={c.miembro ? `Plan de ${c.miembro.cliente_nombre}` : 'Tu plan'}>
+              <Tarjeta titulo={c.miembro ? `Plan de ${c.miembro.cliente_nombre}` : 'Tu plan'} icono="plan">
                 {c.miembro ? <p className="cuenta-equipo__soy">Sos parte del equipo de {c.miembro.cliente_nombre}.</p> : null}
                 <div className="cuenta-plan">
                   <span className="cuenta-plan__nombre">{c.plan_nombre || 'Sin plan'}</span>
@@ -156,46 +165,35 @@ export default function CuentaPage() {
                   {c.fecha_vencimiento ? <Dato nombre="Vence">{fecha(c.fecha_vencimiento)}</Dato> : null}
                   {c.responsable ? <Dato nombre="Tu coach">{c.responsable}</Dato> : null}
                 </dl>
-              </Seccion>
-            ) : (
-              <Seccion titulo="Tu rol">
-                <dl className="cuenta-datos">
-                  <Dato nombre="Rol">{c.rol_nombre}</Dato>
-                  {c.area ? <Dato nombre="Área">{c.area.charAt(0).toUpperCase() + c.area.slice(1)}</Dato> : null}
-                </dl>
-              </Seccion>
-            )}
+              </Tarjeta>
+            ) : null /* El rol y el área del equipo ya van como chips en el perfil. */}
 
-            <Seccion titulo="Notificaciones">
+            <Tarjeta titulo="Notificaciones" icono="notificaciones">
               <NotificacionesCuenta />
-            </Seccion>
+            </Tarjeta>
             <TusDispositivos />
             {c.tipo === 'cliente' && !c.miembro ? (
-              <Seccion titulo="Tu equipo">
+              <Tarjeta titulo="Tu equipo" icono="equipo">
                 <TuEquipo />
-              </Seccion>
+              </Tarjeta>
             ) : null}
             {c.tipo === 'equipo' ? (
-              <Seccion titulo="Voz del Tab">
+              <Tarjeta titulo="Voz del Tab" icono="voz">
                 <VozTab />
-              </Seccion>
+              </Tarjeta>
             ) : null}
             {c.tipo === 'equipo' ? (
-              <Seccion titulo="Fathom">
+              <Tarjeta titulo="Fathom" icono="fathom">
                 <FathomCuenta />
-              </Seccion>
+              </Tarjeta>
             ) : null}
             {c.tipo === 'equipo' && c.rol === 'admin' ? (
-              <Seccion titulo="Equipos de clientes">
+              <Tarjeta titulo="Equipos de clientes" icono="equipo">
                 <CuposEquipo />
-              </Seccion>
+              </Tarjeta>
             ) : null}
 
-            <Seccion titulo="Sesión">
-              <button type="button" className="cuenta-boton is-peligro" onClick={logout}>
-                Cerrar sesión
-              </button>
-            </Seccion>
+            </div>
           </>
         ) : null}
       </main>

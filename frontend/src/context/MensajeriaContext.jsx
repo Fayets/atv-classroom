@@ -15,6 +15,9 @@ export function MensajeriaProvider({ children }) {
   const socket = useRef(null)
   const [conectado, setConectado] = useState(false)
   const [resumen, setResumen] = useState({ no_leidos: 0, esperando: 0 })
+  // Chats directos con mensajes sin leer (del equipo entre sí y con clientes). Lo calcula Mensajes con su
+  // lista de canales y lo informa acá, para el punto rojo del avatar y el menú.
+  const [directosSinLeer, informarDirectos] = useState(0)
   const [aviso, setAviso] = useState(null)
   const cerrarAviso = useCallback(() => setAviso(null), [])
   const ultimoRefresco = useRef(0)
@@ -220,8 +223,8 @@ export function MensajeriaProvider({ children }) {
   }, [])
 
   const valor = useMemo(
-    () => ({ habilitada, conectado, resumen, suscribir, avisarEscribiendo, refrescarResumen, avisarLeido, canalAbierto, esMio }),
-    [habilitada, conectado, resumen, suscribir, avisarEscribiendo, refrescarResumen, avisarLeido, esMio],
+    () => ({ habilitada, conectado, resumen, directosSinLeer, informarDirectos, suscribir, avisarEscribiendo, refrescarResumen, avisarLeido, canalAbierto, esMio }),
+    [habilitada, conectado, resumen, directosSinLeer, suscribir, avisarEscribiendo, refrescarResumen, avisarLeido, esMio],
   )
   return (
     <MensajeriaContext.Provider value={valor}>

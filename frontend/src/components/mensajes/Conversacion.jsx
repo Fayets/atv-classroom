@@ -9,6 +9,7 @@ import { ACEPTA_ADJUNTOS, ES_EVERYONE, claveAutor, claveGrupo, colorPersona, col
 import Adjuntos from './Adjuntos'
 import Alerta from './Alerta'
 import Avatar from './Avatar'
+import { nombreVisible } from '../../utils/canales'
 import Enlaces from './Enlaces'
 import GrabarAudio, { puedeGrabar } from './GrabarAudio'
 import SelectorEmojis from './SelectorEmojis'
@@ -251,7 +252,7 @@ function agregarSinDuplicar(lista, nuevos) {
   return sumar.length ? [...lista, ...sumar].sort(orden) : lista
 }
 
-export default function Conversacion({ canalId, item, onVolver, oculta = false, perfilDe, canales, onAbrirCanal, alPensar }) {
+export default function Conversacion({ canalId, item, onVolver, oculta = false, perfilDe, canales, onAbrirCanal, alPensar, alAbrirPerfil, extraBarra = null }) {
   const { user, isEquipo, isAdmin } = useAuth()
   const { suscribir, avisarEscribiendo, conectado, avisarLeido, canalAbierto } = useMensajeria()
   const [datos, setDatos] = useState(null)
@@ -1116,6 +1117,12 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   // dm: alguien del equipo con un cliente, solo ellos dos.
   const conCliente = canal.tipo === 'dm'
   const esDirecto = canal.tipo === 'directo' || entreClientes || conCliente
+  // A quién le escribís, para el texto de la caja: el cliente, la persona o el canal (sin su emoji).
+  const destinatario = esDirecto
+    ? canal.nombre.split(' ')[0]
+    : esPrivado
+      ? isEquipo ? item?.cliente?.nombre || canal.nombre : 'el equipo de ATV'
+      : `#${nombreVisible(canal.nombre)}`
   const tipoDelOtro = entreClientes ? 'cliente' : conCliente ? item?.con?.tipo || (isEquipo ? 'cliente' : 'equipo') : 'equipo'
   // "Visto": hasta dónde leyó el otro lado, sobre mi último mensaje.
   const leidoPorElOtro = isEquipo ? datos.lecturas.cliente : datos.lecturas.equipo
@@ -1158,12 +1165,31 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
         ) : null}
         {esDirecto ? (
           <Avatar persona={{ tipo: tipoDelOtro, nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={30} />
-        ) : (
+        ) : alAbrirPerfil ? null : (
           <span className="msj-hash" aria-hidden="true">
             #
           </span>
         )}
-        <div className="msj-conv__titulo">
+        {/* En el chat de un cliente, su nombre abre el perfil: datos, contexto y acciones. */}
+        <div
+          className={`msj-conv__titulo${alAbrirPerfil ? ' is-perfil' : ''}`}
+          {...(alAbrirPerfil
+            ? {
+                role: 'button',
+                tabIndex: 0,
+                title: 'Ver datos y acciones del cliente',
+                onClick: alAbrirPerfil,
+                onKeyDown: (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    alAbrirPerfil()
+                  }
+                },
+              }
+            : {})}
+        >
+          {alAbrirPerfil ? <Avatar persona={{ tipo: 'cliente', nombre: item?.cliente?.nombre || canal.nombre }} size={32} /> : null}
+          <span className="msj-conv__titulo-texto">
           <b>{canal.nombre}</b>
           <span>
             {entreClientes || conCliente
@@ -1180,10 +1206,12 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                   ? `Archivo de Discord · Inactivos ${item.archivo || ''}`.trim()
                   : canal.descripcion || 'Solo publica el equipo de ATV'}
           </span>
+          </span>
         </div>
         {iaActiva && piloto.datos ? (
           <SelectorPiloto modo={piloto.datos.modo} onCambio={(modo) => piloto.setDatos((d) => (d ? { ...d, modo } : d))} />
         ) : null}
+        {extraBarra}
         <BuscadorCanal key={canalId} canalId={canalId} angosto={angosto} onIr={irAlMensaje} />
       </header>
 
@@ -1586,7 +1614,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 onKeyDown={teclas}
                 onPaste={alPegar}
                 onClick={(e) => e.target.selectionStart !== texto.length && setFantasma(null)}
-                placeholder={fantasma ? '' : solo1a1 ? 'Pedí tu sesión 1 a 1' : esDirecto ? `Escribile a ${canal.nombre.split(' ')[0]}` : angosto ? `Escribí en #${canal.nombre}` : `Escribí en #${canal.nombre} · @ para etiquetar`}
+                placeholder={fantasma ? '' : solo1a1 ? 'Pedí tu sesión 1 a 1' : `Escribí un mensaje para ${destinatario}…`}
                 maxLength={4000}
               />
             </div>

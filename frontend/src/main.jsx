@@ -19,10 +19,17 @@ if (new URLSearchParams(window.location.search).has('_v')) {
 }
 registrarServiceWorker()
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <Trabado>
-      <App />
-    </Trabado>
-  </StrictMode>,
-)
+const montar = () =>
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <Trabado>
+        <App />
+      </Trabado>
+    </StrictMode>,
+  )
+
+// Modo mock (`npm run dev:mock`): se espera a que los datos de prueba estén
+// listos antes de montar, así el chat en vivo nunca intenta conectarse al backend real.
+// Sin esa variable la condición vale false al compilar y esta rama desaparece del bundle.
+if (import.meta.env.VITE_MOCK_API === '1') import('./api/mock/handler.js').then(montar)
+else montar()

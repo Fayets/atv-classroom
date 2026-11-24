@@ -1,10 +1,11 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate, useNavigationType } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useEscritorio } from '../context/EscritorioContext'
 import { useMensajeria } from '../context/MensajeriaContext'
 import '../styles/mensajes.css'
+import '../styles/barra-safari.css'
 import { getUserInitials } from '../utils/user'
 import Isotipo from './marca/Isotipo'
 import { elegirModo, modoActual } from '../utils/modo'
@@ -18,7 +19,7 @@ export default function AppHeader() {
   // Tools aparece cuando un admin prende la sección (Admin → Tools).
   const conTools = !isEquipo && user?.permisos?.tools === 'si'
   const conRoadmap = isEquipo || (user?.permisos?.roadmaps ?? (user?.rol === '2k' ? 'no' : 'si')) !== 'no'
-  const { resumen, habilitada } = useMensajeria()
+  const { resumen, habilitada, directosSinLeer } = useMensajeria()
   const escritorio = useEscritorio()
   // Como en Discord, el número baja al leer: mensajes sin leer, para todos (antes el coach veía los chats
   // esperando respuesta de cualquier cliente y no tenía cómo hacerlo bajar).
@@ -26,8 +27,23 @@ export default function AppHeader() {
   const navigate = useNavigate()
   // Como la flecha de Finder: vuelve a la pantalla anterior sin cerrar la ventana. Solo si hay a dónde volver.
   // React Router guarda en history.state.idx cuántas pantallas recorriste en la app: con 0 no hay a dónde volver.
-  useLocation()
-  const hayAtras = (window.history.state?.idx ?? 0) > 0
+  const location = useLocation()
+  const tipoNavegacion = useNavigationType()
+  const idx = window.history.state?.idx ?? 0
+  const hayAtras = idx > 0
+  // Adelante, como en Safari: solo si volviste y todavía hay pantallas adelante. Una navegación nueva
+  // borra lo que había adelante, así que ahí el tope vuelve a ser la pantalla actual.
+  const topeRef = useRef(idx)
+  if (tipoNavegacion === 'PUSH' || tipoNavegacion === 'REPLACE') topeRef.current = idx
+  else topeRef.current = Math.max(topeRef.current, idx)
+  const hayAdelante = topeRef.current > idx
+  const [copiado, setCopiado] = useState(false)
+  function copiarDireccion() {
+    navigator.clipboard?.writeText(window.location.href).then(() => {
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 1400)
+    }, () => {})
+  }
   const [menuOpen, setMenuOpen] = useState(false)
   const [modo, setModo] = useState(modoActual)
   const cambiarModo = (m) => {
@@ -86,7 +102,7 @@ export default function AppHeader() {
 
   return (
     <header
-      className={`app-header${isEquipo ? ' app-header--mac' : ' app-header--cliente'}`}
+      className={`app-header${isEquipo ? ' app-header--mac is-safari' : ' app-header--cliente'}`}
       onDoubleClick={(e) => {
         // Como en macOS: doble clic en la barra de título agranda o achica la ventana.
         if (escritorio && e.target === e.currentTarget) escritorio.alternarTamano()
@@ -125,13 +141,17 @@ export default function AppHeader() {
         ) : (
           <Link to="/" className="app-header__logo" aria-label="Inicio ATV">
             <Isotipo className="app-header__logo-img" />
-            <span className="app-header__rotulo">Classroom</span>
           </Link>
         )}
         {isEquipo ? (
-          <button type="button" className="mac-atras" onClick={() => navigate(-1)} disabled={!hayAtras} aria-label="Volver a la pantalla anterior" title="Volver">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
-          </button>
+          <span className="safari-flechas">
+            <button type="button" onClick={() => navigate(-1)} disabled={!hayAtras} aria-label="Volver a la pantalla anterior" title="Atrás">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+            </button>
+            <button type="button" onClick={() => navigate(1)} disabled={!hayAdelante} aria-label="Ir a la pantalla siguiente" title="Adelante">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+            </button>
+          </span>
         ) : null}
       </div>
 
@@ -145,7 +165,21 @@ export default function AppHeader() {
           ))}
         </nav>
       ) : isEquipo ? (
-        <span aria-hidden="true" />
+        // La barra de direcciones de Safari: el dominio real con el candado. Un clic copia el link de
+        // la pantalla (sirve para pasarle a alguien del equipo el chat exacto).
+        <button
+          type="button"
+          className={`safari-url${copiado ? ' is-copiado' : ''}`}
+          onClick={copiarDireccion}
+          title="Copiar el link de esta pantalla"
+          aria-label={`Copiar el link: ${window.location.host}${location.pathname}`}
+        >
+          <svg className="safari-url__candado" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="5.5" y="10.5" width="13" height="9.5" rx="2" />
+            <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
+          </svg>
+          <span className="safari-url__texto">{copiado ? 'Link copiado' : window.location.host}</span>
+        </button>
       ) : (
         // Cliente: el menú al centro, en píldoras (Brand System, maqueta A).
         <nav className="cliente-nav" aria-label="Secciones">
@@ -217,6 +251,11 @@ export default function AppHeader() {
           ) : (
             initials
           )}
+          {isEquipo && directosSinLeer ? (
+            <span className="app-header__punto" aria-label={`${directosSinLeer} ${directosSinLeer === 1 ? 'chat directo' : 'chats directos'} sin leer`}>
+              {directosSinLeer > 9 ? '9+' : directosSinLeer}
+            </span>
+          ) : null}
         </button>
 
         {menuOpen ? (
@@ -248,13 +287,30 @@ export default function AppHeader() {
             <div className="app-header__modo" role="group" aria-label="Modo de color">
               <span>Modo</span>
               <div>
-                {['claro', 'azul'].map((m) => (
-                  <button key={m} type="button" className={modo === m ? 'is-on' : ''} aria-pressed={modo === m} onClick={() => cambiarModo(m)}>
-                    {m === 'claro' ? 'Claro' : 'Azul'}
+                {[['claro', 'Claro'], ['oscuro', 'Oscuro'], ['auto', 'Auto']].map(([m, nombre]) => (
+                  <button
+                    key={m}
+                    type="button"
+                    className={modo === m ? 'is-on' : ''}
+                    aria-pressed={modo === m}
+                    title={m === 'auto' ? 'Oscuro de 20 a 7 h' : undefined}
+                    onClick={() => cambiarModo(m)}
+                  >
+                    {nombre}
                   </button>
                 ))}
               </div>
             </div>
+            {isEquipo && habilitada ? (
+              <Link to="/mensajes?v=directos" className="app-header__menu-link app-header__menu-link--directos" role="menuitem" onClick={() => setMenuOpen(false)}>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M22 2 11 13" />
+                  <path d="M22 2 15 22l-4-9-9-4z" />
+                </svg>
+                <span>Mensajes directos</span>
+                {directosSinLeer ? <b className="app-header__menu-cuenta">{directosSinLeer > 99 ? '99+' : directosSinLeer}</b> : null}
+              </Link>
+            ) : null}
             <Link to="/cuenta" className="app-header__menu-link" role="menuitem" onClick={() => setMenuOpen(false)}>
               Mi cuenta
             </Link>

@@ -1,136 +1,136 @@
-/* Modo azul (azul pizarra, elegido por Franco en la maqueta del 28-10-2026). Se activa con
-   <html data-modo="azul"> (ver utils/modo.js) y le gana al tema claro por especificidad.
-   Los colores fijos de Mensajes, Cuenta y los paneles del chat son variables --m-* con el valor claro
-   de respaldo: acá solo se redefinen. Mismos colores que la maqueta. */
+/* Modo oscuro (rediseño 2026-11: grises cálidos, sin vidrio; antes era azul pizarra). Se activa con
+   <html data-modo="azul"> (ver utils/modo.js; el nombre del atributo quedó por compatibilidad) y le gana
+   al tema claro por especificidad. Los colores fijos de Mensajes, Cuenta y los paneles del chat son
+   variables --m-* con el valor claro de respaldo: acá solo se redefinen. */
 
 html[data-modo="azul"],
 html[data-modo="azul"] .msj-root {
   color-scheme: dark;
-  --m-bg: #26324a;
-  --m-lateral: #202b41;
-  --m-panel: #2b3852;
-  --m-tarjeta: #2f3d5a;
-  --m-relleno: #344463;
-  --m-borde: #46567a;
+  --m-bg: #2b2927;
+  --m-lateral: #201f1e;
+  --m-panel: #302d2b;
+  --m-tarjeta: #343230;
+  --m-relleno: #3a3734;
+  --m-borde: #4a4642;
   --m-linea: rgba(255, 255, 255, 0.09);
   --m-linea2: rgba(255, 255, 255, 0.16);
-  --m-t1: #eef2f8;
-  --m-t2: #c3ccda;
-  --m-t3: #97a3b7;
-  --m-t4: #7d8aa0;
-  --m-acento: #ec6457;
-  --m-acento-suave: rgba(236, 100, 87, 0.16);
+  --m-t1: #f2eee8;
+  --m-t2: #b0a89d;
+  --m-t3: #8e867c;
+  --m-t4: #7a736a;
+  --m-acento: #dd5245;
+  --m-acento-suave: rgba(221, 82, 69, 0.16);
   --m-ok: #3dbb7a;
   --m-aviso: #e0a24a;
   --m-campo: rgba(255, 255, 255, 0.07);
   --m-link: #9cc2ff;
   --m-osc: 255, 255, 255;
-  --m-vidrio: rgba(43, 56, 82, 0.97);
+  --m-vidrio: rgba(48, 45, 43, 0.97);
   --nc-0: #ff6b5e; --nc-1: #f472b6; --nc-2: #38bdf8; --nc-3: #fb923c; --nc-4: #a3e635; --nc-5: #2dd4bf;
   --nc-6: #c084fc; --nc-7: #fbbf24; --nc-8: #4ade80; --nc-9: #60a5fa; --nc-10: #e879f9; --nc-11: #67e8f9;
-  --nc-sobre: #141a28;
+  --nc-sobre: #141312;
 }
 
 html[data-modo="azul"]:root {
-  --bg: #26324a;
-  --surface: #2f3d5a;
+  --bg: #2b2927;
+  --surface: #343230;
   --border: rgba(255, 255, 255, 0.1);
-  --text: #eef2f8;
-  --text-muted: #97a3b7;
-  --accent: #ec6457;
-  --accent-hover: #f07a6e;
+  --text: #f2eee8;
+  --text-muted: #8e867c;
+  --accent: #dd5245;
+  --accent-hover: #e4685b;
   --progress: #3dbb7a;
-  --error: #ec6457;
+  --error: #dd5245;
 }
 html[data-modo="azul"] body,
-html[data-modo="azul"] .app-shell { background: #26324a; color: #eef2f8; }
+html[data-modo="azul"] .app-shell { background: #2b2927; color: #f2eee8; }
 html[data-modo="azul"] .app-shell { scrollbar-color: rgba(255, 255, 255, 0.22) transparent; }
 
 /* Inicio, material, clases y roadmap: los tokens --pc-* */
 html[data-modo="azul"] .im-root {
-  --pc-bg: #26324a;
-  --pc-s1: #2b3852;
-  --pc-s2: #2f3d5a;
-  --pc-s3: #344463;
+  --pc-bg: #2b2927;
+  --pc-s1: #302d2b;
+  --pc-s2: #343230;
+  --pc-s3: #3a3734;
   --pc-line: rgba(255, 255, 255, 0.09);
   --pc-line2: rgba(255, 255, 255, 0.16);
-  --pc-t1: #eef2f8;
-  --pc-t2: #c3ccda;
-  --pc-t3: #97a3b7;
-  --pc-t4: #7d8aa0;
-  --pc-red: #ec6457;
-  --pc-red2: #f07a6e;
-  --pc-red-soft: rgba(236, 100, 87, 0.16);
+  --pc-t1: #f2eee8;
+  --pc-t2: #b0a89d;
+  --pc-t3: #8e867c;
+  --pc-t4: #7a736a;
+  --pc-red: #dd5245;
+  --pc-red2: #e4685b;
+  --pc-red-soft: rgba(221, 82, 69, 0.16);
   --pc-ok: #3dbb7a;
-  background: #26324a;
+  background: #2b2927;
 }
-html[data-modo="azul"] .im-root ::selection { background: rgba(236, 100, 87, 0.35); color: #fff; }
+html[data-modo="azul"] .im-root ::selection { background: rgba(221, 82, 69, 0.35); color: #fff; }
 
 /* Encabezado y menú del avatar */
-html[data-modo="azul"] .app-header { background: #202b41; border-bottom-color: rgba(255, 255, 255, 0.08); box-shadow: none; }
+html[data-modo="azul"] .app-header { background: #201f1e; border-bottom-color: rgba(255, 255, 255, 0.08); box-shadow: none; }
 html[data-modo="azul"] .app-header__nav { background: rgba(255, 255, 255, 0.07); box-shadow: none; }
 html[data-modo="azul"] .app-header__navlink,
-html[data-modo="azul"] .app-header__mensajes { color: #c3ccda; }
+html[data-modo="azul"] .app-header__mensajes { color: #b0a89d; }
 html[data-modo="azul"] .app-header__navlink:hover,
-html[data-modo="azul"] .app-header__mensajes:hover { color: #eef2f8; }
+html[data-modo="azul"] .app-header__mensajes:hover { color: #f2eee8; }
 html[data-modo="azul"] .app-header__navlink.is-active,
-html[data-modo="azul"] .app-header__mensajes.is-on { background: #344463; color: #eef2f8; box-shadow: none; }
-html[data-modo="azul"] .app-header__avatar { color: #eef2f8; background: #344463; border-color: transparent; }
-html[data-modo="azul"] .app-header__menu { background: rgba(43, 56, 82, 0.98); border-color: transparent; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 16px 40px -8px rgba(0, 0, 0, 0.5); }
-html[data-modo="azul"] .app-header__menu-name { color: #eef2f8; }
+html[data-modo="azul"] .app-header__mensajes.is-on { background: #3a3734; color: #f2eee8; box-shadow: none; }
+html[data-modo="azul"] .app-header__avatar { color: #f2eee8; background: #3a3734; border-color: transparent; }
+html[data-modo="azul"] .app-header__menu { background: rgba(48, 45, 43, 0.98); border-color: transparent; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 16px 40px -8px rgba(0, 0, 0, 0.5); }
+html[data-modo="azul"] .app-header__menu-name { color: #f2eee8; }
 html[data-modo="azul"] .app-header__menu-email,
 html[data-modo="azul"] .app-header__menu-link,
-html[data-modo="azul"] .app-header__menu-logout { color: #c3ccda; }
+html[data-modo="azul"] .app-header__menu-logout { color: #b0a89d; }
 html[data-modo="azul"] .app-header__menu-link:hover,
 html[data-modo="azul"] .app-header__menu-logout:hover { background: rgba(255, 255, 255, 0.06); }
 
 /* Botones y controles */
-html[data-modo="azul"] .pc-btn--light { background: #eef2f8; color: #202b41; }
+html[data-modo="azul"] .pc-btn--light { background: #f2eee8; color: #201f1e; }
 html[data-modo="azul"] .pc-btn--light:hover:not(:disabled) { background: #fff; }
-html[data-modo="azul"] .pc-btn--ghost { background: #2f3d5a; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); color: #eef2f8; }
-html[data-modo="azul"] .pc-btn--ghost:hover:not(:disabled) { background: #344463; }
-html[data-modo="azul"] .pc-check { border-color: #46567a; }
-html[data-modo="azul"] .pc-tag--pdf { color: #f07a6e; }
+html[data-modo="azul"] .pc-btn--ghost { background: #343230; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); color: #f2eee8; }
+html[data-modo="azul"] .pc-btn--ghost:hover:not(:disabled) { background: #3a3734; }
+html[data-modo="azul"] .pc-check { border-color: #4a4642; }
+html[data-modo="azul"] .pc-tag--pdf { color: #e4685b; }
 html[data-modo="azul"] .pc-tag--miro { background: rgba(224, 162, 74, 0.18); color: #f0c27c; }
 html[data-modo="azul"] .pc-complete:not(.is-done):hover,
 html[data-modo="azul"] .ms-implementar:not(.is-done):hover:not(:disabled),
-html[data-modo="azul"] .mt-nav__btn--next:hover .mt-nav__ico { background: #f07a6e; }
+html[data-modo="azul"] .mt-nav__btn--next:hover .mt-nav__ico { background: #e4685b; }
 
 /* Inicio: guía, recomendaciones y frentes */
-html[data-modo="azul"] .im-ask__form { background: #2f3d5a; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 8px 30px -18px rgba(0, 0, 0, 0.5); }
+html[data-modo="azul"] .im-ask__form { background: #343230; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 8px 30px -18px rgba(0, 0, 0, 0.5); }
 html[data-modo="azul"] .im-ask__hints button:hover,
 html[data-modo="azul"] .im-chatbar__new:hover:not(:disabled),
 html[data-modo="azul"] .im-open__x:hover,
 html[data-modo="azul"] .im-sol__areas label:not(.is-on):hover { background: rgba(255, 255, 255, 0.06); }
-html[data-modo="azul"] .im-route { background: linear-gradient(140deg, rgba(236, 100, 87, 0.16), rgba(236, 100, 87, 0.03) 55%), #2f3d5a; box-shadow: inset 0 0 0 1px rgba(236, 100, 87, 0.35); }
-html[data-modo="azul"] .im-route--coach { background: #2b3852; }
+html[data-modo="azul"] .im-route { background: linear-gradient(140deg, rgba(221, 82, 69, 0.16), rgba(221, 82, 69, 0.03) 55%), #343230; box-shadow: inset 0 0 0 1px rgba(221, 82, 69, 0.35); }
+html[data-modo="azul"] .im-route--coach { background: #302d2b; }
 html[data-modo="azul"] .im-rec,
-html[data-modo="azul"] .im-route__steps li { background: #2f3d5a; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09); }
+html[data-modo="azul"] .im-route__steps li { background: #343230; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09); }
 html[data-modo="azul"] .im-burbuja,
-html[data-modo="azul"] .im-user { background: #344463; }
+html[data-modo="azul"] .im-user { background: #3a3734; }
 html[data-modo="azul"] .im-open__row:hover { background: rgba(255, 255, 255, 0.03); }
 html[data-modo="azul"] .im-steps__s i { background: rgba(255, 255, 255, 0.1); }
-html[data-modo="azul"] .im-error { color: #f07a6e; }
+html[data-modo="azul"] .im-error { color: #e4685b; }
 html[data-modo="azul"] .im-sol__field input,
-html[data-modo="azul"] .im-sol__field textarea { background: #2f3d5a; color: #eef2f8; }
+html[data-modo="azul"] .im-sol__field textarea { background: #343230; color: #f2eee8; }
 
 /* Material y clases */
 html[data-modo="azul"] .mt-card { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09), 0 8px 24px -16px rgba(0, 0, 0, 0.5); }
 html[data-modo="azul"] .mt-bar,
 html[data-modo="azul"] .ms-seg { background: rgba(255, 255, 255, 0.1); }
 html[data-modo="azul"] .ms-indice__fondo { background: rgba(0, 0, 0, 0.45); }
-html[data-modo="azul"] .ms-indice__panel { background: rgba(43, 56, 82, 0.98); }
+html[data-modo="azul"] .ms-indice__panel { background: rgba(48, 45, 43, 0.98); }
 html[data-modo="azul"] .ms-indice__item:hover,
 html[data-modo="azul"] .ms-indice__item:focus-visible,
 html[data-modo="azul"] .ms-claves label:not(.is-done):hover { background: rgba(255, 255, 255, 0.05); }
 html[data-modo="azul"] .ms-claves label.is-done { background: rgba(61, 187, 122, 0.12); }
 html[data-modo="azul"] .ms-claves label.is-done span { text-decoration-color: rgba(255, 255, 255, 0.35); }
 html[data-modo="azul"] .mt-nav__btn--prev,
-html[data-modo="azul"] .mt-nav__btn { color: #c3ccda; }
+html[data-modo="azul"] .mt-nav__btn { color: #b0a89d; }
 html[data-modo="azul"] .mt-nav__btn--prev:hover,
-html[data-modo="azul"] .mt-nav__ico { background: #344463; }
-html[data-modo="azul"] .mt-nav__btn--next { background: linear-gradient(120deg, rgba(236, 100, 87, 0.18), rgba(236, 100, 87, 0.04) 70%), #2f3d5a; }
-html[data-modo="azul"] .mt-nav__btn--next .mt-nav__txt small { color: #f07a6e; }
+html[data-modo="azul"] .mt-nav__ico { background: #3a3734; }
+html[data-modo="azul"] .mt-nav__btn--next { background: linear-gradient(120deg, rgba(221, 82, 69, 0.18), rgba(221, 82, 69, 0.04) 70%), #343230; }
+html[data-modo="azul"] .mt-nav__btn--next .mt-nav__txt small { color: #e4685b; }
 
 /* Mensajes: los avisos amarillos claros y el estado */
 html[data-modo="azul"] .msj-avisos { background: #3a3a2c; border-bottom-color: rgba(224, 162, 74, 0.35); }
@@ -141,35 +141,35 @@ html[data-modo="azul"] .msj-m:hover { background: rgba(255, 255, 255, 0.04); }
 
 /* Panel de admin y equipo */
 html[data-modo="azul"] .admin-input,
-html[data-modo="azul"] .admin-block { background: #2f3d5a; color: #eef2f8; }
-html[data-modo="azul"] .admin-btn--ghost { background: #2f3d5a; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); color: #eef2f8; }
+html[data-modo="azul"] .admin-block { background: #343230; color: #f2eee8; }
+html[data-modo="azul"] .admin-btn--ghost { background: #343230; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); color: #f2eee8; }
 html[data-modo="azul"] .admin-list__item:hover { background: rgba(255, 255, 255, 0.05); }
-html[data-modo="azul"] .eq-avatar--ini { background: #344463; color: #c3ccda; }
+html[data-modo="azul"] .eq-avatar--ini { background: #3a3734; color: #b0a89d; }
 
 /* Encabezado del cliente (paleta hueso del rediseño A) */
-html[data-modo="azul"] .app-header.app-header--cliente { background: #202b41; border-bottom-color: rgba(255, 255, 255, 0.08); }
-html[data-modo="azul"] .app-header__logo-img { color: #eef2f8; }
-html[data-modo="azul"] .app-header__rotulo { color: #97a3b7; }
-html[data-modo="azul"] .cliente-nav a { color: #c3ccda; }
-html[data-modo="azul"] .cliente-nav a:hover { background: rgba(255, 255, 255, 0.07); color: #eef2f8; }
-html[data-modo="azul"] .cliente-nav a.is-on { background: #eef2f8; color: #202b41; }
-html[data-modo="azul"] .app-header--cliente .app-header__avatar { background: #344463; color: #eef2f8; }
-html[data-modo="azul"] .cliente-tabs { background: #202b41; border-top-color: rgba(255, 255, 255, 0.09); }
-html[data-modo="azul"] .cliente-tabs a { color: #7d8aa0; }
-html[data-modo="azul"] .cliente-tabs a.is-on { color: #eef2f8; }
-html[data-modo="azul"] .trabado { background: #26324a; color: #eef2f8; }
+html[data-modo="azul"] .app-header.app-header--cliente { background: #201f1e; border-bottom-color: rgba(255, 255, 255, 0.08); }
+html[data-modo="azul"] .app-header__logo-img { color: #f2eee8; }
+html[data-modo="azul"] .app-header__rotulo { color: #8e867c; }
+html[data-modo="azul"] .cliente-nav a { color: #b0a89d; }
+html[data-modo="azul"] .cliente-nav a:hover { background: rgba(255, 255, 255, 0.07); color: #f2eee8; }
+html[data-modo="azul"] .cliente-nav a.is-on { background: #f2eee8; color: #201f1e; }
+html[data-modo="azul"] .app-header--cliente .app-header__avatar { background: #3a3734; color: #f2eee8; }
+html[data-modo="azul"] .cliente-tabs { background: #201f1e; border-top-color: rgba(255, 255, 255, 0.09); }
+html[data-modo="azul"] .cliente-tabs a { color: #7a736a; }
+html[data-modo="azul"] .cliente-tabs a.is-on { color: #f2eee8; }
+html[data-modo="azul"] .trabado { background: #2b2927; color: #f2eee8; }
 
 /* Inicio: tarjetas de hoy, guía, barras */
 html[data-modo="azul"] .im-paso,
 html[data-modo="azul"] .im-seguir,
 html[data-modo="azul"] .im-chat-ult,
-html[data-modo="azul"] .im-acceso { background: #2f3d5a; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09); }
-html[data-modo="azul"] .im-paso__coach i { background: #344463; color: #eef2f8; }
+html[data-modo="azul"] .im-acceso { background: #343230; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09); }
+html[data-modo="azul"] .im-paso__coach i { background: #3a3734; color: #f2eee8; }
 html[data-modo="azul"] .im-barra { background: rgba(255, 255, 255, 0.12); }
-html[data-modo="azul"] .im-barra i { background: #ec6457; }
-html[data-modo="azul"] .im-barra.is-oscura i { background: #eef2f8; }
-html[data-modo="azul"] .im-ask__ir { background: #eef2f8; color: #202b41; }
-html[data-modo="azul"] .im-root .im-ask__hints button { background: #2f3d5a; }
+html[data-modo="azul"] .im-barra i { background: #dd5245; }
+html[data-modo="azul"] .im-barra.is-oscura i { background: #f2eee8; }
+html[data-modo="azul"] .im-ask__ir { background: #f2eee8; color: #201f1e; }
+html[data-modo="azul"] .im-root .im-ask__hints button { background: #343230; }
 @media (hover: hover) and (pointer: fine) {
   html[data-modo="azul"] .im-paso:hover,
   html[data-modo="azul"] .im-seguir:hover,
@@ -179,88 +179,88 @@ html[data-modo="azul"] .im-root .im-ask__hints button { background: #2f3d5a; }
 html[data-modo="azul"] .pc-btn--light:hover:not(:disabled) { background: #fff; }
 
 /* Material: tapas de SOPs y portadas */
-html[data-modo="azul"] .mt-card__cover { background: #2b3852; }
-html[data-modo="azul"] .mt-tapa.is-roja.is-on { outline-color: #eef2f8; }
+html[data-modo="azul"] .mt-card__cover { background: #302d2b; }
+html[data-modo="azul"] .mt-tapa.is-roja.is-on { outline-color: #f2eee8; }
 
 /* Roadmap: sus tokens y lo fijo */
-html[data-modo="azul"] .rm-root { --rm-bg: #26324a; --rm-panel: #202b41; --rm-card: #2f3d5a; --rm-t1: #eef2f8; --rm-t2: #97a3b7; --rm-t3: #7d8aa0; --rm-linea: rgba(255, 255, 255, 0.09); --rm-rojo: #ec6457; }
-html[data-modo="azul"] .rm-cara--ini { background: #344463; color: #c3ccda; }
-html[data-modo="azul"] .rm-ahora { background: rgba(236, 100, 87, 0.12); }
+html[data-modo="azul"] .rm-root { --rm-bg: #2b2927; --rm-panel: #201f1e; --rm-card: #343230; --rm-t1: #f2eee8; --rm-t2: #8e867c; --rm-t3: #7a736a; --rm-linea: rgba(255, 255, 255, 0.09); --rm-rojo: #dd5245; }
+html[data-modo="azul"] .rm-cara--ini { background: #3a3734; color: #b0a89d; }
+html[data-modo="azul"] .rm-ahora { background: rgba(221, 82, 69, 0.12); }
 html[data-modo="azul"] .rm-lienzo,
-html[data-modo="azul"] .rm-root [class*="rm-lienzo"] { background-color: #232e45; background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px); }
-html[data-modo="azul"] .rm-flechas { color: #7d8aa0; }
-html[data-modo="azul"] .rm-hoja { background: #344463; }
+html[data-modo="azul"] .rm-root [class*="rm-lienzo"] { background-color: #262423; background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px); }
+html[data-modo="azul"] .rm-flechas { color: #7a736a; }
+html[data-modo="azul"] .rm-hoja { background: #3a3734; }
 html[data-modo="azul"] .rm-hoja::after,
-html[data-modo="azul"] .rm-hoja i { background: #46567a; }
+html[data-modo="azul"] .rm-hoja i { background: #4a4642; }
 html[data-modo="azul"] .rm-zoom,
 html[data-modo="azul"] .rm-ficha dl,
 html[data-modo="azul"] .rm-pasos,
-html[data-modo="azul"] .rm-boton.is-suave { background: #2f3d5a; }
+html[data-modo="azul"] .rm-boton.is-suave { background: #343230; }
 
 /* Mensajes: barra de la conversación y botones oscuros que en azul pasan a claros */
-html[data-modo="azul"] .msj-conv__barra { background: #26324a; }
+html[data-modo="azul"] .msj-conv__barra { background: #2b2927; }
 html[data-modo="azul"] .msj-avisos button,
-html[data-modo="azul"] .ctx-filtros button.is-on { color: #202b41; }
+html[data-modo="azul"] .ctx-filtros button.is-on { color: #201f1e; }
 
 /* Vista del equipo (estilo Mac): barra de ventana, panel del cliente y avatares sin foto */
-html[data-modo="azul"] .app-header.app-header--mac { background: #1d273b; border-bottom-color: rgba(255, 255, 255, 0.08); box-shadow: none; }
-html[data-modo="azul"] .msj-root.is-mac .msj-lateral { background: #222d44; }
+html[data-modo="azul"] .app-header.app-header--mac { background: #1c1b1a; border-bottom-color: rgba(255, 255, 255, 0.08); box-shadow: none; }
+html[data-modo="azul"] .msj-root.is-mac .msj-lateral { background: #252321; }
 html[data-modo="azul"] .msj-root.is-mac .msj-panel,
-html[data-modo="azul"] .msj-panel { background: #222d44; }
-html[data-modo="azul"] .msj-av--ini:not(.is-equipo) { background: linear-gradient(#5b6b8c, #46567a); color: #eef2f8; }
+html[data-modo="azul"] .msj-panel { background: #252321; }
+html[data-modo="azul"] .msj-av--ini:not(.is-equipo) { background: linear-gradient(#5e5852, #4a4642); color: #f2eee8; }
 html[data-modo="azul"] .msj-av--ini.con-color { background: var(--av); color: var(--nc-sobre); }
 html[data-modo="azul"] .mac-nav { background: rgba(255, 255, 255, 0.07); }
-html[data-modo="azul"] .mac-nav a.is-on { background: #344463; box-shadow: none; }
-html[data-modo="azul"] .trabado__caja button { background: #eef2f8; color: #202b41; }
+html[data-modo="azul"] .mac-nav a.is-on { background: #3a3734; box-shadow: none; }
+html[data-modo="azul"] .trabado__caja button { background: #f2eee8; color: #201f1e; }
 
 /* ---------- Consultas al cerebro ---------- */
 html[data-modo="azul"] .cq-root {
-  --q-bg: #26324a;
-  --q-panel: #2f3d5a;
+  --q-bg: #2b2927;
+  --q-panel: #343230;
   --q-linea: rgba(255, 255, 255, 0.1);
-  --q-t1: #eef2f8;
-  --q-t2: #c3ccda;
-  --q-t3: #97a3b7;
-  --q-acento: #ec6457;
+  --q-t1: #f2eee8;
+  --q-t2: #b0a89d;
+  --q-t3: #8e867c;
+  --q-acento: #dd5245;
 }
-html[data-modo="azul"] .cq-campo { background: #2f3d5a; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 6px 18px -12px rgba(0, 0, 0, 0.5); }
-html[data-modo="azul"] .cq-campo button { background: #eef2f8; color: #26324a; }
-html[data-modo="azul"] .cq-como pre { background: #222d44; color: #c3ccda; }
-html[data-modo="azul"] .cq-pensando__cab i { border-color: rgba(255, 255, 255, 0.15); border-top-color: #ec6457; }
+html[data-modo="azul"] .cq-campo { background: #343230; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 6px 18px -12px rgba(0, 0, 0, 0.5); }
+html[data-modo="azul"] .cq-campo button { background: #f2eee8; color: #2b2927; }
+html[data-modo="azul"] .cq-como pre { background: #252321; color: #b0a89d; }
+html[data-modo="azul"] .cq-pensando__cab i { border-color: rgba(255, 255, 255, 0.15); border-top-color: #dd5245; }
 html[data-modo="azul"] .cq-md a { color: #9cc2ff; }
 html[data-modo="azul"] .cq-md strong, html[data-modo="azul"] .cq-md b { color: #ffffff; }
-@media (hover: hover) and (pointer: fine) { html[data-modo="azul"] .cq-sugeridas button:hover { background: #344463; } }
+@media (hover: hover) and (pointer: fine) { html[data-modo="azul"] .cq-sugeridas button:hover { background: #3a3734; } }
 
 /* ---------- Tarjeta de perfil (tocar el nombre de alguien en el chat) ---------- */
-html[data-modo="azul"] .msj-perfil__banda { background: #46567a; }
-html[data-modo="azul"] .msj-perfil__cuerpo button { background: #eef2f8; color: #26324a; }
+html[data-modo="azul"] .msj-perfil__banda { background: #4a4642; }
+html[data-modo="azul"] .msj-perfil__cuerpo button { background: #f2eee8; color: #2b2927; }
 html[data-modo="azul"] .msj-perfil__cuerpo button:hover { background: #ffffff; }
-html[data-modo="azul"] .msj-perfil__cuerpo button.is-secundaria { background: #344463; color: #eef2f8; }
-html[data-modo="azul"] .msj-perfil__cuerpo button.is-secundaria:hover { background: #46567a; }
+html[data-modo="azul"] .msj-perfil__cuerpo button.is-secundaria { background: #3a3734; color: #f2eee8; }
+html[data-modo="azul"] .msj-perfil__cuerpo button.is-secundaria:hover { background: #4a4642; }
 
 /* ---------- Ver contexto: tarjetas del tablero con fondo fijo claro ---------- */
-html[data-modo="azul"] .ctx-paso.is-llamada .ctx-tarjeta { background: #2b3f63; border-top-color: #6ea0ff; }
+html[data-modo="azul"] .ctx-paso.is-llamada .ctx-tarjeta { background: #3a3734; border-top-color: #6ea0ff; }
 html[data-modo="azul"] .ctx-paso.is-riesgo .ctx-tarjeta { background: #4a2f3a; }
-html[data-modo="azul"] .ctx-detalle.is-llamada { background: #2b3f63; }
-html[data-modo="azul"] .ctx-filtros button.is-on small { color: rgba(32, 43, 65, 0.65); }
+html[data-modo="azul"] .ctx-detalle.is-llamada { background: #3a3734; }
+html[data-modo="azul"] .ctx-filtros button.is-on small { color: rgba(32, 31, 30, 0.65); }
 
 /* ---------- Aviso de mención (arriba a la derecha): .msj-noti fija sus colores claros ---------- */
-html[data-modo="azul"] .msj-noti { --m-t1: #eef2f8; --m-acento: #ec6457; box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 18px 44px -12px rgba(0, 0, 0, 0.6); }
+html[data-modo="azul"] .msj-noti { --m-t1: #f2eee8; --m-acento: #dd5245; box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 18px 44px -12px rgba(0, 0, 0, 0.6); }
 html[data-modo="azul"] .msj-noti__x { background: rgba(255, 255, 255, 0.1); color: var(--m-t2); }
 
 /* ---------- Flecha de volver junto a los semáforos: era gris oscuro sobre la barra azul ---------- */
-html[data-modo="azul"] .mac-atras { color: #c3ccda; }
-html[data-modo="azul"] .mac-atras:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); color: #eef2f8; }
+html[data-modo="azul"] .mac-atras { color: #b0a89d; }
+html[data-modo="azul"] .mac-atras:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); color: #f2eee8; }
 html[data-modo="azul"] .mac-atras:disabled { color: rgba(255, 255, 255, 0.22); }
 
 /* ---------- Alerta (confirmaciones): el isotipo y el botón principal fijan colores claros ---------- */
-html[data-modo="azul"] .msj-alerta__icono { color: #eef2f8; }
-html[data-modo="azul"] .msj-alerta__botones button.is-principal { background: #eef2f8; color: #1c2638; }
+html[data-modo="azul"] .msj-alerta__icono { color: #f2eee8; }
+html[data-modo="azul"] .msj-alerta__botones button.is-principal { background: #f2eee8; color: #1b1a19; }
 html[data-modo="azul"] .msj-alerta__botones button.is-principal:hover { background: #ffffff; }
 
 /* Borrador del roadmap (Crear roadmap): tenía grises, blancos y verdes fijos del tema claro
    (Franco, 03-11-2026: notas ilegibles, botones blancos, columna derecha clara). */
-html[data-modo="azul"] .msj-modal.rmi.is-doc { background: #222d43; }
+html[data-modo="azul"] .msj-modal.rmi.is-doc { background: #252321; }
 html[data-modo="azul"] .rmi-doc__barra { border-bottom-color: rgba(255, 255, 255, 0.09); }
 html[data-modo="azul"] .rmi-doc__barra .is-ok,
 html[data-modo="azul"] .rmi-estado.is-ok { color: #5fd197; }
@@ -271,20 +271,20 @@ html[data-modo="azul"] .rmi-hoja__meta input:focus,
 html[data-modo="azul"] .rmi-hoja__meta input:hover { border-bottom-color: rgba(255, 255, 255, 0.25); }
 html[data-modo="azul"] .rmi-hoja__pasos li:hover,
 html[data-modo="azul"] .rmi-hoja__pasos li:focus-within { background: rgba(255, 255, 255, 0.04); }
-html[data-modo="azul"] .rmi-caja { border-color: #8f9bb0; }
+html[data-modo="azul"] .rmi-caja { border-color: #9a9288; }
 html[data-modo="azul"] .rmi-hoja__mensaje { border-left-color: rgba(255, 255, 255, 0.18); }
-html[data-modo="azul"] .rmi-chip { background: rgba(236, 100, 87, 0.16); }
-html[data-modo="azul"] .rmi-hoja__huecos input { border-color: rgba(232, 176, 92, 0.6); background: rgba(232, 176, 92, 0.12); color: #eef2f8; }
+html[data-modo="azul"] .rmi-chip { background: rgba(221, 82, 69, 0.16); }
+html[data-modo="azul"] .rmi-hoja__huecos input { border-color: rgba(232, 176, 92, 0.6); background: rgba(232, 176, 92, 0.12); color: #f2eee8; }
 html[data-modo="azul"] .rmi-hoja__huecos input::placeholder { color: #e8b05c; }
 html[data-modo="azul"] .rmi-hoja__huecos input.is-lleno { border-color: rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.05); color: #f08a7f; }
-html[data-modo="azul"] .rmi-hoja__botones button { background: #3a4a6a; color: #eef2f8; }
-html[data-modo="azul"] .rmi-hoja__botones button.is-primario { background: #ec6457; color: #fff; }
-html[data-modo="azul"] .rmi-nota { color: #c3ccda; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06); }
+html[data-modo="azul"] .rmi-hoja__botones button { background: #44403c; color: #f2eee8; }
+html[data-modo="azul"] .rmi-hoja__botones button.is-primario { background: #dd5245; color: #fff; }
+html[data-modo="azul"] .rmi-nota { color: #b0a89d; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06); }
 html[data-modo="azul"] .rmi-hoja__sop { color: #5fd197; background: rgba(61, 187, 122, 0.14); }
 html[data-modo="azul"] .rmi-nota__sop { color: #5fd197; }
 html[data-modo="azul"] .rmi-nota__falta { color: #e8b05c; }
 html[data-modo="azul"] .rmi-hoja__sop.is-skool { color: #a9b3ff; background: rgba(120, 135, 255, 0.14); }
-html[data-modo="azul"] .rmi-quien.is-atv { background: rgba(236, 100, 87, 0.16); }
+html[data-modo="azul"] .rmi-quien.is-atv { background: rgba(221, 82, 69, 0.16); }
 html[data-modo="azul"] .rmi-seguimiento .is-hecho em { background: rgba(61, 187, 122, 0.16); color: #5fd197; }
 html[data-modo="azul"] .rmi-seguimiento .is-parcial em { background: rgba(232, 176, 92, 0.16); color: #e8b05c; }
 
@@ -294,10 +294,10 @@ html[data-modo="azul"] .alta-sena { background: rgba(232, 176, 92, 0.1); box-sha
 html[data-modo="azul"] .alta-sena > b,
 html[data-modo="azul"] .alta-sena__mas { color: #f0bd6a; }
 html[data-modo="azul"] .alta-sena > small { color: #d6b98a; }
-html[data-modo="azul"] .alta-sena__fila { color: #eef2f8; border-top-color: rgba(232, 176, 92, 0.18); }
-html[data-modo="azul"] .alta-sena__fila em { background: rgba(236, 100, 87, 0.16); }
+html[data-modo="azul"] .alta-sena__fila { color: #f2eee8; border-top-color: rgba(232, 176, 92, 0.18); }
+html[data-modo="azul"] .alta-sena__fila em { background: rgba(221, 82, 69, 0.16); }
 html[data-modo="azul"] .alta-sena__fila em.is-ficha { background: rgba(156, 194, 255, 0.14); }
 html[data-modo="azul"] .alta-sena__ok { background: rgba(61, 187, 122, 0.14); color: #5fd197; }
 html[data-modo="azul"] .alta-sena__ok button { color: #5fd197; }
-html[data-modo="azul"] .alta-sena__ok.is-gris { background: rgba(255, 255, 255, 0.05); color: #97a3b7; }
-html[data-modo="azul"] .alta-sena__ok.is-gris button { color: #97a3b7; }
+html[data-modo="azul"] .alta-sena__ok.is-gris { background: rgba(255, 255, 255, 0.05); color: #8e867c; }
+html[data-modo="azul"] .alta-sena__ok.is-gris button { color: #8e867c; }

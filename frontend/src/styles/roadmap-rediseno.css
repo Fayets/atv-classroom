@@ -1,0 +1,346 @@
+/* ======================================================================
+   Roadmap como ruta (rediseño 2026-11), en el lenguaje de Material:
+   la paleta, el vidrio y las luces vienen de .cr-root (classroom-rediseno.css).
+   Claro con vidrio; oscuro sólido y plano.
+   ====================================================================== */
+.rr { max-width: 1080px; margin: 0 auto; padding: 36px 32px 120px; display: flex; flex-direction: column; gap: 26px; color: var(--pc-t1); }
+.rr-root { --rr-superficie: #fbfaf8; }
+html[data-modo="azul"] .rr-root { --rr-superficie: #262423; }
+.rr-vacio { padding: 80px 24px; text-align: center; color: var(--pc-t3); }
+
+.rr-cab h1 { margin: 0 0 4px; font-size: 38px; font-weight: 700; letter-spacing: -0.04em; color: var(--pc-t1); }
+.rr-cab p { margin: 0; font-size: 13.5px; color: var(--pc-t3); }
+
+/* una superficie de vidrio, como en Material */
+.rr-ahora,
+.rr-mapa,
+.rr-vacio-caja {
+  border-radius: 26px;
+  background: var(--cr-vidrio);
+  -webkit-backdrop-filter: var(--cr-blur);
+  backdrop-filter: var(--cr-blur);
+  box-shadow: inset 0 1px 0 var(--cr-borde), inset 0 0 0 1px var(--cr-borde-bajo), var(--cr-sombra);
+}
+.rr-vacio-caja { display: flex; flex-direction: column; gap: 6px; align-items: center; padding: 56px 24px; text-align: center; }
+.rr-vacio-caja b { font-size: 18px; }
+.rr-vacio-caja span { font-size: 14px; color: var(--pc-t3); }
+
+/* ---------- 1. Tu próximo paso ---------- */
+.rr-ahora {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 24px;
+  padding: 30px 32px 34px;
+  overflow: hidden;
+}
+/* la luz roja de ATV en la esquina */
+.rr-ahora::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(520px 260px at 100% 0%, rgba(192, 57, 43, 0.09), transparent 70%); }
+html[data-modo="azul"] .rr-ahora::before { background: radial-gradient(520px 260px at 100% 0%, rgba(221, 82, 69, 0.1), transparent 70%); }
+.rr-ahora > * { position: relative; }
+.rr-ahora__texto small { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pc-red); }
+.rr-ahora__texto h2 { margin: 10px 0 14px; font-size: clamp(28px, 3.6vw, 46px); font-weight: 650; line-height: 1.08; letter-spacing: -0.04em; color: var(--pc-t1); text-wrap: balance; }
+.rr-ahora__de { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: var(--pc-t3); }
+.rr-ahora__acciones { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 180px; }
+.rr-ahora__avance { position: absolute; left: 32px; right: 32px; bottom: 16px; height: 3px; border-radius: 3px; background: var(--pc-line); overflow: hidden; }
+.rr-ahora__avance i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #c0392b, #e0634f); transform-origin: left; transition: transform 600ms var(--pc-ease); }
+html[data-modo="azul"] .rr-ahora__avance i { background: var(--pc-red); }
+
+.rr-listo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 50px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--pc-red);
+  color: #ffffff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 24px -12px rgba(192, 57, 43, 0.75);
+  transition: transform 160ms var(--pc-ease), filter 160ms ease;
+}
+.rr-listo .rr-tilde { border-color: rgba(255, 255, 255, 0.8); background: transparent; }
+.rr-listo .rr-tilde svg { stroke: #ffffff; opacity: 0.9; }
+.rr-listo:disabled { opacity: 0.7; cursor: default; }
+.rr-listo:active:not(:disabled) { transform: scale(0.97); }
+.rr-listo:focus-visible { outline: 2px solid rgba(192, 57, 43, 0.55); outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) {
+  .rr-listo:hover:not(:disabled) { filter: brightness(1.07); }
+}
+
+.rr-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--pc-s1);
+  box-shadow: inset 0 0 0 1px var(--pc-line2);
+  color: var(--pc-t1);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+.rr-boton svg { width: 13px; height: 13px; fill: currentColor; }
+.rr-boton:focus-visible { outline: 2px solid rgba(192, 57, 43, 0.55); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .rr-boton:hover { background: var(--pc-s2); }
+}
+
+/* el tilde: un cuadradito que se llena de verde */
+.rr-tilde { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 7px; border: 1.5px solid var(--pc-line2); background: rgba(255, 255, 255, 0.7); transition: background-color 160ms ease, border-color 160ms ease; }
+html[data-modo="azul"] .rr-tilde { background: transparent; }
+.rr-tilde svg { width: 12px; height: 12px; fill: none; stroke: transparent; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rr-tilde.is-hecho { background: var(--pc-ok); border-color: var(--pc-ok); }
+.rr-tilde.is-hecho svg { stroke: #ffffff; }
+
+/* ---------- 2. Tu mapa: un camino vertical que zigzaguea ---------- */
+.rr-mapa { padding: 26px 30px 30px; }
+.rr-mapa__cab { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 26px; }
+.rr-mapa__cab h2 { margin: 0 0 3px; font-size: 22px; font-weight: 700; letter-spacing: -0.025em; }
+.rr-mapa__cab p { margin: 0; font-size: 13px; color: var(--pc-t3); }
+
+/* leyenda: un punto del color de cada coach; tocar filtra */
+.rr-mapa__leyenda { display: flex; flex-wrap: wrap; gap: 4px; }
+.rr-mapa__leyenda button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pc-t3);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+.rr-mapa__leyenda button i { width: 9px; height: 9px; border-radius: 50%; background: var(--color); }
+.rr-mapa__leyenda button.is-on { background: var(--pc-t1); color: var(--pc-bg); }
+.rr-mapa__leyenda button:focus-visible { outline: 2px solid rgba(192, 57, 43, 0.55); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .rr-mapa__leyenda button:not(.is-on):hover { background: var(--pc-s2); color: var(--pc-t1); }
+}
+
+/* el terreno: el camino (SVG) va detrás de los puntos y los carteles */
+.rr-mapa__terreno { position: relative; }
+.rr-camino { position: absolute; left: 0; top: 0; z-index: 0; overflow: visible; pointer-events: none; }
+.rr-camino path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+/* la calle: una banda ancha y suave */
+.rr-camino__fondo { stroke: var(--pc-line); stroke-width: 18; }
+/* lo recorrido: una línea roja firme */
+.rr-camino__hecho { stroke: var(--pc-red); stroke-width: 4; }
+/* lo que viene: puntos */
+.rr-camino__falta { stroke: var(--pc-t4); stroke-width: 3.5; stroke-dasharray: 0.5 11; opacity: 0.8; }
+
+.rr-puntos { position: relative; z-index: 1; list-style: none; margin: 0; padding: 4px 0 104px; display: flex; flex-direction: column; gap: 72px; }
+.rr-lugar { display: flex; flex-direction: column; }
+
+/* un lugar del mapa: el punto y su cartel al costado; alterna a izquierda y derecha */
+.rr-lugar__boton {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: fit-content;
+  max-width: 78%;
+  margin-left: 12%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rr-lugar.is-derecha .rr-lugar__boton { flex-direction: row-reverse; margin-left: auto; margin-right: 12%; text-align: right; }
+
+/* el punto: un anillo que se llena con el avance, del color del coach */
+.rr-lugar__punto {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: conic-gradient(var(--color) calc(var(--avance) * 360deg), var(--pc-line2) 0);
+  box-shadow: 0 0 0 5px var(--rr-superficie), 0 10px 22px -10px rgba(40, 30, 22, 0.45);
+  transition: transform 260ms var(--pc-ease);
+}
+.rr-lugar__punto > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding-top: 14px;
+  border-radius: 50%;
+  background: var(--rr-superficie);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pc-t2);
+}
+.rr-lugar__punto > span:not(:empty)::after { content: '%'; font-size: 8px; opacity: 0.7; }
+
+/* el cartel: como un letrero del camino */
+.rr-lugar__cartel {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 14px 11px;
+  border-radius: 14px;
+  background: var(--rr-superficie);
+  box-shadow: 0 0 0 1px var(--pc-line), 0 8px 20px -12px rgba(40, 30, 22, 0.4);
+  transition: box-shadow 200ms ease, transform 260ms var(--pc-ease);
+}
+.rr-lugar.is-derecha .rr-lugar__cartel { align-items: flex-end; }
+.rr-lugar__arriba { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pc-t4); }
+.rr-lugar__cartel b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 700; letter-spacing: -0.015em; color: var(--pc-t1); }
+.rr-lugar__meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--pc-t3); }
+
+/* "Estás acá": el que hay que seguir, con un aro rojo que late */
+.rr-lugar.is-ahora .rr-lugar__arriba { color: var(--pc-red); }
+.rr-lugar.is-ahora .rr-lugar__punto::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.5);
+  animation: rr-late 2.4s ease-out infinite;
+}
+@keyframes rr-late { 0% { transform: scale(0.9); opacity: 1; } 100% { transform: scale(1.3); opacity: 0; } }
+/* reemplazados: más apagados */
+.rr-lugar.is-viejo .rr-lugar__punto,
+.rr-lugar.is-viejo .rr-lugar__cartel { opacity: 0.6; }
+
+/* abierto: el punto crece, el cartel se marca en rojo y abajo se abre el documento */
+.rr-lugar.is-abierto .rr-lugar__punto { transform: scale(1.12); opacity: 1; }
+.rr-lugar.is-abierto .rr-lugar__cartel { opacity: 1; box-shadow: 0 0 0 2px var(--pc-red), 0 10px 24px -12px rgba(192, 57, 43, 0.5); }
+.rr-lugar__boton:focus-visible { outline: none; }
+.rr-lugar__boton:focus-visible .rr-lugar__cartel { box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.6); }
+@media (hover: hover) and (pointer: fine) {
+  .rr-lugar:not(.is-abierto) .rr-lugar__boton:hover .rr-lugar__punto { transform: scale(1.06); }
+  .rr-lugar:not(.is-abierto) .rr-lugar__boton:hover .rr-lugar__cartel { transform: translateY(-2px); box-shadow: 0 0 0 1px var(--pc-line2), 0 12px 24px -12px rgba(40, 30, 22, 0.45); }
+}
+
+/* el documento abierto: a lo ancho, opaco (el camino pasa por debajo) */
+.rr-lugar__abierto {
+  position: relative;
+  z-index: 2;
+  margin-top: 16px;
+  padding: 22px 26px 24px;
+  border-radius: 22px;
+  background: var(--rr-superficie);
+  box-shadow: 0 0 0 1px var(--pc-line2), 0 18px 40px -20px rgba(40, 30, 22, 0.45);
+}
+html[data-modo="azul"] .rr-lugar__abierto { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 18px 40px -20px rgba(0, 0, 0, 0.7); }
+.rr-detalle__cuerpo { animation: rr-aparece 300ms var(--pc-ease); }
+@keyframes rr-aparece { from { opacity: 0; transform: translateY(6px); } }
+
+/* al final del camino: la próxima llamada */
+.rr-mapa__proximo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  margin: -12px auto 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--rr-superficie);
+  box-shadow: 0 0 0 1px var(--pc-line);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pc-t3);
+}
+.rr-mapa__proximo svg { width: 15px; height: 15px; fill: none; stroke: var(--pc-red); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.rr-detalle__cab { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 20px; margin-bottom: 18px; }
+.rr-detalle__cab h2 { margin: 0 0 3px; font-size: 26px; font-weight: 700; letter-spacing: -0.03em; }
+.rr-detalle__cab p { margin: 0; font-size: 13px; color: var(--pc-t3); }
+.rr-detalle__links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.rr-detalle__sin { margin: 0; font-size: 14px; color: var(--pc-t3); }
+.rr-detalle__sin a { color: var(--pc-red); font-weight: 600; }
+/* enlaces de texto en vez de más botones con caja */
+.rr-enlace { padding: 0; border: 0; background: none; color: var(--pc-t2); font: inherit; font-size: 13px; font-weight: 600; text-decoration: underline; text-decoration-color: var(--pc-line2); text-underline-offset: 4px; cursor: pointer; }
+.rr-enlace:hover { color: var(--pc-t1); text-decoration-color: currentColor; }
+.rr-enlace.is-fuerte { color: var(--pc-red); text-decoration-color: rgba(192, 57, 43, 0.35); }
+.rr-enlace:focus-visible { outline: 2px solid rgba(192, 57, 43, 0.55); outline-offset: 3px; border-radius: 4px; }
+
+/* las dos columnas, sin caja: separadas por una línea fina */
+.rr-columnas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
+.rr-columna + .rr-columna { padding-left: 40px; margin-left: -40px; border-left: 1px solid var(--pc-line); }
+.rr-columna h3 { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pc-t3); }
+.rr-columna h3 .num { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--pc-t4); }
+
+.rr-pasos { list-style: none; margin: 0; padding: 0; }
+.rr-pasos > li + li { border-top: 1px solid var(--pc-line); }
+.rr-paso {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 20px;
+  align-items: start;
+  gap: 12px;
+  padding: 14px 2px;
+  cursor: pointer;
+}
+.rr-paso input { position: absolute; opacity: 0; pointer-events: none; }
+.rr-paso:has(input:focus-visible) { outline: 2px solid rgba(192, 57, 43, 0.55); outline-offset: 2px; border-radius: 10px; }
+.rr-paso:has(input:disabled) { cursor: progress; opacity: 0.7; }
+.rr-paso__num { padding-top: 2px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; font-weight: 600; color: var(--pc-t4); }
+.rr-paso__texto { display: flex; flex-direction: column; gap: 3px; font-size: 15px; line-height: 1.4; color: var(--pc-t1); }
+.rr-paso__texto small { font-size: 12px; color: var(--pc-t4); }
+.rr-paso .rr-tilde { margin-top: 1px; }
+.rr-paso.is-hecho .rr-paso__texto { color: var(--pc-t4); text-decoration: line-through; text-decoration-color: var(--pc-line2); }
+@media (hover: hover) and (pointer: fine) {
+  .rr-paso:not(.is-hecho):hover .rr-tilde { border-color: var(--pc-ok); }
+}
+
+/* caras de los coaches */
+.rr-cara { flex: none; border-radius: 50%; object-fit: cover; }
+.rr-cara--ini { display: inline-grid; place-items: center; background: var(--pc-red-soft); color: var(--pc-red); font-size: 9px; font-weight: 700; }
+
+/* ---------- tamaños ---------- */
+@media (max-width: 760px) {
+  .rr { padding: 22px 14px 110px; gap: 18px; }
+  .rr-cab h1 { font-size: 30px; }
+  .rr-ahora { grid-template-columns: minmax(0, 1fr); padding: 22px 20px 30px; }
+  .rr-ahora__acciones { flex-direction: row; flex-wrap: wrap; min-width: 0; }
+  .rr-listo { flex: 1 1 100%; }
+  .rr-ahora__avance { left: 20px; right: 20px; }
+  .rr-mapa { padding: 20px 14px 24px; border-radius: 22px; }
+  .rr-puntos { gap: 34px; padding-bottom: 84px; }
+  .rr-lugar__boton { max-width: 92%; margin-left: 2%; gap: 10px; }
+  .rr-lugar.is-derecha .rr-lugar__boton { margin-right: 2%; }
+  .rr-lugar__punto { width: 50px; height: 50px; }
+  .rr-lugar__punto > span { width: 38px; height: 38px; padding-top: 11px; font-size: 11px; }
+  .rr-lugar__cartel b { font-size: 15px; white-space: normal; }
+  .rr-lugar__abierto { margin-top: 14px; padding: 18px 16px 20px; border-radius: 18px; }
+  .rr-camino__fondo { stroke-width: 14; }
+  .rr-columnas { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .rr-columna + .rr-columna { padding-left: 0; margin-left: 0; border-left: 0; padding-top: 16px; border-top: 1px solid var(--pc-line); }
+  .rr-detalle__cab h2 { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rr-listo, .rr-ahora__avance i, .rr-tilde, .rr-lugar__punto, .rr-lugar__cartel { transition: none; }
+  .rr-lugar.is-ahora .rr-lugar__punto::after, .rr-detalle__cuerpo { animation: none; }
+}

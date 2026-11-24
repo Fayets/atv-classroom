@@ -12,7 +12,7 @@ import AppHeader from '../components/AppHeader'
 import Alerta from '../components/mensajes/Alerta'
 import Alertas from '../components/mensajes/Alertas'
 import AccionesRapidas from '../components/mensajes/AccionesRapidas'
-import QuePenso from '../components/mensajes/QuePenso'
+import BotonQuePenso from '../components/mensajes/BotonQuePenso'
 import Avatar from '../components/mensajes/Avatar'
 import RoadmapCliente from '../components/mensajes/RoadmapCliente'
 import Conversacion from '../components/mensajes/Conversacion'
@@ -22,8 +22,11 @@ import { useAuth } from '../context/AuthContext'
 import { useMensajeria } from '../context/MensajeriaContext'
 import { cuandoCorto, haceCuanto, normal } from '../utils/mensajes'
 import '../styles/mensajes.css'
+import IconoCanal from '../components/mensajes/IconoCanal'
+import { nombreVisible } from '../utils/canales'
 import ContextoCliente from '../components/mensajes/ContextoCliente'
 import '../styles/contexto.css'
+import '../styles/rediseno.css'
 
 // "martin zuniga" encuentra "Martín Zúñiga": sin tildes, sin ñ y sin mayúsculas.
 const sinTildes = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -146,7 +149,7 @@ function BuscarCliente({ onElegir }) {
   }, [q])
   return (
     <div className="msj-buscar-cliente">
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Escribirle a un cliente…" aria-label="Buscar un cliente por nombre" />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscá a otro cliente de ATV…" aria-label="Buscar a otro cliente de ATV por nombre" />
       {lista.map((c) => (
         <button
           key={c.id}
@@ -161,7 +164,11 @@ function BuscarCliente({ onElegir }) {
           <span>{c.nombre}</span>
         </button>
       ))}
-      {q.trim().length >= 3 && !lista.length ? <p className="msj-privados__vacio">Nadie con ese nombre en tus canales.</p> : null}
+      {q.trim().length >= 3 && !lista.length ? (
+        <p className="msj-privados__vacio">
+          No encontramos a otro cliente con ese nombre. Aparecen los que escribieron en los canales; al equipo de ATV le escribís en Mi canal.
+        </p>
+      ) : null}
     </div>
   )
 }
@@ -190,9 +197,9 @@ function FilaCanal({ c, activo, onAbrir, escribe, hash = false, onEditar, arrast
             <em className="msj-fila__hash is-candado" aria-label="Bloqueado">
               <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.6" /><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
             </em>
-          ) : <em className="msj-fila__hash">#</em>
-        ) : null}
-        {c.nombre}
+          ) : <IconoCanal nombre={c.nombre} />
+        ) : <Avatar persona={{ tipo: 'cliente', nombre: c.nombre }} size={20} />}
+        <span className="msj-fila__texto">{hash ? nombreVisible(c.nombre) : c.nombre}</span>
       </span>
       {escribe ? <span className="msj-fila__escribe" aria-label={`${escribe} está escribiendo`}><i /><i /><i /></span> : null}
       {onEditar && c.puede_administrar ? (
@@ -329,18 +336,33 @@ function PanelSena({ sena, alHacerOnboarding }) {
   )
 }
 
-function PanelCliente({ item, alVerFicha, llamadaId = null, onLlamadaUsada, pensamiento = null }) {
+// Datos, contexto y acciones del cliente: un cajón que se abre desde su nombre en el chat.
+// Queda armado aunque esté cerrado, así el roadmap y lo que pensó el Tab siguen al día.
+function PanelCliente({ item, abierto = false, alCerrar, alVerFicha, llamadaId = null, onLlamadaUsada }) {
   const [pedidoRoadmap, setPedidoRoadmap] = useState(0)
   const [contexto, setContexto] = useState(false)
   const cerrarContexto = useCallback(() => setContexto(false), [])
   // Al cambiar de chat, el contexto del cliente anterior se cierra.
   useEffect(() => setContexto(false), [item?.cliente?.id])
+  useEffect(() => {
+    if (!abierto) return undefined
+    const esc = (e) => e.key === 'Escape' && !contexto && alCerrar?.()
+    document.addEventListener('keydown', esc)
+    return () => document.removeEventListener('keydown', esc)
+  }, [abierto, contexto, alCerrar])
   const cliente = item?.cliente
   if (!cliente) return null
   const vence = cliente.vence ? new Date(`${cliente.vence}T00:00:00`).toLocaleDateString('es-AR') : 'Sin fecha'
   return (
-    <aside className="msj-panel" aria-label="Datos del cliente">
-      <p className="msj-seccion">Cliente</p>
+    <>
+    <div className={`msj-cajon-fondo${abierto ? ' is-abierto' : ''}`} onClick={alCerrar} aria-hidden="true" />
+    <aside className={`msj-panel msj-cajon${abierto ? ' is-abierto' : ''}`} aria-label="Datos del cliente" aria-hidden={!abierto} inert={!abierto}>
+      <div className="msj-cajon__cab">
+        <p className="msj-seccion">Cliente</p>
+        <button type="button" className="msj-cajon__cerrar" onClick={alCerrar} aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+      </div>
       {alVerFicha ? (
         <button type="button" className="msj-panel__quien is-link" onClick={() => alVerFicha(cliente.id)} title="Ver su ficha en la carpeta Clientes">
           <Avatar persona={{ tipo: 'cliente', nombre: cliente.nombre }} size={44} />
@@ -380,8 +402,8 @@ function PanelCliente({ item, alVerFicha, llamadaId = null, onLlamadaUsada, pens
       <AccionesRapidas canalId={item.id} clienteId={cliente.id} cliente={cliente.nombre} plan={cliente.plan} alCrearRoadmap={() => setPedidoRoadmap((n) => n + 1)} />
       <ContextoCliente clienteId={cliente.id} abierto={contexto} alCerrar={cerrarContexto} />
       <RoadmapCliente key={cliente.id} clienteId={cliente.id} canalId={item.id} cliente={cliente.nombre.split(' ')[0]} pedido={pedidoRoadmap} llamadaId={llamadaId} onLlamadaUsada={onLlamadaUsada} />
-      <QuePenso info={pensamiento} />
     </aside>
+    </>
   )
 }
 
@@ -416,14 +438,17 @@ function EstadoConexion({ conectado }) {
 export default function MensajesPage() {
   const { isEquipo, isAdmin } = useAuth()
   const escritorio = useEscritorio()
-  const { suscribir, conectado, canalAbierto, esMio } = useMensajeria()
+  const { suscribir, conectado, canalAbierto, esMio, informarDirectos } = useMensajeria()
   const [params, setParams] = useSearchParams()
   const [canales, setCanales] = useState(null)
   const [error, setError] = useState('')
   // Aparte de `error`: se borra sola cuando la bandeja vuelve a cargar y no tapa una lista que ya está.
   const [errorCarga, setErrorCarga] = useState('')
   const [buscar, setBuscar] = useState('')
-  const [pensamiento, setPensamiento] = useState(null) // lo que pensó el Tab, para el panel de la derecha
+  const [buscando, setBuscando] = useState(false) // el buscador se abre desde la lupa
+  const [soloNoLeidos, setSoloNoLeidos] = useState(false) // filtro "Todos / No leídos"
+  const [perfilAbierto, setPerfilAbierto] = useState(false) // el cajón con datos y acciones del cliente
+  const [pensamiento, setPensamiento] = useState(null) // lo que pensó el Tab: el botón "Qué pensó" arriba del chat
   const recarga = useRef(null)
   const { user } = useAuth()
   const [escriben, setEscriben] = useState({})
@@ -436,7 +461,9 @@ export default function MensajesPage() {
   if (enMensajes) guardado.current = { activo: activoUrl, vista: vistaUrl }
   const activo = enMensajes ? activoUrl : guardado.current.activo
   // Todo el equipo (admin y coach) elige entre la bandeja de clientes y sus alertas.
-  const vista = (enMensajes ? vistaUrl : guardado.current.vista) === 'alertas' ? 'alertas' : 'bandeja'
+  // Los mensajes directos viven aparte (se llega desde el menú del avatar): ?v=directos.
+  const vistaPedida = enMensajes ? vistaUrl : guardado.current.vista
+  const vista = vistaPedida === 'alertas' || vistaPedida === 'directos' ? vistaPedida : 'bandeja'
 
   const [senas, setSenas] = useState(null)
   const [senasAbiertas, setSenasAbiertas] = useState(false)
@@ -577,9 +604,14 @@ export default function MensajesPage() {
   const filtrados = useMemo(() => {
     if (!canales) return []
     const q = sinTildes(buscar.trim())
-    if (!q) return canales
-    return canales.filter((c) => sinTildes(`${c.nombre} ${c.cliente?.nombre || ''}`).includes(q))
-  }, [canales, buscar])
+    return canales.filter(
+      (c) =>
+        (!q || sinTildes(`${c.nombre} ${c.cliente?.nombre || ''}`).includes(q)) &&
+        (!soloNoLeidos || c.no_leidos > 0 || c.menciones > 0 || c.id === activo),
+    )
+  }, [canales, buscar, soloNoLeidos, activo])
+  // Buscando o con "No leídos", los grupos se muestran abiertos con lo que quedó.
+  const filtrando = Boolean(buscar.trim()) || soloNoLeidos
 
   const canalesGrupo = filtrados.filter((c) => c.tipo === 'anuncios' || c.tipo === 'grupo')
   // Como en Discord: todo cliente vive en su grupo; lo urgente se ve por el punto y el contador.
@@ -761,13 +793,22 @@ export default function MensajesPage() {
     }
     return mapa
   }, [canales])
-  const abrir = (id) => setParams(vista === 'alertas' ? { v: 'alertas', c: String(id) } : { c: String(id) })
-  const cambiarVista = (v) => setParams(v === 'alertas' ? { v: 'alertas' } : {})
+  // Al pasar de vista (chats, alertas, directos) la búsqueda arranca vacía: si no, quedaría filtrando
+  // una lista donde la lupa no está.
+  useEffect(() => {
+    setBuscar('')
+    setBuscando(false)
+  }, [vista])
+  const cerrarPerfil = useCallback(() => setPerfilAbierto(false), [])
+  // Al cambiar de chat, el cajón del cliente anterior se cierra.
+  useEffect(() => setPerfilAbierto(false), [activo])
+  const abrir = (id) => setParams(vista === 'bandeja' ? { c: String(id) } : { v: vista, c: String(id) })
+  const cambiarVista = (v) => setParams(v === 'bandeja' ? {} : { v })
 
   // Un grupo de clientes de la bandeja (por plan, o Inactivos), con su zona para soltar chats.
   // Una carpeta dentro de Inactivos: "Del classroom" o "Inactivos N" de Discord.
   const subcarpeta = (sc, arrastrable) => {
-    const abierta = Boolean(buscar.trim()) || abiertos.includes(sc.id)
+    const abierta = filtrando || abiertos.includes(sc.id)
     const visibles = abierta ? sc.canales : sc.canales.filter((c) => c.id === activo)
     return (
       <div key={sc.id} className="msj-subgrupo">
@@ -786,7 +827,7 @@ export default function MensajesPage() {
   }
 
   const grupoDe = (g) => {
-    const abierto = Boolean(buscar.trim()) || abiertos.includes(g.id)
+    const abierto = filtrando || abiertos.includes(g.id)
     const conArchivo = g.id === 'inactivos' && archivos.length > 0
     const visibles = abierto ? g.canales : g.canales.filter((c) => c.id === activo || c.no_leidos > 0 || c.menciones > 0 || escriben[c.id])
     const novedades = g.canales.filter((c) => c.no_leidos > 0).length
@@ -823,7 +864,7 @@ export default function MensajesPage() {
   }
 
   const abrirSena = (id) => setParams({ s: String(id) })
-  const seccionSenas = isEquipo ? (
+  const seccionSenas = isEquipo && !soloNoLeidos ? (
     <SeccionSenas key="senas" senas={buscar.trim() ? senas?.filter((x) => sinTildes(x.nombre).includes(sinTildes(buscar.trim()))) : senas} abierta={senasAbiertas || Boolean(buscar.trim())} alAlternar={() => setSenasAbiertas((a) => !a)} activa={senaActiva} alAbrir={abrirSena} zona={zonaDeSoltar('senas')} soltando={arrastrando ? soltandoEn || 'algo' : null} />
   ) : null
   const sena = senas?.find((x) => x.id === senaActiva)
@@ -841,6 +882,7 @@ export default function MensajesPage() {
     .filter((m) => m.id !== user?.usuario_id)
     .map((m) => ({ ...m, canal: directos.find((c) => c.con?.id === m.id) || null }))
     .filter((m) => !buscar.trim() || sinTildes(m.nombre).includes(sinTildes(buscar.trim())))
+    .filter((m) => !soloNoLeidos || vista === 'directos' || (m.canal && (m.canal.no_leidos > 0 || m.canal.id === activo)))
     .sort((x, y) => (y.canal?.ultimo?.creado_en || '').localeCompare(x.canal?.ultimo?.creado_en || '') || x.nombre.localeCompare(y.nombre))
   async function abrirCon(persona) {
     if (persona.canal) return abrir(persona.canal.id)
@@ -853,16 +895,21 @@ export default function MensajesPage() {
     }
   }
   // Cerrada como los grupos de planes: cerrada muestra solo lo que tiene novedades (o el que tenés abierto).
-  const directosAbiertos = Boolean(buscar.trim()) || abiertos.includes('directos')
+  const directosAbiertos = vista === 'directos' || filtrando || abiertos.includes('directos')
   const personasVisibles = directosAbiertos
     ? personas
     : personas.filter((p) => p.canal && (p.canal.id === activo || p.canal.no_leidos > 0 || escriben[p.canal.id]))
   // Privados del equipo con clientes (dm): van en la misma sección, como en Discord.
   const conClientes = (canales || [])
     .filter((c) => c.tipo === 'dm' && (!buscar.trim() || sinTildes(c.nombre).includes(sinTildes(buscar.trim()))))
+    .filter((c) => !soloNoLeidos || vista === 'directos' || c.no_leidos > 0 || c.id === activo)
     .sort((x, y) => (y.ultimo?.creado_en || '').localeCompare(x.ultimo?.creado_en || ''))
   const conClientesVisibles = directosAbiertos ? conClientes : conClientes.filter((c) => c.id === activo || c.no_leidos > 0 || escriben[c.id])
-  const directosNuevos = personas.filter((p) => p.canal && p.canal.no_leidos > 0).length + conClientes.filter((c) => c.no_leidos > 0).length
+  // Directos sin leer, contados sobre todos los canales (sin el filtro ni la búsqueda de la barra).
+  const directosNuevos = (canales || []).filter((c) => (c.tipo === 'directo' || c.tipo === 'dm') && c.no_leidos > 0).length
+  useEffect(() => {
+    if (isEquipo) informarDirectos(directosNuevos)
+  }, [isEquipo, directosNuevos, informarDirectos])
   async function escribirACliente(clienteId) {
     const ya = conClientes.find((c) => c.con?.id === clienteId) || (canales || []).find((c) => c.tipo === 'dm' && c.con?.id === clienteId)
     if (ya) return abrir(ya.id)
@@ -877,18 +924,7 @@ export default function MensajesPage() {
   const seccionDirectos =
     isEquipo && personas.length ? (
       <section className="msj-grupo msj-directos" aria-label="Mensajes directos">
-        <button
-          type="button"
-          className={`msj-grupo__titulo${directosAbiertos ? ' is-abierto' : ''}${!directosAbiertos && directosNuevos ? ' con-novedades' : ''}`}
-          onClick={() => alternarGrupo('directos')}
-          aria-expanded={directosAbiertos}
-        >
-          <svg viewBox="0 0 10 10" aria-hidden="true">
-            <path d="M3 2l4 3-4 3z" fill="currentColor" />
-          </svg>
-          <span>Mensajes directos</span>
-          <small>{directosNuevos || ''}</small>
-        </button>
+        {vista === 'directos' && personasVisibles.length && conClientesVisibles.length ? <p className="msj-directos__rotulo">Equipo</p> : null}
         {personasVisibles.map((p) => {
           const nuevo = p.canal && p.canal.no_leidos > 0 && p.canal.id !== activo
           return (
@@ -906,6 +942,7 @@ export default function MensajesPage() {
             </button>
           )
         })}
+        {vista === 'directos' && personasVisibles.length && conClientesVisibles.length ? <p className="msj-directos__rotulo">Clientes</p> : null}
         {conClientesVisibles.map((c) => {
           const nuevo = c.no_leidos > 0 && c.id !== activo
           return (
@@ -1061,7 +1098,7 @@ export default function MensajesPage() {
         ))}
         {puedeSeguimiento ? (
           <button type="button" className={`msj-fila${enSeguimiento ? ' is-activo' : ''}`} onClick={() => setParams({ seg: '1' })} title="Recordar las clases a nombre de otra cuenta">
-            <span className="msj-fila__nombre"><em className="msj-fila__hash">#</em>seguimiento</span>
+            <span className="msj-fila__nombre"><IconoCanal nombre="seguimiento" /><span className="msj-fila__texto">seguimiento</span></span>
           </button>
         ) : null}
         {isEquipo && !canalesGrupo.length ? <p className="msj-grupo__vacio">Todavía no hay canales. Creá uno con el +.</p> : null}
@@ -1072,7 +1109,7 @@ export default function MensajesPage() {
     <div className={`app-shell msj-root${isEquipo ? ' is-mac' : ''}`}>
       <AppHeader />
       <NotificacionesCartel />
-      <div className={`msj-layout${activo || senaActiva || enSeguimiento ? ' ver-conv' : ' ver-lista'}${isEquipo && item?.cliente ? ' con-panel' : ''}`}>
+      <div className={`msj-layout${activo || senaActiva || enSeguimiento ? ' ver-conv' : ' ver-lista'}`}>
         <aside
           className="msj-lateral"
           aria-label="Canales"
@@ -1081,30 +1118,81 @@ export default function MensajesPage() {
           onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget) && frenarDesplazamiento()}
         >
           <div className="msj-lateral__head">
-            <h1>Mensajes</h1>
-            <EstadoConexion conectado={conectado} />
+            <div className="msj-lateral__marca">
+              {vista === 'directos' ? (
+                <button type="button" className="msj-lateral__volver" onClick={() => cambiarVista('bandeja')} aria-label="Volver a los chats" title="Volver a los chats">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+                </button>
+              ) : null}
+              <h1>{vista === 'alertas' ? 'Mis alertas' : vista === 'directos' ? 'Mensajes directos' : 'Mensajes'}</h1>
+              {vista === 'directos' ? null : <EstadoConexion conectado={conectado} />}
+            </div>
+            {isEquipo && vista !== 'directos' ? (
+              <div className="msj-lateral__acciones">
+                {vista === 'bandeja' ? (
+                  <button
+                    type="button"
+                    className={buscando || buscar ? 'is-on' : ''}
+                    aria-pressed={buscando || Boolean(buscar)}
+                    onClick={() => {
+                      if (buscando) setBuscar('')
+                      setBuscando((b) => !b)
+                    }}
+                    title="Buscar cliente"
+                    aria-label="Buscar cliente"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className={vista === 'alertas' ? 'is-on' : ''}
+                  aria-pressed={vista === 'alertas'}
+                  onClick={() => cambiarVista(vista === 'alertas' ? 'bandeja' : 'alertas')}
+                  title={vista === 'alertas' ? 'Volver a los chats' : 'Mis alertas'}
+                  aria-label={vista === 'alertas' ? 'Volver a los chats' : 'Mis alertas'}
+                >
+                  {vista === 'alertas' ? (
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v10H8l-4 3z" /></svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                  )}
+                </button>
+              </div>
+            ) : null}
           </div>
 
-          {isEquipo ? (
-            <div className="msj-segmento" role="tablist" aria-label="Vista">
-              <button type="button" role="tab" aria-selected={vista === 'bandeja'} className={vista === 'bandeja' ? 'is-on' : ''} onClick={() => cambiarVista('bandeja')}>
-                Clientes
-              </button>
-              <button type="button" role="tab" aria-selected={vista === 'alertas'} className={vista === 'alertas' ? 'is-on' : ''} onClick={() => cambiarVista('alertas')}>
-                Mis alertas
-              </button>
-            </div>
-          ) : null}
           {vista === 'alertas' ? <Alertas activo={activo} onAbrir={abrir} /> : null}
-          {vista === 'bandeja' && isEquipo ? (
+          {vista === 'directos' ? (
+            seccionDirectos || <p className="msj-grupo__vacio">Todavía no hay nadie del equipo para escribirle.</p>
+          ) : null}
+          {vista === 'bandeja' && isEquipo && (buscando || buscar) ? (
             <input
               className="msj-buscar"
               type="search"
               placeholder="Buscar cliente"
               value={buscar}
               onChange={(e) => setBuscar(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setBuscar('')
+                  setBuscando(false)
+                }
+              }}
               aria-label="Buscar cliente"
+              autoFocus
             />
+          ) : null}
+          {vista === 'bandeja' && isEquipo ? (
+            <div className="msj-filtro" role="group" aria-label="Filtrar chats">
+              <button type="button" className={!soloNoLeidos ? 'is-on' : ''} aria-pressed={!soloNoLeidos} onClick={() => setSoloNoLeidos(false)}>
+                Todos
+              </button>
+              <button type="button" className={soloNoLeidos ? 'is-on' : ''} aria-pressed={soloNoLeidos} onClick={() => setSoloNoLeidos(true)}>
+                <i aria-hidden="true" />
+                No leídos
+              </button>
+            </div>
           ) : null}
           {vista === 'bandeja' ? (
           <>
@@ -1121,7 +1209,7 @@ export default function MensajesPage() {
           {!canales ? <p className="msj-vacio">Cargando…</p> : null}
 
           {seccionCanales}
-          {seccionDirectos}
+          {isEquipo ? null : seccionDirectos}
           {seccionPrivados}
 
           {isEquipo
@@ -1171,20 +1259,25 @@ export default function MensajesPage() {
           ) : activo && item?.bloqueado ? (
             <CanalBloqueado item={item} />
           ) : activo ? (
-            <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} canales={porSlug} perfilDe={perfilDe} onAbrirCanal={(id) => setParams({ c: String(id) })} onVolver={() => setParams(vista === 'alertas' ? { v: 'alertas' } : {})} alPensar={isEquipo ? setPensamiento : undefined} />
+            <Conversacion key={activo} canalId={activo} item={item} oculta={!enMensajes} canales={porSlug} perfilDe={perfilDe} onAbrirCanal={(id) => setParams({ c: String(id) })} onVolver={() => setParams(vista === 'bandeja' ? {} : { v: vista })} alPensar={isEquipo ? setPensamiento : undefined} alAbrirPerfil={isEquipo && item?.cliente && !senaActiva ? () => setPerfilAbierto(true) : undefined} extraBarra={isEquipo ? <BotonQuePenso info={pensamiento} /> : null} />
           ) : (
             <div className="msj-vacio">
-              {vista === 'alertas' ? 'Elegí una alerta para ir a la conversación.' : 'Elegí un canal para ver la conversación.'}
+              {vista === 'alertas'
+                ? 'Elegí una alerta para ir a la conversación.'
+                : vista === 'directos'
+                  ? 'Elegí a alguien para escribirle.'
+                  : 'Elegí un canal para ver la conversación.'}
             </div>
           )}
         </main>
 
         {isEquipo && item?.cliente && !senaActiva ? <PanelCliente
+            abierto={perfilAbierto || Boolean(enMensajes && params.get('roadmap'))}
+            alCerrar={cerrarPerfil}
             item={item}
             alVerFicha={isAdmin && escritorio ? escritorio.verFicha : null}
             llamadaId={enMensajes ? Number(params.get('roadmap')) || null : null}
             onLlamadaUsada={() => setParams({ c: String(item.id) }, { replace: true })}
-            pensamiento={pensamiento}
           /> : null}
         {onboardingDe ? (
           <NuevoCliente

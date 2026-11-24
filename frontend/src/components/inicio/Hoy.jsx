@@ -122,7 +122,7 @@ export function Hoy() {
             <Link to="/classroom?vista=sops" className="im-acceso">
               <small>Biblioteca de SOPs</small>
               <b>{sops}</b>
-              <span>Ver estantes ›</span>
+              <span>Ver SOPs ›</span>
             </Link>
           ) : null}
           {avance != null ? (

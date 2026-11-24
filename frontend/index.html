@@ -19,11 +19,13 @@
     />
     <title>ATV Classroom</title>
     <script>
-      // El modo (claro / azul) antes de pintar, para que no parpadee. Ver src/utils/modo.js.
+      // El modo (claro / oscuro / auto) antes de pintar, para que no parpadee. Ver src/utils/modo.js.
       try {
-        if (localStorage.getItem('atv_modo') === 'azul') {
+        var modo = localStorage.getItem('atv_modo')
+        var hora = new Date().getHours()
+        if (modo === 'azul' || modo === 'oscuro' || (modo === 'auto' && (hora >= 20 || hora < 7))) {
           document.documentElement.dataset.modo = 'azul'
-          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#202b41')
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#201f1e')
         }
       } catch (e) {}
     </script>

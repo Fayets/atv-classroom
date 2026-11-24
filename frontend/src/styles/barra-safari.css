@@ -1,0 +1,180 @@
+/* ======================================================================
+   Barra de la ventana del equipo, como la de Safari en macOS: semáforo,
+   atrás/adelante en una cápsula, la barra de direcciones al centro y el avatar.
+   Claro: cápsulas de vidrio (brillo arriba, borde fino, sombra suave). Sin
+   backdrop-filter: la barra es opaca, el vidrio se dibuja con luz y no traba.
+   Oscuro: superficies planas y sólidas, sin vidrio.
+   ====================================================================== */
+html .app-header.app-header--mac.is-safari {
+  --sf-barra: linear-gradient(#f8f7f5, #f0eeea);
+  --sf-linea: rgba(29, 29, 31, 0.1);
+  --sf-capsula: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.7));
+  --sf-capsula-hover: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.86));
+  --sf-borde: rgba(29, 29, 31, 0.09);
+  --sf-sombra: 0 1px 1.5px rgba(29, 29, 31, 0.06), 0 6px 16px -6px rgba(60, 48, 40, 0.16), inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 0 rgba(29, 29, 31, 0.03);
+  --sf-tinta: #1d1d1f;
+  --sf-tinta-2: #5f5f64;
+  --sf-tinta-off: rgba(29, 29, 31, 0.24);
+  --sf-ok: #1f8a4c;
+  height: 52px;
+  gap: 16px;
+  padding: 0 14px 0 18px;
+  background: var(--sf-barra);
+  border-bottom: 1px solid var(--sf-linea);
+  box-shadow: none;
+}
+html[data-modo="azul"] .app-header.app-header--mac.is-safari {
+  --sf-barra: #1c1b1a;
+  --sf-linea: rgba(255, 255, 255, 0.07);
+  --sf-capsula: #2b2927;
+  --sf-capsula-hover: #343230;
+  --sf-borde: rgba(255, 255, 255, 0.08);
+  --sf-sombra: none;
+  --sf-tinta: #f2eee8;
+  --sf-tinta-2: #b0a89d;
+  --sf-tinta-off: rgba(255, 255, 255, 0.2);
+  --sf-ok: #5fd197;
+  background: var(--sf-barra);
+  border-bottom-color: var(--sf-linea);
+}
+
+/* atrás / adelante: una sola cápsula con dos botones */
+.is-safari .safari-flechas {
+  display: inline-flex;
+  height: 30px;
+  padding: 0 2px;
+  border-radius: 999px;
+  background: var(--sf-capsula);
+  box-shadow: 0 0 0 0.5px var(--sf-borde), var(--sf-sombra);
+}
+.is-safari .safari-flechas button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sf-tinta);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.is-safari .safari-flechas button:hover:not(:disabled) { background: rgba(var(--m-osc, 0, 0, 0), 0.06); }
+html[data-modo="azul"] .is-safari .safari-flechas button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.07); }
+.is-safari .safari-flechas button:disabled { color: var(--sf-tinta-off); cursor: default; }
+.is-safari .safari-flechas button:focus-visible { outline: 2px solid rgba(10, 132, 255, 0.6); outline-offset: -2px; }
+.is-safari .safari-flechas svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* barra de direcciones */
+.is-safari .safari-url {
+  position: relative;
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: clamp(240px, 36vw, 520px);
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sf-capsula);
+  box-shadow: 0 0 0 0.5px var(--sf-borde), var(--sf-sombra);
+  color: var(--sf-tinta);
+  font: 500 13px/1 var(--mac-font);
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+/* el brillo del vidrio: una luz curva en la mitad de arriba (solo en claro) */
+.is-safari .safari-url::before,
+.is-safari .safari-flechas::before {
+  content: '';
+  position: absolute;
+  inset: 1px 10% 52% 10%;
+  border-radius: 999px;
+  background: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+.is-safari .safari-flechas { position: relative; }
+html[data-modo="azul"] .is-safari .safari-url::before,
+html[data-modo="azul"] .is-safari .safari-flechas::before { display: none; }
+.is-safari .safari-url:hover { background: var(--sf-capsula-hover); }
+.is-safari .safari-url:focus-visible { outline: 2px solid rgba(10, 132, 255, 0.6); outline-offset: 2px; }
+.safari-url__candado { position: relative; flex: none; width: 12px; height: 12px; fill: none; stroke: var(--sf-tinta-2); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.safari-url__texto { position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.is-safari .safari-url.is-copiado { color: var(--sf-ok); }
+.is-safari .safari-url.is-copiado .safari-url__candado { stroke: var(--sf-ok); }
+
+/* avatar: un círculo con el mismo borde fino de las cápsulas */
+html .app-header--mac.is-safari .app-header__avatar { width: 30px; height: 30px; font-size: 11px; box-shadow: 0 0 0 0.5px var(--sf-borde), var(--sf-sombra); }
+
+/* Selector Claro / Oscuro / Auto en el menú del avatar: tres opciones, más angostas */
+.app-header__modo button { padding: 5px 10px; }
+
+@media (max-width: 760px) {
+  .is-safari .safari-url { display: none; }
+}
+
+/* ---------- menú del avatar: sólido, sin vidrio (claro y oscuro) ---------- */
+html body .app-header .app-header__menu {
+  width: 252px;
+  padding: 12px;
+  border: 0;
+  border-radius: 16px;
+  background: #ffffff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: 0 0 0 1px rgba(29, 29, 31, 0.1), 0 18px 44px rgba(40, 30, 22, 0.18), 0 3px 10px rgba(40, 30, 22, 0.08);
+}
+html[data-modo="azul"] body .app-header .app-header__menu {
+  background: #2e2c29;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+html body .app-header .app-header__menu-name { font-size: 13px; font-weight: 700; }
+html body .app-header .app-header__menu-email { font-size: 11.5px; }
+html body .app-header .app-header__menu-link,
+html body .app-header .app-header__menu-logout { border-radius: 8px; font-size: 13px; font-weight: 600; }
+html body .app-header .app-header__menu-link:hover,
+html body .app-header .app-header__menu-logout:hover { background: rgba(128, 128, 128, 0.1); }
+html body .app-header .app-header__menu-logout { color: #c0392b; }
+html[data-modo="azul"] body .app-header .app-header__menu-logout { color: #dd5245; }
+/* Claro / Oscuro / Auto: la opción elegida, en tinta llena */
+html body .app-header .app-header__modo > div { background: rgba(128, 128, 128, 0.12); }
+html body .app-header .app-header__modo button { font-weight: 700; font-size: 11.5px; }
+html body .app-header .app-header__modo button.is-on { background: #1d1d1f; color: #ffffff; box-shadow: none; }
+html[data-modo="azul"] body .app-header .app-header__modo button.is-on { background: #f2eee8; color: #201f1e; }
+
+/* ---------- mensajes directos: punto rojo en el avatar e ítem del menú ---------- */
+.app-header__avatar { position: relative; }
+.app-header__punto {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ff3b30;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 17px;
+  letter-spacing: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  /* un aro del color de la barra, para que se despegue de la foto */
+  box-shadow: 0 0 0 2px #f6f5f2;
+  pointer-events: none;
+  animation: app-punto-aparece 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+html[data-modo="azul"] .app-header__punto { box-shadow: 0 0 0 2px #1c1b1a; }
+@keyframes app-punto-aparece { from { transform: scale(0.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .app-header__punto { animation: none; } }
+
+html body .app-header .app-header__menu-link--directos { display: flex; align-items: center; gap: 9px; }
+.app-header__menu-link--directos svg { flex: none; width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.app-header__menu-link--directos span { flex: 1; }
+.app-header__menu-cuenta { min-width: 18px; height: 18px; padding: 0 6px; border-radius: 999px; background: #ff3b30; color: #ffffff; font-size: 10.5px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }

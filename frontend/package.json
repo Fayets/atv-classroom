@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "node scripts/dev-mock.mjs",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"

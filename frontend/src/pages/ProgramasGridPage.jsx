@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError, fetchProgramas, fetchSopsClassroom } from '../api/client'
 import AppHeader from '../components/AppHeader'
-import { Chevron, EtiquetaRecurso } from '../components/frentes/piezas'
+import { Chevron } from '../components/frentes/piezas'
 import Isotipo from '../components/marca/Isotipo'
 import { tipoRecurso, tituloLindo, urlRecurso } from '../utils/frentes'
 import { getModuloCoverUrl } from '../utils/modules'
 import '../styles/frentes.css'
 import '../styles/material.css'
+import '../styles/classroom-rediseno.css'
 
 // Todo el material, módulo por módulo. Al día a día se entra por la guía del inicio.
 export default function ProgramasGridPage() {
@@ -31,8 +32,16 @@ export default function ProgramasGridPage() {
     }
   }, [])
 
+  // El avance de todo el material: clases implementadas de los módulos abiertos.
+  const resumen = useMemo(() => {
+    const abiertos = (programas || []).filter((m) => !m.bloqueado && m.total_clases)
+    const total = abiertos.reduce((n, m) => n + m.total_clases, 0)
+    const hechas = abiertos.reduce((n, m) => n + Math.round((m.total_clases * (m.porcentaje_progreso ?? 0)) / 100), 0)
+    return { modulos: abiertos.length, total, hechas, pct: total ? Math.round((100 * hechas) / total) : 0 }
+  }, [programas])
+
   return (
-    <div className="app-shell im-root">
+    <div className="app-shell im-root cr-root">
       <AppHeader />
       <main className="mt-grid-page">
         <header className="mt-grid-head">
@@ -40,6 +49,18 @@ export default function ProgramasGridPage() {
             <Chevron dir="left" /> Inicio
           </Link>
           <h1>Todo el material</h1>
+          {programas && resumen.total ? (
+            <div className="cr-resumen">
+              <p>
+                <b className="num">{resumen.hechas}</b> de <span className="num">{resumen.total}</span> clases implementadas
+                <span className="cr-resumen__sep" aria-hidden="true">·</span>
+                <span className="num">{resumen.modulos}</span> módulos abiertos
+              </p>
+              <span className="cr-resumen__barra" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={resumen.pct} aria-label="Avance de todo el material">
+                <i style={{ transform: `scaleX(${resumen.pct / 100})` }} />
+              </span>
+            </div>
+          ) : null}
           <div className="mt-vistas" role="tablist" aria-label="Ver por">
             {[['modulos', 'Módulos'], ['sops', 'SOPs']].map(([v, label]) => (
               <button key={v} type="button" role="tab" aria-selected={vista === v} className={vista === v ? 'is-on' : ''}
@@ -55,68 +76,154 @@ export default function ProgramasGridPage() {
         ) : !programas ? (
           <p className="pc-loading">Cargando módulos…</p>
         ) : (
-          <div className="mt-grid">
-            {programas.map((m, i) => {
-              const vacio = !m.total_clases
-              const cerrado = vacio || m.bloqueado
-              const pct = Math.min(100, Math.max(0, m.porcentaje_progreso ?? 0))
-              const contenido = (
-                <>
-                  <span className="mt-card__cover">
-                    <img src={getModuloCoverUrl(m)} alt="" loading="lazy" decoding="async" />
-                  </span>
-                  <span className="mt-card__info">
-                    <span className="mt-card__row">
-                      <b>{m.titulo}</b>
-                      {m.bloqueado && vacio ? null : <span className="num">{vacio ? 'Próximamente' : `${m.total_clases} clases`}</span>}
-                    </span>
-                    {m.bloqueado ? (
-                      <span className="mt-card__lock">
-                        <svg viewBox="0 0 16 16" aria-hidden="true">
-                          <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
-                          <path d="M5.5 7V5a2.5 2.5 0 015 0v2" />
-                        </svg>
-                        {m.motivo_bloqueo === 'plan' ? 'Bloqueado' : 'Se desbloquea pronto'}
-                      </span>
-                    ) : vacio ? null : (
-                      <span className="mt-card__row">
-                        <span className="mt-bar" aria-hidden="true">
-                          <i style={{ transform: `scaleX(${pct / 100})` }} />
-                        </span>
-                        <span className="num mt-card__pct">{pct}%</span>
-                      </span>
-                    )}
-                  </span>
-                </>
-              )
-              return cerrado ? (
-                <div key={m.id} className={`mt-card is-soon${m.bloqueado ? ' is-locked' : ''}`} style={{ '--i': i }}>
-                  {contenido}
-                </div>
-              ) : (
-                <Link key={m.id} to={`/classroom/${m.id}`} className="mt-card" style={{ '--i': i }}>
-                  {contenido}
-                </Link>
-              )
-            })}
-          </div>
+          <IndiceModulos modulos={programas} />
         )}
       </main>
     </div>
   )
 }
 
+// Todo el material como el índice de un libro: una fila por módulo con su número y su nombre en grande.
+// La línea de abajo de cada fila es su barra de avance. Con mouse, la portada aparece flotando junto al
+// cursor (las demás filas se apagan); en el celular va como miniatura en la fila. Arriba, un acceso
+// directo al módulo que quedó a medio hacer.
+function IndiceModulos({ modulos }) {
+  const marco = useRef(null)
+  const vista = useRef(null)
+  const [enFoco, setEnFoco] = useState(null) // el módulo bajo el mouse
+  const posicion = useRef({ x: 0, y: 0, cuadro: 0 })
+
+  // La vista previa sigue al cursor con transform (sin re-render en cada movimiento). Va relativa a esta
+  // sección y no a la pantalla: en el escritorio del equipo la ventana es el contenedor de lo "fixed".
+  const mover = (e) => {
+    posicion.current.x = e.clientX
+    posicion.current.y = e.clientY
+    if (posicion.current.cuadro) return
+    posicion.current.cuadro = requestAnimationFrame(() => {
+      posicion.current.cuadro = 0
+      const caja = marco.current?.getBoundingClientRect()
+      if (!caja) return
+      vista.current?.style.setProperty('--x', `${posicion.current.x - caja.left}px`)
+      vista.current?.style.setProperty('--y', `${posicion.current.y - caja.top}px`)
+    })
+  }
+  useEffect(() => () => cancelAnimationFrame(posicion.current.cuadro), [])
+
+  const seguir = modulos.find((m) => !m.bloqueado && m.total_clases && (m.porcentaje_progreso ?? 0) > 0 && m.porcentaje_progreso < 100)
+
+  return (
+    <div className="cr-material" ref={marco}>
+      {seguir ? (
+        <Link to={`/classroom/${seguir.id}`} className="cr-seguir">
+          <span className="cr-seguir__portada" aria-hidden="true">
+            <img src={getModuloCoverUrl(seguir)} alt="" decoding="async" />
+          </span>
+          <span className="cr-seguir__txt">
+            <small>Seguí donde quedaste</small>
+            <b>{seguir.titulo}</b>
+          </span>
+          <span className="cr-seguir__pct num">{seguir.porcentaje_progreso}%</span>
+          <span className="cr-seguir__ir" aria-hidden="true">
+            <Chevron />
+          </span>
+        </Link>
+      ) : null}
+
+      <ol
+        className={`cr-indice${enFoco ? ' con-foco' : ''}`}
+        onMouseMove={mover}
+        onMouseLeave={() => setEnFoco(null)}
+        aria-label="Módulos"
+      >
+        {modulos.map((m, i) => {
+          const vacio = !m.total_clases
+          const cerrado = vacio || m.bloqueado
+          const pct = Math.min(100, Math.max(0, m.porcentaje_progreso ?? 0))
+          const completo = !cerrado && pct === 100
+          const numero = String(i + 1).padStart(2, '0')
+          const estado = m.bloqueado
+            ? m.motivo_bloqueo === 'plan' ? 'Bloqueado' : 'Se desbloquea pronto'
+            : vacio
+              ? 'Próximamente'
+              : completo
+                ? 'Completo'
+                : pct
+                  ? `${pct}%`
+                  : 'Sin empezar'
+          const fila = (
+            <>
+              <span className="cr-fila__num num" aria-hidden="true">
+                {completo ? (
+                  <svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" /></svg>
+                ) : (
+                  numero
+                )}
+              </span>
+              <span className="cr-fila__mini" aria-hidden="true">
+                <img src={getModuloCoverUrl(m)} alt="" loading="lazy" decoding="async" />
+              </span>
+              <span className="cr-fila__titulo">{m.titulo}</span>
+              <span className="cr-fila__meta">
+                {vacio ? null : <span className="num">{m.total_clases} clases</span>}
+                <span className={`cr-fila__estado${cerrado ? ' is-cerrado' : completo ? ' is-completo' : pct ? ' is-avance' : ''}`}>
+                  {m.bloqueado ? (
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
+                      <path d="M5.5 7V5a2.5 2.5 0 015 0v2" />
+                    </svg>
+                  ) : null}
+                  {estado}
+                </span>
+              </span>
+              <span className="cr-fila__ir" aria-hidden="true">
+                {cerrado ? null : <Chevron />}
+              </span>
+              <span className="cr-fila__avance" aria-hidden="true">
+                <i style={{ transform: `scaleX(${cerrado ? 0 : pct / 100})` }} />
+              </span>
+            </>
+          )
+          const clases = `cr-fila${cerrado ? ' is-cerrado' : ''}${completo ? ' is-completo' : ''}${enFoco?.id === m.id ? ' is-foco' : ''}`
+          return (
+            <li key={m.id} style={{ '--i': i }}>
+              {cerrado ? (
+                <div className={clases} onMouseEnter={() => setEnFoco(m)}>
+                  {fila}
+                </div>
+              ) : (
+                <Link
+                  to={`/classroom/${m.id}`}
+                  className={clases}
+                  onMouseEnter={() => setEnFoco(m)}
+                  aria-label={`${m.titulo}: ${m.total_clases} clases, ${estado}`}
+                >
+                  {fila}
+                </Link>
+              )}
+            </li>
+          )
+        })}
+      </ol>
+
+      {/* La portada que sigue al cursor. Una sola para toda la lista: cambia la imagen, no se crea otra. */}
+      <div className={`cr-vista${enFoco ? ' is-visible' : ''}${enFoco && (enFoco.bloqueado || !enFoco.total_clases) ? ' is-cerrado' : ''}`} ref={vista} aria-hidden="true">
+        {enFoco ? <img src={getModuloCoverUrl(enFoco)} alt="" decoding="async" /> : null}
+      </div>
+    </div>
+  )
+}
+
 const normal = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
-// Todos los SOPs de los videos: un estante por módulo y cada SOP como una tapa con el isotipo de ATV.
-// Al tocar una tapa se abren abajo sus documentos y el video.
-const TONOS = ['oscura', 'piedra', 'blanca', 'oscura', 'piedra', 'roja', 'blanca', 'piedra']
-
+// Todos los SOPs como una mesa de documentos: cada SOP es una hoja (una pila si trae varios documentos),
+// con el tipo de cada documento como pestaña de carpeta. Arriba, el buscador y un filtro por módulo.
+// Al tocar una hoja se abre el lector al costado, con los documentos y el video.
 function VistaSops() {
   const [modulos, setModulos] = useState(null)
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
-  const [abierta, setAbierta] = useState(null)
+  const [modulo, setModulo] = useState(null) // programa_id elegido en el filtro; null = todos
+  const [abierta, setAbierta] = useState(null) // { sop, modulo }
 
   useEffect(() => {
     let cancelado = false
@@ -134,108 +241,176 @@ function VistaSops() {
   const filtrados = useMemo(() => {
     if (!modulos) return null
     const palabras = normal(q).split(/\s+/).filter(Boolean)
-    if (!palabras.length) return modulos
     return modulos
+      .filter((m) => modulo == null || m.programa_id === modulo)
       .map((m) => ({
         ...m,
-        sops: m.sops.filter((s) => {
-          const texto = normal(`${s.titulo} ${s.seccion} ${m.modulo} ${s.documentos.map((d) => d.titulo).join(' ')}`)
-          return palabras.every((p) => texto.includes(p))
-        }),
+        sops: palabras.length
+          ? m.sops.filter((s) => {
+              const texto = normal(`${s.titulo} ${s.seccion} ${m.modulo} ${s.documentos.map((d) => d.titulo).join(' ')}`)
+              return palabras.every((p) => texto.includes(p))
+            })
+          : m.sops,
       }))
       .filter((m) => m.sops.length)
-  }, [modulos, q])
+  }, [modulos, q, modulo])
 
   if (error) return <p className="im-error">{error}</p>
   if (!filtrados) return <p className="pc-loading">Cargando SOPs…</p>
   const total = modulos.reduce((n, m) => n + m.sops.length, 0)
+  const visibles = filtrados.reduce((n, m) => n + m.sops.length, 0)
 
   return (
-    <div className="mt-sops">
-      <input className="mt-sops__buscar" type="search" value={q} onChange={(e) => setQ(e.target.value)}
-        placeholder={`Buscar entre los ${total} SOPs`} aria-label="Buscar SOP" autoComplete="off" />
+    <div className="cr-mesa">
+      <div className="cr-mesa__buscar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={`¿Qué proceso buscás? Hay ${total} SOPs`}
+          aria-label="Buscar SOP"
+          autoComplete="off"
+        />
+        {q || modulo != null ? <span className="cr-mesa__cuenta num">{visibles} de {total}</span> : null}
+      </div>
+
+      <div className="cr-mesa__filtro" role="group" aria-label="Filtrar por módulo">
+        <button type="button" className={modulo == null ? 'is-on' : ''} aria-pressed={modulo == null} onClick={() => setModulo(null)}>
+          Todos <span className="num">{total}</span>
+        </button>
+        {modulos.map((m) => (
+          <button
+            key={m.programa_id}
+            type="button"
+            className={modulo === m.programa_id ? 'is-on' : ''}
+            aria-pressed={modulo === m.programa_id}
+            onClick={() => setModulo(modulo === m.programa_id ? null : m.programa_id)}
+          >
+            {m.modulo} <span className="num">{m.sops.length}</span>
+          </button>
+        ))}
+      </div>
+
       {filtrados.length ? (
-        filtrados.map((m, mi) => (
-          <Estante key={m.programa_id} modulo={m} indice={mi} abierta={abierta} onAbrir={setAbierta} />
+        filtrados.map((m) => (
+          <section key={m.programa_id} className="cr-mesa__grupo" aria-label={m.modulo}>
+            <h2>
+              {m.modulo} <span className="num">{m.sops.length}</span>
+            </h2>
+            <ul className="cr-hojas">
+              {m.sops.map((s, i) => (
+                <li key={s.clase_id} style={{ '--i': i }}>
+                  <Hoja sop={s} numero={i + 1} modulo={m.modulo} activa={abierta?.sop.clase_id === s.clase_id} onAbrir={() => setAbierta({ sop: s, modulo: m })} />
+                </li>
+              ))}
+            </ul>
+          </section>
         ))
       ) : (
         <p className="mt-sops__vacio">
           No hay un SOP con eso. <Link to="/">Pedilo desde el inicio</Link> y te lo armamos.
         </p>
       )}
+
+      {abierta ? <LectorSop sop={abierta.sop} modulo={abierta.modulo} onCerrar={() => setAbierta(null)} /> : null}
     </div>
   )
 }
 
-function Estante({ modulo: m, indice, abierta, onAbrir }) {
-  const filaRef = useRef(null)
-  const sop = m.sops.find((s) => s.clase_id === abierta)
-  const correr = (dir) => filaRef.current?.scrollBy({ left: dir * filaRef.current.clientWidth * 0.8, behavior: 'smooth' })
+// Una hoja: número y módulo arriba, el título, renglones de papel y el sello ATV. Los tipos de sus
+// documentos asoman arriba como pestañas de carpeta; con más de un documento, se ve la pila detrás.
+function Hoja({ sop, numero, modulo, activa, onAbrir }) {
+  const tipos = [...new Set(sop.documentos.map((d) => tipoRecurso(d).tag))]
+  const pila = Math.min(sop.documentos.length, 3)
+  return (
+    <button type="button" className={`cr-hoja${activa ? ' is-activa' : ''}`} data-pila={pila} onClick={onAbrir} aria-haspopup="dialog">
+      <span className="cr-hoja__pestanas" aria-hidden="true">
+        {tipos.map((t) => (
+          <span key={t} className={`cr-pestana is-${t.toLowerCase()}`}>{t}</span>
+        ))}
+      </span>
+      <span className="cr-hoja__papel">
+        <span className="cr-hoja__cab">
+          <span className="num">SOP {String(numero).padStart(2, '0')}</span>
+          <span>{modulo}</span>
+        </span>
+        <b className="cr-hoja__titulo">{tituloLindo(sop.titulo)}</b>
+        <small className="cr-hoja__seccion">{tituloLindo(sop.seccion)}</small>
+        <span className="cr-hoja__renglones" aria-hidden="true" />
+        <span className="cr-hoja__pie">
+          <span>
+            {sop.documentos.length} {sop.documentos.length === 1 ? 'documento' : 'documentos'}
+            {sop.con_video === false ? '' : ' · video'}
+          </span>
+          <Isotipo className="cr-hoja__sello" />
+        </span>
+      </span>
+    </button>
+  )
+}
+
+// El lector: un panel al costado con el SOP abierto, sus documentos y el video. Esc o tocar afuera lo cierra.
+function LectorSop({ sop, modulo, onCerrar }) {
+  const cerrar = useRef(onCerrar)
+  cerrar.current = onCerrar
+  const panel = useRef(null)
+  useEffect(() => {
+    const esc = (e) => e.key === 'Escape' && cerrar.current()
+    document.addEventListener('keydown', esc)
+    panel.current?.focus()
+    return () => document.removeEventListener('keydown', esc)
+  }, [sop.clase_id])
 
   return (
-    <section className="mt-estante">
-      <div className="mt-estante__cab">
-        <h2>
-          {m.modulo} <span className="num">{m.sops.length}</span>
-        </h2>
-        <div className="mt-estante__flechas">
-          <button type="button" onClick={() => correr(-1)} aria-label={`Anteriores de ${m.modulo}`}>
-            <Chevron dir="left" />
+    <div className="cr-lector" role="presentation">
+      <div className="cr-lector__fondo" onClick={onCerrar} aria-hidden="true" />
+      <aside className="cr-lector__panel" role="dialog" aria-modal="true" aria-label={tituloLindo(sop.titulo)} tabIndex={-1} ref={panel}>
+        <header className="cr-lector__cab">
+          <span className="cr-lector__ruta">
+            {modulo.modulo} › {tituloLindo(sop.seccion)}
+          </span>
+          <button type="button" className="cr-lector__cerrar" onClick={onCerrar} aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
           </button>
-          <button type="button" onClick={() => correr(1)} aria-label={`Siguientes de ${m.modulo}`}>
-            <Chevron />
-          </button>
-        </div>
-      </div>
-      <div className="mt-estante__fila" ref={filaRef}>
-        {m.sops.map((s, i) => (
-          <button
-            key={s.clase_id}
-            type="button"
-            className={`mt-tapa is-${TONOS[(i + indice) % TONOS.length]}${abierta === s.clase_id ? ' is-on' : ''}`}
-            onClick={() => onAbrir(abierta === s.clase_id ? null : s.clase_id)}
-            aria-expanded={abierta === s.clase_id}
-          >
-            <span className="mt-tapa__cab">
-              <span className="num">SOP {String(i + 1).padStart(2, '0')}</span>
-              <Isotipo className="mt-tapa__logo" titulo="ATV" />
+        </header>
+        <h3>{tituloLindo(sop.titulo)}</h3>
+
+        <p className="cr-lector__eti">Documentos</p>
+        <ul className="cr-lector__docs">
+          {sop.documentos.map((d) => {
+            const { tag, label } = tipoRecurso(d)
+            return (
+              <li key={d.id}>
+                <a href={urlRecurso(d.url)} target="_blank" rel="noopener noreferrer">
+                  <span className={`cr-pestana is-${tag.toLowerCase()}`}>{tag}</span>
+                  <span className="cr-lector__doc">
+                    <b>{/^(documento|planilla|formulario) google/i.test(d.titulo) ? label : d.titulo}</b>
+                    <small>{label}</small>
+                  </span>
+                  <Chevron />
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+
+        <p className="cr-lector__eti">La clase</p>
+        {sop.con_video === false ? (
+          <span className="cr-lector__pronto">Video próximamente</span>
+        ) : (
+          <Link to={`/classroom/${modulo.programa_id}?clase=${sop.clase_id}`} className="cr-lector__video">
+            <span className="cr-lector__play" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" /></svg>
             </span>
-            <b>{tituloLindo(s.titulo)}</b>
-            <small>{tituloLindo(s.seccion)}</small>
-            <span className="mt-tapa__pie">
-              {[...new Set(s.documentos.map((d) => tipoRecurso(d).tag))].map((t) => (
-                <span key={t}>{t}</span>
-              ))}
-            </span>
-            <Isotipo className="mt-tapa__marca" />
-          </button>
-        ))}
-      </div>
-      {sop ? (
-        <div className="mt-estante__det">
-          <div className="mt-estante__det-txt">
-            <h3>{tituloLindo(sop.titulo)}</h3>
             <span>
-              {m.modulo} › {tituloLindo(sop.seccion)}
+              <b>Ver el video de la clase</b>
+              <small>{modulo.modulo}</small>
             </span>
-          </div>
-          {sop.con_video === false ? (
-            <span className="mt-estante__pronto">Video próximamente</span>
-          ) : (
-            <Link to={`/classroom/${m.programa_id}?clase=${sop.clase_id}`} className="pc-btn pc-btn--light">
-              Ver video <Chevron />
-            </Link>
-          )}
-          <div className="mt-estante__docs">
-            {sop.documentos.map((d) => (
-              <a key={d.id} href={urlRecurso(d.url)} target="_blank" rel="noopener noreferrer" className="im-sopchip">
-                <EtiquetaRecurso recurso={d} />
-                {/^(documento|planilla|formulario) google/i.test(d.titulo) ? tipoRecurso(d).label : d.titulo}
-              </a>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </section>
+            <Chevron />
+          </Link>
+        )}
+      </aside>
+    </div>
   )
 }

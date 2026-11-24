@@ -10,6 +10,7 @@ import AppHeader from '../components/AppHeader'
 import '../styles/frentes.css'
 import '../styles/material.css'
 import '../styles/clase.css'
+import '../styles/classroom-rediseno.css'
 import BarraModulo from '../components/clase/BarraModulo'
 import MesaClase from '../components/clase/MesaClase'
 import SubirLiveSession from '../components/clase/SubirLiveSession'
@@ -215,7 +216,7 @@ export default function ProgramaDetailPage() {
   const nav = navegacionClase(clasesFlat, claseActivaId)
 
   return (
-    <div className="app-shell im-root">
+    <div className="app-shell im-root cr-root">
       <AppHeader />
 
       {cargandoPrograma ? (

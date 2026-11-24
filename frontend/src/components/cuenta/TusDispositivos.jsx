@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { cerrarDispositivo, fetchDispositivos } from '../../api/cuenta'
 import { Equipo, cuandoFue } from './dispositivos'
+import Tarjeta from './Tarjeta'
 
-// Mi cuenta: dónde tenés la sesión abierta. Siempre arranca cerrado (Franco: "cosa que no moleste").
+// Mi cuenta: dónde tenés la sesión abierta. Antes arrancaba plegado (Franco: "cosa que no moleste");
+// con el rediseño de Mi cuenta va abierto como las demás tarjetas.
 export default function TusDispositivos() {
   const [lista, setLista] = useState(null)
   const [cerrando, setCerrando] = useState(null)
@@ -22,12 +24,7 @@ export default function TusDispositivos() {
   }
 
   return (
-    <details className="cuenta-seccion cuenta-plegable">
-      <summary>
-        <h2>Tus dispositivos</h2>
-        {lista ? <span className="cuenta-plegable__n">{lista.length}</span> : null}
-      </summary>
-      <div className="cuenta-seccion__cuerpo">
+    <Tarjeta titulo="Tus dispositivos" icono="dispositivos" cuenta={lista ? lista.length : null}>
         <p className="disp-ayuda">Donde tenés la sesión abierta. Si no reconocés alguno, cerralo y avisanos.</p>
         <ul className="disp-lista">
           {(lista || []).map((d) => (
@@ -47,7 +44,6 @@ export default function TusDispositivos() {
             </li>
           ))}
         </ul>
-      </div>
-    </details>
+    </Tarjeta>
   )
 }

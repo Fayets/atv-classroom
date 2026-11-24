@@ -1,0 +1,129 @@
+/* ======================================================================
+   Mi cuenta, rediseño 2026-11: una tarjeta de perfil a todo el ancho y el resto
+   en una grilla de dos columnas. Claro "Papel" y oscuro de grises cálidos, sólido.
+   Se carga después de cuenta.css; los selectores llevan `html .cuenta-root` para
+   ganarles también a tema-azul.css.
+   ====================================================================== */
+html .cuenta-root {
+  --c-lienzo: #f6f4f0;
+  --c-tarjeta: #ffffff;
+  --c-tarjeta-2: #f1eee9;
+  --c-ink: #1d1d1f;
+  --c-ink-2: #5f5f64;
+  --c-ink-3: #76767b;
+  --c-linea: rgba(29, 29, 31, 0.09);
+  --c-linea-2: rgba(29, 29, 31, 0.16);
+  --c-rojo: #c0392b;
+  --c-rojo-lavado: #fbeae7;
+  --c-rojo-tinta: #8a2e22;
+  background: var(--c-lienzo);
+}
+html[data-modo="azul"] .cuenta-root {
+  --c-lienzo: #1b1a19;
+  --c-tarjeta: #262423;
+  --c-tarjeta-2: #302d2b;
+  --c-ink: #f2eee8;
+  --c-ink-2: #b0a89d;
+  --c-ink-3: #8e867c;
+  --c-linea: rgba(255, 255, 255, 0.08);
+  --c-linea-2: rgba(255, 255, 255, 0.16);
+  --c-rojo: #dd5245;
+  --c-rojo-lavado: rgba(221, 82, 69, 0.16);
+  --c-rojo-tinta: #ffbbb0;
+  background: var(--c-lienzo);
+}
+
+html .cuenta-root .cuenta { max-width: 980px; padding: 28px 24px 64px; color: var(--c-ink); }
+html .cuenta-root .cuenta__cabeza { margin-bottom: 20px; }
+html .cuenta-root .cuenta__cabeza h1 { margin: 0 0 3px; font-size: 25px; font-weight: 800; letter-spacing: -0.025em; }
+html .cuenta-root .cuenta__cabeza p { margin: 0; font-size: 12.5px; color: var(--c-ink-3); }
+
+/* perfil */
+html .cuenta-root .cuenta-heroe {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 14px;
+  padding: 20px 22px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--c-tarjeta);
+  box-shadow: inset 0 0 0 1px var(--c-linea);
+}
+/* un brillo rojo muy suave en la esquina, la firma de ATV */
+html .cuenta-root .cuenta-heroe::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(460px 200px at 100% 0%, rgba(192, 57, 43, 0.07), transparent 70%);
+  pointer-events: none;
+}
+html[data-modo="azul"] .cuenta-root .cuenta-heroe::after { background: radial-gradient(460px 200px at 100% 0%, rgba(221, 82, 69, 0.1), transparent 70%); }
+html .cuenta-root .cuenta-heroe > * { position: relative; z-index: 1; }
+html .cuenta-root .cuenta-perfil { flex: 1; min-width: 0; }
+html .cuenta-root .cuenta-foto { width: 64px; height: 64px; background: var(--c-rojo-lavado); }
+html .cuenta-root .cuenta-foto span { font-size: 21px; font-weight: 800; color: var(--c-rojo-tinta); }
+html .cuenta-root .cuenta-perfil__nombre { font-size: 18px; font-weight: 800; letter-spacing: -0.015em; color: var(--c-ink); }
+html .cuenta-root .cuenta-perfil__mail { margin: 2px 0 10px; font-size: 12.5px; color: var(--c-ink-3); }
+html .cuenta-root .cuenta-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+html .cuenta-root .cuenta-chips:empty { display: none; }
+.cuenta-chip { display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px; background: var(--c-tarjeta-2); box-shadow: inset 0 0 0 1px var(--c-linea); color: var(--c-ink-2); font-size: 11.5px; font-weight: 700; }
+.cuenta-chip.is-acento { background: var(--c-rojo-lavado); box-shadow: inset 0 0 0 1px rgba(192, 57, 43, 0.22); color: var(--c-rojo-tinta); }
+html .cuenta-root .cuenta-heroe__salir { flex: none; align-self: flex-start; }
+
+/* botones */
+html .cuenta-root .cuenta-boton { padding: 8px 15px; border-radius: 9px; background: var(--c-rojo); font-size: 12.5px; font-weight: 700; }
+html .cuenta-root .cuenta-boton:hover:not(:disabled) { filter: brightness(1.06); }
+html .cuenta-root .cuenta-boton.is-suave { background: transparent; box-shadow: inset 0 0 0 1px var(--c-linea-2); color: var(--c-ink-2); }
+html .cuenta-root .cuenta-boton.is-peligro { padding: 8px 15px; background: transparent; box-shadow: inset 0 0 0 1px var(--c-linea-2); color: var(--c-rojo); }
+html .cuenta-root .cuenta-boton.is-peligro:hover { background: var(--c-rojo-lavado); filter: none; }
+
+/* Tarjetas en dos columnas que se acomodan como ladrillos: cada una va donde hay lugar,
+   sin huecos entre una corta y una larga. */
+.cuenta-grilla { columns: 2; column-gap: 14px; }
+html .cuenta-root .cuenta-grilla .cuenta-seccion {
+  display: block;
+  break-inside: avoid;
+  margin: 0 0 14px;
+  padding: 18px 20px 20px;
+  border-radius: 16px;
+  background: var(--c-tarjeta);
+  box-shadow: inset 0 0 0 1px var(--c-linea), 0 1px 2px rgba(40, 30, 22, 0.03);
+}
+html[data-modo="azul"] .cuenta-root .cuenta-grilla .cuenta-seccion { box-shadow: inset 0 0 0 1px var(--c-linea); }
+html .cuenta-root .cuenta-grilla .cuenta-seccion.is-ancha { column-span: all; }
+
+/* cabecera de cada tarjeta: ícono en un cuadradito, título y número */
+.cuenta-tarjeta__cab { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
+.cuenta-tarjeta__icono {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--c-tarjeta-2);
+  box-shadow: inset 0 0 0 1px var(--c-linea);
+  color: var(--c-ink);
+}
+.cuenta-tarjeta__icono svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+html .cuenta-root .cuenta-tarjeta__cab h2 { margin: 0; font-size: 14px; font-weight: 700; letter-spacing: -0.005em; text-transform: none; color: var(--c-ink); }
+.cuenta-tarjeta__n { min-width: 20px; height: 20px; padding: 0 7px; border-radius: 999px; background: var(--c-tarjeta-2); color: var(--c-ink-2); font-size: 11px; font-weight: 700; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* la tarjeta ya es la caja: el cuerpo va sin otra caja adentro */
+html .cuenta-root .cuenta-grilla .cuenta-seccion__cuerpo { padding: 0; border-radius: 0; background: none; box-shadow: none; font-size: 13px; line-height: 1.55; color: var(--c-ink-2); }
+html .cuenta-root .cuenta-grilla input:not([type="checkbox"]):not([type="radio"]) { border-radius: 9px; }
+html .cuenta-root .cuenta-dato { font-size: 13px; }
+html .cuenta-root .cuenta-dato dt { color: var(--c-ink-3); }
+html .cuenta-root .cuenta-dato dd { color: var(--c-ink); font-weight: 600; }
+html .cuenta-root .disp-lista li { border-top-color: var(--c-linea); }
+html .cuenta-root .disp-icono { stroke: var(--c-ink-2); }
+html .cuenta-root .disp-txt b { font-size: 13px; color: var(--c-ink); }
+
+@media (max-width: 760px) {
+  .cuenta-grilla { columns: 1; }
+  html .cuenta-root .cuenta { padding: 20px 14px 96px; }
+  html .cuenta-root .cuenta-heroe { flex-direction: column; align-items: stretch; }
+  html .cuenta-root .cuenta-heroe__salir { align-self: flex-start; }
+}

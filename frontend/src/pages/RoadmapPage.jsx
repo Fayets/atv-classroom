@@ -1,106 +1,241 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { fetchMiRoadmap, fetchRoadmap, marcarPaso } from '../api/roadmap'
 import AppHeader from '../components/AppHeader'
 import { useAuth } from '../context/AuthContext'
-import '../styles/roadmap.css'
+import '../styles/frentes.css'
+import '../styles/classroom-rediseno.css'
+import '../styles/roadmap-rediseno.css'
 import { getUserInitials } from '../utils/user'
 
-// Roadmap del cliente como un tablero de Miro: una tarjeta por coach, con sus documentos y versiones,
-// flechas en el orden en que entraron, y arriba el documento que hay que seguir ahora.
+// El roadmap del cliente como una ruta, en el lenguaje de Material (papel, vidrio, números grandes y la
+// línea como progreso):
+//   1. "Tu próximo paso": el primer paso pendiente del cliente en el roadmap a seguir, enorme, con "Listo".
+//   2. "Tu mapa": un camino vertical que zigzaguea, con un punto por roadmap (un color por coach, un anillo
+//      que se llena con el avance). Tocar un punto abre su cartel ahí mismo con los pasos, en dos columnas:
+//      "Lo hacés vos" y "Lo hace ATV". Filtro por coach y "Ocultar reemplazados".
+// Los datos y las acciones son los mismos de siempre: fetchMiRoadmap / fetchRoadmap y marcarPaso.
 
+// Un color por coach, en el orden en que entraron (los mismos del tablero anterior).
 const COLORES = ['#4f7fd8', '#2e9d6e', '#d8a43a', '#9a6fd6', '#d8644f', '#3aa7b5']
-const ANCHO_DOC = 128
-const fecha = (iso) => {
-  const d = new Date(`${iso}T00:00:00`)
-  const hoy = new Date()
-  if (d.toDateString() === hoy.toDateString()) return 'Hoy'
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
-}
+const fechaCorta = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }).replace('.', '')
 const fechaLarga = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
-// El roadmap abierto: el documento de esa llamada como checklist, separado en lo que hace el cliente y lo
-// que hace ATV, con su avance. Se abre desde el tablero (como abrir un documento en Miro).
-function Lector({ doc, esPrincipal, alCambiar, alCerrar }) {
-  const [enviando, setEnviando] = useState(null)
-  useEffect(() => {
-    const esc = (e) => e.key === 'Escape' && alCerrar()
-    window.addEventListener('keydown', esc)
-    return () => window.removeEventListener('keydown', esc)
-  }, [alCerrar])
-  async function tildar(p) {
-    setEnviando(p.id)
-    try {
-      alCambiar(await marcarPaso(doc.id, p.id, !p.hecho))
-    } finally {
-      setEnviando(null)
-    }
-  }
-  const pasos = doc.pasos || []
-  const hechos = pasos.filter((p) => p.hecho).length
-  const coach = doc.coach.nombre.split(' ')[0]
-  const fila = (p) => (
-    <label key={p.id} className={`rm-check${p.hecho ? ' is-hecho' : ''}`} title={p.hecho && p.hecho_por?.nombre ? `Lo tildó ${p.hecho_por.nombre}` : undefined}>
-      <input type="checkbox" checked={p.hecho} disabled={enviando === p.id} onChange={() => tildar(p)} />
-      <span>
-        {p.texto}
-        {p.quien === 'atv' ? <small>Lo hace {coach} · se tilda cuando esté</small> : null}
-      </span>
-    </label>
-  )
-  return (
-    <div className="rm-lector-fondo" onMouseDown={(e) => e.target === e.currentTarget && alCerrar()}>
-      <aside className="rm-lector" role="dialog" aria-modal="true" aria-label={nombreDoc(doc)}>
-        <div className="rm-lector__arriba">
-          <span>Roadmap de {coach} · {fechaLarga(doc.fecha)}</span>
-          <button type="button" onClick={alCerrar} aria-label="Cerrar">✕</button>
-        </div>
-        <h2>{nombreDoc(doc)}</h2>
-        <p className="rm-lector__sub">
-          {doc.estado === 'reemplazado' ? 'Este roadmap fue reemplazado por uno más nuevo. ' : esPrincipal ? 'Es el que tenés que seguir ahora. ' : ''}
-          {pasos.length ? 'Lo que acordamos en la llamada. Tildá cada paso cuando lo termines.' : doc.area || doc.tipo_nombre}
-        </p>
-        {pasos.length ? (
-          <>
-            <div className="rm-progreso">
-              <span className="rm-barra" aria-hidden="true"><i style={{ transform: `scaleX(${hechos / pasos.length})` }} /></span>
-              <b>{hechos} de {pasos.length} listos</b>
-            </div>
-            {pasos.some((p) => p.quien !== 'atv') ? (
-              <div className="rm-grupo"><h4>Lo hacés vos</h4>{pasos.filter((p) => p.quien !== 'atv').map(fila)}</div>
-            ) : null}
-            {pasos.some((p) => p.quien === 'atv') ? (
-              <div className="rm-grupo"><h4>Lo hace ATV</h4>{pasos.filter((p) => p.quien === 'atv').map(fila)}</div>
-            ) : null}
-          </>
-        ) : null}
-        <div className="rm-lector__acciones">
-          {doc.fathom_url ? <a className="rm-boton is-suave" href={doc.fathom_url} target="_blank" rel="noopener noreferrer">▶ Ver la llamada</a> : null}
-          {doc.url ? <a className="rm-boton" href={doc.url} target="_blank" rel="noopener noreferrer">Abrir documento</a> : null}
-        </div>
-      </aside>
-    </div>
-  )
-}
-
 const nombreDoc = (d) => (d.versiones > 1 ? `${d.titulo} · v${d.version}` : d.titulo)
+const primerNombre = (n = '') => n.split(' ')[0]
 
-function Cara({ coach, size = 30 }) {
+function Cara({ coach, size = 28 }) {
   return coach.foto_url ? (
-    <img className="rm-cara" src={coach.foto_url} alt="" width={size} height={size} referrerPolicy="no-referrer" />
+    <img className="rr-cara" src={coach.foto_url} alt="" width={size} height={size} referrerPolicy="no-referrer" />
   ) : (
-    <span className="rm-cara rm-cara--ini" style={{ width: size, height: size }}>{getUserInitials(coach.nombre)}</span>
+    <span className="rr-cara rr-cara--ini" style={{ width: size, height: size }} aria-hidden="true">
+      {getUserInitials(coach.nombre)}
+    </span>
   )
 }
 
-function Hoja({ doc, principal, grande }) {
+function Tilde({ hecho }) {
   return (
-    <span className={`rm-hoja${grande ? ' is-grande' : ''}${principal ? ' is-principal' : ''}${doc?.estado === 'reemplazado' ? ' is-vieja' : ''}`} aria-hidden="true">
-      <i />
-      <i />
-      <i />
-      <i />
-      {principal ? <b>VIGENTE</b> : null}
+    <span className={`rr-tilde${hecho ? ' is-hecho' : ''}`} aria-hidden="true">
+      <svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" /></svg>
     </span>
+  )
+}
+
+// Una columna: los pasos de quien los hace, numerados como el índice de Material, sin caja alrededor.
+function Columna({ titulo, pasos, numeros, coach, enviando, alTildar }) {
+  if (!pasos.length) return null
+  const hechos = pasos.filter((p) => p.hecho).length
+  return (
+    <section className="rr-columna" aria-label={titulo}>
+      <h3>
+        {titulo} <span className="num">{hechos} de {pasos.length}</span>
+      </h3>
+      <ol className="rr-pasos">
+        {pasos.map((p) => (
+          <li key={p.id}>
+            <label className={`rr-paso${p.hecho ? ' is-hecho' : ''}`} title={p.hecho && p.hecho_por?.nombre ? `Lo tildó ${p.hecho_por.nombre}` : undefined}>
+              <input type="checkbox" checked={p.hecho} disabled={enviando === p.id} onChange={() => alTildar(p)} />
+              <span className="rr-paso__num num">{String(numeros[p.id]).padStart(2, '0')}</span>
+              <span className="rr-paso__texto">
+                {p.texto}
+                {p.quien === 'atv' ? <small>Lo hace {coach} · se tilda cuando esté</small> : null}
+              </span>
+              <Tilde hecho={p.hecho} />
+            </label>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+// El mapa: un camino que baja zigzagueando, con un punto por roadmap (del primero al que hay que seguir).
+// Cada punto es un anillo que se llena con su avance, del color de su coach, con su cartel al costado.
+// Tocar un punto abre su cartel ahí mismo, a lo ancho, con los pasos adentro: el detalle está donde
+// tocaste. El tramo recorrido es sólido; después del que hay que seguir, punteado hacia la próxima llamada.
+// Es vertical: en el celular entra entero, sin scroll de costado.
+function Mapa({ recorrido, doc, principal, colores, coaches, filtro, setFiltro, coachFiltro, setCoachFiltro, alElegir, total, vigentes, children }) {
+  const lista = useRef(null)
+  const puntos = useRef(new Map())
+  const [camino, setCamino] = useState(null) // { ancho, alto, hecho, falta }
+  const enOrden = [...recorrido].reverse() // del primero al último
+  const iAhora = enOrden.findIndex((d) => d.id === principal?.id)
+  // El trazado depende de qué puntos hay, no del arreglo (que se arma de nuevo en cada render): si no,
+  // medir → guardar → render → medir sería un bucle.
+  const ids = enOrden.map((d) => d.id).join(',')
+  const orden = useRef(enOrden)
+  orden.current = enOrden
+
+  // El camino se dibuja uniendo los centros de los puntos con curvas; se vuelve a medir cuando algo
+  // cambia de tamaño (un cartel que se abre, la pantalla que gira).
+  const trazar = useCallback(() => {
+    const caja = lista.current?.getBoundingClientRect()
+    if (!caja || !ids) {
+      setCamino(null)
+      return
+    }
+    const centros = orden.current
+      .map((d) => puntos.current.get(d.id))
+      .filter(Boolean)
+      .map((el) => {
+        const r = el.getBoundingClientRect()
+        return { x: r.left + r.width / 2 - caja.left, y: r.top + r.height / 2 - caja.top }
+      })
+    if (!centros.length) {
+      setCamino(null)
+      return
+    }
+    const tramo = (desde, hasta) => {
+      let d = `M ${desde[0].x} ${desde[0].y}`
+      for (let i = 1; i < desde.length; i++) {
+        const a = desde[i - 1]
+        const b = desde[i]
+        // Curvas en S: salen y llegan en vertical, con un mínimo de recorrido, para que se lea como un camino.
+        const medio = Math.max((b.y - a.y) * 0.6, 70)
+        d += ` C ${a.x} ${a.y + medio}, ${b.x} ${b.y - medio}, ${b.x} ${b.y}`
+      }
+      return hasta ? `${d} ${hasta}` : d
+    }
+    const corte = iAhora >= 0 ? iAhora : centros.length - 1
+    const ultimo = centros[centros.length - 1]
+    // Después del último punto, el camino sigue punteado hasta el cartel de la próxima llamada.
+    const fin = { x: caja.width / 2, y: caja.height - 18 }
+    const cola = ` C ${ultimo.x} ${ultimo.y + 70}, ${fin.x} ${fin.y - 70}, ${fin.x} ${fin.y}`
+    const nuevo = {
+      ancho: Math.round(caja.width),
+      alto: Math.round(caja.height),
+      hecho: tramo(centros.slice(0, corte + 1)),
+      falta: tramo(centros.slice(corte), cola),
+    }
+    // Solo se guarda si cambió: así medir no dispara otro render sin fin.
+    setCamino((viejo) => (viejo && JSON.stringify(viejo) === JSON.stringify(nuevo) ? viejo : nuevo))
+  }, [ids, iAhora])
+
+  useLayoutEffect(() => {
+    trazar()
+  }, [trazar, doc?.id])
+
+  useEffect(() => {
+    const el = lista.current
+    if (!el) return undefined
+    const observador = new ResizeObserver(() => trazar())
+    observador.observe(el)
+    return () => observador.disconnect()
+  }, [trazar])
+
+  return (
+    <section className="rr-mapa" aria-label="Tu mapa">
+      <header className="rr-mapa__cab">
+        <div>
+          <h2>Tu mapa</h2>
+          <p>Cada punto es un roadmap. Tocalo para abrirlo y ver sus pasos.</p>
+        </div>
+        <div className="rr-mapa__leyenda" role="group" aria-label="Filtrar el mapa">
+          {coaches.length > 1
+            ? coaches.map((c, i) => (
+                <button
+                  key={c.id ?? 'atv'}
+                  type="button"
+                  className={coachFiltro === c.id ? 'is-on' : ''}
+                  aria-pressed={coachFiltro === c.id}
+                  onClick={() => setCoachFiltro(coachFiltro === c.id ? null : c.id)}
+                  style={{ '--color': colores[i] }}
+                >
+                  <i aria-hidden="true" />
+                  {primerNombre(c.nombre)}
+                </button>
+              ))
+            : null}
+          {total > vigentes ? (
+            <button type="button" className={filtro === 'vigente' ? 'is-on' : ''} aria-pressed={filtro === 'vigente'} onClick={() => setFiltro(filtro === 'vigente' ? 'todo' : 'vigente')}>
+              Ocultar reemplazados
+            </button>
+          ) : null}
+        </div>
+      </header>
+
+      <div className="rr-mapa__terreno">
+        {camino ? (
+          <svg className="rr-camino" width={camino.ancho} height={camino.alto} viewBox={`0 0 ${camino.ancho} ${camino.alto}`} aria-hidden="true">
+            <path className="rr-camino__fondo" d={camino.falta} />
+            <path className="rr-camino__falta" d={camino.falta} />
+            <path className="rr-camino__fondo" d={camino.hecho} />
+            <path className="rr-camino__hecho" d={camino.hecho} />
+          </svg>
+        ) : null}
+
+        <ol className="rr-puntos" ref={lista}>
+          {enOrden.map((d, i) => {
+            const c = coaches.findIndex((x) => x.id === d.coach.id)
+            const pct = d.pasos_total ? (d.paso_actual || 0) / d.pasos_total : 0
+            const abierto = d.id === doc?.id
+            const ahora = d.id === principal?.id
+            return (
+              <li
+                key={d.id}
+                className={`rr-lugar${i % 2 ? ' is-derecha' : ' is-izquierda'}${abierto ? ' is-abierto' : ''}${ahora ? ' is-ahora' : ''}${d.estado === 'reemplazado' ? ' is-viejo' : ''}`}
+                style={{ '--color': colores[c] || '#8a867f', '--avance': pct }}
+              >
+                <button
+                  type="button"
+                  className="rr-lugar__boton"
+                  onClick={() => alElegir(ahora ? null : d.id)}
+                  aria-expanded={abierto}
+                  aria-label={`${nombreDoc(d)} con ${primerNombre(d.coach.nombre)}, ${fechaLarga(d.fecha)}${d.pasos_total ? `, ${d.paso_actual || 0} de ${d.pasos_total} pasos` : ''}`}
+                >
+                  <span className="rr-lugar__punto" ref={(el) => (el ? puntos.current.set(d.id, el) : puntos.current.delete(d.id))} aria-hidden="true">
+                    <span className="num">{d.pasos_total ? Math.round(pct * 100) : ''}</span>
+                  </span>
+                  <span className="rr-lugar__cartel">
+                    <span className="rr-lugar__arriba">
+                      {i === 0 ? 'Empezaste' : ahora ? 'Estás acá' : fechaCorta(d.fecha)}
+                    </span>
+                    <b>{nombreDoc(d)}</b>
+                    <span className="rr-lugar__meta">
+                      <Cara coach={d.coach} size={18} />
+                      {primerNombre(d.coach.nombre)}
+                      {d.estado === 'reemplazado' ? ' · reemplazado' : d.pasos_total ? <span className="num"> · {d.paso_actual || 0} de {d.pasos_total}</span> : null}
+                    </span>
+                  </span>
+                </button>
+                {abierto ? <div className="rr-lugar__abierto">{children}</div> : null}
+              </li>
+            )
+          })}
+        </ol>
+
+        {enOrden.length ? (
+          <p className="rr-mapa__proximo">
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M5 21V4" /><path d="M5 4h11l-2 4 2 4H5" /></svg>
+            </span>
+            Tu próxima llamada suma el siguiente roadmap
+          </p>
+        ) : null}
+      </div>
+
+      {!recorrido.length ? <p className="rr-detalle__sin">No hay roadmaps con ese filtro.</p> : null}
+    </section>
   )
 }
 
@@ -110,37 +245,10 @@ export default function RoadmapPage() {
   const clienteId = Number(params.get('cliente')) || null
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
-  const [filtro, setFiltro] = useState('todo')
-  const [elegido, setElegido] = useState(null)
-  // Mover y hacer zoom no pasa por React: se escribe el transform directo, una vez por cuadro (fluido a
-  // cualquier tasa de refresco). React solo se entera del % de zoom para el botón.
-  const vista = useRef({ x: 0, y: 0, z: 1 })
-  const mundo = useRef(null)
-  const cuadroPan = useRef(0)
-  const quieto = useRef(0)
-  const [zoomPct, setZoomPct] = useState(100)
-  const pintar = useCallback((suave = false) => {
-    cancelAnimationFrame(cuadroPan.current)
-    cuadroPan.current = requestAnimationFrame(() => {
-      const m = mundo.current
-      if (!m) return
-      const { x, y, z } = vista.current
-      m.classList.toggle('is-suave', suave)
-      m.classList.add('is-moviendo') // capa en la placa de video solo mientras se mueve: quieto, el texto queda nítido
-      m.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${z})`
-      clearTimeout(quieto.current)
-      quieto.current = setTimeout(() => {
-        m.classList.remove('is-moviendo', 'is-suave')
-        setZoomPct(Math.round(vista.current.z * 100))
-      }, suave ? 420 : 160)
-    })
-  }, [])
-  const setVista = useCallback((cambio, suave = false) => {
-    vista.current = typeof cambio === 'function' ? cambio(vista.current) : cambio
-    pintar(suave)
-  }, [pintar])
-  const lienzo = useRef(null)
-  const arrastre = useRef(null)
+  const [filtro, setFiltro] = useState('todo') // 'todo' | 'vigente'
+  const [coachFiltro, setCoachFiltro] = useState(null)
+  const [elegido, setElegido] = useState(null) // id del documento que muestran los carriles; null = el principal
+  const [enviando, setEnviando] = useState(null)
 
   useEffect(() => {
     if (isEquipo && !clienteId) {
@@ -151,253 +259,170 @@ export default function RoadmapPage() {
     pedir.then(setDatos).catch((e) => setError(e.message || 'No se pudo cargar el roadmap.'))
   }, [isEquipo, clienteId])
 
-  const grupos = useMemo(() => {
+  // Todos los documentos con su coach, del más nuevo al más viejo.
+  const todos = useMemo(() => {
     if (!datos) return []
     return datos.grupos
-      .map((g, i) => ({ ...g, color: COLORES[i % COLORES.length], docs: filtro === 'vigente' ? g.docs.filter((d) => d.estado === 'vigente') : g.docs }))
-      .filter((g) => g.docs.length)
-  }, [datos, filtro])
+      .flatMap((g) => g.docs.map((d) => ({ ...d, coach: g.coach })))
+      .sort((a, b) => (a.fecha === b.fecha ? b.id - a.id : a.fecha < b.fecha ? 1 : -1))
+  }, [datos])
 
-  // Ubicación de cada tarjeta: en fila, de a tres, en el orden en que entró cada coach.
-  const ubicadas = useMemo(() => {
-    let x = 0
-    let y = 0
-    let alto = 0
-    return grupos.map((g, i) => {
-      const ancho = Math.max(270, g.docs.length * ANCHO_DOC + 40)
-      if (i > 0 && i % 3 === 0) {
-        x = 0
-        y += alto + 90
-        alto = 0
-      }
-      const pos = { ...g, x, y, ancho, alto: 250 }
-      x += ancho + 90
-      alto = Math.max(alto, 250)
-      return pos
-    })
-  }, [grupos])
+  const principal = useMemo(() => (datos?.principal ? todos.find((d) => d.id === datos.principal.id) || null : null), [datos, todos])
+  const doc = (elegido && todos.find((d) => d.id === elegido)) || principal
+  const recorrido = todos.filter((d) => (filtro === 'todo' || d.estado === 'vigente') && (coachFiltro == null || d.coach.id === coachFiltro))
 
-  const principal = datos?.principal
-  const doc = useMemo(() => {
-    const todos = datos?.grupos.flatMap((g) => g.docs.map((d) => ({ ...d, coach: g.coach }))) || []
-    return todos.find((d) => d.id === elegido) || null
-  }, [datos, elegido, principal])
-
-  const ajustar = useCallback(() => {
-    const caja = lienzo.current?.getBoundingClientRect()
-    if (!caja || !ubicadas.length) return
-    const ancho = Math.max(...ubicadas.map((u) => u.x + u.ancho))
-    const alto = Math.max(...ubicadas.map((u) => u.y + u.alto))
-    const z = Math.min(1.1, Math.max(0.4, Math.min((caja.width - 80) / ancho, (caja.height - 80) / alto)))
-    setVista({ z, x: (caja.width - ancho * z) / 2, y: Math.max(40, (caja.height - alto * z) / 2.4) }, true)
-  }, [ubicadas, setVista])
-
-  useEffect(() => {
-    ajustar()
-  }, [ajustar])
-
-  useEffect(() => {
-    const el = lienzo.current
-    if (!el) return undefined
-    const rueda = (e) => {
-      e.preventDefault()
-      const caja = el.getBoundingClientRect()
-      const px = e.clientX - caja.left
-      const py = e.clientY - caja.top
-      if (e.ctrlKey || e.metaKey) {
-        setVista((v) => {
-          const z = Math.min(3, Math.max(0.25, v.z * Math.exp(-e.deltaY * 0.01)))
-          return { z, x: px - ((px - v.x) * z) / v.z, y: py - ((py - v.y) * z) / v.z }
-        })
-      } else setVista((v) => ({ ...v, x: v.x - e.deltaX, y: v.y - e.deltaY }))
+  async function tildar(p, documento = doc) {
+    setEnviando(p.id)
+    try {
+      setDatos(await marcarPaso(documento.id, p.id, !p.hecho))
+    } catch (e) {
+      setError(e.message || 'No se pudo guardar el paso.')
+    } finally {
+      setEnviando(null)
     }
-    // Safari del iPhone: sin esto, el pellizco agranda toda la página en vez del tablero.
-    const sinZoomDePagina = (e) => e.preventDefault()
-    el.addEventListener('wheel', rueda, { passive: false })
-    el.addEventListener('gesturestart', sinZoomDePagina)
-    el.addEventListener('gesturechange', sinZoomDePagina)
-    return () => {
-      el.removeEventListener('wheel', rueda)
-      el.removeEventListener('gesturestart', sinZoomDePagina)
-      el.removeEventListener('gesturechange', sinZoomDePagina)
-    }
-  }, [datos, setVista])
-
-  const zoom = (f) => {
-    const caja = lienzo.current.getBoundingClientRect()
-    const px = caja.width / 2
-    const py = caja.height / 2
-    setVista((v) => {
-      const z = Math.min(3, Math.max(0.25, v.z * f))
-      return { z, x: px - ((px - v.x) * z) / v.z, y: py - ((py - v.y) * z) / v.z }
-    }, true)
   }
 
-  // Un dedo (o el mouse) arrastra; dos dedos pellizcan para acercar/alejar y mueven a la vez, como una foto.
-  const dedos = useRef(new Map())
-  const pellizco = useRef(null)
-
-  function empezarPellizco() {
-    const [a, b] = [...dedos.current.values()]
-    const caja = lienzo.current.getBoundingClientRect()
-    pellizco.current = {
-      dist: Math.hypot(b.x - a.x, b.y - a.y) || 1,
-      mx: (a.x + b.x) / 2 - caja.left,
-      my: (a.y + b.y) / 2 - caja.top,
-      v: { ...vista.current },
-    }
-    arrastre.current = null
+  if (error) {
+    return (
+      <div className="app-shell im-root cr-root rr-root">
+        <AppHeader />
+        <p className="rr-vacio">{error}</p>
+      </div>
+    )
+  }
+  if (!datos) {
+    return (
+      <div className="app-shell im-root cr-root rr-root">
+        <AppHeader />
+        <p className="rr-vacio">Cargando el roadmap…</p>
+      </div>
+    )
   }
 
-  function bajar(e) {
-    if (e.button !== 0 || e.target.closest('button, a')) return
-    dedos.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
-    e.currentTarget.setPointerCapture(e.pointerId)
-    if (dedos.current.size === 2) empezarPellizco()
-    else if (dedos.current.size === 1) arrastre.current = { x: e.clientX, y: e.clientY, vx: vista.current.x, vy: vista.current.y }
-  }
-  function mover(e) {
-    if (!dedos.current.has(e.pointerId)) return
-    dedos.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
-    const p = pellizco.current
-    if (p && dedos.current.size >= 2) {
-      const [a, b] = [...dedos.current.values()]
-      const caja = lienzo.current.getBoundingClientRect()
-      const mx = (a.x + b.x) / 2 - caja.left
-      const my = (a.y + b.y) / 2 - caja.top
-      const z = Math.min(3, Math.max(0.25, p.v.z * (Math.hypot(b.x - a.x, b.y - a.y) / p.dist)))
-      // El punto del tablero que estaba entre los dedos queda entre los dedos.
-      const wx = (p.mx - p.v.x) / p.v.z
-      const wy = (p.my - p.v.y) / p.v.z
-      setVista({ z, x: mx - wx * z, y: my - wy * z })
-      return
-    }
-    const g = arrastre.current
-    if (g) setVista((v) => ({ ...v, x: g.vx + e.clientX - g.x, y: g.vy + e.clientY - g.y }))
-  }
-  function soltar(e) {
-    dedos.current.delete(e.pointerId)
-    pellizco.current = null
-    // Si queda un dedo apoyado, sigue arrastrando desde donde está.
-    const queda = [...dedos.current.values()][0]
-    arrastre.current = queda ? { x: queda.x, y: queda.y, vx: vista.current.x, vy: vista.current.y } : null
-  }
-
-  function irA(grupo) {
-    const u = ubicadas.find((x) => x.coach.id === grupo.coach.id)
-    const caja = lienzo.current?.getBoundingClientRect()
-    if (!u || !caja) return
-    setVista((v) => ({ ...v, x: caja.width / 2 - (u.x + u.ancho / 2) * v.z, y: caja.height / 2.4 - (u.y + u.alto / 2) * v.z }), true)
-    setElegido(u.docs[u.docs.length - 1].id)
-  }
+  const pasosPrincipal = principal?.pasos || []
+  const proximo = pasosPrincipal.find((p) => p.quien !== 'atv' && !p.hecho) || null
+  const pendientesAtv = pasosPrincipal.filter((p) => p.quien === 'atv' && !p.hecho).length
+  const pasos = doc?.pasos || []
+  const numeros = Object.fromEntries(pasos.map((p, i) => [p.id, i + 1]))
+  const coaches = datos.grupos.map((g) => g.coach)
+  const colores = coaches.map((_, i) => COLORES[i % COLORES.length])
 
   return (
-    <div className="app-shell rm-root">
+    <div className="app-shell im-root cr-root rr-root">
       <AppHeader />
-      {error ? <p className="rm-vacio">{error}</p> : !datos ? <p className="rm-vacio">Cargando el roadmap…</p> : (
-        <div className="rm">
-          <aside className="rm-lado" aria-label="Filtros">
-            <p className="rm-seccion">Roadmaps</p>
-            <button type="button" className={filtro === 'vigente' ? 'is-on' : ''} onClick={() => setFiltro('vigente')}>
-              <i className="rm-punto is-rojo" /> Vigente <span className="rm-cuenta">{datos.vigentes}</span>
-            </button>
-            <button type="button" className={filtro === 'todo' ? 'is-on' : ''} onClick={() => setFiltro('todo')}>
-              <i className="rm-punto" /> Ver todo <span className="rm-cuenta">{datos.total}</span>
-            </button>
-            {datos.grupos.length ? <p className="rm-seccion">Coaches</p> : null}
-            {datos.grupos.map((g) => (
-              <button type="button" key={g.coach.id ?? 'atv'} onClick={() => irA(g)}>
-                <Cara coach={g.coach} size={22} /> {g.coach.nombre.split(' ').slice(0, 2).join(' ')} <span className="rm-cuenta">{g.docs.length}</span>
-              </button>
-            ))}
-          </aside>
+      <main className="rr">
+        <header className="rr-cab">
+          <h1>{isEquipo ? `Roadmap de ${primerNombre(datos.cliente?.nombre) || 'cliente'}` : 'Tu roadmap'}</h1>
+          <p>
+            <span className="num">{datos.vigentes}</span> {datos.vigentes === 1 ? 'vigente' : 'vigentes'} ·{' '}
+            <span className="num">{datos.total}</span> {datos.total === 1 ? 'documento' : 'documentos'}
+            {coaches.length ? ` · con ${coaches.map((c) => primerNombre(c.nombre)).join(', ')}` : ''}
+          </p>
+        </header>
 
-          <section className="rm-centro">
+        {!todos.length ? (
+          <div className="rr-vacio-caja">
+            <b>Todavía no hay nada en tu roadmap</b>
+            <span>Después de cada llamada, tu coach suma acá los próximos pasos.</span>
+          </div>
+        ) : (
+          <>
+            {/* 1. Tu próximo paso */}
             {principal ? (
-              <div className="rm-ahora" role="status">
-                <Hoja doc={principal} />
-                <div>
-                  <small>El que tenés que seguir ahora</small>
-                  <b>
-                    {nombreDoc(principal)} · {datos.grupos.find((g) => g.docs.some((d) => d.id === principal.id))?.coach.nombre.split(' ')[0]}
-                  </b>
+              <section className="rr-ahora" aria-label="Tu próximo paso">
+                <div className="rr-ahora__texto">
+                  <small>
+                    {proximo ? 'Tu próximo paso' : pasosPrincipal.length ? 'Hiciste todo lo tuyo' : 'El roadmap a seguir'}
+                  </small>
+                  <h2>
+                    {proximo
+                      ? proximo.texto
+                      : pasosPrincipal.length
+                        ? pendientesAtv
+                          ? `Falta lo de ATV: ${pendientesAtv} ${pendientesAtv === 1 ? 'paso' : 'pasos'}`
+                          : 'Roadmap completo'
+                        : nombreDoc(principal)}
+                  </h2>
+                  <p className="rr-ahora__de">
+                    <Cara coach={principal.coach} size={22} />
+                    {nombreDoc(principal)} con {primerNombre(principal.coach.nombre)} · {fechaLarga(principal.fecha)}
+                  </p>
+                </div>
+                <div className="rr-ahora__acciones">
+                  {proximo ? (
+                    <button type="button" className="rr-listo" onClick={() => tildar(proximo, principal)} disabled={enviando === proximo.id}>
+                      <Tilde hecho={false} />
+                      {enviando === proximo.id ? 'Guardando…' : 'Listo'}
+                    </button>
+                  ) : null}
+                  {principal.fathom_url ? (
+                    <a className="rr-boton" href={principal.fathom_url} target="_blank" rel="noopener noreferrer">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
+                      Ver la llamada
+                    </a>
+                  ) : null}
+                  {principal.url ? (
+                    <a className="rr-boton" href={principal.url} target="_blank" rel="noopener noreferrer">Abrir documento</a>
+                  ) : null}
                 </div>
                 {principal.pasos_total ? (
-                  <div className="rm-ahora__avance">
-                    <span className="rm-barra" aria-hidden="true"><i style={{ transform: `scaleX(${(principal.paso_actual || 0) / principal.pasos_total})` }} /></span>
-                    <small>{principal.paso_actual || 0} de {principal.pasos_total}</small>
-                  </div>
+                  <span className="rr-ahora__avance" role="progressbar" aria-valuemin={0} aria-valuemax={principal.pasos_total} aria-valuenow={principal.paso_actual || 0} aria-label="Avance del roadmap a seguir">
+                    <i style={{ transform: `scaleX(${(principal.paso_actual || 0) / principal.pasos_total})` }} />
+                  </span>
                 ) : null}
-                {principal.fathom_url ? <a className="rm-boton is-suave is-chico" href={principal.fathom_url} target="_blank" rel="noopener noreferrer">Ver llamada</a> : null}
-                {principal.url ? (
-                  <a className="rm-boton" href={principal.url} target="_blank" rel="noopener noreferrer">Abrir</a>
-                ) : (
-                  <button type="button" className="rm-boton" onClick={() => setElegido(principal.id)}>Ver mis pasos</button>
-                )}
-              </div>
+              </section>
             ) : null}
 
-            <div className="rm-lienzo" ref={lienzo} onPointerDown={bajar} onPointerMove={mover} onPointerUp={soltar} onPointerCancel={soltar}>
-              {!ubicadas.length ? (
-                <div className="rm-vacio-lienzo">
-                  <b>Todavía no hay documentos en tu roadmap</b>
-                  <span>Después de cada llamada, tu coach suma acá los próximos pasos.</span>
-                </div>
-              ) : (
-                <div className="rm-mundo" ref={mundo} style={{ transform: `translate3d(${vista.current.x}px, ${vista.current.y}px, 0) scale(${vista.current.z})` }}>
-                  <svg className="rm-flechas" width="1" height="1" aria-hidden="true">
-                    <defs>
-                      <marker id="rm-punta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-                        <path d="M0 0 10 5 0 10z" fill="currentColor" />
-                      </marker>
-                    </defs>
-                    {ubicadas.slice(1).map((u, i) => {
-                      const a = ubicadas[i]
-                      const misma = Math.abs(a.y - u.y) < 1
-                      const d = misma
-                        ? `M ${a.x + a.ancho + 10} ${a.y + 125} L ${u.x - 12} ${u.y + 125}`
-                        : `M ${a.x + a.ancho / 2} ${a.y + a.alto + 10} C ${a.x + a.ancho / 2} ${a.y + a.alto + 60}, ${u.x + u.ancho / 2} ${u.y - 60}, ${u.x + u.ancho / 2} ${u.y - 12}`
-                      return <path key={u.coach.id ?? i} d={d} fill="none" stroke="currentColor" strokeWidth="1.6" markerEnd="url(#rm-punta)" />
-                    })}
-                  </svg>
-                  {ubicadas.map((u) => (
-                    <article key={u.coach.id ?? 'atv'} className="rm-tarjeta" style={{ left: u.x, top: u.y, width: u.ancho, '--color': u.color }}>
-                      <header>
-                        <Cara coach={u.coach} />
-                        <div>
-                          <b>{u.coach.nombre}</b>
-                          <small>{u.area || u.docs[u.docs.length - 1].tipo_nombre}</small>
-                        </div>
-                      </header>
-                      <div className="rm-docs">
-                        {u.docs.map((d) => {
-                          const esPrincipal = principal?.id === d.id
-                          return (
-                            <button type="button" key={d.id} className={`rm-doc${doc?.id === d.id ? ' is-elegido' : ''}${esPrincipal ? ' is-principal' : ''}`} onClick={() => setElegido(d.id)}>
-                              <Hoja doc={d} principal={esPrincipal} grande />
-                              <b>{nombreDoc(d)}</b>
-                              <small>{d.estado === 'reemplazado' ? 'Reemplazado' : d.tipo === 'complementario' ? 'Complementario' : fecha(d.fecha)}{d.pasos?.length ? ` · ${d.paso_actual} de ${d.pasos_total}` : ''}</small>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-              {ubicadas.length ? (
-                <div className="rm-zoom" role="group" aria-label="Zoom">
-                  <button type="button" onClick={() => zoom(1 / 1.2)} aria-label="Alejar">−</button>
-                  <button type="button" onClick={ajustar}>{zoomPct}%</button>
-                  <button type="button" onClick={() => zoom(1.2)} aria-label="Acercar">+</button>
-                </div>
+            {/* 2. Tu mapa: un camino con un punto por roadmap; el elegido se abre ahí mismo con sus pasos */}
+            <Mapa
+              recorrido={recorrido}
+              doc={doc}
+              principal={principal}
+              colores={colores}
+              coaches={coaches}
+              filtro={filtro}
+              setFiltro={setFiltro}
+              coachFiltro={coachFiltro}
+              setCoachFiltro={setCoachFiltro}
+              alElegir={setElegido}
+              total={datos.total}
+              vigentes={datos.vigentes}
+            >
+              {doc ? (
+                <article className="rr-detalle__cuerpo" key={doc.id}>
+                  <header className="rr-detalle__cab">
+                    <div>
+                      <h2>{nombreDoc(doc)}</h2>
+                      <p>
+                        {doc.tipo_nombre} con {primerNombre(doc.coach.nombre)} · {fechaLarga(doc.fecha)}
+                        {doc.estado === 'reemplazado' ? ' · reemplazado por uno más nuevo' : doc.id === principal?.id ? ' · el que tenés que seguir' : ''}
+                      </p>
+                    </div>
+                    <div className="rr-detalle__links">
+                      {doc.id !== principal?.id && doc.fathom_url ? <a className="rr-enlace" href={doc.fathom_url} target="_blank" rel="noopener noreferrer">Ver la llamada</a> : null}
+                      {doc.id !== principal?.id && doc.url && pasos.length ? <a className="rr-enlace" href={doc.url} target="_blank" rel="noopener noreferrer">Abrir documento</a> : null}
+                      {doc.id !== principal?.id && principal ? (
+                        <button type="button" className="rr-enlace is-fuerte" onClick={() => setElegido(null)}>Volver al actual</button>
+                      ) : null}
+                    </div>
+                  </header>
+                  {pasos.length ? (
+                    <div className="rr-columnas">
+                      <Columna titulo="Lo hacés vos" pasos={pasos.filter((p) => p.quien !== 'atv')} numeros={numeros} coach={primerNombre(doc.coach.nombre)} enviando={enviando} alTildar={(p) => tildar(p)} />
+                      <Columna titulo="Lo hace ATV" pasos={pasos.filter((p) => p.quien === 'atv')} numeros={numeros} coach={primerNombre(doc.coach.nombre)} enviando={enviando} alTildar={(p) => tildar(p)} />
+                    </div>
+                  ) : (
+                    <p className="rr-detalle__sin">
+                      Este roadmap está en un documento aparte.{' '}
+                      {doc.url ? <a href={doc.url} target="_blank" rel="noopener noreferrer">Abrilo acá</a> : null}
+                    </p>
+                  )}
+                </article>
               ) : null}
-            </div>
-          </section>
-
-          {doc ? <Lector doc={doc} esPrincipal={principal?.id === doc.id} alCambiar={setDatos} alCerrar={() => setElegido(null)} /> : null}
-        </div>
-      )}
+            </Mapa>
+          </>
+        )}
+      </main>
     </div>
   )
 }

@@ -1,5 +1,12 @@
 const TOKEN_KEY = 'atv_classroom_token'
 
+// Modo mock: datos de prueba para trabajar el diseño sin backend ni base de datos.
+// Lo enciende `npm run dev:mock` (scripts/dev-mock.mjs), que setea VITE_MOCK_API=1.
+// Sin esa variable, Vite compila esta constante a false y el bloque queda muerto:
+// `npm run dev` y `npm run build` pegan contra el backend real, sin cambios.
+export const MOCK_API = import.meta.env.VITE_MOCK_API === '1'
+const mockReady = MOCK_API ? import('./mock/handler.js').then((m) => m.responderMock) : null
+
 let unauthorizedHandler = null
 
 export class ApiError extends Error {
@@ -90,6 +97,12 @@ const ESPERAS_MS = [400, 1200, 2500]
 const espera = (ms) => new Promise((listo) => setTimeout(listo, ms))
 
 async function pedir(url, opciones) {
+  if (MOCK_API) {
+    const responderMock = await mockReady
+    const simulada = await responderMock(url, opciones)
+    if (simulada) return simulada
+  }
+
   const lectura = !opciones.method || opciones.method === 'GET'
   let res
   for (let intento = 0; !res; intento += 1) {

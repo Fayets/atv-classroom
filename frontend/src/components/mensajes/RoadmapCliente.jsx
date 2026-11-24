@@ -206,7 +206,7 @@ export default function RoadmapCliente({ clienteId, canalId, cliente = 'el clien
         </ul>
       ) : null}
 
-      {docs.length ? <Link className="rmc-ver" to={`/roadmap?cliente=${clienteId}`}>Ver el tablero como lo ve el cliente</Link> : null}
+      {docs.length ? <Link className="rmc-ver" to={`/roadmap?cliente=${clienteId}`}>Ver el roadmap como lo ve el cliente</Link> : null}
     </section>
   )
 }
