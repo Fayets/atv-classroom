@@ -1,5 +1,3 @@
-import { MENSAJE_BLOQUEO, bloqueadoPorModoMiembro } from '../utils/modoMiembro'
-
 const TOKEN_KEY = 'atv_classroom_token'
 
 // Modo mock: datos de prueba para trabajar el diseño sin backend ni base de datos.
@@ -99,8 +97,6 @@ const ESPERAS_MS = [400, 1200, 2500]
 const espera = (ms) => new Promise((listo) => setTimeout(listo, ms))
 
 async function pedir(url, opciones) {
-  // Modo Miembro (utils/modoMiembro.js): solo lecturas. Va antes del mock para probarlo igual que en producción.
-  if (bloqueadoPorModoMiembro(url, opciones.method)) throw new ApiError(MENSAJE_BLOQUEO, 0)
   if (MOCK_API) {
     const responderMock = await mockReady
     const simulada = await responderMock(url, opciones)

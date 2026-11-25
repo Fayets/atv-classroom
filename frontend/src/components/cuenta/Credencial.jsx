@@ -181,7 +181,7 @@ function PasePerforado({ cuenta: c }) {
   )
 }
 
-export default function Credencial({ cuenta: c, nombre, tipo, subiendo, alElegirFoto, alQuitarFoto, alSalir, interruptor = null }) {
+export default function Credencial({ cuenta: c, nombre, tipo, subiendo, alElegirFoto, alQuitarFoto, alSalir }) {
   const raiz = useRef(null)
   useInclinacion(raiz)
   const esCliente = c.tipo === 'cliente'
@@ -255,7 +255,6 @@ export default function Credencial({ cuenta: c, nombre, tipo, subiendo, alElegir
           </dl>
         </div>
 
-        {interruptor}
 
         <div className="cred__pie">
           <span className={`cred__estado is-${esCliente ? c.estado || 'vigente' : 'equipo'}`}>{estado}</span>

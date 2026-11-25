@@ -1,4 +1,3 @@
-import { createPortal } from 'react-dom'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate, useNavigationType } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -12,16 +11,6 @@ import { valorContador } from '../utils/contador'
 import LogoATV from './marca/LogoATV'
 import { elegirModo, modoActual } from '../utils/modo'
 
-
-// Íconos de la barra de abajo del equipo en el celular (mismo trazo que los del cliente).
-const ICONOS_EQUIPO = {
-  '/mensajes': <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10H9l-4 3z" /></svg>,
-  '/classroom': <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M10 9.5v5l4-2.5z" /></svg>,
-  '/consultas': <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="M20 20l-4.5-4.5" /></svg>,
-  '/admin/cerebro': <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.2" /><circle cx="5.5" cy="6.5" r="1.6" /><circle cx="18.5" cy="6.5" r="1.6" /><circle cx="6" cy="18" r="1.6" /><circle cx="18" cy="17.5" r="1.6" /><path d="M10.4 10.6 6.7 7.6M13.6 10.6l3.7-3M10.5 13.5 7.2 16.9M13.6 13.4l3.2 3.1" /></svg>,
-  '/admin/equipo': <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="9" r="3" /><path d="M3.5 19c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5" /><circle cx="16.5" cy="8" r="2.4" /><path d="M16 13.2c2.3 0 4 1.2 4.5 3.8" /></svg>,
-  '/admin': <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>,
-}
 
 // Celular: abre la barra lateral como cajón (components/Sidebar.jsx escucha "atv:menu").
 function BotonMenu() {
@@ -253,55 +242,6 @@ export default function AppHeader() {
           ) : null}
         </nav>
       )}
-
-      {secciones ? createPortal(
-        // El equipo sin escritorio (celular): las mismas secciones de arriba, abajo y con ícono, como el cliente.
-        <nav className="cliente-tabs cliente-tabs--equipo" aria-label="Secciones">
-          {secciones.map(([to, label, cuenta, exacta, grupo]) => (
-            <NavLink key={to} to={to} end={Boolean(exacta)} className={({ isActive }) => `${isActive ? 'is-on' : ''}${grupo ? ' is-grupo' : ''}`}>
-              <Contador valor={cuenta} className="cliente-tabs__cuenta" />
-              {ICONOS_EQUIPO[to]}
-              {label}
-            </NavLink>
-          ))}
-        </nav>,
-        document.body,
-      ) : null}
-
-      {!isEquipo && !secciones ? createPortal(
-        // En el celular el menú del cliente va abajo, al alcance del pulgar (como una app). Va directo en
-        // <body>: adentro de Mensajes (que recorta lo que sobresale) el iPhone no la mostraba.
-        <nav className="cliente-tabs" aria-label="Secciones">
-          <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-on' : '')}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" /></svg>
-            Inicio
-          </NavLink>
-          <NavLink to="/classroom" className={({ isActive }) => (isActive ? 'is-on' : '')}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M10 9.5v5l4-2.5z" /></svg>
-            Material
-          </NavLink>
-          {conRoadmap ? (
-            <NavLink to="/roadmap" className={({ isActive }) => (isActive ? 'is-on' : '')}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-1 3-6 7-7s4-6 7-7" /><circle cx="5" cy="19" r="1.6" /><circle cx="19" cy="5" r="1.6" /></svg>
-              Roadmap
-            </NavLink>
-          ) : null}
-          {conTools ? (
-            <NavLink to="/tools" className={({ isActive }) => (isActive ? 'is-on' : '')}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-3-1-1-3z" /></svg>
-              Tools
-            </NavLink>
-          ) : null}
-          {habilitada ? (
-            <NavLink to="/mensajes" className={({ isActive }) => (isActive ? 'is-on' : '')}>
-              <Contador valor={contador} className="cliente-tabs__cuenta" />
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10H9l-4 3z" /></svg>
-              Mensajes
-            </NavLink>
-          ) : null}
-        </nav>,
-        document.body,
-      ) : null}
 
       <div className="app-header__right">
       <div className="app-header__user" ref={menuRef}>

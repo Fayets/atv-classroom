@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchCanales, fetchHabilitada, fetchNoLeidos } from '../api/mensajes'
 import AvisoMencion from '../components/mensajes/AvisoMencion'
-import { modoMiembroActivo } from '../utils/modoMiembro'
 import { resincronizarAvisos } from '../utils/push'
 import { useAuth } from './AuthContext'
 
@@ -248,7 +247,6 @@ export function MensajeriaProvider({ children }) {
   }, [])
 
   const avisarEscribiendo = useCallback((canalId, activo = true) => {
-    if (modoMiembroActivo()) return // en Modo Miembro nadie tiene que ver "escribiendo…"
     const ws = socket.current
     if (ws?.readyState === 1) ws.send(JSON.stringify({ tipo: 'escribiendo', canal_id: canalId, activo }))
   }, [])

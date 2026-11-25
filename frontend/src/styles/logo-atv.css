@@ -1,10 +1,14 @@
-/* El logo de ATV (components/marca/LogoATV.jsx): el PNG (746×976) como máscara, pintado con currentColor. */
+/* El logo de ATV (components/marca/LogoATV.jsx): los íconos de public/icons (832×1088, fondo transparente).
+   logo-oscuro va sobre fondos claros y logo-claro sobre fondos oscuros. */
 .logo-atv {
   display: inline-block;
   flex: none;
   width: 16px;
-  aspect-ratio: 746 / 976;
-  background: currentColor;
-  -webkit-mask: url('/atv-logo-negro.png') center / contain no-repeat;
-  mask: url('/atv-logo-negro.png') center / contain no-repeat;
+  aspect-ratio: 832 / 1088;
+  background: url('/icons/logo-oscuro.png') center / contain no-repeat;
 }
+html[data-modo="azul"] .logo-atv { background-image: url('/icons/logo-claro.png'); }
+
+/* la tarjeta de la barra lateral: cuadrado oscuro en claro y claro en oscuro (al revés que la página) */
+.sb-cred__logo .logo-atv { background-image: url('/icons/logo-claro.png'); }
+html[data-modo="azul"] .sb-cred__logo .logo-atv { background-image: url('/icons/logo-oscuro.png'); }

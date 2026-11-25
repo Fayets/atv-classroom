@@ -224,6 +224,15 @@ function VistaSops() {
   const [q, setQ] = useState('')
   const [modulo, setModulo] = useState(null) // programa_id elegido en el filtro; null = todos
   const [abierta, setAbierta] = useState(null) // { sop, modulo }
+  const [filtros, setFiltros] = useState(false) // celular y tablet: los chips de módulo viven en un desplegable
+  // En el celular el buscador es angosto: el texto de ayuda queda en la pregunta, sin "Hay N SOPs".
+  const [angosto, setAngosto] = useState(() => window.matchMedia('(max-width: 720px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 720px)')
+    const cambiar = () => setAngosto(mq.matches)
+    mq.addEventListener('change', cambiar)
+    return () => mq.removeEventListener('change', cambiar)
+  }, [])
 
   useEffect(() => {
     let cancelado = false
@@ -268,15 +277,31 @@ function VistaSops() {
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder={`¿Qué proceso buscás? Hay ${total} SOPs`}
+          placeholder={angosto ? '¿Qué proceso buscás?' : `¿Qué proceso buscás? Hay ${total} SOPs`}
           aria-label="Buscar SOP"
           autoComplete="off"
         />
         {q || modulo != null ? <span className="cr-mesa__cuenta num">{visibles} de {total}</span> : null}
+        <button
+          type="button"
+          className={`cr-mesa__filtros${filtros ? ' is-on' : ''}`}
+          onClick={() => setFiltros((f) => !f)}
+          aria-expanded={filtros}
+          aria-controls="cr-mesa-filtro"
+          aria-label={modulo != null ? 'Filtros: 1 módulo elegido' : 'Filtros'}
+          title="Filtrar por módulo"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
+          {modulo != null ? <i aria-hidden="true" /> : null}
+        </button>
       </div>
 
-      <div className="cr-mesa__filtro" role="group" aria-label="Filtrar por módulo">
-        <button type="button" className={modulo == null ? 'is-on' : ''} aria-pressed={modulo == null} onClick={() => setModulo(null)}>
+      <div id="cr-mesa-filtro" className={`cr-mesa__filtro${filtros ? ' is-abierto' : ''}`} role="group" aria-label="Filtrar por módulo">
+        <p className="cr-mesa__filtro-titulo">Filtrar por módulo</p>
+        <button type="button" className={modulo == null ? 'is-on' : ''} aria-pressed={modulo == null} onClick={() => {
+            setModulo(null)
+            setFiltros(false)
+          }}>
           Todos <span className="num">{total}</span>
         </button>
         {modulos.map((m) => (
@@ -285,7 +310,10 @@ function VistaSops() {
             type="button"
             className={modulo === m.programa_id ? 'is-on' : ''}
             aria-pressed={modulo === m.programa_id}
-            onClick={() => setModulo(modulo === m.programa_id ? null : m.programa_id)}
+            onClick={() => {
+              setModulo(modulo === m.programa_id ? null : m.programa_id)
+              setFiltros(false)
+            }}
           >
             {m.modulo} <span className="num">{m.sops.length}</span>
           </button>

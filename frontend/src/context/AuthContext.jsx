@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import {
   getStoredToken,
   loginGoogleRequest,
@@ -6,7 +6,6 @@ import {
   logoutRequest,
   setStoredToken,
 } from '../api/client'
-import { EVENTO_CAMBIO, cambiarModoMiembro, modoMiembroActivo } from '../utils/modoMiembro'
 
 const AuthContext = createContext(null)
 const ROLES_EQUIPO = ['admin', 'coach']
@@ -24,14 +23,6 @@ function readStoredUser() {
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => getStoredToken())
   const [user, setUser] = useState(() => readStoredUser())
-  const [modoMiembroGuardado, setModoMiembroGuardado] = useState(() => modoMiembroActivo())
-
-  // Modo Miembro (utils/modoMiembro.js): lo prende y lo apaga el admin; se sigue entre componentes por un evento.
-  useEffect(() => {
-    const alCambiar = () => setModoMiembroGuardado(modoMiembroActivo())
-    window.addEventListener(EVENTO_CAMBIO, alCambiar)
-    return () => window.removeEventListener(EVENTO_CAMBIO, alCambiar)
-  }, [])
 
   const guardarSesion = useCallback((data) => {
     const sessionUser = {
@@ -75,36 +66,24 @@ export function AuthProvider({ children }) {
     // Se avisa al backend con el token todavía guardado; no se espera la respuesta.
     if (getStoredToken()) logoutRequest()
     setStoredToken(null)
-    cambiarModoMiembro(false)
     localStorage.removeItem('atv_classroom_user')
     setToken(null)
     setUser(null)
   }, [])
 
-  // Solo un admin puede usarlo. Con el modo prendido, el resto de la app ve a un miembro: rol de plan
-  // ("boost"), sin admin ni equipo. `rolReal` y `modoMiembro` sirven para mostrar la salida.
-  const modoMiembro = modoMiembroGuardado && user?.rol === 'admin'
-  const usuarioVisible = useMemo(
-    () => (modoMiembro ? { ...user, rol: 'boost', dias_restantes: null, miembro: null, permisos: undefined } : user),
-    [modoMiembro, user],
-  )
-
   const value = useMemo(
     () => ({
       token,
-      user: usuarioVisible,
+      user,
       isAuthenticated: Boolean(token),
-      isAdmin: usuarioVisible?.rol === 'admin',
-      isEquipo: ROLES_EQUIPO.includes(usuarioVisible?.rol),
-      rolReal: user?.rol ?? null,
-      modoMiembro,
-      cambiarModoMiembro,
+      isAdmin: user?.rol === 'admin',
+      isEquipo: ROLES_EQUIPO.includes(user?.rol),
       login,
       loginGoogle,
       logout,
       actualizarUsuario,
     }),
-    [token, usuarioVisible, user, modoMiembro, login, loginGoogle, logout, actualizarUsuario],
+    [token, user, login, loginGoogle, logout, actualizarUsuario],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

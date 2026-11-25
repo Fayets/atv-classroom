@@ -150,6 +150,12 @@ export function BandaPaso({ paso }) {
               </span>
             </>
           ) : null}
+          {/* Celular: el coach baja acá, como una línea chica (arriba, en la etiqueta, se oculta). */}
+          <span className="in-banda__coach-bajo">
+            {paso.coach ? <i aria-hidden="true">{iniciales(paso.coach)}</i> : null}
+            {paso.doc.titulo}
+            {paso.coach ? <> · con {paso.coach}</> : null}
+          </span>
           <Link to="/roadmap" className="in-banda__ir">
             Ver mi roadmap <Chevron />
           </Link>

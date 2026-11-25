@@ -4,7 +4,6 @@
 
 import { CANALES, CHATS_DEL_COACH, CLIENTE, COACH, EQUIPO, MENSAJES, USUARIO } from './datos'
 import { clasesParaEnviar, continuarClase, detalleClase, detallePrograma, listaProgramas, marcarProgreso, sopsClassroom } from './classroom'
-import { marcarPasoRoadmap, roadmapDe } from './extras'
 
 // Una demora chica para que se vean los estados de carga mientras se diseña.
 const DEMORA_MS = 140
@@ -187,25 +186,7 @@ const RUTAS = [
     return clase ? json(clase) : json({ detail: 'Clase no encontrada' }, 404)
   }],
   ['PUT', /^\/api\/clases\/(\d+)\/progreso$/, ([, id], opciones) => json(marcarProgreso(Number(id), cuerpo(opciones).completado))],
-  ['GET', /^\/api\/acciones$/, () => json({ acciones: [], sugeridas: [] })],
 
-
-  // Roadmap: el cliente ve el suyo en /api/roadmap; el equipo, el de cada cliente. El mock tiene uno solo
-  // (el de Alan Klein) y lo muestra para cualquier cliente.
-  ['GET', /^\/api\/roadmap$/, () => json(roadmapDe({ id: CLIENTE.usuario_id, nombre: CLIENTE.nombre, plan: 'boost' }))],
-  ['GET', /^\/api\/roadmap\/clientes\/(\d+)$/, ([, id]) => {
-    const canal = CANALES.find((c) => c.cliente?.id === Number(id))
-    return json(roadmapDe({ id: Number(id), nombre: canal?.cliente.nombre || 'Cliente', plan: canal?.cliente.plan || null }))
-  }],
-  ['PUT', /^\/api\/roadmap\/docs\/(\d+)\/pasos\/(\d+)$/, ([, docId, pasoId], opciones) => {
-    const sesion = quien(opciones)
-    const autor = AUTORES[sesion]
-    const hecho = Boolean(cuerpo(opciones).hecho)
-    if (!marcarPasoRoadmap(Number(docId), Number(pasoId), hecho, { tipo: autor.tipo, id: autor.id, nombre: autor.nombre })) {
-      return json({ detail: 'Paso no encontrado' }, 404)
-    }
-    return json(roadmapDe({ id: CLIENTE.usuario_id, nombre: CLIENTE.nombre, plan: 'boost' }))
-  }],
 
   // Reglas de tu voz (las correcciones de "Qué pensó"), en memoria.
   ['GET', /^\/api\/mensajes\/reglas-voz$/, () => json({ propia: true, reglas: REGLAS_VOZ })],
@@ -294,7 +275,6 @@ const RUTAS = [
   }],
 
   ['GET', /^\/api\/altas\/senas$/, () => json([])],
-  ['GET', /^\/api\/seguimiento\/acceso$/, () => json({ puede: false })],
 ]
 
 // Las de este archivo primero; después las de cada área (rutas/*.js).

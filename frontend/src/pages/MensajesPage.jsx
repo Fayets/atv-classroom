@@ -11,6 +11,7 @@ import NuevoCanal from '../components/mensajes/NuevoCanal'
 import AppHeader from '../components/AppHeader'
 import Alerta from '../components/mensajes/Alerta'
 import Alertas from '../components/mensajes/Alertas'
+import CampanaAlertas from '../components/mensajes/CampanaAlertas'
 import AccionesRapidas from '../components/mensajes/AccionesRapidas'
 import BotonQuePenso from '../components/mensajes/BotonQuePenso'
 import Avatar from '../components/mensajes/Avatar'
@@ -435,21 +436,8 @@ function EstadoConexion({ conectado }) {
   return <span className="msj-estado">Conectando…</span>
 }
 
-// Modo Miembro (utils/modoMiembro.js): el admin recibe los chats de todos los clientes, pero un miembro
-// tiene uno solo ("Mi canal"). Para que se parezca a lo que ve un miembro, queda el primero.
-function soloUnCanalPropio(lista, modoMiembro) {
-  if (!modoMiembro) return lista
-  let visto = false
-  return lista.filter((c) => {
-    if (c.tipo !== 'cliente') return true
-    if (visto) return false
-    visto = true
-    return true
-  })
-}
-
 export default function MensajesPage() {
-  const { isEquipo, isAdmin, modoMiembro } = useAuth()
+  const { isEquipo, isAdmin } = useAuth()
   const escritorio = useEscritorio()
   const { suscribir, conectado, canalAbierto, esMio, informarDirectos } = useMensajeria()
   const [params, setParams] = useSearchParams()
@@ -500,7 +488,7 @@ export default function MensajesPage() {
     const pedidos = [
       fetchCanales()
         .then((l) => {
-          setCanales(ordenarBandeja(soloUnCanalPropio(l || [], modoMiembro)))
+          setCanales(ordenarBandeja(l || []))
           setErrorCarga('')
         })
         .catch((err) => {
@@ -517,7 +505,7 @@ export default function MensajesPage() {
         cargarRef.current()
       }
     })
-  }, [isEquipo, modoMiembro])
+  }, [isEquipo])
   cargarRef.current = cargar
   const canalesRef = useRef(canales)
   canalesRef.current = canales
@@ -1157,6 +1145,8 @@ export default function MensajesPage() {
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg>
                   {directosConNuevos ? <i className="msj-lateral__punto" aria-hidden="true" /> : null}
                 </button>
+                {/* Los miembros: las alertas de la app (cierre de mes pendiente). El equipo tiene "Mis alertas". */}
+                {!isEquipo ? <CampanaAlertas /> : null}
                 {vista === 'bandeja' && isEquipo ? (
                   <button
                     type="button"

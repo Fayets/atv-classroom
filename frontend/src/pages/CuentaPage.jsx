@@ -37,7 +37,7 @@ function textoDias(dias) {
 }
 
 export default function CuentaPage() {
-  const { logout, actualizarUsuario, rolReal, modoMiembro, cambiarModoMiembro } = useAuth()
+  const { logout, actualizarUsuario } = useAuth()
   const [cuenta, setCuenta] = useState(null)
   const [error, setError] = useState('')
   const [subiendo, setSubiendo] = useState(false)
@@ -85,8 +85,7 @@ export default function CuentaPage() {
 
   const c = cuenta
   const esCliente = c?.tipo === 'cliente'
-  // En Modo Miembro el backend sigue mandando la cuenta del admin: se esconde lo que es solo del equipo.
-  const esEquipo = c?.tipo === 'equipo' && !modoMiembro
+  const esEquipo = c?.tipo === 'equipo'
   const primerNombre = (c?.nombre || '').split(' ')[0]
 
   return (
@@ -102,7 +101,7 @@ export default function CuentaPage() {
               <input ref={selector} type="file" accept="image/jpeg,image/png,image/webp,image/heic" hidden onChange={elegirFoto} />
               <Credencial
                 cuenta={c}
-                tipo={esCliente ? (c.miembro ? 'Equipo del cliente' : 'Miembro') : modoMiembro ? 'Vista de miembro' : c.rol_nombre || 'Equipo'}
+                tipo={esCliente ? (c.miembro ? 'Equipo del cliente' : 'Miembro') : c.rol_nombre || 'Equipo'}
                 subiendo={subiendo}
                 alElegirFoto={() => selector.current?.click()}
                 alQuitarFoto={sacarFoto}
@@ -120,7 +119,6 @@ export default function CuentaPage() {
                     <p className="cuenta-perfil__nombre">{c.nombre}</p>
                   )
                 }
-                interruptor={rolReal === 'admin' ? <InterruptorMiembro prendido={modoMiembro} alCambiar={cambiarModoMiembro} /> : null}
               />
             </aside>
 
@@ -143,13 +141,6 @@ export default function CuentaPage() {
                     bajada={c.miembro ? `Sos parte del equipo de ${c.miembro.cliente_nombre}.` : 'Cuánto llevás del programa y cuándo vence.'}
                   >
                     <PlanLinea cuenta={c} />
-                  </Tarjeta>
-                ) : modoMiembro ? (
-                  <Tarjeta titulo="Tu plan" icono="plan" bajada="Lo que ve un miembro acá.">
-                    <p className="cta-nota">
-                      Un miembro ve su plan, la línea de su programa de punta a punta y los días que le quedan. Tu cuenta de
-                      admin no tiene plan: por eso acá no aparece.
-                    </p>
                   </Tarjeta>
                 ) : null}
 
@@ -247,28 +238,6 @@ function PlanLinea({ cuenta: c }) {
           </div>
         ) : null}
       </dl>
-    </div>
-  )
-}
-
-// Solo el admin: ver la app como la ve un miembro, sin cambiar de cuenta (utils/modoMiembro.js).
-function InterruptorMiembro({ prendido, alCambiar }) {
-  return (
-    <div className={`cta-miembro${prendido ? ' is-on' : ''}`}>
-      <div className="cta-miembro__texto">
-        <b id="cta-miembro-titulo">Modo Miembro</b>
-        <span>{prendido ? 'Estás viendo la app como un miembro. No se guarda nada.' : 'Mirá la app como la ve un miembro, sin cambiar de cuenta.'}</span>
-      </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={prendido}
-        aria-labelledby="cta-miembro-titulo"
-        className="cta-interruptor"
-        onClick={() => alCambiar(!prendido)}
-      >
-        <i />
-      </button>
     </div>
   )
 }

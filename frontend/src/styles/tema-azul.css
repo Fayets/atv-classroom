@@ -154,9 +154,6 @@ html[data-modo="azul"] .cliente-nav a { color: #b0a89d; }
 html[data-modo="azul"] .cliente-nav a:hover { background: rgba(255, 255, 255, 0.07); color: #f2eee8; }
 html[data-modo="azul"] .cliente-nav a.is-on { background: #f2eee8; color: #201f1e; }
 html[data-modo="azul"] .app-header--cliente .app-header__avatar { background: #3a3734; color: #f2eee8; }
-html[data-modo="azul"] .cliente-tabs { background: #201f1e; border-top-color: rgba(255, 255, 255, 0.09); }
-html[data-modo="azul"] .cliente-tabs a { color: #7a736a; }
-html[data-modo="azul"] .cliente-tabs a.is-on { color: #f2eee8; }
 html[data-modo="azul"] .trabado { background: #2b2927; color: #f2eee8; }
 
 /* Inicio: tarjetas de hoy, guía, barras */

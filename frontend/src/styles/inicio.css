@@ -130,6 +130,7 @@ html .in-root.im-root .im-ask__form { flex-direction: row; }
 .in-banda__coach i { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--in-crema); color: var(--in-rojo); font-size: 9.5px; font-style: normal; font-weight: 700; }
 .in-banda h2 { margin: 0; max-width: 16ch; font-size: clamp(38px, 5.6vw, 80px); font-weight: 700; line-height: 0.98; letter-spacing: -0.05em; color: #fff; text-wrap: balance; }
 .in-banda__lado { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
+.in-banda__coach-bajo { display: none; }
 .in-banda__cuenta { font-size: 64px; font-weight: 700; line-height: 0.9; letter-spacing: -0.06em; color: #fff; }
 .in-banda__cuenta small { font-size: 0.45em; letter-spacing: -0.02em; color: rgba(255, 255, 255, 0.6); }
 .in-banda__segs { display: flex; gap: 5px; }
@@ -273,6 +274,17 @@ html .in-root.im-root .in-frentes .im-open__next { color: var(--in-rojo); font-w
   .in-traba button svg { width: 0.75em; }
   .in-banda__marco { padding: 34px 18px 30px; gap: 22px; }
   .in-banda h2 { font-size: clamp(32px, 9.6vw, 42px); }
+  /* arriba solo la etiqueta y el título; el coach baja junto al avance, como una línea chica */
+  html .in-root .in-banda__etq { margin: 0 0 14px; }
+  .in-banda__etq .in-banda__coach { display: none; }
+  .in-banda__coach-bajo {
+    display: inline-flex; flex-basis: 100%; align-items: center; gap: 8px; min-width: 0;
+    font-size: 13px; font-weight: 500; line-height: 1.3; color: rgba(255, 255, 255, 0.82);
+  }
+  .in-banda__coach-bajo i {
+    flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%;
+    background: var(--in-crema); color: var(--in-rojo); font-size: 9.5px; font-style: normal; font-weight: 700;
+  }
   .in-banda__ir { width: 100%; justify-content: center; margin: 4px 0 0; }
   .in-titulo { font-size: 22px; margin-bottom: 14px; }
   .in-bento { grid-template-columns: minmax(0, 1fr); gap: 12px; }

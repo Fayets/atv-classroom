@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { ACCION, fetchCierrePendiente, fetchOtroCreador, responderCierre, tasasDe } from '../api/cierre'
+import { ABRIR_CIERRE, publicarAlertas } from '../utils/alertasApp'
 import '../styles/cierre.css'
 
 const CADA = 3 // con el cierre vencido, el cartel vuelve cada 3 acciones
@@ -272,6 +273,35 @@ export function CierreSync() {
     }
     sumar()
   }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // La campanita de Mensajes muestra el cierre pendiente mientras no lo complete, y desde ahí lo abre.
+  useEffect(() => {
+    publicarAlertas(
+      'cierre',
+      cliente && pendiente
+        ? [{
+            id: `cierre-${pendiente.periodo}`,
+            tipo: 'cierre',
+            persistente: true,
+            titulo: pendiente.vencido ? `Te falta el cierre de ${pendiente.mes}` : `Cierre de ${pendiente.mes}`,
+            texto: pendiente.vencido
+              ? `Se venció el ${dia(pendiente.vence_en)}. Tu coach lo necesita para preparar lo que sigue.`
+              : `Tenés hasta el ${dia(pendiente.vence_en)}. Son 3 minutos.`,
+            urgente: Boolean(pendiente.vencido),
+            accion: 'Completar',
+            evento: ABRIR_CIERRE,
+          }]
+        : [],
+    )
+  }, [cliente, pendiente])
+  useEffect(() => {
+    const abrir = () => {
+      setCartel(false)
+      setFormulario(true)
+    }
+    window.addEventListener(ABRIR_CIERRE, abrir)
+    return () => window.removeEventListener(ABRIR_CIERRE, abrir)
+  }, [])
 
   if (!cliente || !(otro || pendiente)) return null
 

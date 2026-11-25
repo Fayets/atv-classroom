@@ -11,13 +11,13 @@ import {
 import { setUnauthorizedHandler } from './api/client'
 import HerramientasEquipo from './components/mac/HerramientasEquipo'
 import AdminRoute from './components/AdminRoute'
-import ModoMiembroAviso from './components/ModoMiembroAviso'
 import EquipoRoute from './components/EquipoRoute'
 import ConsultasPage from './pages/ConsultasPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import Sidebar from './components/Sidebar'
 import { PausaSync } from './components/Pausa'
 import { CierreSync } from './components/CierreMes'
+import AlertasSync from './components/AlertasSync'
 import { OnboardingEquipoSync } from './components/OnboardingEquipo'
 import CuentaPage from './pages/CuentaPage'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -101,9 +101,9 @@ function AppRoutes() {
     <>
       <UnauthorizedSync />
       <BarraLateral />
-      <ModoMiembroAviso />
       <PausaSync />
       <CierreSync />
+      <AlertasSync />
       <OnboardingEquipoSync />
       <MarcoEquipo>
       <Routes>

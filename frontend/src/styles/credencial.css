@@ -269,14 +269,6 @@ html[data-modo="azul"] .cred-pase__agujeros li.is-picada { background: #1b1a19; 
 .cred__fechas dt { margin-bottom: 3px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--cr-ink-3); }
 .cred__fechas dd { margin: 0; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; color: var(--cr-ink); font-variant-numeric: tabular-nums; }
 
-/* ---------- Modo Miembro (solo admin), dentro del marco ---------- */
-html .cuenta-root .cred .cta-miembro { margin: 10px 0 0; background: var(--cr-talon); box-shadow: inset 0 0 0 1px var(--cr-linea); }
-html .cuenta-root .cred .cta-miembro.is-on { background: rgba(224, 73, 58, 0.12); box-shadow: inset 0 0 0 1px rgba(224, 73, 58, 0.5); }
-html .cuenta-root .cred .cta-miembro__texto b { color: var(--cr-ink); }
-html .cuenta-root .cred .cta-miembro__texto span { color: var(--cr-ink-2); }
-html .cuenta-root .cred .cta-interruptor { background: var(--cr-linea); box-shadow: inset 0 0 0 1px var(--cr-linea); }
-html .cuenta-root .cred .cta-interruptor[aria-checked="true"] { background: var(--cr-rojo); }
-
 /* ---------- el pie (como el de la ProfileCard) ---------- */
 .cred__pie { display: flex; align-items: center; gap: 8px; padding: 12px 6px 2px 8px; }
 .cred__estado { flex: 1; display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--cr-ink-2); white-space: nowrap; }

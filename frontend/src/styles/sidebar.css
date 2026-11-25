@@ -157,6 +157,11 @@ html[data-modo="azul"] .app-migas b { color: #f2eee8; }
 @media (max-width: 720px) {
   .sb { width: min(300px, 86vw); padding-inline: 12px; transform: translateX(-102%); box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
   .sb.is-cajon { transform: none; box-shadow: 20px 0 60px -20px rgba(0, 0, 0, 0.45); }
+  /* Mi cuenta, el modo y cerrar sesión viven solo acá en el celular: el cajón entero scrollea (la carpeta del
+     material se ve completa) y el pie queda pegado abajo, siempre a mano. */
+  .sb.is-cajon .sb-pie { position: sticky; bottom: 0; z-index: 3; margin-inline: -12px; padding: 10px 12px 12px; background: var(--sb-fondo); }
+  /* con el cajón abierto, el aviso del cierre de mes no tapa el pie */
+  body:has(.sb.is-cajon) .cm-aviso { display: none; }
   .sb-buscar kbd { display: none; }
   .sb-fondo { position: fixed; inset: 0; z-index: 69; background: rgba(20, 16, 12, 0.35); opacity: 0; pointer-events: none; transition: opacity 220ms ease; }
   .sb-fondo.is-abierto { opacity: 1; pointer-events: auto; }

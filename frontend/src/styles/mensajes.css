@@ -473,15 +473,14 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
   .mac-nav a { flex: none; padding: 5px 8px; font-size: 12.5px; }
 }
 @media (max-width: 400px) { .mac-nav a { padding: 5px 6px; font-size: 12px; } }
-/* Celular (equipo sin escritorio): arriba el isotipo y el nombre de la sección; las secciones van en la barra de
-   abajo (.cliente-tabs--equipo, en index.css). En tablet sigue el control segmentado de arriba. */
+/* Celular (equipo sin escritorio): arriba el isotipo y el nombre de la sección; las secciones están en el menú
+   hamburguesa (la barra lateral). En tablet sigue el control segmentado de arriba. */
 .mac-titulo-movil { display: none; }
 @media (max-width: 720px) {
   html .app-header--mac .mac-nav { display: none; }
   .mac-titulo-movil { display: inline-flex; align-items: center; gap: 10px; min-width: 0; color: var(--m-t1, #1d1d1f); }
   .mac-titulo-movil__iso { width: 16px; height: auto; flex: none; }
   .mac-titulo-movil b { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  html .app-header--mac .app-header__avatar { width: 32px; height: 32px; font-size: 11px; }
 }
 
 /* Mensajes del equipo: densidad y tipografía de una app de Mac (Mail / Mensajes). */
