@@ -21,6 +21,27 @@ const ICONOS_EQUIPO = {
   '/admin': <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>,
 }
 
+// Celular: abre la barra lateral como cajón (components/Sidebar.jsx escucha "atv:menu").
+function BotonMenu() {
+  return (
+    <button type="button" className="app-menu" onClick={() => window.dispatchEvent(new Event('atv:menu'))} aria-label="Abrir el menú">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" /></svg>
+    </button>
+  )
+}
+
+// El nombre de la sección para las migas del encabezado.
+function seccionDe(ruta, equipo) {
+  if (ruta === '/') return 'Inicio'
+  if (ruta.startsWith('/classroom')) return equipo ? 'Classroom' : 'Material'
+  if (ruta.startsWith('/admin/cerebro')) return 'Cerebro'
+  if (ruta.startsWith('/admin/equipo')) return 'Equipo'
+  if (ruta.startsWith('/admin')) return 'Módulos'
+  const nombres = { '/roadmap': 'Roadmap', '/tools': 'Tools', '/mensajes': 'Mensajes', '/cuenta': 'Mi cuenta', '/consultas': 'Consultas', '/frentes': 'Frentes', '/recursos': 'Recursos', '/comunidad': 'Comunidad' }
+  const clave = Object.keys(nombres).find((k) => ruta.startsWith(k))
+  return clave ? nombres[clave] : 'ATV'
+}
+
 const PLANES = { advantage: 'High Level', high: 'High Level', boost: 'Boost', mid: 'Mid level', entry: 'Entry level', mentoria: 'Mentoria', '2k': '2K' }
 
 export default function AppHeader() {
@@ -154,9 +175,12 @@ export default function AppHeader() {
             <i />
           </span>
         ) : (
-          <Link to="/" className="app-header__logo" aria-label="Inicio ATV">
-            <Isotipo className="app-header__logo-img" />
-          </Link>
+          <>
+            <BotonMenu />
+            <Link to="/" className="app-header__logo" aria-label="Inicio ATV">
+              <Isotipo className="app-header__logo-img" />
+            </Link>
+          </>
         )}
         {isEquipo ? (
           <span className="safari-flechas">
@@ -168,11 +192,18 @@ export default function AppHeader() {
             </button>
           </span>
         ) : null}
+        {/* Con la barra lateral (PC y tablet), el encabezado queda como migas: ATV › la sección. */}
+        <span className="app-migas">
+          ATV
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+          <b>{seccionDe(location.pathname, isEquipo)}</b>
+        </span>
       </div>
 
       {secciones ? (
         // Celular: arriba solo el isotipo y la sección en la que está; las secciones bajan a la barra de abajo.
         <span className="mac-titulo-movil">
+          <BotonMenu />
           <Isotipo className="mac-titulo-movil__iso" />
           <b>{seccionActual?.[1] || 'ATV'}</b>
         </span>

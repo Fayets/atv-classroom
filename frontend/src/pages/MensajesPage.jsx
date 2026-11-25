@@ -1275,7 +1275,7 @@ export default function MensajesPage() {
             abierto={perfilAbierto || Boolean(enMensajes && params.get('roadmap'))}
             alCerrar={cerrarPerfil}
             item={item}
-            alVerFicha={isAdmin && escritorio ? escritorio.verFicha : null}
+            alVerFicha={isAdmin ? (escritorio ? escritorio.verFicha : window.matchMedia('(min-width: 721px)').matches ? (id) => window.dispatchEvent(new CustomEvent('atv:ficha', { detail: id })) : null) : null}
             llamadaId={enMensajes ? Number(params.get('roadmap')) || null : null}
             onLlamadaUsada={() => setParams({ c: String(item.id) }, { replace: true })}
           /> : null}

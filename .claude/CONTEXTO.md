@@ -74,9 +74,10 @@ Para cambiar de usuario: avatar → Cerrar sesión.
   - **Admin en celular**: título arriba y pestañas abajo a todo el ancho (`styles/permisos.css`).
   - **Mensajes**: el texto de ayuda del cuadro para escribir va en una línea (antes se cortaba).
   - **Barra de la clase** en tablet: en una línea, sin el atajo ⌘K.
-- El equipo en pantallas de 900px o más trabaja en el "escritorio macOS" (`components/mac/Escritorio.jsx`).
+- (Histórico) El equipo en pantallas de 900px o más trabajaba en el "escritorio macOS"
+  (`components/mac/Escritorio.jsx`). **Ya no**: ver 2.7.
 
-### 2.3 Menú del equipo en dos grupos
+### 2.3 Menú del equipo en dos grupos (histórico: después se reemplazó por la barra lateral, ver 2.7)
 - Izquierda lo **común** (lo que también ven los clientes): **Mensajes, Classroom**.
 - Línea separadora "bien hecha".
 - Derecha lo del **equipo/admin**: Consultas, Biblioteca (todo el equipo) y Cerebro, Equipo, Módulos, Clientes
@@ -131,8 +132,48 @@ Para cambiar de usuario: avatar → Cerrar sesión.
 - **Se sacaron la fecha y el anillo "87 días"** en todas las pantallas. El componente `AnilloPrograma` (en
   `Hoy.jsx`, estilos `.in-anillo` en `inicio.css`) **quedó guardado para usarlo en otra sección más adelante**
   (recibe la cuenta de `fetchCuenta()`).
-- En celular la primera pantalla descuenta la barra de arriba (55px) y la de abajo (66px); en PC/tablet la barra
-  de arriba mide 67px (variables `--in-barra`, `--in-abajo`, `--in-gap` en `inicio.css`).
+- En celular la primera pantalla descuenta la barra de arriba (55px) y la de abajo (66px); en PC/tablet, con la
+  barra lateral, la barra de arriba (migas) mide 56px (variables `--in-barra`, `--in-abajo`, `--in-gap` en
+  `inicio.css`; el 56px lo pone `sidebar.css`).
+- La banda roja y el haz usan `--vista` (el ancho de la ventana menos la barra lateral) para ir de borde a borde.
+
+### 2.7 **Barra lateral** (sidebar) para todos: miembro, coach y admin
+Pedido del superior: sacar el menú del medio y poner "un sidebar a la izquierda, bien facha", con secciones como
+Mi cuenta / configuración. Referencias: las capturas de un "Knowledge Base" (sidebar + árbol de carpetas) que pasó
+el dueño, adaptadas a ATV, y patrones de apps brasileñas (credencial de cuenta arriba como Cora, riel de íconos +
+panel como Pipefy). No se copió: árbol de módulos con anillos de avance y grupos como bandejas con pestaña.
+- Archivos: `components/Sidebar.jsx`, `styles/sidebar.css` (nuevos), `App.jsx` (`BarraLateral` monta la barra una
+  sola vez, fuera de las páginas, para que la píldora se deslice), `components/AppHeader.jsx` (migas y botón de
+  menú), `components/mac/HerramientasEquipo.jsx` (nuevo), `pages/MensajesPage.jsx` (ficha del cliente).
+- **Contenido de arriba a abajo**:
+  - Credencial: isotipo, "ATV Classroom" y "Boost · 87 días" (cliente; los días en rojo con 15 o menos) o
+    "Administrador"/"Coach". Botón para plegar.
+  - Buscador "Buscar o preguntar" (⌘K/Ctrl+K): lleva al campo de la guía del Inicio (solo clientes con guía).
+  - Grupos de secciones con una **píldora de tinta que se desliza** a la activa (y una rayita roja):
+    - Cliente: "Tu espacio" (Inicio, Material, Roadmap, Tools, Mensajes con contador).
+    - Equipo: "General" (Mensajes, Classroom) y "Equipo y admin" (Consultas; admin además Cerebro, Equipo, Módulos).
+  - Equipo: grupo **"Carpetas"** (Clientes, Contratos, Cierres de mes —solo admin—, Onboardings, Llamadas,
+    Cuellos de botella, SOPs solicitados, Biblioteca, y en rojo Nuevo onboarding / Nueva clase —esta solo admin—).
+  - **"Tu material"** (cliente) / "Módulos del classroom" (equipo): árbol de módulos con mini anillo de avance y
+    "hechas/total"; candado si está bloqueado; se puede plegar.
+  - Abajo: tu cuenta ("Mi cuenta y configuración" → `/cuenta`), mensajes directos (equipo), modo de color (claro →
+    oscuro → auto) y cerrar sesión.
+- **Separación de grupos**: cada grupo es una **bandeja** un tono más clara que la barra, con su nombre como
+  **pestaña de carpeta** arriba a la izquierda (como las pestañas de las hojas de SOPs de Material).
+- **Encabezado de arriba**: con la barra lateral queda como **migas** ("ATV › Material"), 56px de alto; el menú del
+  medio y el avatar ya no se muestran ahí (el equipo conserva las flechas atrás/adelante).
+- **Tamaños**: PC (≥1100px) barra desplegada de 264px; tablet (721–1099px) arranca plegada como **riel de íconos**
+  de 76px. El botón de plegar guarda la preferencia (`localStorage` `atv_sb_riel`). La página se corre a la derecha
+  con `body:has(> .sb) { padding-left: var(--sb-w) }`.
+- **Celular (≤720px)**: sigue la **barra de abajo** (lo más fácil con el pulgar) y arriba aparece un botón de menú
+  (≡) que abre la barra lateral como **cajón** (siempre desplegada; sin el grupo Carpetas). El botón manda el evento
+  `atv:menu`.
+- **El escritorio macOS del equipo se reemplazó**: en PC el equipo navega con la barra lateral como el cliente.
+  Sus carpetas son las mismas ventanas de antes (`Finder`, `BibliotecaApp`, `*Carpeta`, `NuevaClase`,
+  `NuevoCliente`), ahora en `HerramientasEquipo.jsx`: flotan sobre la página a la derecha de la barra, se abren
+  con el evento `atv:carpeta` (desde la barra) y "Ver ficha" en Mensajes manda `atv:ficha` (abre Clientes en esa
+  ficha). Al ir a un chat o pantalla desde una carpeta, las ventanas se cierran. `Escritorio.jsx` y
+  `EscritorioContext.jsx` quedaron sin usar (no se borraron, por si se quiere volver).
 
 ---
 
@@ -156,7 +197,12 @@ Para cambiar de usuario: avatar → Cerrar sesión.
   campo o centrarlo, es un cambio de una línea en `inicio.css`.
 - **Celular al buscar**: hoy el título queda fijo; si se quiere otro comportamiento, está en `InicioPage.jsx`
   (`setArriba`) e `inicio.css` (`--in-arriba`).
-- **Tools/Roadmap en el menú del equipo**: no están; se podrían sumar al grupo común.
+- **Tools/Roadmap en el menú del equipo**: no están; se podrían sumar al grupo "General".
+- **Barra lateral**: la vista del **coach** y la del **cliente** con las bandejas no se revisaron en pantalla
+  (usan el mismo código que el admin, que sí se revisó). En el mock las carpetas abren vacías (sin datos).
+- **Chat ("lo del Discord")**: el superior pidió ajustes al chat; todavía no se tocó.
+- Se puede borrar `Escritorio.jsx` / `EscritorioContext.jsx` si se confirma que no se vuelve al escritorio macOS
+  (ojo: `AppHeader`, `MensajesPage` y `App.jsx` todavía leen `useEscritorio()`, que hoy siempre da `null`).
 - **Modo claro del haz**: por cómo funciona el efecto, en fondos claros se ve como un brillo cálido (lo blanco
   se vuelve transparente); en oscuro se ve como láser.
 - `npm ci` avisa 6 vulnerabilidades "high" en dependencias; no se tocaron.
@@ -168,7 +214,10 @@ Para cambiar de usuario: avatar → Cerrar sesión.
 
 - Estilos por página con selectores `html .xx-root ...` para ganarles a `frentes.css` y `tema-*.css` sin
   `!important` (`.cr-root` Material, `.tl-root` Tools, `.in-root` Inicio).
-- Modo oscuro: `<html data-modo="azul">` (lo cambia el menú del avatar).
+- Modo oscuro: `<html data-modo="azul">` (lo cambia el botón de modo de la barra lateral o el menú del avatar en
+  celular).
+- Eventos de ventana usados entre componentes: `atv:menu` (abrir el cajón en celular), `atv:carpeta` (abrir una
+  carpeta del equipo), `atv:ficha` (abrir la ficha de un cliente).
 - Verificación hecha en cada cambio: `npx oxlint` sobre los archivos tocados y `npx vite build` (pasan).
 - La vista previa del navegador de Claude, si el panel está oculto, corre a ~1 cuadro por segundo: las
   animaciones (como la entrada del haz) tardan mucho ahí; no es un bug de la app.

@@ -1,0 +1,216 @@
+/* ======================================================================
+   Barra lateral de la app (components/Sidebar.jsx), rediseño 2026-11.
+   Papel un tono más hondo que la página, letra Poppins, píldora de tinta para la sección activa y el rojo
+   ATV de acento. Oscuro: carbón cálido. La página se corre a la derecha lo que mide la barra (--sb-w).
+   ====================================================================== */
+
+.sb {
+  --sb-fondo: #efebe4;
+  --sb-linea: rgba(29, 29, 31, 0.09);
+  --sb-t1: #1d1d1f;
+  --sb-t2: #4a4744;
+  --sb-t3: #8a857d;
+  --sb-hover: rgba(29, 29, 31, 0.05);
+  --sb-tinta: #1d1d1f;
+  --sb-sobre-tinta: #f6f1e9;
+  --sb-rojo: #c0392b;
+  position: fixed; z-index: 70; top: 0; bottom: 0; left: 0; width: 264px;
+  display: flex; flex-direction: column; gap: 6px; padding: 14px 12px 12px; box-sizing: border-box;
+  background: var(--sb-fondo); border-right: 1px solid var(--sb-linea);
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif; color: var(--sb-t1);
+  overflow-y: auto; overflow-x: hidden; scrollbar-width: none;
+  transition: width 220ms cubic-bezier(0.23, 1, 0.32, 1), transform 260ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.sb::-webkit-scrollbar { display: none; }
+html[data-modo="azul"] .sb {
+  --sb-fondo: #171615;
+  --sb-linea: rgba(255, 255, 255, 0.07);
+  --sb-t1: #f2eee8;
+  --sb-t2: #cfc8be;
+  --sb-t3: #8e867c;
+  --sb-hover: rgba(255, 255, 255, 0.05);
+  --sb-tinta: #f2eee8;
+  --sb-sobre-tinta: #1b1a19;
+  --sb-rojo: #dd5245;
+}
+.sb svg { width: 19px; height: 19px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.sb :focus-visible { outline: 2px solid var(--sb-rojo); outline-offset: 2px; }
+
+/* ---------- la credencial: ATV, tu programa y los días ---------- */
+.sb-cab { display: flex; align-items: center; gap: 6px; padding: 2px 0 8px; }
+.sb-cred { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 12px; }
+.sb-cred__logo { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--sb-tinta); color: var(--sb-sobre-tinta); }
+.sb-cred__iso { width: 14px; height: auto; }
+.sb-cred__txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.sb-cred__txt b { font-size: 14.5px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; }
+.sb-cred__txt small { font-size: 12px; color: var(--sb-t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-cred__txt small .is-poco { color: var(--sb-rojo); font-weight: 600; }
+.sb-plegar { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 9px; background: none; color: var(--sb-t3); cursor: pointer; }
+.sb-plegar:hover { background: var(--sb-hover); color: var(--sb-t1); }
+.sb-plegar svg { width: 18px; height: 18px; }
+
+/* ---------- buscador (lleva a la guía del inicio) ---------- */
+.sb-buscar {
+  display: flex; align-items: center; gap: 10px; height: 40px; margin: 0 0 8px; padding: 0 8px 0 12px; border: 0; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.75); box-shadow: inset 0 0 0 1px var(--sb-linea); color: var(--sb-t3);
+  font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; transition: box-shadow 160ms ease, color 160ms ease;
+}
+html[data-modo="azul"] .sb-buscar { background: rgba(255, 255, 255, 0.04); }
+.sb-buscar span { flex: 1; white-space: nowrap; }
+.sb-buscar kbd { padding: 2px 6px; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--sb-linea); font: inherit; font-size: 11px; color: var(--sb-t3); }
+.sb-buscar:hover { color: var(--sb-t1); box-shadow: inset 0 0 0 1px var(--sb-t3); }
+
+/* ---------- secciones, con la píldora que se desliza a la activa ---------- */
+.sb-nav { position: relative; display: flex; flex-direction: column; gap: 10px; }
+.sb-pildora {
+  position: absolute; left: 0; right: 0; top: 0; height: 40px; border-radius: 12px; background: var(--sb-tinta); pointer-events: none;
+  box-shadow: 0 6px 16px -8px rgba(29, 29, 31, 0.55); opacity: 0;
+  transition: transform 300ms cubic-bezier(0.23, 1, 0.32, 1), height 300ms cubic-bezier(0.23, 1, 0.32, 1), opacity 160ms ease;
+}
+.sb-pildora::before { content: ''; position: absolute; left: -12px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--sb-rojo); }
+.sb-grupo { display: flex; flex-direction: column; gap: 2px; }
+.sb-etq { margin: 4px 0 2px; padding: 0 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sb-t3); white-space: nowrap; }
+.sb-item {
+  position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 10px; border-radius: 12px;
+  color: var(--sb-t2); font-size: 14.5px; font-weight: 500; text-decoration: none; white-space: nowrap;
+  transition: color 200ms ease, background-color 160ms ease;
+}
+.sb-item:hover:not(.is-on) { background: var(--sb-hover); color: var(--sb-t1); }
+.sb-item.is-on { color: var(--sb-sobre-tinta); font-weight: 600; }
+.sb-item__txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sb-cuenta { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: grid; place-items: center; background: var(--sb-rojo); color: #fff; font-size: 11px; font-weight: 700; }
+
+/* ---------- Tu material: el árbol de módulos ---------- */
+.sb-arbol { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--sb-linea); }
+.sb-arbol__cab { display: flex; align-items: center; gap: 4px; width: 100%; margin: 0 0 4px; padding: 4px 6px; border: 0; background: none; cursor: pointer; font-family: inherit; text-align: left; }
+.sb-arbol__cab:hover { color: var(--sb-t1); }
+.sb-arbol__flecha { display: grid; place-items: center; transition: transform 200ms ease; }
+.sb-arbol__flecha svg { width: 14px; height: 14px; }
+.sb-arbol__flecha.is-abierto { transform: rotate(90deg); }
+.sb-arbol ul { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 1px solid var(--sb-linea); margin-left: 15px; display: flex; flex-direction: column; gap: 1px; }
+.sb-mod { display: flex; align-items: center; gap: 9px; min-height: 32px; padding: 0 8px; border-radius: 9px; color: var(--sb-t2); font-size: 13px; text-decoration: none; }
+.sb-mod:hover:not(.is-cerrado) { background: var(--sb-hover); color: var(--sb-t1); }
+.sb-mod.is-on { background: var(--sb-hover); color: var(--sb-t1); font-weight: 600; }
+.sb-mod.is-cerrado { color: var(--sb-t3); cursor: default; }
+.sb-mod__txt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-mod__n { font-size: 11.5px; color: var(--sb-t3); }
+.sb .sb-mod__ico { width: 18px; height: 18px; }
+.sb-mod__ico.is-cerrado { display: grid; place-items: center; }
+.sb-mod__ico.is-cerrado svg { width: 14px; height: 14px; }
+.sb-mod__pista { fill: none; stroke: var(--sb-linea); stroke-width: 2.6; }
+.sb-mod__arco { fill: none; stroke: var(--sb-rojo); stroke-width: 2.6; stroke-linecap: round; }
+.sb-mod__ico.is-completo .sb-mod__arco { stroke: #1f8a4c; }
+
+/* ---------- tu cuenta, abajo ---------- */
+.sb-pie { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--sb-linea); display: flex; flex-direction: column; gap: 6px; }
+.sb-yo { display: flex; align-items: center; gap: 10px; padding: 7px; border-radius: 12px; color: var(--sb-t1); text-decoration: none; }
+.sb-yo:hover, .sb-yo.is-on { background: var(--sb-hover); }
+.sb-yo__av { width: 34px; height: 34px; flex: none; display: grid; place-items: center; overflow: hidden; border-radius: 50%; background: var(--sb-rojo); color: #fff; font-size: 12px; font-weight: 700; }
+.sb-yo__av img { width: 100%; height: 100%; object-fit: cover; }
+.sb-yo__txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.sb-yo__txt b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-yo__txt small { font-size: 11.5px; color: var(--sb-t3); white-space: nowrap; }
+.sb-acciones { display: flex; gap: 4px; padding: 0 4px; }
+.sb-accion { position: relative; flex: 1; height: 34px; display: grid; place-items: center; border: 0; border-radius: 10px; background: none; color: var(--sb-t3); cursor: pointer; }
+.sb-accion:hover { background: var(--sb-hover); color: var(--sb-t1); }
+.sb-accion svg { width: 18px; height: 18px; }
+.sb-accion__punto { position: absolute; top: 6px; right: calc(50% - 13px); width: 7px; height: 7px; border-radius: 50%; background: var(--sb-rojo); }
+
+/* ---------- riel (plegada): solo íconos ---------- */
+.sb.is-riel { width: 76px; padding-inline: 10px; }
+.sb.is-riel :is(.sb-cred__txt, .sb-buscar span, .sb-buscar kbd, .sb-etq, .sb-item__txt, .sb-arbol, .sb-yo__txt) { display: none; }
+.sb.is-riel .sb-cab { flex-direction: column; gap: 8px; }
+.sb.is-riel .sb-cred { padding: 4px 0; justify-content: center; }
+.sb.is-riel .sb-buscar { justify-content: center; padding: 0; }
+.sb.is-riel .sb-item { justify-content: center; padding: 0; }
+.sb.is-riel .sb-cuenta { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; font-size: 9.5px; padding: 0 4px; }
+.sb.is-riel .sb-grupo + .sb-grupo { padding-top: 8px; border-top: 1px solid var(--sb-linea); }
+.sb.is-riel .sb-yo { justify-content: center; padding: 6px 0; }
+.sb.is-riel .sb-acciones { flex-direction: column; padding: 0; }
+
+/* ---------- la página se corre a la derecha (PC y tablet) ---------- */
+@media (min-width: 721px) {
+  body:has(> .sb) { --sb-w: 264px; padding-left: var(--sb-w); }
+  body:has(> .sb.is-riel) { --sb-w: 76px; }
+  body:has(> .sb) { transition: padding-left 220ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .sb-fondo { display: none; }
+  /* El encabezado de arriba queda como "migas" (ATV › sección): el menú y la cuenta ya están en la barra. */
+  body:has(> .sb) .app-header :is(.cliente-nav, .mac-nav, .app-header__right, .app-header__logo, .mac-semaforo, .safari-url, .mac-titulo-movil, .app-menu) { display: none; }
+  body:has(> .sb) .app-header.app-header--cliente { display: flex; align-items: center; }
+  body:has(> .sb) .app-header.app-header--mac { display: flex; align-items: center; }
+  body:has(> .sb) .app-migas { display: flex; }
+  body:has(> .sb) .app-header { min-height: 56px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
+  /* el inicio calcula su primera pantalla con el alto de esta barra */
+  body:has(> .sb) .in-root.im-root { --in-barra: 56px; }
+}
+/* El ancho de la vista sin la barra: lo usan los bloques de borde a borde (la banda roja del inicio). */
+body { --vista: calc(100vw - var(--sb-w, 0px)); }
+
+/* las migas del encabezado */
+.app-migas { display: none; align-items: center; gap: 8px; font-size: 14px; color: #8a857d; white-space: nowrap; }
+.app-migas b { color: #1d1d1f; font-weight: 600; }
+html[data-modo="azul"] .app-migas b { color: #f2eee8; }
+.app-migas svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- celular: cajón desde la izquierda ---------- */
+.app-menu { display: none; }
+@media (max-width: 720px) {
+  .sb { width: min(300px, 86vw); padding-inline: 12px; transform: translateX(-102%); box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+  .sb.is-cajon { transform: none; box-shadow: 20px 0 60px -20px rgba(0, 0, 0, 0.45); }
+  .sb-buscar kbd { display: none; }
+  .sb-fondo { position: fixed; inset: 0; z-index: 69; background: rgba(20, 16, 12, 0.35); opacity: 0; pointer-events: none; transition: opacity 220ms ease; }
+  .sb-fondo.is-abierto { opacity: 1; pointer-events: auto; }
+  .app-menu { display: grid; place-items: center; width: 38px; height: 38px; margin-left: -8px; border: 0; border-radius: 10px; background: none; color: inherit; cursor: pointer; }
+  .app-menu svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb, .sb-pildora, .sb-fondo, .sb-arbol__flecha, body:has(> .sb) { transition: none; }
+}
+
+/* ---------- carpetas del equipo (components/mac/HerramientasEquipo.jsx) ----------
+   Las ventanas de Clientes, Biblioteca, etc. flotan sobre la página, a la derecha de la barra lateral. La capa no
+   toma clics; solo las ventanas abiertas y los modales. */
+.eq-herr {
+  --mac-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
+  position: fixed; z-index: 60; top: 0; right: 0; bottom: 0; left: var(--sb-w, 0px); pointer-events: none; font-family: var(--mac-font);
+}
+.eq-herr > :not(.fd-ventana) { pointer-events: auto; }
+/* las carpetas en la barra lateral: botones, con el ícono en un cuadradito de color */
+.sb-item--carpeta { width: 100%; border: 0; background: none; font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.sb-item--carpeta .sb-carpeta { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 7px; background: var(--sb-hover); color: var(--sb-t2); }
+.sb-item--carpeta .sb-carpeta svg { width: 15px; height: 15px; }
+.sb-item--carpeta.is-crear .sb-carpeta { background: var(--sb-rojo); color: #fff; }
+@media (max-width: 720px) { .sb-grupo--carpetas { display: none; } }
+
+/* ---------- grupos como bandejas con pestaña (rediseño de la separación) ----------
+   Cada grupo (General, Equipo y admin, Carpetas, Tu material) es una bandeja un tono más clara que la barra,
+   con su nombre como pestaña de carpeta arriba a la izquierda, igual que las pestañas de las hojas de SOPs de
+   Material. La bandeja se dibuja con ::before (debajo de la pestaña) para que la píldora activa quede encima. */
+.sb { --sb-bandeja: rgba(255, 255, 255, 0.62); --sb-pestana: 26px; gap: 0; }
+html[data-modo="azul"] .sb { --sb-bandeja: rgba(255, 255, 255, 0.045); }
+.sb-nav { gap: 14px; }
+.sb-grupo, .sb-arbol { position: relative; display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; }
+.sb-grupo--carpetas, .sb-arbol { margin-top: 14px; }
+.sb-arbol { padding-top: 0; border-top: 0; }
+.sb-grupo::before, .sb-arbol::before {
+  content: ''; position: absolute; z-index: 0; left: 0; right: 0; top: var(--sb-pestana); bottom: 0;
+  border-radius: 0 14px 14px 14px; background: var(--sb-bandeja);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 1px 2px rgba(60, 48, 40, 0.06);
+}
+html[data-modo="azul"] .sb-grupo::before, html[data-modo="azul"] .sb-arbol::before { box-shadow: none; }
+/* la pestaña */
+.sb-grupo > .sb-etq, .sb-arbol > .sb-arbol__cab {
+  position: relative; z-index: 1; align-self: flex-start; box-sizing: border-box; height: var(--sb-pestana); margin: 0;
+  padding: 7px 12px 0; border-radius: 9px 9px 0 0; background: var(--sb-bandeja); line-height: 16px;
+}
+.sb-arbol > .sb-arbol__cab { width: auto; padding-left: 8px; }
+.sb-pildora { z-index: 1; right: auto; }
+.sb-grupo > .sb-item { position: relative; z-index: 2; margin-inline: 6px; }
+.sb-grupo > .sb-etq + .sb-item { margin-top: 6px; }
+.sb-arbol > ul { position: relative; z-index: 1; margin-top: 8px; margin-right: 6px; }
+/* riel: sin pestañas, las bandejas siguen separando */
+.sb.is-riel { --sb-pestana: 0px; }
+.sb.is-riel .sb-grupo + .sb-grupo { padding-top: 0; border-top: 0; }
+.sb.is-riel .sb-grupo > .sb-item:first-of-type { margin-top: 6px; }
+.sb.is-riel .sb-grupo::before { border-radius: 14px; }
+.sb.is-riel .sb-grupo > .sb-item { margin-inline: 4px; }

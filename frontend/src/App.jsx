@@ -9,17 +9,18 @@ import {
   useParams,
 } from 'react-router-dom'
 import { setUnauthorizedHandler } from './api/client'
-import Escritorio from './components/mac/Escritorio'
+import HerramientasEquipo from './components/mac/HerramientasEquipo'
 import AdminRoute from './components/AdminRoute'
 import EquipoRoute from './components/EquipoRoute'
 import ConsultasPage from './pages/ConsultasPage'
 import ProtectedRoute from './components/ProtectedRoute'
+import Sidebar from './components/Sidebar'
 import { PausaSync } from './components/Pausa'
 import { CierreSync } from './components/CierreMes'
 import { OnboardingEquipoSync } from './components/OnboardingEquipo'
 import CuentaPage from './pages/CuentaPage'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import { EscritorioProvider, useEscritorio } from './context/EscritorioContext'
+import { useEscritorio } from './context/EscritorioContext'
 import { MensajeriaProvider } from './context/MensajeriaContext'
 import Actualizaciones from './components/Actualizaciones'
 import VigiaPantalla from './components/VigiaPantalla'
@@ -63,29 +64,42 @@ function RutaMensajes() {
   return useEscritorio() ? null : <MensajesPage />
 }
 
-// El equipo trabaja dentro de un escritorio de macOS (en pantallas chicas, sin escritorio).
+// El equipo ya no trabaja en el escritorio de macOS (components/mac/Escritorio.jsx, quedó sin usar): navega con la
+// barra lateral como el cliente, y sus carpetas (Clientes, Biblioteca, etc.) se abren como ventanas flotantes desde
+// ahí (HerramientasEquipo), en PC y tablet.
 function MarcoEquipo({ children }) {
   const { isEquipo, isAuthenticated } = useAuth()
   const { pathname } = useLocation()
-  const [ancho, setAncho] = useState(() => window.matchMedia('(min-width: 900px)').matches)
+  const [ancho, setAncho] = useState(() => window.matchMedia('(min-width: 721px)').matches)
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 900px)')
+    const mq = window.matchMedia('(min-width: 721px)')
     const cambiar = () => setAncho(mq.matches)
     mq.addEventListener('change', cambiar)
     return () => mq.removeEventListener('change', cambiar)
   }, [])
   if (!isAuthenticated || !isEquipo || !ancho || pathname.startsWith('/login')) return children
   return (
-    <EscritorioProvider>
-      <Escritorio>{children}</Escritorio>
-    </EscritorioProvider>
+    <>
+      {children}
+      <HerramientasEquipo />
+    </>
   )
+}
+
+// La barra lateral (components/Sidebar.jsx), para el cliente y el equipo. Se monta una sola vez para que la
+// píldora se deslice entre pantallas.
+function BarraLateral() {
+  const { isAuthenticated } = useAuth()
+  const { pathname } = useLocation()
+  if (!isAuthenticated || pathname.startsWith('/login') || pathname.startsWith('/leverage')) return null
+  return <Sidebar />
 }
 
 function AppRoutes() {
   return (
     <>
       <UnauthorizedSync />
+      <BarraLateral />
       <PausaSync />
       <CierreSync />
       <OnboardingEquipoSync />
