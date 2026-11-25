@@ -155,7 +155,10 @@ panel como Pipefy). No se copió: árbol de módulos con anillos de avance y gru
   - Equipo: grupo **"Carpetas"** (Clientes, Contratos, Cierres de mes —solo admin—, Onboardings, Llamadas,
     Cuellos de botella, SOPs solicitados, Biblioteca, y en rojo Nuevo onboarding / Nueva clase —esta solo admin—).
   - **"Tu material"** (cliente) / "Módulos del classroom" (equipo): árbol de módulos con mini anillo de avance y
-    "hechas/total"; candado si está bloqueado; se puede plegar.
+    "hechas/total"; candado si está bloqueado. **Cerrado se ve como una carpeta entera** (tapa con pestaña, dos
+    hojas que asoman y el frente con "Tu material · 13 módulos · 19% hecho"; al pasar el mouse el frente se
+    inclina y las hojas suben). Abierto/cerrado queda guardado (`localStorage` `atv_sb_material`).
+  - Los hijos de la barra no se aplastan (`.sb > * { flex-shrink: 0 }`): la barra hace scroll si no entra.
   - Abajo: tu cuenta ("Mi cuenta y configuración" → `/cuenta`), mensajes directos (equipo), modo de color (claro →
     oscuro → auto) y cerrar sesión.
 - **Separación de grupos**: cada grupo es una **bandeja** un tono más clara que la barra, con su nombre como

@@ -115,7 +115,12 @@ export default function Sidebar() {
   const { pathname } = useLocation()
   const [riel, alternarRiel] = useRiel()
   const [modo, setModo] = useState(modoActual)
-  const [arbol, setArbol] = useState(true)
+  // "Tu material" abierto o cerrado (como carpeta); queda guardado en este dispositivo.
+  const [arbol, setArbolEstado] = useState(() => localStorage.getItem('atv_sb_material') !== '0')
+  const setArbol = (abierto) => {
+    localStorage.setItem('atv_sb_material', abierto ? '1' : '0')
+    setArbolEstado(abierto)
+  }
   // Celular: el cajón se abre con el botón de menú de la barra de arriba (AppHeader manda "atv:menu").
   const [cajonAbierto, setCajon] = useState(false)
   const onCerrarCajon = () => setCajon(false)
@@ -224,6 +229,12 @@ export default function Sidebar() {
   const plan = isEquipo ? (isAdmin ? 'Administrador' : 'Coach') : PLANES[user?.rol] || 'Tu programa'
   const dias = !isEquipo && user?.dias_restantes != null ? user.dias_restantes : null
   const abiertos = (modulos || []).filter((m) => m.total_clases)
+  // El avance de todo el material (módulos no bloqueados), para el frente de la carpeta cerrada.
+  const disponibles = abiertos.filter((m) => !m.bloqueado)
+  const totalClases = disponibles.reduce((n, m) => n + m.total_clases, 0)
+  const avanceTotal = totalClases
+    ? Math.round((100 * disponibles.reduce((n, m) => n + (m.total_clases * (m.porcentaje_progreso || 0)) / 100, 0)) / totalClases)
+    : null
 
   return createPortal(
     <>
@@ -291,10 +302,27 @@ export default function Sidebar() {
           </div>
         ) : null}
 
-        {/* "Tu material": los módulos como un árbol, con su avance. */}
-        {abiertos.length ? (
+        {/* "Tu material": abierto, los módulos como un árbol con su avance; cerrado, una carpeta entera con el
+            nombre y el resumen escritos en el frente (al pasar el mouse asoman las hojas). */}
+        {abiertos.length && !arbol ? (
+          <button type="button" className="sb-folder" onClick={() => setArbol(true)} aria-expanded="false" title="Abrir">
+            <span className="sb-folder__atras" aria-hidden="true" />
+            <span className="sb-folder__hojas" aria-hidden="true">
+              <i />
+              <i />
+            </span>
+            <span className="sb-folder__frente">
+              <b>{isEquipo ? 'Módulos del classroom' : 'Tu material'}</b>
+              <small>
+                <span className="num">{abiertos.length}</span> módulos
+                {!isEquipo && avanceTotal != null ? <> · <span className="num">{avanceTotal}%</span> hecho</> : null}
+              </small>
+            </span>
+          </button>
+        ) : null}
+        {abiertos.length && arbol ? (
           <section className="sb-arbol">
-            <button type="button" className="sb-etq sb-arbol__cab" onClick={() => setArbol((v) => !v)} aria-expanded={arbol}>
+            <button type="button" className="sb-etq sb-arbol__cab" onClick={() => setArbol(false)} aria-expanded="true">
               <span className={`sb-arbol__flecha${arbol ? ' is-abierto' : ''}`}><Icono n="chevron" /></span>
               {isEquipo ? 'Módulos del classroom' : 'Tu material'}
             </button>
