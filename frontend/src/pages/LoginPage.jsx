@@ -30,7 +30,11 @@ function destino(porDefecto) {
 }
 
 // Las fotos del brandbook para la portada del login (public/marca/fotos).
-const FOTOS_LOGIN = ['senna', 'jordan-pelota', 'ciclista', 'jordan-retrato', 'corredor-sombra', 'corredores-rojo']
+const FOTOS_LOGIN = [
+  'senna', 'jordan-pelota', 'ciclista', 'jordan-retrato', 'corredor-sombra', 'corredores-rojo',
+  'auto-rojo', 'caminante-rojo', 'espejo-corbata', 'basquet', 'valija', 'jordan-azul', 'esquiador', 'corredor-ruta',
+  'retrato-azul', 'corredor', 'pelo-rojo', 'bici-traje', 'escalador-azul', 'escalera', 'ciclista-2', 'ciclista-movimiento',
+]
 
 export default function LoginPage() {
   const navigate = useNavigate()

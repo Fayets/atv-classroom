@@ -157,9 +157,19 @@ html[data-modo="azul"] .app-migas b { color: #f2eee8; }
 @media (max-width: 720px) {
   .sb { width: min(300px, 86vw); padding-inline: 12px; transform: translateX(-102%); box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
   .sb.is-cajon { transform: none; box-shadow: 20px 0 60px -20px rgba(0, 0, 0, 0.45); }
-  /* Mi cuenta, el modo y cerrar sesión viven solo acá en el celular: el cajón entero scrollea (la carpeta del
-     material se ve completa) y el pie queda pegado abajo, siempre a mano. */
-  .sb.is-cajon .sb-pie { position: sticky; bottom: 0; z-index: 3; margin-inline: -12px; padding: 10px 12px 12px; background: var(--sb-fondo); }
+  /* Mi cuenta, el modo y cerrar sesión viven solo acá en el celular, así que el pie va ANCLADO abajo de la
+     pantalla (fijo, del ancho del cajón) y el resto del cajón scrollea por encima, con lugar reservado para el pie.
+     El cajón usa el alto visible real (dvh): en el iPhone las barras de Safari cambian el alto de la pantalla. */
+  .sb { bottom: auto; height: 100vh; height: 100dvh; overscroll-behavior: contain; }
+  .sb.is-cajon { padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
+  .sb.is-cajon .sb-pie {
+    position: fixed; left: 0; bottom: 0; z-index: 3; box-sizing: border-box; width: min(300px, 86vw);
+    margin: 0; padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: var(--sb-fondo); border-right: 1px solid var(--sb-linea);
+  }
+  /* con el cajón abierto, lo de atrás no se mueve: ni la página ni el fondo oscuro */
+  html:has(.sb.is-cajon), html:has(.sb.is-cajon) body { overflow: hidden; overscroll-behavior: none; }
+  .sb-fondo { touch-action: none; }
   /* con el cajón abierto, el aviso del cierre de mes no tapa el pie */
   body:has(.sb.is-cajon) .cm-aviso { display: none; }
   .sb-buscar kbd { display: none; }

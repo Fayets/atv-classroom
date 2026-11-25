@@ -134,8 +134,8 @@ html[data-modo="azul"] .tl-root .tl-vitrina { box-shadow: inset 0 0 0 1px rgba(2
   .tl-cta:hover:not(:disabled) svg { transform: translateX(2px); }
 }
 
-/* ---------- tablet ---------- */
-@media (max-width: 1080px) {
+/* ---------- tablet (en el celular cada tarjeta va apilada, con el dibujo arriba) ---------- */
+@media (min-width: 641px) and (max-width: 1080px) {
   .tl-bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tl-vitrina__grilla { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* Con la destacada ocupando la primera fila, una tarjeta que queda sola en la última fila la ocupa entera. */

@@ -50,10 +50,25 @@ const I = {
 }
 const Icono = ({ n }) => <svg viewBox="0 0 24 24" aria-hidden="true">{I[n]}</svg>
 
-// Los módulos se piden una vez por sesión de la página (la barra se vuelve a montar en cada pantalla).
+// Los módulos se piden una vez por sesión de la página (la barra se vuelve a montar en cada pantalla), y otra
+// vez cuando cambia el progreso (marcar una clase avisa con PROGRESO_CAMBIO), para que el % y los anillos sigan.
+export const PROGRESO_CAMBIO = 'atv:progreso'
 let modulosCache = null
 function useModulos(activo) {
   const [modulos, setModulos] = useState(() => (Array.isArray(modulosCache) ? modulosCache : null))
+  useEffect(() => {
+    if (!activo) return undefined
+    let vivo = true
+    const refrescar = () => {
+      modulosCache = fetchProgramas().then((d) => (modulosCache = Array.isArray(d) ? d : []))
+      Promise.resolve(modulosCache).then((d) => vivo && Array.isArray(d) && setModulos(d)).catch(() => (modulosCache = null))
+    }
+    window.addEventListener(PROGRESO_CAMBIO, refrescar)
+    return () => {
+      vivo = false
+      window.removeEventListener(PROGRESO_CAMBIO, refrescar)
+    }
+  }, [activo])
   useEffect(() => {
     if (!activo) return
     if (Array.isArray(modulosCache)) return

@@ -176,6 +176,8 @@ export default function ProgramaDetailPage() {
 
     try {
       await updateProgreso(claseActivaId, completado)
+      // La barra lateral (y lo que muestre el avance) vuelve a pedir los módulos.
+      window.dispatchEvent(new Event('atv:progreso'))
       setClaseDetalle((prev) =>
         prev ? { ...prev, completado } : prev,
       )

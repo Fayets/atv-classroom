@@ -248,6 +248,7 @@ export default function RoadmapPage() {
   const [filtro, setFiltro] = useState('todo') // 'todo' | 'vigente'
   const [coachFiltro, setCoachFiltro] = useState(null)
   const [elegido, setElegido] = useState(null) // id del documento que muestran los carriles; null = el principal
+  const [plegado, setPlegado] = useState(false) // tocar el punto que ya está abierto lo cierra
   const [enviando, setEnviando] = useState(null)
 
   useEffect(() => {
@@ -377,7 +378,7 @@ export default function RoadmapPage() {
             {/* 2. Tu mapa: un camino con un punto por roadmap; el elegido se abre ahí mismo con sus pasos */}
             <Mapa
               recorrido={recorrido}
-              doc={doc}
+              doc={plegado ? null : doc}
               principal={principal}
               colores={colores}
               coaches={coaches}
@@ -385,7 +386,15 @@ export default function RoadmapPage() {
               setFiltro={setFiltro}
               coachFiltro={coachFiltro}
               setCoachFiltro={setCoachFiltro}
-              alElegir={setElegido}
+              alElegir={(id) => {
+                // El punto que ya está abierto se cierra; cualquier otro (o el mismo, si estaba cerrado) se abre.
+                if (!plegado && (id ?? principal?.id) === doc?.id) {
+                  setPlegado(true)
+                  return
+                }
+                setPlegado(false)
+                setElegido(id)
+              }}
               total={datos.total}
               vigentes={datos.vigentes}
             >
