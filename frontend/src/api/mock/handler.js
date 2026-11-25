@@ -3,8 +3,8 @@
 // ni siquiera entra al bundle.
 
 import { CANALES, CHATS_DEL_COACH, CLIENTE, COACH, EQUIPO, MENSAJES, NO_LEIDOS, USUARIO } from './datos'
-import { clasesParaEnviar, detalleClase, detallePrograma, listaProgramas, marcarProgreso, sopsClassroom } from './classroom'
-import { marcarPasoRoadmap, roadmapDe, toolsDelCliente, toolsDelEquipo } from './extras'
+import { clasesParaEnviar, continuarClase, detalleClase, detallePrograma, listaProgramas, marcarProgreso, sopsClassroom } from './classroom'
+import { frentesDelCliente, marcarPasoRoadmap, roadmapDe, toolsDelCliente, toolsDelEquipo } from './extras'
 
 // Una demora chica para que se vean los estados de carga mientras se diseña.
 const DEMORA_MS = 140
@@ -179,6 +179,8 @@ const RUTAS = [
   // Classroom
   ['GET', /^\/api\/programas$/, () => json(listaProgramas())],
   ['GET', /^\/api\/programas\/sops$/, () => json(sopsClassroom())],
+  ['GET', /^\/api\/programas\/continuar$/, () => json(continuarClase())],
+  ['GET', /^\/api\/frentes$/, () => json(frentesDelCliente())],
   ['GET', /^\/api\/programas\/(\d+)$/, ([, id]) => {
     const programa = detallePrograma(Number(id))
     return programa ? json(programa) : json({ detail: 'Módulo no encontrado' }, 404)

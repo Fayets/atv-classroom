@@ -10,6 +10,7 @@ import Adjuntos from './Adjuntos'
 import Alerta from './Alerta'
 import Avatar from './Avatar'
 import { nombreVisible } from '../../utils/canales'
+import IconoCanal from './IconoCanal'
 import Enlaces from './Enlaces'
 import GrabarAudio, { puedeGrabar } from './GrabarAudio'
 import SelectorEmojis from './SelectorEmojis'
@@ -197,8 +198,8 @@ function SugerenciasCanal({ sugerencias, onElegir }) {
               onElegir(c)
             }}
           >
-            <span className="msj-canal-sug" aria-hidden="true">#</span>
-            <b>{c.nombre}</b>
+            <span className="msj-canal-sug" aria-hidden="true"><IconoCanal nombre={c.nombre} className="msj-canal-sug__icono" /></span>
+            <b>{nombreVisible(c.nombre)}</b>
             <span className="msj-sug-slug">{c.etiqueta}</span>
           </button>
         </li>
@@ -251,6 +252,10 @@ function agregarSinDuplicar(lista, nuevos) {
   const orden = (a, b) => (a.creado_en === b.creado_en ? a.id - b.id : a.creado_en < b.creado_en ? -1 : 1)
   return sumar.length ? [...lista, ...sumar].sort(orden) : lista
 }
+
+// "Leído hasta el último mensaje", para un canal que se abre sin mensajes a la vista: el servidor lo recorta
+// al id más alto que existe en el canal. Entra en un entero de 32 bits (la columna de la lectura).
+const LEIDO_HASTA_EL_FINAL = 2147483647
 
 export default function Conversacion({ canalId, item, onVolver, oculta = false, perfilDe, canales, onAbrirCanal, alPensar, alAbrirPerfil, extraBarra = null }) {
   const { user, isEquipo, isAdmin } = useAuth()
@@ -475,8 +480,22 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     return () => document.removeEventListener('visibilitychange', anotar)
   }, [])
   const marcar = useCallback(() => {
+    if (oculta || document.hidden) return
     const ultimo = mensajes[mensajes.length - 1]
-    if (!ultimo || oculta || document.hidden || ultimo.id <= leidoEnviado.current) return
+    // Canal abierto sin mensajes a la vista pero marcado "sin leer" (lo nuevo se borró, o un canal recién
+    // creado): igual se marca leído hasta el final, y el punto rojo se va. El servidor lo recorta al último
+    // mensaje que existe (min(ultimo_id, tope)). Antes, sin un último mensaje no se marcaba nunca.
+    if (!ultimo) {
+      if (!datos || leidoEnviado.current !== 0) return
+      leidoEnviado.current = -1
+      marcarLeido(canalId, LEIDO_HASTA_EL_FINAL)
+        .then(() => avisarLeido(canalId))
+        .catch(() => {
+          leidoEnviado.current = 0
+        })
+      return
+    }
+    if (ultimo.id <= leidoEnviado.current) return
     const avisar = leidoEnviado.current === 0 || estuvoOculta.current
     estuvoOculta.current = false
     leidoEnviado.current = ultimo.id
@@ -485,7 +504,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       .catch(() => {
         leidoEnviado.current = 0
       })
-  }, [mensajes, canalId, oculta, avisarLeido])
+  }, [mensajes, datos, canalId, oculta, avisarLeido])
 
   useEffect(() => {
     marcar()
@@ -1117,6 +1136,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   // dm: alguien del equipo con un cliente, solo ellos dos.
   const conCliente = canal.tipo === 'dm'
   const esDirecto = canal.tipo === 'directo' || entreClientes || conCliente
+  // El nombre del canal a la vista: los de grupo se guardan con emoji y separador ("👋┊presentación") y se
+  // muestran limpios, con su ícono de línea, igual que en la barra lateral.
+  const nombreCanal = esDirecto || esPrivado ? canal.nombre : nombreVisible(canal.nombre)
   // A quién le escribís, para el texto de la caja: el cliente, la persona o el canal (sin su emoji).
   const destinatario = esDirecto
     ? canal.nombre.split(' ')[0]
@@ -1140,7 +1162,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   return (
     <section
       className={`msj-conv${arrastrando ? ' is-arrastrando' : ''}`}
-      aria-label={`Canal ${canal.nombre}`}
+      aria-label={`Canal ${nombreCanal}`}
       onDragOver={(e) => {
         if (!datos.puede_escribir || !e.dataTransfer?.types?.includes('Files')) return
         e.preventDefault()
@@ -1167,7 +1189,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
           <Avatar persona={{ tipo: tipoDelOtro, nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={30} />
         ) : alAbrirPerfil ? null : (
           <span className="msj-hash" aria-hidden="true">
-            #
+            <IconoCanal nombre={canal.nombre} className="msj-hash__icono" />
           </span>
         )}
         {/* En el chat de un cliente, su nombre abre el perfil: datos, contexto y acciones. */}
@@ -1190,7 +1212,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
         >
           {alAbrirPerfil ? <Avatar persona={{ tipo: 'cliente', nombre: item?.cliente?.nombre || canal.nombre }} size={32} /> : null}
           <span className="msj-conv__titulo-texto">
-          <b>{canal.nombre}</b>
+          <b>{nombreCanal}</b>
           <span>
             {entreClientes || conCliente
               ? 'Mensaje privado · solo lo ven ustedes dos'
@@ -1227,9 +1249,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
             {esDirecto ? (
               <Avatar persona={{ tipo: tipoDelOtro, nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={56} />
             ) : (
-              <span className="msj-inicio__hash">#</span>
+              <span className="msj-inicio__hash"><IconoCanal nombre={canal.nombre} className="msj-inicio__icono" /></span>
             )}
-            <b>{esDirecto ? `Este es el comienzo de tu conversación con ${canal.nombre}` : `Este es el comienzo de #${canal.nombre}`}</b>
+            <b>{esDirecto ? `Este es el comienzo de tu conversación con ${canal.nombre}` : `Este es el comienzo de #${nombreCanal}`}</b>
             <span>
               {conCliente
                 ? isEquipo
@@ -1596,7 +1618,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
               </svg>
             </button>
             <label htmlFor="msj-texto" className="sr-only">
-              Mensaje para #{canal.nombre}
+              Mensaje para #{nombreCanal}
             </label>
             <div className="msj-campo" ref={campo}>
               <div className="msj-fantasma" aria-hidden="true">

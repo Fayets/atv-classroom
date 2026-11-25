@@ -207,3 +207,26 @@ export function sopsClassroom() {
       ),
     }))
 }
+
+// /api/programas/continuar (programa_service.continuar): la primera clase sin hacer del primer módulo empezado.
+export function continuarClase() {
+  for (const p of programas) {
+    if (p.bloqueo) continue
+    const clases = clasesDe(p)
+    const pendiente = clases.find((c) => !c.completado)
+    const hechas = clases.filter((c) => c.completado).length
+    if (pendiente && hechas) {
+      return {
+        programa_id: p.id,
+        modulo: p.titulo,
+        clase_id: pendiente.id,
+        titulo: pendiente.titulo,
+        numero: clases.indexOf(pendiente) + 1,
+        total: clases.length,
+        porcentaje: Math.round((hechas / clases.length) * 100),
+        empezada: true,
+      }
+    }
+  }
+  return null
+}

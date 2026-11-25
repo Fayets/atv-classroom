@@ -237,14 +237,14 @@ function FilaCanal({ c, activo, onAbrir, escribe, hash = false, onEditar, arrast
 
 function ItemCanal({ c, activo, onAbrir, isEquipo, escribe }) {
   const privado = c.tipo === 'cliente'
-  const titulo = privado && isEquipo ? c.cliente?.nombre || c.nombre : privado ? 'Mi canal' : c.nombre
+  const titulo = privado && isEquipo ? c.cliente?.nombre || c.nombre : privado ? 'Mi canal' : nombreVisible(c.nombre)
   return (
     <button type="button" className={`msj-item${activo ? ' is-on' : ''}${c.no_leidos ? ' is-nuevo' : ''}`} onClick={() => onAbrir(c.id)}>
       {privado && isEquipo ? (
         <Avatar persona={{ tipo: 'cliente', nombre: titulo }} size={34} />
       ) : (
         <span className="msj-item__hash" aria-hidden="true">
-          #
+          {privado ? '#' : <IconoCanal nombre={c.nombre} className="msj-item__icono" />}
         </span>
       )}
       <span className="msj-item__txt">

@@ -1049,6 +1049,12 @@ html .app-header--cliente .app-header__avatar { background: #242321; color: #f3f
   .cliente-tabs a.is-on { color: #242321; }
   .cliente-tabs svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   .cliente-tabs a.is-on svg { stroke-width: 2; }
+  /* el equipo: hasta seis secciones, letra un poco menor y la fuente del sistema como el resto de su barra */
+  .cliente-tabs--equipo { padding-left: 2px; padding-right: 2px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif; }
+  .cliente-tabs--equipo a { font-size: 10px; letter-spacing: -0.01em; white-space: nowrap; }
+  /* la línea entre lo común y lo del equipo / admin */
+  .cliente-tabs--equipo a.is-grupo::before { content: ''; position: absolute; left: 0; top: 5px; bottom: 7px; width: 1px; border-radius: 1px; background: rgba(36, 35, 33, 0.16); }
+  html[data-modo="azul"] .cliente-tabs--equipo a.is-grupo::before { background: rgba(255, 255, 255, 0.16); }
   .cliente-tabs__cuenta { position: absolute; top: -2px; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 5px; border-radius: 9px; background: #ff2518; color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; }
   /* que nada quede tapado por la barra */
   body:has(.cliente-tabs) { padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }

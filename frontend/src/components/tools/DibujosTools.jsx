@@ -1,7 +1,7 @@
 // Dibujos de línea de las portadas de las Tools, en el idioma de las portadas de los módulos (trazo azul
-// marino "a mano"). El filtro y la flecha se definen una vez por página con <DefsTools />.
-const S = { fill: 'none', stroke: '#1b2440', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', vectorEffect: 'non-scaling-stroke' }
-const P = '#1b2440'
+// marino "a mano"). El trazo toma el color del texto (currentColor), así sirve en tarjetas claras y oscuras.
+const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', vectorEffect: 'non-scaling-stroke' }
+const P = 'currentColor'
 
 export function DefsTools() {
   return (
@@ -12,7 +12,7 @@ export function DefsTools() {
           <feDisplacementMap in="SourceGraphic" scale="2.6" />
         </filter>
         <marker id="tl-flecha" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M1 1 L9 5 L1 9" fill="none" stroke={P} strokeWidth="1.6" />
+          <path d="M1 1 L9 5 L1 9" fill="none" stroke="context-stroke" strokeWidth="1.6" />
         </marker>
       </defs>
     </svg>

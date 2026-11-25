@@ -3,6 +3,7 @@ import { fetchMenciones, resolverMencion } from '../../api/mensajes'
 import { useMensajeria } from '../../context/MensajeriaContext'
 import { duracion, haceCuanto, urgencia } from '../../utils/mensajes'
 import Avatar from './Avatar'
+import { nombreVisible } from '../../utils/canales'
 
 // Lo que ve el coach: solo los mensajes donde lo etiquetaron, como alertas con la demora en responder.
 export default function Alertas({ activo, onAbrir }) {
@@ -87,7 +88,7 @@ export default function Alertas({ activo, onAbrir }) {
             <span className="msj-alerta-item__txt">
               <span className="msj-alerta-item__fila">
                 <b>{a.autor.nombre}</b>
-                <span className="msj-alerta-item__en">en #{a.canal_nombre}</span>
+                <span className="msj-alerta-item__en">en #{nombreVisible(a.canal_nombre || '')}</span>
               </span>
               <span className="msj-alerta-item__msg">{a.texto}</span>
               <span className="msj-alerta-item__pie">

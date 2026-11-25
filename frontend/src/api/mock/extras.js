@@ -155,3 +155,18 @@ export function marcarPasoRoadmap(docId, pasoId, hecho, quien) {
   p.hecho_por = hecho ? quien : null
   return true
 }
+
+// ---------------------------------------------------------------- Frentes
+// /api/frentes (frente_service.listar): el catálogo de problemas con el frente del cliente, si lo abrió.
+// Dos abiertos, en distintas etapas (paso 0 a 3), para ver la sección "Tus frentes abiertos".
+const frente = (paso) => ({ vistas: [], sop_link: null, sops: [], revisado: paso >= 3, paso, actualizado_en: '2026-11-20T15:00:00Z' })
+export function frentesDelCliente() {
+  return {
+    areas: ['Vender', 'Atraer', 'Operar'],
+    problemas: [
+      { slug: 'lo-voy-a-pensar', area: 'Vender', titulo: 'Me dicen que lo van a pensar', sintoma: 'Llegan a la llamada y se van sin decidir.', clases_resolver: 3, sop_nombre: 'Guion de cierre', frente: frente(1) },
+      { slug: 'no-se-presentan', area: 'Vender', titulo: 'Agendan pero no se presentan a las llamadas', sintoma: 'La agenda se llena y la mitad no aparece.', clases_resolver: 2, sop_nombre: 'Confirmación de agenda', frente: frente(0) },
+      { slug: 'todo-depende-de-mi', area: 'Operar', titulo: 'Todo depende de mí', sintoma: 'Si no estás, no pasa nada.', clases_resolver: 4, sop_nombre: 'Mapa de procesos', frente: null },
+    ],
+  }
+}

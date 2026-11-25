@@ -93,7 +93,15 @@
 /* Anclada abajo: con pocos mensajes igual arrancan arriba, como antes. */
 .msj-lista__contenido { flex: none; margin-bottom: auto; }
 .msj-inicio { display: flex; flex-direction: column; gap: 6px; padding: 24px 22px 20px; }
-.msj-inicio__hash { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: var(--m-panel); font-size: 28px; color: var(--m-t4); }
+/* Los íconos de línea de los canales de grupo (IconoCanal) en la barra del chat, el comienzo del canal,
+   las sugerencias de #canal y la lista del cliente: mismo trazo que en la barra lateral. */
+.msj-hash__icono, .msj-inicio__icono, .msj-canal-sug__icono, .msj-item__icono { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.msj-hash { display: inline-grid; place-items: center; }
+.msj-hash__icono { width: 20px; height: 20px; }
+.msj-inicio__icono { width: 26px; height: 26px; }
+.msj-canal-sug__icono { width: 14px; height: 14px; }
+.msj-item__icono { width: 17px; height: 17px; }
+.msj-inicio__hash {width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: var(--m-panel); font-size: 28px; color: var(--m-t4); }
 .msj-inicio b { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: var(--m-t1); }
 .msj-inicio span:last-child { font-size: 13.5px; color: var(--m-t3); }
 /* Arriba de todo: la marca que dispara el scroll infinito. Ocupa alto para que se asome
@@ -198,6 +206,8 @@
 .msj-redactar__caja:focus-within { box-shadow: inset 0 0 0 1px rgba(192, 57, 43, 0.5), 0 0 0 3px rgba(192, 57, 43, 0.15); }
 .msj-redactar textarea { flex: 1; max-height: 180px; min-height: 24px; padding: 6px 0; border: 0; background: transparent; color: var(--m-t1); font: inherit; font-size: 14.5px; line-height: 1.45; resize: none; field-sizing: content; }
 .msj-redactar textarea::placeholder { color: var(--m-t4); }
+/* En pantallas angostas el texto de ayuda va en una línea con "…": si se partía, la segunda línea quedaba cortada. */
+.msj-redactar textarea:placeholder-shown { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .msj-redactar textarea:focus { outline: none; }
 .msj-enviar { flex: none; width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--m-acento); color: #fff; font-size: 13px; cursor: pointer; }
 .msj-enviar:disabled { background: var(--m-relleno, #e5e5ea); color: var(--m-t4, #aeaeb2); cursor: default; }
@@ -441,9 +451,19 @@ html .app-header--mac .app-header__right { justify-content: flex-end; }
 .mac-nav a { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 500; color: var(--m-t2, #3a3a3c); text-decoration: none; transition: background-color 120ms ease, color 120ms ease; }
 .mac-nav a:hover { color: var(--m-t1, #1d1d1f); }
 .mac-nav a.is-on { background: var(--m-tarjeta, #ffffff); color: var(--m-t1, #1d1d1f); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.06); }
+/* La línea entre lo común (Mensajes, Classroom) y lo del equipo / admin. */
+.mac-nav__separador { flex: none; align-self: center; width: 1px; height: 16px; margin: 0 6px; border-radius: 1px; background: rgba(var(--m-osc, 0, 0, 0), 0.2); }
+html[data-modo="azul"] .mac-nav__separador { background: rgba(255, 255, 255, 0.18); }
 .mac-nav__cuenta { min-width: 16px; height: 16px; padding: 0 5px; border-radius: 8px; background: #ff3b30; color: #fff; font-size: 10px; font-weight: 700; display: inline-grid; place-items: center; }
 html .app-header--mac .app-header__avatar { width: 26px; height: 26px; font-size: 10px; }
 html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-radius: 10px; }
+/* Tablet sin escritorio: el semáforo decorativo se va y el menú toma el centro sin pisar las flechas. */
+@media (min-width: 761px) and (max-width: 1080px) {
+  html .app-header.app-header--mac:not(:has(.mac-semaforo button)) { grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; }
+  html .app-header--mac .mac-semaforo:not(:has(button)) { display: none; }
+  html .app-header--mac .mac-nav { justify-self: center; min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .mac-nav a { flex: none; padding: 4px 11px; }
+}
 @media (max-width: 760px) {
   /* En el celular: sin semáforo y el menú ocupa todo el ancho; si no entra, se desliza (nunca se corta). */
   html .app-header.app-header--mac { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 0 12px; }
@@ -453,6 +473,16 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
   .mac-nav a { flex: none; padding: 5px 8px; font-size: 12.5px; }
 }
 @media (max-width: 400px) { .mac-nav a { padding: 5px 6px; font-size: 12px; } }
+/* Celular (equipo sin escritorio): arriba el isotipo y el nombre de la sección; las secciones van en la barra de
+   abajo (.cliente-tabs--equipo, en index.css). En tablet sigue el control segmentado de arriba. */
+.mac-titulo-movil { display: none; }
+@media (max-width: 720px) {
+  html .app-header--mac .mac-nav { display: none; }
+  .mac-titulo-movil { display: inline-flex; align-items: center; gap: 10px; min-width: 0; color: var(--m-t1, #1d1d1f); }
+  .mac-titulo-movil__iso { width: 16px; height: auto; flex: none; }
+  .mac-titulo-movil b { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  html .app-header--mac .app-header__avatar { width: 32px; height: 32px; font-size: 11px; }
+}
 
 /* Mensajes del equipo: densidad y tipografía de una app de Mac (Mail / Mensajes). */
 .msj-root.is-mac {

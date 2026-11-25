@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { borrarCanal, crearCanal, editarCanal } from '../../api/mensajes'
 import Alerta from './Alerta'
+import { nombreVisible } from '../../utils/canales'
 import { ROLES_CANAL, slugCanal } from '../../utils/mensajes'
 
 // Crear o editar un canal grupal, como en Discord: nombre y roles que lo ven.
@@ -66,7 +67,7 @@ export default function NuevoCanal({ canal = null, onCerrar, onCreado, onBorrado
   return createPortal(
     <div className="msj-modal__fondo" onMouseDown={(e) => e.target === e.currentTarget && onCerrar()}>
       <form className="msj-modal" onSubmit={crear} role="dialog" aria-modal="true" aria-labelledby="msj-nuevo-canal">
-        <h2 id="msj-nuevo-canal">{editando ? `Editar #${canal.nombre}` : 'Crear canal'}</h2>
+        <h2 id="msj-nuevo-canal">{editando ? `Editar #${nombreVisible(canal.nombre)}` : 'Crear canal'}</h2>
         <p className="msj-modal__ayuda">
           {esAnuncios ? 'Canal de anuncios: lo leen todos y escribe solo el equipo.' : 'Un canal grupal, como en Discord. Lo ven y escriben los roles que elijas.'}
         </p>
@@ -118,7 +119,7 @@ export default function NuevoCanal({ canal = null, onCerrar, onCreado, onBorrado
       </form>
       {confirmarBorrado ? (
         <Alerta
-          titulo={`¿Borrar #${canal.nombre}?`}
+          titulo={`¿Borrar #${nombreVisible(canal.nombre)}?`}
           texto="Se borran el canal y todos sus mensajes y archivos para todos. No se puede deshacer."
           confirmar="Borrar canal"
           peligro

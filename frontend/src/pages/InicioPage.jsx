@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { eliminarFrente, fetchFrentes, preguntarGuia } from '../api/frentes'
@@ -7,11 +7,31 @@ import AccesoRestante from '../components/AccesoRestante'
 import { Chevron, EtiquetaRecurso } from '../components/frentes/piezas'
 import Pasos from '../components/frentes/Pasos'
 import SolicitudSop from '../components/frentes/SolicitudSop'
-import { Hoy, Programa } from '../components/inicio/Hoy'
+import HazGuia from '../components/inicio/HazGuia'
+import { BandaPaso, TuSemana, useHoy } from '../components/inicio/Hoy'
 import { pedirCartelPausa } from '../components/Pausa'
 import { useAuth } from '../context/AuthContext'
 import { proximoPaso, tipoRecurso, tituloLindo, urlRecurso } from '../utils/frentes'
 import '../styles/frentes.css'
+import '../styles/classroom-rediseno.css'
+import '../styles/inicio.css'
+
+// Rediseño 2026-11 (styles/inicio.css), en el idioma de Material (papel, vidrio, rojo ATV) con ideas de
+// productos brasileños: la lista tipográfica gigante de Stone (lo que más traba, para preguntarle a la guía de
+// un toque) y la banda de color de borde a borde de Nubank (el próximo paso del roadmap). El anillo de los días
+// del programa (AnilloPrograma, en components/inicio/Hoy.jsx) queda guardado para usarlo en otra sección.
+
+// La palabra del título con el subrayado a mano: el trazo se dibuja al entrar.
+function Subrayada({ children }) {
+  return (
+    <span className="in-subrayada">
+      {children}
+      <svg viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M4 15 C 60 7, 120 6, 180 10 S 270 16, 296 9" />
+      </svg>
+    </span>
+  )
+}
 
 // El cliente no entra a una biblioteca: entra con un problema de su negocio.
 // La guía no responde la duda, arma el camino (resolver → SOP → automatizar) o deriva al coach.
@@ -33,6 +53,7 @@ export default function InicioPage() {
   const [pensando, setPensando] = useState(false)
   const [resultado, setResultado] = useState(null)
   const [pregunta, setPregunta] = useState('')
+  const [arriba, setArriba] = useState(null) // a qué altura estaba el título antes de buscar (px)
   const [quitando, setQuitando] = useState(null)
   const [borrando, setBorrando] = useState(false)
 
@@ -48,6 +69,11 @@ export default function InicioPage() {
     if (enPausa) return pedirCartelPausa()
     const q = (valor ?? texto).trim()
     if (q.length < 3 || pensando) return
+    // El título no se mueve al buscar: se guarda a qué altura estaba dentro de la sección y, con la respuesta
+    // a la vista (la primera pantalla deja de ocupar todo el alto), se usa como espacio de arriba.
+    const seccion = campo.current?.closest('.in-ask')
+    const titulo = seccion?.querySelector('h1')
+    if (seccion && titulo && !pregunta) setArriba(Math.max(0, Math.round(titulo.getBoundingClientRect().top - seccion.getBoundingClientRect().top)))
     setTexto('')
     setPregunta(q)
     setResultado(null)
@@ -76,54 +102,52 @@ export default function InicioPage() {
     }
   }
 
-  function nuevaConsulta() {
-    setPregunta('')
-    setResultado(null)
-    setTexto('')
-    document.getElementById('im-q')?.focus()
-  }
-
   const problemas = datos?.problemas ?? []
   const recomendaciones = resultado?.recomendaciones ?? []
   const sops = resultado?.modo === 'sops' ? resultado.sops ?? [] : null
   const frenteSugerido = resultado?.frente ? problemas.find((p) => p.slug === resultado.frente.slug) : null
   const abiertos = problemas.filter((p) => p.frente)
   const nombre = user?.nombre?.split(' ')[0]
+  const hoy = useHoy()
+  const campo = useRef(null)
 
   return (
-    <div className="app-shell im-root">
+    <div className="app-shell im-root cr-root in-root">
       <AppHeader />
-      <main className="im-home">
+      <main className="im-home in-home">
         {sinGuia ? (
           <section className="im-ask">
             <div className="im-hero">
-              <div className="im-hero__inner">
-                <h1>
-                  {nombre ? `${nombre}, ¿por dónde` : '¿Por dónde'}
-                  <br />
-                  seguimos hoy?
-                </h1>
+              <div className="im-hero__inner in-hero">
+                <div className="in-hero__txt">
+                  <h1>
+                    {nombre ? `${nombre}, ¿por dónde` : '¿Por dónde'}
+                    <br />
+                    <Subrayada>seguimos</Subrayada> hoy?
+                  </h1>
+                </div>
               </div>
             </div>
           </section>
         ) : (
-        <section className={`im-ask${pregunta ? ' is-chat' : ''}`}>
-          <div className="im-hero" aria-hidden={Boolean(pregunta)}>
-            <div className="im-hero__inner">
-              <h1>
-                {nombre ? `${nombre}, ¿qué` : '¿Qué'} está trabando
-                <br />
-                tu negocio hoy?
-              </h1>
+        <section className={`im-ask in-ask${pregunta ? ' is-chat' : ''}`} style={pregunta && arriba != null ? { '--in-arriba': `${arriba}px` } : undefined}>
+          {/* El haz de luz (LaserFlow) cae sobre el campo de la guía. */}
+          <HazGuia campoRef={campo} />
+          {/* Al preguntar, el título queda: la respuesta aparece abajo del campo y solo se va la lista de ejemplos.
+              Para otra consulta se escribe de nuevo en el mismo campo. */}
+          <div className="im-hero">
+            <div className="im-hero__inner in-hero">
+              <div className="in-hero__txt">
+                <h1>
+                  {nombre ? `${nombre}, ¿qué` : '¿Qué'} está <Subrayada>trabando</Subrayada>
+                  <br />
+                  tu negocio hoy?
+                </h1>
+              </div>
             </div>
           </div>
-          <div className="im-chatbar">
-            <span className="im-chatbar__t">Guía ATV</span>
-            <button type="button" className="im-chatbar__new" onClick={nuevaConsulta} disabled={pensando}>
-              Nueva consulta
-            </button>
-          </div>
           <form
+            ref={campo}
             className="im-ask__form"
             onSubmit={(e) => {
               e.preventDefault()
@@ -152,13 +176,35 @@ export default function InicioPage() {
               )}
             </button>
           </form>
-          <div className="im-ask__hints" aria-hidden={Boolean(pregunta)}>
-            {EJEMPLOS.map((h) => (
-              <button key={h} type="button" onClick={() => preguntar(h)} disabled={pensando}>
-                {h}
-              </button>
-            ))}
-          </div>
+          {/* Lo que más traba, como la lista gigante de Stone: cada renglón le pregunta a la guía. Una vez que se
+              buscó algo, la lista ya no aparece. */}
+          {pregunta ? null : (
+            <div className="im-ask__hints in-traba">
+              <p className="in-traba__etq">O tocá lo que más se repite</p>
+              <ul>
+                {EJEMPLOS.map((h, i) => (
+                  <li key={h} style={{ '--i': i }}>
+                    <button type="button" onClick={() => preguntar(h)} disabled={pensando}>
+                      <span>{h}</span>
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Celular: la primera pantalla es solo la pregunta; esto avisa que abajo sigue (el resto se ve al bajar). */}
+          {pregunta ? null : (
+            <button
+              type="button"
+              className="in-scroll"
+              onClick={() => document.querySelector('.in-banda, .in-semana, .in-frentes')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            >
+              Scrolleá
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+          )}
 
           <div className={`im-reveal${pregunta ? ' is-open' : ''}`} aria-live="polite">
             <div className="im-reveal__inner">
@@ -310,11 +356,16 @@ export default function InicioPage() {
 
         {error ? <p className="im-error">{error}</p> : null}
 
-        {isEquipo ? null : <Hoy />}
+        {isEquipo ? null : (
+          <>
+            <BandaPaso paso={hoy.paso} />
+            <TuSemana clase={hoy.clase} modulo={hoy.modulo} chat={hoy.chat} sops={hoy.sops} avance={hoy.avance} />
+          </>
+        )}
 
         {abiertos.length ? (
-          <section className="im-sec">
-            <h2>Tus frentes abiertos</h2>
+          <section className="im-sec in-frentes">
+            <h2 className="in-titulo">Tus frentes abiertos</h2>
             <div className="im-open">
               {abiertos.map((p) =>
                 quitando === p.slug ? (
@@ -361,9 +412,7 @@ export default function InicioPage() {
             <AccesoRestante />
             <Link to="/classroom">Ver todo el material, módulo por módulo</Link>
           </footer>
-        ) : (
-          <Programa />
-        )}
+        ) : null}
       </main>
     </div>
   )

@@ -115,6 +115,10 @@ kbd { font: inherit; font-size: 11px; color: var(--pc-t4); padding: 2px 6px; bor
   .ms-mesa { grid-template-columns: 1fr; }
   .ms-ver, .ms-panel, .ms-nav { grid-column: 1; grid-row: auto; }
   .ms-panel { position: static; }
+  /* tablet: la barra en una sola línea (sin el atajo ⌘K, que es de teclado) */
+  .ms-barra .im-back, .ms-barra__avance { white-space: nowrap; flex: none; }
+  .ms-indice-btn { min-width: 0; }
+  .ms-indice-btn kbd { display: none; }
 }
 @media (max-width: 720px) {
   .ms-page { padding: 0 16px 80px; }

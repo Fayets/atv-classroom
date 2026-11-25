@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import { conEmojis } from '../../utils/emojis'
 import { normal } from '../../utils/mensajes'
+import { nombreVisible } from '../../utils/canales'
 import { comoHecho, nucleo, ordenar } from '../../utils/updates'
 
 const URL = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g
@@ -33,7 +34,7 @@ function ConCanales({ texto, canales, onAbrirCanal }) {
     // El link ya lleva su "#": si se escribió "#slug" (o salió del autocompletado), no se repite.
     if (!canal) return <Fragment key={i}>{canalesDe[i + 1] && parte.endsWith('#') ? parte.slice(0, -1) : parte}</Fragment>
     return (
-      <button key={i} type="button" className="msj-canal" title={`Abrir el chat de ${canal.nombre}`} onClick={() => onAbrirCanal(canal.id)}>
+      <button key={i} type="button" className="msj-canal" title={`Abrir el chat de ${nombreVisible(canal.nombre)}`} onClick={() => onAbrirCanal(canal.id)}>
         {canal.etiqueta || parte}
       </button>
     )

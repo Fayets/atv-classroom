@@ -104,18 +104,20 @@ export default function Escritorio({ children }) {
     if (pathname !== '/') ultimaRuta.current[actual] = pathname + search
   }, [actual, pathname, search])
 
-  const apps = [
+  // El Dock en dos grupos separados por una línea: lo común (lo que también ven los clientes) y lo del
+  // equipo: Consultas y Biblioteca para todo el equipo; Cerebro, Equipo, Módulos y Clientes solo para el admin.
+  const comunes = [
     { id: 'mensajes', nombre: 'Mensajes', ruta: '/mensajes', cuenta: resumen.no_leidos },
     { id: 'classroom', nombre: 'Classroom', ruta: '/classroom' },
-    { id: 'consultas', nombre: 'Consultas', ruta: '/consultas' },
-    ...(isAdmin
-      ? [
-          { id: 'cerebro', nombre: 'Cerebro', ruta: '/admin/cerebro' },
-          { id: 'equipo', nombre: 'Equipo', ruta: '/admin/equipo' },
-          { id: 'modulos', nombre: 'Módulos', ruta: '/admin' },
-        ]
-      : []),
   ]
+  const delEquipo = [{ id: 'consultas', nombre: 'Consultas', ruta: '/consultas' }]
+  const delAdmin = isAdmin
+    ? [
+        { id: 'cerebro', nombre: 'Cerebro', ruta: '/admin/cerebro' },
+        { id: 'equipo', nombre: 'Equipo', ruta: '/admin/equipo' },
+        { id: 'modulos', nombre: 'Módulos', ruta: '/admin' },
+      ]
+    : []
 
   // Agrandar / achicar con FLIP: se mide dónde termina la ventana y se anima solo con transform
   // desde donde estaba (nada de animar bordes, que obliga a recalcular toda la página en cada cuadro).
@@ -391,66 +393,48 @@ export default function Escritorio({ children }) {
         onFocus={(e) => e.target.matches(':focus-visible') && mostrarDock()}
         onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && esconderDock()}
       >
-        {apps.map((app, i) => {
-          const abierta = app.id === actual && visible !== 'cerrada'
-          return (
-            <button
-              key={app.id}
-              ref={(el) => {
-                iconos.current[i] = el
-              }}
-              type="button"
-              className={`esc-dock__app is-${app.id}`}
-              onClick={(e) => {
-                abrirApp(app)
-                if (!e.currentTarget.matches(':focus-visible')) e.currentTarget.blur()
-              }}
-              aria-label={app.nombre}
-            >
-              <span className="esc-dock__icono">{ICONOS[app.id]}</span>
-              {app.cuenta ? <span className="esc-dock__cuenta">{app.cuenta > 99 ? '99+' : app.cuenta}</span> : null}
-              <span className="esc-dock__nombre">{app.nombre}</span>
-              {abierta ? <i className="esc-dock__punto" aria-label="Abierta" /> : null}
-            </button>
-          )
-        })}
-        <button
-          ref={(el) => {
-            iconos.current[apps.length] = el
-          }}
-          type="button"
-          className="esc-dock__app is-biblioteca"
-          onClick={(e) => {
-            abrirBiblioteca()
-            if (!e.currentTarget.matches(':focus-visible')) e.currentTarget.blur()
-          }}
-          aria-label="Biblioteca"
-        >
-          <span className="esc-dock__icono"><IconoBiblioteca tamano={50} /></span>
-          <span className="esc-dock__nombre">Biblioteca</span>
-          {biblioteca ? <i className="esc-dock__punto" aria-label="Abierta" /> : null}
-        </button>
-        {isAdmin ? (
-          <>
-            <i className="esc-dock__separador" aria-hidden="true" />
-            <button
-              ref={(el) => {
-                iconos.current[apps.length + 1] = el
-              }}
-              type="button"
-              className="esc-dock__app is-clientes"
-              onClick={(e) => {
-                abrirClientes()
-                if (!e.currentTarget.matches(':focus-visible')) e.currentTarget.blur()
-              }}
-              aria-label="Clientes"
-            >
-              <span className="esc-dock__icono"><IconoCarpeta tamano={50} /></span>
-              <span className="esc-dock__nombre">Clientes</span>
-              {finder ? <i className="esc-dock__punto" aria-label="Abierta" /> : null}
-            </button>
-          </>
-        ) : null}
+        {(() => {
+          // Dos grupos, como en macOS: a la izquierda lo que ven todos (también los clientes); después de la
+          // línea, las herramientas del equipo (el coach) y, para el admin, las de administración.
+          let n = 0
+          const boton = ({ id, nombre, icono, abierta, cuenta, onClick }) => {
+            const i = n++
+            return (
+              <button
+                key={id}
+                ref={(el) => {
+                  iconos.current[i] = el
+                }}
+                type="button"
+                className={`esc-dock__app is-${id}`}
+                onClick={(e) => {
+                  onClick()
+                  if (!e.currentTarget.matches(':focus-visible')) e.currentTarget.blur()
+                }}
+                aria-label={nombre}
+              >
+                <span className="esc-dock__icono">{icono}</span>
+                {cuenta ? <span className="esc-dock__cuenta">{cuenta > 99 ? '99+' : cuenta}</span> : null}
+                <span className="esc-dock__nombre">{nombre}</span>
+                {abierta ? <i className="esc-dock__punto" aria-label="Abierta" /> : null}
+              </button>
+            )
+          }
+          const deApp = (app) =>
+            boton({ ...app, icono: ICONOS[app.id], abierta: app.id === actual && visible !== 'cerrada', onClick: () => abrirApp(app) })
+          const elementos = [
+            ...comunes.map(deApp),
+            <i key="sep" className="esc-dock__separador" aria-hidden="true" />,
+            ...delEquipo.map(deApp),
+            boton({ id: 'biblioteca', nombre: 'Biblioteca', icono: <IconoBiblioteca tamano={50} />, abierta: biblioteca, onClick: abrirBiblioteca }),
+            ...delAdmin.map(deApp),
+            ...(isAdmin
+              ? [boton({ id: 'clientes', nombre: 'Clientes', icono: <IconoCarpeta tamano={50} />, abierta: finder, onClick: abrirClientes })]
+              : []),
+          ]
+          iconos.current.length = n
+          return elementos
+        })()}
       </nav>
     </div>
   )

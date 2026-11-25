@@ -1,11 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchProgramas, fetchSopsClassroom, request } from '../../api/client'
-import { fetchCuenta } from '../../api/cuenta'
 import { fetchCanales } from '../../api/mensajes'
 import { fetchMiRoadmap } from '../../api/roadmap'
 import { useMensajeria } from '../../context/MensajeriaContext'
 import { tituloLindo } from '../../utils/frentes'
+import { haceCuanto } from '../../utils/mensajes'
+import { getModuloCoverUrl } from '../../utils/modules'
+import { Chevron } from '../frentes/piezas'
+
+// Las piezas del inicio del cliente (rediseño 2026-11, ver styles/inicio.css):
+//   - AnilloPrograma: el tiempo del programa como un anillo con el texto girando alrededor. Hoy no se usa: quedó
+//     guardado para otra sección. Recibe la cuenta de fetchCuenta() (api/cuenta) y sus estilos siguen en inicio.css.
+//   - BandaPaso: el próximo paso del roadmap en una banda roja a todo el ancho.
+//   - TuSemana: seguir la clase, el chat con ATV, los SOPs y el avance del material.
+// Los datos se piden una sola vez en useHoy() y se reparten.
 
 const iniciales = (n) => (n || '').split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase()
 
@@ -25,14 +34,13 @@ function proximoPaso(datos) {
   }
 }
 
-// "Hoy" en el inicio del cliente: su próximo paso del roadmap y la clase en la que quedó.
-export function Hoy() {
+export function useHoy() {
   const { habilitada } = useMensajeria()
   const [roadmap, setRoadmap] = useState(undefined)
   const [clase, setClase] = useState(undefined)
   const [chat, setChat] = useState(null)
   const [sops, setSops] = useState(null)
-  const [avance, setAvance] = useState(null)
+  const [modulos, setModulos] = useState(null)
 
   useEffect(() => {
     fetchMiRoadmap().then(setRoadmap).catch(() => setRoadmap(null))
@@ -40,15 +48,7 @@ export function Hoy() {
     fetchSopsClassroom()
       .then((m) => setSops(Array.isArray(m) ? m.reduce((n, x) => n + x.sops.length, 0) : null))
       .catch(() => null)
-    // El avance de todo el material: clases hechas sobre el total de los módulos abiertos.
-    fetchProgramas()
-      .then((ps) => {
-        const abiertos = (ps || []).filter((p) => !p.bloqueado && p.total_clases)
-        const total = abiertos.reduce((n, p) => n + p.total_clases, 0)
-        const hechas = abiertos.reduce((n, p) => n + (p.total_clases * (p.porcentaje_progreso || 0)) / 100, 0)
-        setAvance(total ? Math.round((hechas / total) * 100) : null)
-      })
-      .catch(() => null)
+    fetchProgramas().then((ps) => setModulos(ps || [])).catch(() => null)
   }, [])
 
   useEffect(() => {
@@ -58,106 +58,216 @@ export function Hoy() {
       .catch(() => null)
   }, [habilitada])
 
-  const paso = proximoPaso(roadmap)
-  if (!paso && !clase && !chat) return null
-  const pct = paso?.total ? Math.round((paso.hechos / paso.total) * 100) : 0
+  // El avance de todo el material: clases hechas sobre el total de los módulos abiertos.
+  let avance = null
+  if (modulos) {
+    const abiertos = modulos.filter((p) => !p.bloqueado && p.total_clases)
+    const total = abiertos.reduce((n, p) => n + p.total_clases, 0)
+    const hechas = abiertos.reduce((n, p) => n + (p.total_clases * (p.porcentaje_progreso || 0)) / 100, 0)
+    avance = total ? { pct: Math.round((hechas / total) * 100), modulos: abiertos.length } : null
+  }
+  const modulo = clase && modulos ? modulos.find((m) => m.id === clase.programa_id) : null
+  return { paso: proximoPaso(roadmap), clase, modulo, chat, sops, avance }
+}
 
+// ---------------------------------------------------------------- Anillo del programa
+// Como el sello de Cora: el texto gira alrededor de un anillo. El arco rojo es lo que ya pasó del programa;
+// al centro, los días que quedan.
+export function AnilloPrograma({ cuenta }) {
+  if (!cuenta || cuenta.tipo !== 'cliente' || cuenta.dias_restantes == null) return null
+  const total = cuenta.duracion_dias || 0
+  const pasado = total ? Math.min(1, Math.max(0, (total - cuenta.dias_restantes) / total)) : 0
+  const dias = Math.max(0, cuenta.dias_restantes)
+  const plan = cuenta.plan_nombre ? `Programa ${cuenta.plan_nombre}` : 'Tu programa'
+  const frase = `${plan} · ${dias > 0 ? `te quedan ${dias} ${dias === 1 ? 'día' : 'días'}` : 'acceso vencido'} · `
+  const R = 62
+  const largo = 2 * Math.PI * R
   return (
-    <div className="im-hoy">
-      {paso && paso.texto ? (
-        <section className="im-hoy__bloque">
-          <h2 className="im-hoy__etq">Tu próximo paso</h2>
-          <Link to="/roadmap" className="im-paso">
-            <span className="im-paso__coach">
-              {paso.coach ? <i aria-hidden="true">{iniciales(paso.coach)}</i> : null}
-              {paso.doc.titulo}
-              {paso.coach ? ` · ${paso.coach}` : ''}
-            </span>
-            <b>{paso.texto}</b>
-            {paso.total ? (
-              <span className="im-barra" aria-hidden="true">
-                <i style={{ transform: `scaleX(${pct / 100})` }} />
-              </span>
-            ) : null}
-            <span className="im-paso__pie">
-              <span>{paso.total ? `${paso.hechos} de ${paso.total} pasos hechos` : 'Tu roadmap'}</span>
-              <span className="im-paso__ver">Ver roadmap</span>
-            </span>
-          </Link>
-        </section>
-      ) : null}
-
-      {chat ? (
-        <section className="im-hoy__bloque">
-          <h2 className="im-hoy__etq">Tu chat con ATV</h2>
-          <Link to={`/mensajes?c=${chat.id}`} className={`im-chat-ult im-chat-ult--estado${chat.no_leidos ? ' is-nuevos' : ''}`}>
-            {chat.no_leidos ? `Tenés ${chat.no_leidos} ${chat.no_leidos === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}` : 'Sin mensajes nuevos'}
-          </Link>
-        </section>
-      ) : null}
-
-      {clase ? (
-        <section className="im-hoy__bloque">
-          <h2 className="im-hoy__etq">{clase.empezada ? 'Seguí donde quedaste' : 'Empezá por acá'}</h2>
-          <Link to={`/classroom/${clase.programa_id}?clase=${clase.clase_id}`} className="im-seguir">
-            <span className="im-seguir__play" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-            </span>
-            <span className="im-seguir__tx">
-              <small>
-                {clase.modulo} · Clase {clase.numero} de {clase.total}
-              </small>
-              <b>{tituloLindo(clase.titulo)}</b>
-              <span className="im-barra" aria-hidden="true">
-                <i style={{ transform: `scaleX(${clase.porcentaje / 100})` }} />
-              </span>
-            </span>
-          </Link>
-        </section>
-      ) : null}
-
-      {sops || avance != null ? (
-        <div className="im-accesos">
-          {sops ? (
-            <Link to="/classroom?vista=sops" className="im-acceso">
-              <small>Biblioteca de SOPs</small>
-              <b>{sops}</b>
-              <span>Ver SOPs ›</span>
-            </Link>
-          ) : null}
-          {avance != null ? (
-            <Link to="/classroom" className="im-acceso">
-              <small>Tu avance en el material</small>
-              <b>{avance}%</b>
-              <span>Ver módulos ›</span>
-            </Link>
-          ) : null}
-        </div>
-      ) : null}
+    <div className="in-anillo" role="img" aria-label={`${plan}: ${dias > 0 ? `te quedan ${dias} días` : 'acceso vencido'}`}>
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <defs>
+          <path id="in-anillo-txt" d="M100,100 m-86,0 a86,86 0 1,1 172,0 a86,86 0 1,1 -172,0" />
+        </defs>
+        <g className="in-anillo__giro">
+          <text>
+            <textPath href="#in-anillo-txt" textLength={2 * Math.PI * 86 - 4} lengthAdjust="spacing">
+              {frase.repeat(2).toUpperCase()}
+            </textPath>
+          </text>
+        </g>
+        <circle className="in-anillo__pista" cx="100" cy="100" r={R} />
+        <circle
+          className="in-anillo__arco"
+          cx="100"
+          cy="100"
+          r={R}
+          strokeDasharray={`${largo * pasado} ${largo}`}
+          transform="rotate(-90 100 100)"
+        />
+      </svg>
+      <span className="in-anillo__centro">
+        <b className="num">{dias}</b>
+        <small>{dias === 1 ? 'día' : 'días'}</small>
+      </span>
     </div>
   )
 }
 
-// Abajo de todo: cuánto del programa pasó y cuántos días quedan.
-export function Programa() {
-  const [c, setC] = useState(null)
-  useEffect(() => {
-    fetchCuenta().then(setC).catch(() => null)
-  }, [])
-  if (!c || c.tipo !== 'cliente' || c.dias_restantes == null) return null
-  const total = c.duracion_dias || 0
-  const pasado = total ? Math.min(1, Math.max(0, (total - c.dias_restantes) / total)) : 0
+// ---------------------------------------------------------------- Banda del próximo paso
+// Como los bloques de color de Nubank: una banda roja de borde a borde con el paso en grande.
+export function BandaPaso({ paso }) {
+  if (!paso?.texto) return null
+  const segmentos = Math.min(paso.total || 0, 12)
   return (
-    <div className="im-programa">
-      <span>{c.plan_nombre ? `Programa ${c.plan_nombre}` : 'Programa'}</span>
-      {total ? (
-        <span className="im-barra is-oscura" aria-hidden="true">
-          <i style={{ transform: `scaleX(${pasado})` }} />
+    <section className="in-banda" aria-labelledby="in-banda-t">
+      <div className="in-banda__marco">
+        <div className="in-banda__txt">
+          <p className="in-banda__etq">
+            <span>Tu próximo paso</span>
+            {paso.coach ? (
+              <span className="in-banda__coach">
+                <i aria-hidden="true">{iniciales(paso.coach)}</i>
+                {paso.doc.titulo} con {paso.coach}
+              </span>
+            ) : (
+              <span className="in-banda__coach">{paso.doc.titulo}</span>
+            )}
+          </p>
+          <h2 id="in-banda-t">{paso.texto}</h2>
+        </div>
+        <div className="in-banda__lado">
+          {segmentos ? (
+            <>
+              <span className="in-banda__cuenta num" aria-hidden="true">
+                {paso.hechos}
+                <small>/{paso.total}</small>
+              </span>
+              <span className="in-banda__segs" aria-label={`${paso.hechos} de ${paso.total} pasos hechos`}>
+                {Array.from({ length: segmentos }, (_, i) => (
+                  <i key={i} className={i < paso.hechos ? 'is-hecho' : i === paso.hechos ? 'is-ahora' : ''} />
+                ))}
+              </span>
+            </>
+          ) : null}
+          <Link to="/roadmap" className="in-banda__ir">
+            Ver mi roadmap <Chevron />
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------- Tu semana
+function Seguir({ clase, modulo }) {
+  const portada = modulo ? getModuloCoverUrl(modulo) : null
+  return (
+    <Link to={`/classroom/${clase.programa_id}?clase=${clase.clase_id}`} className="in-card in-seguir">
+      <span className="in-seguir__portada" aria-hidden="true">
+        {portada ? <img src={portada} alt="" loading="lazy" decoding="async" /> : null}
+        <span className="in-seguir__play">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+        </span>
+      </span>
+      <span className="in-seguir__txt">
+        <small className="in-card__etq">{clase.empezada ? 'Seguí donde quedaste' : 'Empezá por acá'}</small>
+        <b>{tituloLindo(clase.titulo)}</b>
+        <span className="in-seguir__donde">
+          {clase.modulo} · Clase {clase.numero} de {clase.total}
+        </span>
+        <span className="in-seguir__barra" aria-hidden="true">
+          <i style={{ transform: `scaleX(${(clase.porcentaje || 0) / 100})` }} />
+        </span>
+      </span>
+    </Link>
+  )
+}
+
+function Chat({ chat }) {
+  const u = chat.ultimo
+  const nuevos = chat.no_leidos || 0
+  return (
+    <Link to={`/mensajes?c=${chat.id}`} className={`in-card in-chat${nuevos ? ' is-nuevos' : ''}`}>
+      <small className="in-card__etq">
+        Tu chat con ATV
+        {nuevos ? <span className="in-chat__cuenta num">{nuevos > 99 ? '99+' : nuevos}</span> : null}
+      </small>
+      {u?.texto ? (
+        <span className="in-chat__globo">
+          <span className="in-chat__quien">
+            <i aria-hidden="true">{iniciales(u.autor_nombre)}</i>
+            {u.de === 'cliente' ? 'Vos' : u.autor_nombre}
+            <span>{haceCuanto(u.creado_en)}</span>
+          </span>
+          <span className="in-chat__texto">{u.texto}</span>
         </span>
       ) : (
-        <span className="im-programa__esp" />
+        <span className="in-chat__vacio">Escribile al equipo: te responde tu coach.</span>
       )}
-      <span>{c.dias_restantes > 0 ? `${c.dias_restantes} ${c.dias_restantes === 1 ? 'día' : 'días'}` : 'Vencido'}</span>
-    </div>
+      <span className="in-card__ir">
+        {nuevos ? `Leer ${nuevos === 1 ? 'el mensaje nuevo' : `los ${nuevos} nuevos`}` : 'Abrir el chat'} <Chevron />
+      </span>
+    </Link>
+  )
+}
+
+function Sops({ total }) {
+  return (
+    <Link to="/classroom?vista=sops" className="in-card in-sops">
+      <small className="in-card__etq">Biblioteca de SOPs</small>
+      <span className="in-sops__pila" aria-hidden="true">
+        <i />
+        <i />
+        <i>
+          <span />
+          <span />
+          <span />
+        </i>
+      </span>
+      <b>
+        <span className="num">{total}</span> SOPs listos para copiar
+      </b>
+      <span className="in-card__ir">
+        Buscar un SOP <Chevron />
+      </span>
+    </Link>
+  )
+}
+
+function Avance({ avance }) {
+  const R = 30
+  const largo = 2 * Math.PI * R
+  return (
+    <Link to="/classroom" className="in-card in-avance">
+      <small className="in-card__etq">Tu avance en el material</small>
+      <span className="in-avance__fila">
+        <svg viewBox="0 0 76 76" aria-hidden="true">
+          <circle cx="38" cy="38" r={R} className="in-avance__pista" />
+          <circle cx="38" cy="38" r={R} className="in-avance__arco" strokeDasharray={`${(largo * avance.pct) / 100} ${largo}`} transform="rotate(-90 38 38)" />
+        </svg>
+        <span>
+          <b className="num">{avance.pct}%</b>
+          <span>de {avance.modulos} módulos abiertos</span>
+        </span>
+      </span>
+      <span className="in-card__ir">
+        Ver los módulos <Chevron />
+      </span>
+    </Link>
+  )
+}
+
+export function TuSemana({ clase, modulo, chat, sops, avance }) {
+  if (!clase && !chat && !sops && !avance) return null
+  return (
+    <section className="in-semana" aria-labelledby="in-semana-t">
+      <h2 id="in-semana-t" className="in-titulo">Tu semana</h2>
+      <div className="in-bento">
+        {clase ? <Seguir clase={clase} modulo={modulo} /> : null}
+        {chat ? <Chat chat={chat} /> : null}
+        {sops ? <Sops total={sops} /> : null}
+        {avance ? <Avance avance={avance} /> : null}
+      </div>
+    </section>
   )
 }

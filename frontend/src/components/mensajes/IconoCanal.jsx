@@ -36,11 +36,11 @@ const PALABRAS = [
 
 const sinAcentos = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
-export default function IconoCanal({ nombre = '' }) {
+export default function IconoCanal({ nombre = '', className = 'msj-fila__icono' }) {
   const limpio = sinAcentos(nombre)
   const clave = PALABRAS.find(([palabra]) => limpio.includes(palabra))?.[1] || 'numeral'
   return (
-    <svg className="msj-fila__icono" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
       {TRAZOS[clave]}
     </svg>
   )
