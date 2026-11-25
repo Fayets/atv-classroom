@@ -1,0 +1,336 @@
+/* ======================================================================
+   La credencial de Mi cuenta (components/cuenta/Credencial.jsx): un pase de socio holográfico.
+   Capas, de abajo hacia arriba:
+     marco de vidrio (cuerpo) → lámina de tinta (foto o monograma + holograma + velo + datos)
+     → corte con muescas → talón (pase perforado y fechas) → pie (estado y botones)
+     → reflejo, sombra y borde del marco, que siguen al puntero.
+   Las capas de luz y el giro 3D salen de la ProfileCard de React Bits; las variables --cr-* las escribe
+   el motor de useInclinacion. La lámina es de tinta en los dos modos; el marco y el talón siguen al tema.
+   ====================================================================== */
+.cred {
+  --cr-luz-x: 50%;
+  --cr-luz-y: 50%;
+  --cr-puntero-x: 50%;
+  --cr-puntero-y: 50%;
+  --cr-banda-x: 50%;
+  --cr-banda-y: 50%;
+  --cr-alcance: 0;
+  --cr-giro-x: 0deg;
+  --cr-giro-y: 0deg;
+  --cr-mueve-x: 0px;
+  --cr-mueve-y: 0px;
+  --cr-inclina: 0;
+  --cr-activo: 0;
+  --cr-radio: 20px;
+  --cr-paralaje: 8px;
+  /* claro */
+  --cr-marco: rgba(255, 255, 255, 0.62);
+  --cr-marco-borde: rgba(29, 29, 31, 0.08);
+  --cr-marco-luz: rgba(255, 255, 255, 0.95);
+  --cr-marco-sombra: 0 30px 60px -30px rgba(60, 36, 22, 0.45), 0 8px 20px -12px rgba(60, 36, 22, 0.25);
+  --cr-talon: linear-gradient(180deg, #ffffff 0%, #f8f5f0 100%);
+  --cr-ink: #1d1d1f;
+  --cr-ink-2: #5f5f64;
+  --cr-ink-3: #8a857e;
+  --cr-linea: rgba(29, 29, 31, 0.1);
+  --cr-agujero: #e9e4dc;
+  --cr-sombra-luz: rgba(40, 24, 16, 0.16);
+  --cr-rojo: #c0392b;
+  --cr-lienzo: var(--c-lienzo, #f6f4f0);
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  perspective: 1100px;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+html[data-modo="azul"] .cred {
+  --cr-marco: rgba(52, 49, 46, 0.6);
+  --cr-marco-borde: rgba(255, 255, 255, 0.08);
+  --cr-marco-luz: rgba(255, 255, 255, 0.07);
+  --cr-marco-sombra: 0 30px 60px -28px rgba(0, 0, 0, 0.85), 0 8px 18px -10px rgba(0, 0, 0, 0.5);
+  --cr-talon: linear-gradient(180deg, #35322f 0%, #2b2826 100%);
+  --cr-ink: #f2eee8;
+  --cr-ink-2: #b0a89d;
+  --cr-ink-3: #8e867c;
+  --cr-linea: rgba(255, 255, 255, 0.09);
+  --cr-agujero: #201e1d;
+  --cr-sombra-luz: rgba(0, 0, 0, 0.42);
+  --cr-rojo: #e0493a;
+}
+
+.cred__cuerpo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border-radius: calc(var(--cr-radio) + 10px);
+  background: var(--cr-marco);
+  box-shadow: var(--cr-marco-sombra);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  transform: rotateX(var(--cr-giro-x)) rotateY(var(--cr-giro-y));
+  will-change: transform;
+}
+
+/* ---------- la lámina ---------- */
+.cred__lamina {
+  position: relative;
+  aspect-ratio: 1 / 1.02;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--cr-radio);
+  color: #f4f0ea;
+  /* tinta cálida con anillos de seguridad y un brillo rojo arriba */
+  background:
+    radial-gradient(260px 200px at 100% 0%, rgba(224, 73, 58, 0.42), transparent 70%),
+    repeating-radial-gradient(circle at 0% 100%, transparent 0 13px, rgba(244, 240, 234, 0.045) 13px 14px),
+    linear-gradient(165deg, #2c2826 0%, #1b1918 60%, #141312 100%);
+  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.55);
+}
+
+.cred__brillo,
+.cred__holo,
+.cred__velo,
+.cred__filo,
+.cred__reflejo,
+.cred__sombra,
+.cred__borde {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.cred__brillo {
+  z-index: 0;
+  background: radial-gradient(farthest-corner circle at calc(var(--cr-luz-x) - 10px) calc(var(--cr-luz-y) - 10px), rgba(255, 255, 255, 0.16) 0%, transparent 55%);
+  opacity: calc(0.8 * var(--cr-activo));
+}
+
+/* el monograma: las iniciales gigantes, cortadas por el borde, como el arte de una tarjeta */
+.cred__monograma {
+  position: absolute;
+  z-index: 1;
+  left: -0.06em;
+  bottom: 0.12em;
+  font-size: 230px;
+  font-weight: 800;
+  line-height: 0.8;
+  letter-spacing: -0.08em;
+  color: rgba(244, 240, 234, 0.92);
+  transform: translate3d(calc(var(--cr-mueve-x) * 1.4), calc(var(--cr-mueve-y) * 1.4), 0);
+  user-select: none;
+}
+.cred__foto {
+  position: absolute;
+  z-index: 1;
+  inset: calc(var(--cr-paralaje) * -1);
+  width: calc(100% + var(--cr-paralaje) * 2);
+  height: calc(100% + var(--cr-paralaje) * 2);
+  object-fit: cover;
+  object-position: center 30%;
+  transform: translate3d(var(--cr-mueve-x), var(--cr-mueve-y), 0);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* el holograma (ProfileCard): espectro + barras, recortado por los anillos de seguridad; sobre la tinta se
+   ve en las líneas y, con color-dodge, se enciende sobre el monograma claro */
+.cred__holo {
+  z-index: 2;
+  --cr-espectro: repeating-linear-gradient(0deg, hsl(2, 100%, 73%) 5%, hsl(53, 100%, 69%) 10%, hsl(93, 100%, 69%) 15%, hsl(176, 100%, 76%) 20%, hsl(228, 100%, 74%) 25%, hsl(260, 100%, 76%) 30%, hsl(2, 100%, 73%) 35%);
+  --cr-barras: repeating-linear-gradient(-45deg, #0e152e 0%, hsl(180, 10%, 60%) 3.8%, hsl(180, 29%, 66%) 4.5%, hsl(180, 10%, 60%) 5.2%, #0e152e 10%, #0e152e 12%);
+  --cr-caida: radial-gradient(farthest-corner circle at var(--cr-puntero-x) var(--cr-puntero-y), hsla(0, 0%, 0%, 0.1) 12%, hsla(0, 0%, 0%, 0.15) 20%, hsla(0, 0%, 0%, 0.25) 120%);
+  background-image: var(--cr-espectro), var(--cr-barras), var(--cr-caida);
+  background-position: 0 var(--cr-banda-y), var(--cr-banda-x) var(--cr-banda-y), center;
+  background-size: 500% 500%, 300% 300%, 200% 200%;
+  background-blend-mode: color, hard-light;
+  mix-blend-mode: color-dodge;
+  filter: brightness(calc(0.66 + 0.19 * var(--cr-activo))) contrast(calc(1.33 + 0.17 * var(--cr-activo))) saturate(calc(0.33 + 0.17 * var(--cr-activo)));
+  opacity: calc(0.85 * (0.45 + 0.55 * var(--cr-activo)));
+  -webkit-mask-image: repeating-radial-gradient(circle at 0% 100%, #000 0 2px, rgba(0, 0, 0, 0.35) 2px 7px);
+  mask-image: repeating-radial-gradient(circle at 0% 100%, #000 0 2px, rgba(0, 0, 0, 0.35) 2px 7px);
+  -webkit-mask-position: calc(0px - var(--cr-mueve-x) * 1.5) calc(0px - var(--cr-mueve-y) * 1.5);
+  mask-position: calc(0px - var(--cr-mueve-x) * 1.5) calc(0px - var(--cr-mueve-y) * 1.5);
+}
+.cred__holo-luz,
+.cred__holo-giro { position: absolute; inset: 0; opacity: calc(var(--cr-activo) * 0.9); }
+.cred__holo-luz {
+  background-image:
+    linear-gradient(45deg, hsl(176, 100%, 76%), hsl(228, 100%, 74%), hsl(260, 100%, 76%), hsl(2, 100%, 73%), hsl(53, 100%, 69%), hsl(93, 100%, 69%)),
+    radial-gradient(circle at var(--cr-puntero-x) var(--cr-puntero-y), hsl(0, 0%, 70%) 0%, hsla(0, 0%, 30%, 0.2) 90%);
+  background-size: 250% 250%, 100% 100%;
+  background-position: var(--cr-puntero-x) var(--cr-puntero-y), center;
+  background-blend-mode: color-dodge;
+  filter: brightness(calc(2 - var(--cr-alcance))) contrast(calc(var(--cr-alcance) + 2)) saturate(calc(0.5 + var(--cr-alcance)));
+  mix-blend-mode: luminosity;
+}
+.cred__holo-giro {
+  background-image: var(--cr-espectro), var(--cr-barras), var(--cr-caida);
+  background-position: 0 var(--cr-banda-y), calc(var(--cr-banda-x) * 0.4) calc(var(--cr-banda-y) * 0.5), center;
+  background-size: 200% 300%, 700% 700%, 100% 100%;
+  background-blend-mode: color, hard-light;
+  mix-blend-mode: difference;
+  filter: brightness(0.8) contrast(1.5);
+}
+
+/* el velo de abajo, para que los datos se lean sobre la foto o el monograma */
+.cred__velo { z-index: 3; background: linear-gradient(to top, rgba(14, 12, 11, 0.86) 0%, rgba(14, 12, 11, 0.62) 22%, rgba(14, 12, 11, 0.18) 46%, transparent 60%); }
+
+.cred__tapa {
+  position: absolute;
+  z-index: 4;
+  top: 16px;
+  left: 18px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(244, 240, 234, 0.6);
+}
+.cred__tipo { padding: 4px 9px; border-radius: 999px; background: rgba(244, 240, 234, 0.1); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: rgba(244, 240, 234, 0.85); letter-spacing: 0.08em; }
+
+.cred__camara {
+  position: absolute;
+  z-index: 4;
+  right: 14px;
+  bottom: 16px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(244, 240, 234, 0.14);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px rgba(244, 240, 234, 0.18);
+  color: #f4f0ea;
+  cursor: pointer;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+.cred__camara:hover:not(:disabled) { background: rgba(244, 240, 234, 0.26); transform: scale(1.06); }
+.cred__camara:active:not(:disabled) { transform: scale(0.95); }
+.cred__camara:focus-visible { outline: 2px solid #ff6b5c; outline-offset: 2px; }
+.cred__camara.is-subiendo { opacity: 0.55; cursor: default; animation: cred-late 1s ease-in-out infinite; }
+
+.cred__info { position: absolute; z-index: 4; left: 18px; right: 60px; bottom: 16px; color: #f4f0ea; }
+html .cuenta-root .cred__info .cuenta-perfil__nombre { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; color: #fff; }
+html .cuenta-root .cred__info .cuenta-nombre__editar { font-size: 12px; color: #ff9d90; }
+html .cuenta-root .cred__info .cuenta-nombre__cuenta { color: rgba(244, 240, 234, 0.55); }
+html .cuenta-root .cred__info .cuenta-nombre__form { width: 100%; max-width: none; margin: 0 0 4px; }
+html .cuenta-root .cred__info .cuenta-nombre__form input { height: 36px; border-color: rgba(244, 240, 234, 0.2); background: rgba(14, 12, 11, 0.55); color: #fff; }
+html .cuenta-root .cred__info .cuenta-nombre__ayuda { color: rgba(244, 240, 234, 0.6); }
+html .cuenta-root .cred__info .cuenta-boton.is-suave { box-shadow: inset 0 0 0 1px rgba(244, 240, 234, 0.25); color: rgba(244, 240, 234, 0.85); }
+.cred__mail { margin: 3px 0 9px; overflow: hidden; font-size: 12.5px; color: rgba(244, 240, 234, 0.62); white-space: nowrap; text-overflow: ellipsis; }
+.cred__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cred__chips:empty { display: none; }
+.cred__chips span { padding: 4px 10px; border-radius: 999px; background: rgba(244, 240, 234, 0.12); font-size: 11.5px; font-weight: 700; color: rgba(244, 240, 234, 0.88); }
+.cred__chips span.is-acento { background: #e0493a; color: #fff; }
+
+.cred__filo { z-index: 5; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+
+/* ---------- el corte: línea punteada con dos muescas que muerden el marco ---------- */
+.cred__corte { position: relative; height: 0; margin: 13px 4px; border-top: 2px dashed var(--cr-linea); }
+.cred__corte::before,
+.cred__corte::after { content: ''; position: absolute; top: -12px; width: 22px; height: 22px; border-radius: 50%; background: var(--cr-lienzo); box-shadow: inset 0 0 0 1px var(--cr-marco-borde); }
+.cred__corte::before { left: -26px; }
+.cred__corte::after { right: -26px; }
+
+/* ---------- el talón ---------- */
+.cred__talon { padding: 16px 16px 14px; border-radius: var(--cr-radio); background: var(--cr-talon); box-shadow: inset 0 0 0 1px var(--cr-linea), 0 4px 10px -6px var(--cr-sombra-luz); color: var(--cr-ink); }
+
+.cred-pase { margin-bottom: 14px; }
+.cred-pase__cuenta { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 12px; }
+.cred-pase__cuenta b { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 42px; font-weight: 700; line-height: 0.85; letter-spacing: -0.06em; color: var(--cr-ink); }
+.cred-pase__cuenta span { display: grid; gap: 2px; padding-bottom: 1px; font-size: 13px; font-weight: 700; color: var(--cr-ink); }
+.cred-pase__cuenta small { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cr-ink-3); }
+
+/* los agujeros: las semanas que faltan son puntos de tinta; las que pasaron están picadas (un agujero por
+   donde se ve el fondo de la página, con sombra adentro), como un boleto */
+.cred-pase__agujeros { display: grid; grid-template-columns: repeat(var(--columnas), 1fr); gap: 7px 5px; margin: 0; padding: 0; list-style: none; }
+.cred-pase__agujeros li { aspect-ratio: 1; max-width: 13px; justify-self: center; width: 100%; border-radius: 50%; background: var(--cr-ink); opacity: 0.78; }
+.cred-pase__agujeros li.is-picada { opacity: 1; background: var(--cr-lienzo); box-shadow: inset 0 2px 3px var(--cr-sombra-luz), inset 0 0 0 1px var(--cr-linea), 0 1px 0 rgba(255, 255, 255, 0.7); }
+html[data-modo="azul"] .cred-pase__agujeros li.is-picada { background: #1b1a19; box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.06); }
+.cred-pase__agujeros li.is-ahora { position: relative; opacity: 1; background: var(--cr-rojo); }
+.cred-pase__agujeros li.is-ahora::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; box-shadow: 0 0 0 2px var(--cr-rojo); opacity: 0.5; animation: cred-onda 2.2s ease-out infinite; }
+
+.cred__fechas { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; padding-top: 12px; border-top: 1px solid var(--cr-linea); }
+.cred-pase + .cred__fechas { margin-top: 0; }
+.cred__talon > .cred__fechas:first-child { padding-top: 0; border-top: 0; }
+.cred__fechas dt { margin-bottom: 3px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--cr-ink-3); }
+.cred__fechas dd { margin: 0; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; color: var(--cr-ink); font-variant-numeric: tabular-nums; }
+
+/* ---------- Modo Miembro (solo admin), dentro del marco ---------- */
+html .cuenta-root .cred .cta-miembro { margin: 10px 0 0; background: var(--cr-talon); box-shadow: inset 0 0 0 1px var(--cr-linea); }
+html .cuenta-root .cred .cta-miembro.is-on { background: rgba(224, 73, 58, 0.12); box-shadow: inset 0 0 0 1px rgba(224, 73, 58, 0.5); }
+html .cuenta-root .cred .cta-miembro__texto b { color: var(--cr-ink); }
+html .cuenta-root .cred .cta-miembro__texto span { color: var(--cr-ink-2); }
+html .cuenta-root .cred .cta-interruptor { background: var(--cr-linea); box-shadow: inset 0 0 0 1px var(--cr-linea); }
+html .cuenta-root .cred .cta-interruptor[aria-checked="true"] { background: var(--cr-rojo); }
+
+/* ---------- el pie (como el de la ProfileCard) ---------- */
+.cred__pie { display: flex; align-items: center; gap: 8px; padding: 12px 6px 2px 8px; }
+.cred__estado { flex: 1; display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--cr-ink-2); white-space: nowrap; }
+.cred__estado::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; background: #22a55a; box-shadow: 0 0 0 3px rgba(34, 165, 90, 0.18); }
+.cred__estado.is-proximo_a_vencer::before { background: #d98a00; box-shadow: 0 0 0 3px rgba(217, 138, 0, 0.18); }
+.cred__estado.is-vencido::before,
+.cred__estado.is-inactivo::before { background: var(--cr-rojo); box-shadow: 0 0 0 3px rgba(224, 73, 58, 0.2); }
+.cred__estado.is-pausa::before { background: var(--cr-ink-3); box-shadow: none; }
+.cred__estado.is-equipo::before { background: var(--cr-rojo); box-shadow: 0 0 0 3px rgba(224, 73, 58, 0.18); }
+
+.cred__boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--cr-talon);
+  box-shadow: inset 0 0 0 1px var(--cr-linea), 0 4px 10px -5px var(--cr-sombra-luz);
+  color: var(--cr-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+.cred__boton.is-icono { width: 36px; padding: 0; justify-content: center; color: var(--cr-ink-2); }
+.cred__boton:active:not(:disabled) { transform: scale(0.96); transition-duration: 0s; }
+.cred__boton:focus-visible { outline: 2px solid var(--cr-rojo); outline-offset: 2px; }
+.cred__boton:disabled { opacity: 0.5; cursor: default; }
+@media (hover: hover) {
+  .cred__boton:hover:not(:disabled) { color: var(--cr-rojo); filter: brightness(0.98); }
+}
+
+/* ---------- la luz sobre todo el pase ---------- */
+.cred__reflejo {
+  z-index: 6;
+  background: radial-gradient(farthest-corner circle at var(--cr-luz-x) var(--cr-luz-y), rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.36) 20%, rgba(255, 255, 255, 0) 60%);
+  mix-blend-mode: overlay;
+  opacity: calc(0.5 * var(--cr-activo));
+}
+.cred__sombra { z-index: 6; background: radial-gradient(farthest-corner circle at var(--cr-luz-x) var(--cr-luz-y), transparent 30%, rgba(24, 16, 10, 0.18) 100%); opacity: calc(0.5 * var(--cr-inclina)); }
+.cred__borde { z-index: 7; box-shadow: inset 0 0 0 1px var(--cr-marco-borde), inset 0 1px 0 var(--cr-marco-luz); }
+
+@keyframes cred-onda { 0% { transform: scale(0.7); opacity: 0.7; } 100% { transform: scale(1.6); opacity: 0; } }
+@keyframes cred-late { 50% { opacity: 0.3; } }
+
+@media (max-width: 900px) {
+  .cred { max-width: 420px; justify-self: center; }
+  .cred__monograma { font-size: 200px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cred-pase__agujeros li.is-ahora::after,
+  .cred__camara.is-subiendo { animation: none; }
+}

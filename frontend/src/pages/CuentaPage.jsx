@@ -6,12 +6,19 @@ import TuEquipo from '../components/cuenta/TuEquipo'
 import TusDispositivos from '../components/cuenta/TusDispositivos'
 import Tarjeta from '../components/cuenta/Tarjeta'
 import VozTab from '../components/cuenta/VozTab'
+import NombreTech from '../components/efectos/NombreTech'
+import Credencial from '../components/cuenta/Credencial'
 import { NotificacionesCuenta } from '../components/Notificaciones'
 import FathomCuenta from '../components/cuenta/FathomCuenta'
 import { useAuth } from '../context/AuthContext'
 import '../styles/cuenta.css'
 import '../styles/cuenta-rediseno.css'
-import { getUserInitials } from '../utils/user'
+
+// Mi cuenta, rediseño 2026-11 (estilos en cuenta-rediseno.css):
+//   - A la izquierda, la credencial (components/cuenta/Credencial): un pase de socio holográfico que se
+//     inclina con el mouse, con el pase perforado de semanas y las fechas. Al admin le suma Modo Miembro.
+//   - A la derecha, las secciones numeradas (components/cuenta/Tarjeta), separadas por una línea fina.
+//     Para sumar algo nuevo, se agrega otra <Tarjeta>.
 
 // 120 → "4 meses", 45 → "45 días": en meses cuando cae cerca de un número redondo.
 function duracion(dias) {
@@ -22,19 +29,15 @@ function duracion(dias) {
 
 const fecha = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—')
 
-// Mi cuenta: una tarjeta por sección (components/cuenta/Tarjeta). Para sumar algo nuevo, se agrega otra.
-
-function Dato({ nombre, children }) {
-  return (
-    <div className="cuenta-dato">
-      <dt>{nombre}</dt>
-      <dd>{children ?? '—'}</dd>
-    </div>
-  )
+function textoDias(dias) {
+  if (dias == null) return 'Sin fecha de vencimiento'
+  if (dias < 0) return `Venció hace ${-dias} ${dias === -1 ? 'día' : 'días'}`
+  if (dias === 0) return 'Vence hoy'
+  return dias === 1 ? 'Te queda 1 día' : `Te quedan ${dias} días`
 }
 
 export default function CuentaPage() {
-  const { logout, actualizarUsuario } = useAuth()
+  const { logout, actualizarUsuario, rolReal, modoMiembro, cambiarModoMiembro } = useAuth()
   const [cuenta, setCuenta] = useState(null)
   const [error, setError] = useState('')
   const [subiendo, setSubiendo] = useState(false)
@@ -68,6 +71,7 @@ export default function CuentaPage() {
 
   async function sacarFoto() {
     setSubiendo(true)
+    setError('')
     try {
       const { foto_url } = await quitarFoto()
       setCuenta((c) => ({ ...c, foto_url, foto_propia: false }))
@@ -80,30 +84,31 @@ export default function CuentaPage() {
   }
 
   const c = cuenta
-  const total = c?.duracion_dias || null
-  const usados = total && c?.dias_restantes != null ? Math.min(total, Math.max(0, total - c.dias_restantes)) : null
-  const vencido = c?.dias_restantes != null && c.dias_restantes < 0
+  const esCliente = c?.tipo === 'cliente'
+  // En Modo Miembro el backend sigue mandando la cuenta del admin: se esconde lo que es solo del equipo.
+  const esEquipo = c?.tipo === 'equipo' && !modoMiembro
+  const primerNombre = (c?.nombre || '').split(' ')[0]
 
   return (
     <div className="app-shell cuenta-root">
       <AppHeader />
       <main className="cuenta">
-        <header className="cuenta__cabeza">
-          <h1>Mi cuenta</h1>
-          <p>Tu perfil, tus dispositivos y cómo te avisa el classroom.</p>
-        </header>
         {error ? <p className="cuenta__error" role="alert">{error}</p> : null}
         {!c && !error ? <p className="cuenta__cargando">Cargando…</p> : null}
 
         {c ? (
-          <>
-            <section className="cuenta-heroe" aria-label="Perfil">
-              <div className="cuenta-perfil">
-                <div className={`cuenta-foto${subiendo ? ' is-subiendo' : ''}`}>
-                  {c.foto_url ? <img src={c.foto_url} alt="" referrerPolicy="no-referrer" /> : <span>{getUserInitials(c.nombre)}</span>}
-                </div>
-                <div className="cuenta-perfil__texto">
-                  {c.tipo === 'cliente' && !c.miembro ? (
+          <div className="cta">
+            <aside className="cta-lado" aria-label="Tu credencial">
+              <input ref={selector} type="file" accept="image/jpeg,image/png,image/webp,image/heic" hidden onChange={elegirFoto} />
+              <Credencial
+                cuenta={c}
+                tipo={esCliente ? (c.miembro ? 'Equipo del cliente' : 'Miembro') : modoMiembro ? 'Vista de miembro' : c.rol_nombre || 'Equipo'}
+                subiendo={subiendo}
+                alElegirFoto={() => selector.current?.click()}
+                alQuitarFoto={sacarFoto}
+                alSalir={logout}
+                nombre={
+                  esCliente && !c.miembro ? (
                     <NombreTitular
                       cuenta={c}
                       alGuardar={(nombre) => {
@@ -113,90 +118,157 @@ export default function CuentaPage() {
                     />
                   ) : (
                     <p className="cuenta-perfil__nombre">{c.nombre}</p>
-                  )}
-                  <p className="cuenta-perfil__mail">{c.email}</p>
-                  <div className="cuenta-chips">
-                    {c.tipo === 'cliente' ? (
-                      c.plan_nombre ? <span className="cuenta-chip is-acento">{c.plan_nombre}</span> : null
-                    ) : (
-                      <>
-                        {c.rol_nombre ? <span className="cuenta-chip is-acento">{c.rol_nombre}</span> : null}
-                        {c.area ? <span className="cuenta-chip">{c.area.charAt(0).toUpperCase() + c.area.slice(1)}</span> : null}
-                      </>
-                    )}
-                  </div>
-                  <div className="cuenta-perfil__botones">
-                    <input ref={selector} type="file" accept="image/jpeg,image/png,image/webp,image/heic" hidden onChange={elegirFoto} />
-                    <button type="button" className="cuenta-boton" onClick={() => selector.current?.click()} disabled={subiendo}>
-                      {subiendo ? 'Subiendo…' : c.foto_propia ? 'Cambiar foto' : 'Subir foto'}
-                    </button>
-                    {c.foto_propia ? (
-                      <button type="button" className="cuenta-boton is-suave" onClick={sacarFoto} disabled={subiendo}>
-                        Quitar
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-              <button type="button" className="cuenta-boton is-peligro cuenta-heroe__salir" onClick={logout}>
-                Cerrar sesión
-              </button>
-            </section>
+                  )
+                }
+                interruptor={rolReal === 'admin' ? <InterruptorMiembro prendido={modoMiembro} alCambiar={cambiarModoMiembro} /> : null}
+              />
+            </aside>
 
-            <div className="cuenta-grilla">
-            {c.tipo === 'cliente' ? (
-              <Tarjeta titulo={c.miembro ? `Plan de ${c.miembro.cliente_nombre}` : 'Tu plan'} icono="plan">
-                {c.miembro ? <p className="cuenta-equipo__soy">Sos parte del equipo de {c.miembro.cliente_nombre}.</p> : null}
-                <div className="cuenta-plan">
-                  <span className="cuenta-plan__nombre">{c.plan_nombre || 'Sin plan'}</span>
-                  <span className={`cuenta-plan__dias${vencido ? ' is-vencido' : c.dias_restantes != null && c.dias_restantes <= 15 ? ' is-poco' : ''}`}>
-                    {c.dias_restantes == null ? 'Sin fecha de vencimiento' : vencido ? `Venció hace ${-c.dias_restantes} días` : c.dias_restantes === 0 ? 'Vence hoy' : `${c.dias_restantes} ${c.dias_restantes === 1 ? 'día' : 'días'} de acceso`}
-                  </span>
-                </div>
-                {usados != null ? (
-                  <div className="cuenta-barra" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={usados} aria-label="Días de acceso usados">
-                    <i style={{ width: `${(100 * usados) / total}%` }} />
-                  </div>
+            <div className="cta-cuerpo">
+              <header className="cta-cabeza">
+                <p className="cta-cabeza__arriba">Mi cuenta</p>
+                <h1>{primerNombre ? <><NombreTech texto={primerNombre} />, esto es lo tuyo.</> : 'Tu cuenta'}</h1>
+                <p>
+                  {esCliente
+                    ? `Tu plan, cómo te avisamos, dónde tenés la sesión abierta${c.miembro ? '' : ' y quién más entra con vos'}.`
+                    : 'Cómo te avisamos, dónde tenés la sesión abierta y tus herramientas.'}
+                </p>
+              </header>
+
+              <div className="cta-secciones">
+                {esCliente ? (
+                  <Tarjeta
+                    titulo={c.miembro ? `Plan de ${c.miembro.cliente_nombre}` : 'Tu plan'}
+                    icono="plan"
+                    bajada={c.miembro ? `Sos parte del equipo de ${c.miembro.cliente_nombre}.` : 'Cuánto llevás del programa y cuándo vence.'}
+                  >
+                    <PlanLinea cuenta={c} />
+                  </Tarjeta>
+                ) : modoMiembro ? (
+                  <Tarjeta titulo="Tu plan" icono="plan" bajada="Lo que ve un miembro acá.">
+                    <p className="cta-nota">
+                      Un miembro ve su plan, la línea de su programa de punta a punta y los días que le quedan. Tu cuenta de
+                      admin no tiene plan: por eso acá no aparece.
+                    </p>
+                  </Tarjeta>
                 ) : null}
-                <dl className="cuenta-datos">
-                  {c.estado_texto ? <Dato nombre="Estado"><span className={`cuenta-estado is-${c.estado || 'vigente'}`}>{c.estado_texto}</span></Dato> : null}
-                  {c.duracion_dias ? <Dato nombre="Duración del programa">{duracion(c.duracion_dias)}</Dato> : null}
-                  {c.fecha_inicio ? <Dato nombre="Empezaste">{fecha(c.fecha_inicio)}</Dato> : null}
-                  {c.fecha_vencimiento ? <Dato nombre="Vence">{fecha(c.fecha_vencimiento)}</Dato> : null}
-                  {c.responsable ? <Dato nombre="Tu coach">{c.responsable}</Dato> : null}
-                </dl>
-              </Tarjeta>
-            ) : null /* El rol y el área del equipo ya van como chips en el perfil. */}
 
-            <Tarjeta titulo="Notificaciones" icono="notificaciones">
-              <NotificacionesCuenta />
-            </Tarjeta>
-            <TusDispositivos />
-            {c.tipo === 'cliente' && !c.miembro ? (
-              <Tarjeta titulo="Tu equipo" icono="equipo">
-                <TuEquipo />
-              </Tarjeta>
-            ) : null}
-            {c.tipo === 'equipo' ? (
-              <Tarjeta titulo="Voz del Tab" icono="voz">
-                <VozTab />
-              </Tarjeta>
-            ) : null}
-            {c.tipo === 'equipo' ? (
-              <Tarjeta titulo="Fathom" icono="fathom">
-                <FathomCuenta />
-              </Tarjeta>
-            ) : null}
-            {c.tipo === 'equipo' && c.rol === 'admin' ? (
-              <Tarjeta titulo="Equipos de clientes" icono="equipo">
-                <CuposEquipo />
-              </Tarjeta>
-            ) : null}
-
+                <Tarjeta titulo="Notificaciones" icono="notificaciones" bajada="Para enterarte apenas te escriben.">
+                  <NotificacionesCuenta />
+                </Tarjeta>
+                <TusDispositivos />
+                {esCliente && !c.miembro ? (
+                  <Tarjeta titulo="Tu equipo" icono="equipo" bajada="Socios, setters o closers que entran al chat con ATV.">
+                    <TuEquipo />
+                  </Tarjeta>
+                ) : null}
+                {esEquipo ? (
+                  <Tarjeta titulo="Voz del Tab" icono="voz" bajada="Con qué voz te sugiere respuestas la IA.">
+                    <VozTab />
+                  </Tarjeta>
+                ) : null}
+                {esEquipo ? (
+                  <Tarjeta titulo="Fathom" icono="fathom" bajada="Tus llamadas grabadas, conectadas al classroom.">
+                    <FathomCuenta />
+                  </Tarjeta>
+                ) : null}
+                {esEquipo && c.rol === 'admin' ? (
+                  <Tarjeta titulo="Equipos de clientes" icono="equipo" bajada="Cuántas personas suma cada plan.">
+                    <CuposEquipo />
+                  </Tarjeta>
+                ) : null}
+              </div>
             </div>
-          </>
+          </div>
         ) : null}
       </main>
+    </div>
+  )
+}
+
+// El programa de punta a punta: una línea de "Empezaste" a "Vence" con una marca en hoy, y abajo los datos.
+function PlanLinea({ cuenta: c }) {
+  const total = c.duracion_dias || null
+  const usados = total && c.dias_restantes != null ? Math.min(total, Math.max(0, total - c.dias_restantes)) : null
+  const vencido = c.dias_restantes != null && c.dias_restantes < 0
+  const poco = !vencido && c.dias_restantes != null && c.dias_restantes <= 15
+  return (
+    <div className="cta-plan">
+      <div className="cta-plan__arriba">
+        <span className="cta-plan__nombre">{c.plan_nombre || 'Sin plan'}</span>
+        <span className={`cta-plan__dias${vencido ? ' is-vencido' : poco ? ' is-poco' : ''}`}>{textoDias(c.dias_restantes)}</span>
+      </div>
+      {usados != null ? (
+        <div className="cta-linea" style={{ '--avance': usados / total }}>
+          <div
+            className="cta-linea__pista"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-valuenow={usados}
+            aria-label="Días del programa que ya pasaron"
+          >
+            <i />
+            <span className="cta-linea__hoy">
+              <b>Hoy</b>
+            </span>
+          </div>
+          <div className="cta-linea__puntas">
+            <span>
+              <small>Empezaste</small>
+              {fecha(c.fecha_inicio)}
+            </span>
+            <span>
+              <small>Vence</small>
+              {fecha(c.fecha_vencimiento)}
+            </span>
+          </div>
+        </div>
+      ) : null}
+      <dl className="cta-plan__datos">
+        {c.estado_texto ? (
+          <div>
+            <dt>Estado</dt>
+            <dd>
+              <span className={`cuenta-estado is-${c.estado || 'vigente'}`}>{c.estado_texto}</span>
+            </dd>
+          </div>
+        ) : null}
+        {c.duracion_dias ? (
+          <div>
+            <dt>Duración</dt>
+            <dd>{duracion(c.duracion_dias)}</dd>
+          </div>
+        ) : null}
+        {c.responsable ? (
+          <div>
+            <dt>Tu coach</dt>
+            <dd>{c.responsable}</dd>
+          </div>
+        ) : null}
+      </dl>
+    </div>
+  )
+}
+
+// Solo el admin: ver la app como la ve un miembro, sin cambiar de cuenta (utils/modoMiembro.js).
+function InterruptorMiembro({ prendido, alCambiar }) {
+  return (
+    <div className={`cta-miembro${prendido ? ' is-on' : ''}`}>
+      <div className="cta-miembro__texto">
+        <b id="cta-miembro-titulo">Modo Miembro</b>
+        <span>{prendido ? 'Estás viendo la app como un miembro. No se guarda nada.' : 'Mirá la app como la ve un miembro, sin cambiar de cuenta.'}</span>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={prendido}
+        aria-labelledby="cta-miembro-titulo"
+        className="cta-interruptor"
+        onClick={() => alCambiar(!prendido)}
+      >
+        <i />
+      </button>
     </div>
   )
 }

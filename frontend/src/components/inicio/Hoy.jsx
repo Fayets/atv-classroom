@@ -8,10 +8,11 @@ import { tituloLindo } from '../../utils/frentes'
 import { haceCuanto } from '../../utils/mensajes'
 import { getModuloCoverUrl } from '../../utils/modules'
 import { Chevron } from '../frentes/piezas'
+import '../../styles/anillo-programa.css'
 
 // Las piezas del inicio del cliente (rediseño 2026-11, ver styles/inicio.css):
-//   - AnilloPrograma: el tiempo del programa como un anillo con el texto girando alrededor. Hoy no se usa: quedó
-//     guardado para otra sección. Recibe la cuenta de fetchCuenta() (api/cuenta) y sus estilos siguen en inicio.css.
+//   - AnilloPrograma: el tiempo del programa como un anillo con el texto girando alrededor. No va en el inicio: se usa
+//     en Mi cuenta (la credencial). Recibe la cuenta de fetchCuenta() (api/cuenta); estilos en anillo-programa.css.
 //   - BandaPaso: el próximo paso del roadmap en una banda roja a todo el ancho.
 //   - TuSemana: seguir la clase, el chat con ATV, los SOPs y el avance del material.
 // Los datos se piden una sola vez en useHoy() y se reparten.

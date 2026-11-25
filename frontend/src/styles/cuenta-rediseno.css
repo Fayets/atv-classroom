@@ -1,21 +1,40 @@
 /* ======================================================================
-   Mi cuenta, rediseño 2026-11: una tarjeta de perfil a todo el ancho y el resto
-   en una grilla de dos columnas. Claro "Papel" y oscuro de grises cálidos, sólido.
-   Se carga después de cuenta.css; los selectores llevan `html .cuenta-root` para
-   ganarles también a tema-azul.css.
+   Mi cuenta, rediseño 2026-11 (pages/CuentaPage.jsx).
+   Dos columnas: a la izquierda la CREDENCIAL (una tarjeta de tinta, como un carnet de socio, que queda
+   fija al bajar) y a la derecha las secciones numeradas, sin cajas, separadas por una línea fina.
+   Claro "Papel" y oscuro de grises cálidos. Se carga después de cuenta.css; los selectores llevan
+   `html .cuenta-root` para ganarles también a tema-azul.css.
    ====================================================================== */
 html .cuenta-root {
   --c-lienzo: #f6f4f0;
   --c-tarjeta: #ffffff;
-  --c-tarjeta-2: #f1eee9;
+  --c-tarjeta-2: #efebe5;
   --c-ink: #1d1d1f;
   --c-ink-2: #5f5f64;
   --c-ink-3: #76767b;
-  --c-linea: rgba(29, 29, 31, 0.09);
-  --c-linea-2: rgba(29, 29, 31, 0.16);
+  --c-linea: rgba(29, 29, 31, 0.1);
+  --c-linea-2: rgba(29, 29, 31, 0.17);
   --c-rojo: #c0392b;
   --c-rojo-lavado: #fbeae7;
   --c-rojo-tinta: #8a2e22;
+  /* la credencial: tinta cálida en los dos modos */
+  --k-fondo: #1f1d1c;
+  --k-fondo-2: #2a2725;
+  --k-ink: #f4f0ea;
+  --k-ink-2: rgba(244, 240, 234, 0.66);
+  --k-ink-3: rgba(244, 240, 234, 0.44);
+  --k-linea: rgba(244, 240, 234, 0.12);
+  --k-rojo: #e0493a;
+  /* los componentes de adentro (Notificaciones, Tu equipo, Voz, Fathom) usan --m-* */
+  --m-t1: var(--c-ink);
+  --m-t2: var(--c-ink-2);
+  --m-t3: var(--c-ink-3);
+  --m-t4: var(--c-ink-3);
+  --m-relleno: var(--c-tarjeta-2);
+  --m-panel: var(--c-tarjeta-2);
+  --m-tarjeta: var(--c-tarjeta);
+  --m-borde: var(--c-linea-2);
+  --m-acento: var(--c-rojo);
   background: var(--c-lienzo);
 }
 html[data-modo="azul"] .cuenta-root {
@@ -30,100 +49,199 @@ html[data-modo="azul"] .cuenta-root {
   --c-rojo: #dd5245;
   --c-rojo-lavado: rgba(221, 82, 69, 0.16);
   --c-rojo-tinta: #ffbbb0;
+  --k-fondo: #2b2927;
+  --k-fondo-2: #353230;
   background: var(--c-lienzo);
 }
 
-html .cuenta-root .cuenta { max-width: 980px; padding: 28px 24px 64px; color: var(--c-ink); }
-html .cuenta-root .cuenta__cabeza { margin-bottom: 20px; }
-html .cuenta-root .cuenta__cabeza h1 { margin: 0 0 3px; font-size: 25px; font-weight: 800; letter-spacing: -0.025em; }
-html .cuenta-root .cuenta__cabeza p { margin: 0; font-size: 12.5px; color: var(--c-ink-3); }
+html .cuenta-root .cuenta { max-width: 1180px; margin: 0 auto; padding: 44px 36px 96px; color: var(--c-ink); }
+html .cuenta-root .cuenta__error { margin-bottom: 18px; }
 
-/* perfil */
-html .cuenta-root .cuenta-heroe {
-  position: relative;
+.cta { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 64px; align-items: start; }
+
+/* ---------- la credencial: ver credencial.css (components/cuenta/Credencial.jsx) ---------- */
+.cta-lado { position: sticky; top: 80px; }
+
+/* Modo Miembro (solo admin) */
+.cta-miembro {
   display: flex;
   align-items: center;
-  gap: 18px;
-  margin-bottom: 14px;
-  padding: 20px 22px;
-  overflow: hidden;
-  border-radius: 18px;
-  background: var(--c-tarjeta);
-  box-shadow: inset 0 0 0 1px var(--c-linea);
+  gap: 14px;
+  margin-top: 18px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  background: rgba(244, 240, 234, 0.06);
+  box-shadow: inset 0 0 0 1px var(--k-linea);
+  transition: background-color 220ms ease, box-shadow 220ms ease;
 }
-/* un brillo rojo muy suave en la esquina, la firma de ATV */
-html .cuenta-root .cuenta-heroe::after {
-  content: '';
+.cta-miembro.is-on { background: rgba(224, 73, 58, 0.16); box-shadow: inset 0 0 0 1px rgba(224, 73, 58, 0.55); }
+.cta-miembro__texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cta-miembro__texto b { font-size: 13.5px; font-weight: 700; color: var(--k-ink); }
+.cta-miembro__texto span { font-size: 12px; line-height: 1.4; color: var(--k-ink-2); }
+
+.cta-interruptor {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(244, 240, 234, 0.18);
+  cursor: pointer;
+  transition: background-color 200ms ease;
+}
+.cta-interruptor i {
   position: absolute;
-  inset: 0;
-  background: radial-gradient(460px 200px at 100% 0%, rgba(192, 57, 43, 0.07), transparent 70%);
-  pointer-events: none;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 260ms cubic-bezier(0.3, 1.4, 0.5, 1);
 }
-html[data-modo="azul"] .cuenta-root .cuenta-heroe::after { background: radial-gradient(460px 200px at 100% 0%, rgba(221, 82, 69, 0.1), transparent 70%); }
-html .cuenta-root .cuenta-heroe > * { position: relative; z-index: 1; }
-html .cuenta-root .cuenta-perfil { flex: 1; min-width: 0; }
-html .cuenta-root .cuenta-foto { width: 64px; height: 64px; background: var(--c-rojo-lavado); }
-html .cuenta-root .cuenta-foto span { font-size: 21px; font-weight: 800; color: var(--c-rojo-tinta); }
-html .cuenta-root .cuenta-perfil__nombre { font-size: 18px; font-weight: 800; letter-spacing: -0.015em; color: var(--c-ink); }
-html .cuenta-root .cuenta-perfil__mail { margin: 2px 0 10px; font-size: 12.5px; color: var(--c-ink-3); }
-html .cuenta-root .cuenta-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-html .cuenta-root .cuenta-chips:empty { display: none; }
-.cuenta-chip { display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px; background: var(--c-tarjeta-2); box-shadow: inset 0 0 0 1px var(--c-linea); color: var(--c-ink-2); font-size: 11.5px; font-weight: 700; }
-.cuenta-chip.is-acento { background: var(--c-rojo-lavado); box-shadow: inset 0 0 0 1px rgba(192, 57, 43, 0.22); color: var(--c-rojo-tinta); }
-html .cuenta-root .cuenta-heroe__salir { flex: none; align-self: flex-start; }
+.cta-interruptor[aria-checked="true"] { background: var(--k-rojo); }
+.cta-interruptor[aria-checked="true"] i { transform: translateX(18px); }
+.cta-interruptor:focus-visible { outline: 2px solid var(--k-rojo); outline-offset: 3px; }
+
+/* ---------- la columna de la derecha ---------- */
+.cta-cuerpo { min-width: 0; padding-top: 6px; }
+.cta-cabeza { margin-bottom: 30px; animation: cta-entra 520ms 80ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.cta-cabeza__arriba { margin: 0 0 10px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--c-rojo); }
+html .cuenta-root .cta-cabeza h1 { margin: 0 0 10px; font-size: clamp(32px, 3.3vw, 50px); font-weight: 800; line-height: 1.02; letter-spacing: -0.045em; color: var(--c-ink); text-wrap: balance; }
+.cta-cabeza > p:last-child { margin: 0; max-width: 56ch; font-size: 15px; line-height: 1.5; color: var(--c-ink-3); }
+
+/* cada sección: número, título y bajada a la izquierda; el contenido a la derecha */
+.cta-secciones { counter-reset: cta-sec; border-bottom: 1px solid var(--c-linea); }
+html .cuenta-root .cta-secciones .cuenta-seccion {
+  counter-increment: cta-sec;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 36px;
+  margin: 0;
+  padding: 28px 0 30px;
+  border-top: 1px solid var(--c-linea);
+  animation: cta-entra 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+html .cuenta-root .cta-secciones .cuenta-seccion:nth-child(2) { animation-delay: 140ms; }
+html .cuenta-root .cta-secciones .cuenta-seccion:nth-child(3) { animation-delay: 180ms; }
+html .cuenta-root .cta-secciones .cuenta-seccion:nth-child(n + 4) { animation-delay: 220ms; }
+html .cuenta-root .cta-secciones .cuenta-seccion:first-child { animation-delay: 100ms; }
+
+.cuenta-tarjeta__cab { margin: 0; }
+.cuenta-tarjeta__cab::before {
+  content: counter(cta-sec, decimal-leading-zero);
+  display: block;
+  margin-bottom: 12px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--c-rojo);
+}
+.cuenta-tarjeta__titulo { display: flex; align-items: center; gap: 10px; }
+.cuenta-tarjeta__icono { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--c-tarjeta-2); color: var(--c-ink); }
+.cuenta-tarjeta__icono svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+html .cuenta-root .cuenta-tarjeta__cab h2 { margin: 0; font-size: 17px; font-weight: 750; letter-spacing: -0.02em; text-transform: none; color: var(--c-ink); }
+.cuenta-tarjeta__n { min-width: 20px; height: 20px; padding: 0 7px; border-radius: 999px; background: var(--c-tarjeta-2); color: var(--c-ink-2); font-size: 11px; font-weight: 700; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums; }
+.cuenta-tarjeta__bajada { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--c-ink-3); }
+
+html .cuenta-root .cta-secciones .cuenta-seccion__cuerpo { min-width: 0; padding: 0; border-radius: 0; background: none; box-shadow: none; font-size: 14px; line-height: 1.55; color: var(--c-ink-2); }
+html .cuenta-root .cta-secciones input:not([type="checkbox"]):not([type="radio"]) { border-radius: 10px; }
 
 /* botones */
-html .cuenta-root .cuenta-boton { padding: 8px 15px; border-radius: 9px; background: var(--c-rojo); font-size: 12.5px; font-weight: 700; }
-html .cuenta-root .cuenta-boton:hover:not(:disabled) { filter: brightness(1.06); }
+html .cuenta-root .cuenta-boton { padding: 9px 16px; border-radius: 999px; background: var(--c-rojo); font-size: 13px; font-weight: 700; transition: filter 140ms ease, transform 140ms ease; }
+html .cuenta-root .cuenta-boton:hover:not(:disabled) { filter: brightness(1.07); }
+html .cuenta-root .cuenta-boton:active:not(:disabled) { transform: scale(0.97); }
 html .cuenta-root .cuenta-boton.is-suave { background: transparent; box-shadow: inset 0 0 0 1px var(--c-linea-2); color: var(--c-ink-2); }
-html .cuenta-root .cuenta-boton.is-peligro { padding: 8px 15px; background: transparent; box-shadow: inset 0 0 0 1px var(--c-linea-2); color: var(--c-rojo); }
-html .cuenta-root .cuenta-boton.is-peligro:hover { background: var(--c-rojo-lavado); filter: none; }
 
-/* Tarjetas en dos columnas que se acomodan como ladrillos: cada una va donde hay lugar,
-   sin huecos entre una corta y una larga. */
-.cuenta-grilla { columns: 2; column-gap: 14px; }
-html .cuenta-root .cuenta-grilla .cuenta-seccion {
-  display: block;
-  break-inside: avoid;
-  margin: 0 0 14px;
-  padding: 18px 20px 20px;
-  border-radius: 16px;
-  background: var(--c-tarjeta);
-  box-shadow: inset 0 0 0 1px var(--c-linea), 0 1px 2px rgba(40, 30, 22, 0.03);
+/* ---------- Tu plan: la línea del programa ---------- */
+.cta-plan__arriba { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.cta-plan__nombre { font-size: 30px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; color: var(--c-ink); }
+.cta-plan__dias { font-size: 13.5px; font-weight: 700; color: #1f7a45; font-variant-numeric: tabular-nums; }
+html[data-modo="azul"] .cuenta-root .cta-plan__dias { color: #6fd39a; }
+.cta-plan__dias.is-poco { color: #b25000; }
+.cta-plan__dias.is-vencido { color: var(--c-rojo); }
+
+.cta-linea { margin: 22px 0 6px; }
+.cta-linea__pista { position: relative; height: 8px; border-radius: 999px; background: var(--c-tarjeta-2); box-shadow: inset 0 0 0 1px var(--c-linea); }
+.cta-linea__pista i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--avance) * 100%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(192, 57, 43, 0.55), var(--c-rojo));
+  transform-origin: left;
+  animation: cta-crece 900ms 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
-html[data-modo="azul"] .cuenta-root .cuenta-grilla .cuenta-seccion { box-shadow: inset 0 0 0 1px var(--c-linea); }
-html .cuenta-root .cuenta-grilla .cuenta-seccion.is-ancha { column-span: all; }
-
-/* cabecera de cada tarjeta: ícono en un cuadradito, título y número */
-.cuenta-tarjeta__cab { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
-.cuenta-tarjeta__icono {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: var(--c-tarjeta-2);
-  box-shadow: inset 0 0 0 1px var(--c-linea);
-  color: var(--c-ink);
+/* la marca de hoy: un palito con su cartel arriba */
+.cta-linea__hoy { position: absolute; top: 50%; left: calc(var(--avance) * 100%); width: 0; height: 0; }
+.cta-linea__hoy::before { content: ''; position: absolute; left: -8px; top: -8px; width: 16px; height: 16px; border-radius: 50%; background: var(--c-tarjeta); box-shadow: 0 0 0 4px var(--c-rojo), 0 4px 10px rgba(192, 57, 43, 0.35); }
+.cta-linea__hoy b {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--c-ink);
+  color: var(--c-lienzo);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translateX(-50%);
 }
-.cuenta-tarjeta__icono svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-html .cuenta-root .cuenta-tarjeta__cab h2 { margin: 0; font-size: 14px; font-weight: 700; letter-spacing: -0.005em; text-transform: none; color: var(--c-ink); }
-.cuenta-tarjeta__n { min-width: 20px; height: 20px; padding: 0 7px; border-radius: 999px; background: var(--c-tarjeta-2); color: var(--c-ink-2); font-size: 11px; font-weight: 700; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums; }
+.cta-linea__puntas { display: flex; justify-content: space-between; gap: 16px; margin-top: 14px; }
+.cta-linea__puntas span { display: grid; gap: 2px; font-size: 13.5px; font-weight: 650; color: var(--c-ink); }
+.cta-linea__puntas span:last-child { text-align: right; }
+.cta-linea__puntas small { font-size: 11.5px; font-weight: 600; color: var(--c-ink-3); }
 
-/* la tarjeta ya es la caja: el cuerpo va sin otra caja adentro */
-html .cuenta-root .cuenta-grilla .cuenta-seccion__cuerpo { padding: 0; border-radius: 0; background: none; box-shadow: none; font-size: 13px; line-height: 1.55; color: var(--c-ink-2); }
-html .cuenta-root .cuenta-grilla input:not([type="checkbox"]):not([type="radio"]) { border-radius: 9px; }
-html .cuenta-root .cuenta-dato { font-size: 13px; }
-html .cuenta-root .cuenta-dato dt { color: var(--c-ink-3); }
-html .cuenta-root .cuenta-dato dd { color: var(--c-ink); font-weight: 600; }
+.cta-plan__datos { display: flex; flex-wrap: wrap; gap: 10px 36px; margin: 22px 0 0; padding-top: 18px; border-top: 1px dashed var(--c-linea-2); }
+.cta-plan__datos dt { margin-bottom: 4px; font-size: 11.5px; font-weight: 600; color: var(--c-ink-3); }
+.cta-plan__datos dd { margin: 0; font-size: 14.5px; font-weight: 700; color: var(--c-ink); }
+
+.cta-nota { margin: 0; max-width: 52ch; font-size: 14px; line-height: 1.55; color: var(--c-ink-2); }
+
+/* dispositivos */
+html .cuenta-root .disp-lista { margin: 0; }
 html .cuenta-root .disp-lista li { border-top-color: var(--c-linea); }
+html .cuenta-root .disp-lista li:first-child { border-top: 0; padding-top: 0; }
 html .cuenta-root .disp-icono { stroke: var(--c-ink-2); }
-html .cuenta-root .disp-txt b { font-size: 13px; color: var(--c-ink); }
+html .cuenta-root .disp-txt b { font-size: 14px; color: var(--c-ink); }
 
-@media (max-width: 760px) {
-  .cuenta-grilla { columns: 1; }
-  html .cuenta-root .cuenta { padding: 20px 14px 96px; }
-  html .cuenta-root .cuenta-heroe { flex-direction: column; align-items: stretch; }
-  html .cuenta-root .cuenta-heroe__salir { align-self: flex-start; }
+html .cuenta-root .cuenta-estado { font-weight: 700; }
+html .cuenta-root .cuenta-equipo__lista li + li { border-top-color: var(--c-linea); }
+
+@keyframes cta-entra { from { opacity: 0; transform: translateY(10px); } }
+@keyframes cta-crece { from { transform: scaleX(0); } }
+
+/* ---------- tablet: las secciones apilan título y contenido ---------- */
+@media (max-width: 1240px) {
+  .cta { grid-template-columns: 310px minmax(0, 1fr); gap: 40px; }
+  html .cuenta-root .cta-secciones .cuenta-seccion { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .cuenta-tarjeta__cab::before { display: inline-block; margin: 0 10px 0 0; }
+  .cuenta-tarjeta__cab { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; }
+  .cuenta-tarjeta__bajada { grid-column: 2; margin-top: 4px; }
+}
+
+/* ---------- celular y tablet chica: una columna, la credencial arriba ---------- */
+@media (max-width: 900px) {
+  html .cuenta-root .cuenta { padding: 22px 16px 120px; }
+  .cta { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .cta-lado { position: relative; top: 0; display: flex; justify-content: center; }
+  /* la credencial se inclina en 3D: que el giro no genere scroll de costado */
+  html .cuenta-root .cuenta { overflow-x: clip; }
+  .cta-cabeza { margin-bottom: 18px; }
+  .cta-linea__puntas span { font-size: 12.5px; }
+  .cta-plan__nombre { font-size: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-cabeza,
+  html .cuenta-root .cta-secciones .cuenta-seccion,
+  .cta-linea__pista i { animation: none; }
+  .cta-interruptor i { transition: none; }
 }

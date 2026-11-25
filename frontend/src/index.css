@@ -1094,3 +1094,20 @@ html { -webkit-text-size-adjust: 100%; }
 .app-header__modo > div { display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: rgba(var(--m-osc, 0, 0, 0), 0.07); }
 .app-header__modo button { border: 0; padding: 5px 12px; border-radius: 7px; background: transparent; color: var(--m-t3, #6e6e73); font: inherit; font-size: 12.5px; cursor: pointer; }
 .app-header__modo button.is-on { background: var(--m-tarjeta, #fff); color: var(--m-t1, #1d1d1f); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15); }
+
+/* Contador de Mensajes sin menciones (components/Contador.jsx): un punto rojo chico y sólido en vez del número. */
+.sb-cuenta.is-punto,
+.mac-nav__cuenta.is-punto,
+.msj-cuenta.is-punto,
+.cliente-tabs__cuenta.is-punto,
+.sb.is-riel .sb-cuenta.is-punto {
+  min-width: 0;
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border-radius: 50%;
+  background: #e0493a;
+}
+.sb-cuenta.is-punto { margin-right: 6px; }
+.sb.is-riel .sb-cuenta.is-punto { top: 8px; right: 8px; margin: 0; }
+.cliente-tabs__cuenta.is-punto { top: 3px; left: calc(50% + 9px); }

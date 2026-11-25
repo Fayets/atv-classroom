@@ -7,7 +7,9 @@ import { useMensajeria } from '../context/MensajeriaContext'
 import '../styles/mensajes.css'
 import '../styles/barra-safari.css'
 import { getUserInitials } from '../utils/user'
-import Isotipo from './marca/Isotipo'
+import Contador from './Contador'
+import { valorContador } from '../utils/contador'
+import LogoATV from './marca/LogoATV'
 import { elegirModo, modoActual } from '../utils/modo'
 
 
@@ -50,11 +52,11 @@ export default function AppHeader() {
   // Tools aparece cuando un admin prende la sección (Admin → Tools).
   const conTools = !isEquipo && user?.permisos?.tools === 'si'
   const conRoadmap = isEquipo || (user?.permisos?.roadmaps ?? (user?.rol === '2k' ? 'no' : 'si')) !== 'no'
-  const { resumen, habilitada, directosSinLeer } = useMensajeria()
+  const { resumen, menciones, habilitada, directosSinLeer } = useMensajeria()
   const escritorio = useEscritorio()
-  // Como en Discord, el número baja al leer: mensajes sin leer, para todos (antes el coach veía los chats
-  // esperando respuesta de cualquier cliente y no tenía cómo hacerlo bajar).
-  const contador = resumen.no_leidos
+  // Número solo con menciones (@nombre o @everyone); si hay sin leer pero nadie te nombró, un punto
+  // (components/Contador.jsx). Baja al leer, como en Discord.
+  const contador = valorContador(menciones, resumen.no_leidos)
   const navigate = useNavigate()
   // Como la flecha de Finder: vuelve a la pantalla anterior sin cerrar la ventana. Solo si hay a dónde volver.
   // React Router guarda en history.state.idx cuántas pantallas recorriste en la app: con 0 no hay a dónde volver.
@@ -178,7 +180,7 @@ export default function AppHeader() {
           <>
             <BotonMenu />
             <Link to="/" className="app-header__logo" aria-label="Inicio ATV">
-              <Isotipo className="app-header__logo-img" />
+              <LogoATV className="app-header__logo-img" />
             </Link>
           </>
         )}
@@ -204,7 +206,7 @@ export default function AppHeader() {
         // Celular: arriba solo el isotipo y la sección en la que está; las secciones bajan a la barra de abajo.
         <span className="mac-titulo-movil">
           <BotonMenu />
-          <Isotipo className="mac-titulo-movil__iso" />
+          <LogoATV className="mac-titulo-movil__iso" />
           <b>{seccionActual?.[1] || 'ATV'}</b>
         </span>
       ) : null}
@@ -215,7 +217,7 @@ export default function AppHeader() {
               {grupo ? <i className="mac-nav__separador" aria-hidden="true" /> : null}
               <NavLink to={to} end={Boolean(exacta)} className={({ isActive }) => (isActive ? 'is-on' : '')}>
                 {label}
-                {cuenta ? <span className="mac-nav__cuenta">{cuenta > 99 ? '99+' : cuenta}</span> : null}
+                <Contador valor={cuenta} className="mac-nav__cuenta" />
               </NavLink>
             </Fragment>
           ))}
@@ -246,11 +248,7 @@ export default function AppHeader() {
           {habilitada ? (
             <NavLink to="/mensajes" className={({ isActive }) => (isActive ? 'is-on' : '')}>
               Mensajes
-              {contador ? (
-                <span className="msj-cuenta" aria-label={`${contador} sin leer`}>
-                  {contador > 99 ? '99+' : contador}
-                </span>
-              ) : null}
+              <Contador valor={contador} className="msj-cuenta" />
             </NavLink>
           ) : null}
         </nav>
@@ -261,7 +259,7 @@ export default function AppHeader() {
         <nav className="cliente-tabs cliente-tabs--equipo" aria-label="Secciones">
           {secciones.map(([to, label, cuenta, exacta, grupo]) => (
             <NavLink key={to} to={to} end={Boolean(exacta)} className={({ isActive }) => `${isActive ? 'is-on' : ''}${grupo ? ' is-grupo' : ''}`}>
-              {cuenta ? <span className="cliente-tabs__cuenta">{cuenta > 99 ? '99+' : cuenta}</span> : null}
+              <Contador valor={cuenta} className="cliente-tabs__cuenta" />
               {ICONOS_EQUIPO[to]}
               {label}
             </NavLink>
@@ -296,7 +294,7 @@ export default function AppHeader() {
           ) : null}
           {habilitada ? (
             <NavLink to="/mensajes" className={({ isActive }) => (isActive ? 'is-on' : '')}>
-              {contador ? <span className="cliente-tabs__cuenta">{contador > 99 ? '99+' : contador}</span> : null}
+              <Contador valor={contador} className="cliente-tabs__cuenta" />
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10H9l-4 3z" /></svg>
               Mensajes
             </NavLink>

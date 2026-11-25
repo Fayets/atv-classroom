@@ -1,3 +1,4 @@
+import { MENSAJE_BLOQUEO, bloqueadoPorModoMiembro } from '../utils/modoMiembro'
 import { getStoredToken, request } from './client'
 
 export function fetchHabilitada() {
@@ -62,6 +63,7 @@ export function enviarMensaje(canalId, texto, respuestaA = null, menciones = [],
 /** Sube un archivo con progreso (fetch no informa el avance de subida; XMLHttpRequest sí). */
 export function subirAdjunto(canalId, archivo, alAvanzar) {
   return new Promise((resolve, reject) => {
+    if (bloqueadoPorModoMiembro('/adjuntos', 'POST')) return reject(new Error(MENSAJE_BLOQUEO))
     const xhr = new XMLHttpRequest()
     xhr.open('POST', `/api/mensajes/canales/${canalId}/adjuntos`)
     const token = getStoredToken()
@@ -188,6 +190,7 @@ function leerPorque(valor) {
  * Devuelve { id, texto } al terminar. Se corta con signal (cuando la persona sigue escribiendo).
  */
 export async function pedirSugerencia(canalId, borrador, { signal, alPedazo, alPorque } = {}) {
+  if (bloqueadoPorModoMiembro('/sugerir', 'POST')) throw new Error(MENSAJE_BLOQUEO)
   const token = getStoredToken()
   const res = await fetch(`/api/mensajes/canales/${canalId}/sugerir`, {
     method: 'POST',

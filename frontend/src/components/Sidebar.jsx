@@ -6,7 +6,9 @@ import { useAuth } from '../context/AuthContext'
 import { useMensajeria } from '../context/MensajeriaContext'
 import { elegirModo, modoActual } from '../utils/modo'
 import { getUserInitials } from '../utils/user'
-import Isotipo from './marca/Isotipo'
+import Contador from './Contador'
+import { valorContador } from '../utils/contador'
+import LogoATV from './marca/LogoATV'
 import { abrirCarpeta } from './mac/HerramientasEquipo'
 import '../styles/sidebar.css'
 
@@ -110,7 +112,7 @@ function MiniAnillo({ pct, cerrado }) {
 
 export default function Sidebar() {
   const { user, logout, isAdmin, isEquipo } = useAuth()
-  const { resumen, habilitada, directosSinLeer } = useMensajeria()
+  const { resumen, menciones, habilitada, directosSinLeer } = useMensajeria()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [riel, alternarRiel] = useRiel()
@@ -136,7 +138,7 @@ export default function Sidebar() {
   const conTools = !isEquipo && user?.permisos?.tools === 'si'
   const conRoadmap = !isEquipo && (user?.permisos?.roadmaps ?? (user?.rol === '2k' ? 'no' : 'si')) !== 'no'
   const conGuia = !isEquipo && (user?.permisos?.ia ?? (user?.rol === '2k' ? 'no' : 'si')) !== 'no'
-  const contador = resumen.no_leidos
+  const contador = valorContador(menciones, resumen.no_leidos)
 
   // Las secciones en grupos: lo de todos y, para el equipo, sus herramientas (y las del admin).
   const grupos = isEquipo
@@ -242,7 +244,7 @@ export default function Sidebar() {
       <aside className={`sb${riel ? ' is-riel' : ''}${cajonAbierto ? ' is-cajon' : ''}${isEquipo ? ' is-equipo' : ''}`} aria-label="Navegación principal">
         <div className="sb-cab">
           <div className="sb-cred" title={plan}>
-            <span className="sb-cred__logo" aria-hidden="true"><Isotipo className="sb-cred__iso" /></span>
+            <span className="sb-cred__logo" aria-hidden="true"><LogoATV className="sb-cred__iso" /></span>
             <span className="sb-cred__txt">
               <b>ATV Classroom</b>
               <small>
@@ -273,7 +275,7 @@ export default function Sidebar() {
                 <NavLink key={to} to={to} end={Boolean(exacta)} className={({ isActive }) => `sb-item${isActive ? ' is-on' : ''}`} title={riel ? label : undefined}>
                   <Icono n={icono} />
                   <span className="sb-item__txt">{label}</span>
-                  {cuenta ? <b className="sb-cuenta num">{cuenta > 99 ? '99+' : cuenta}</b> : null}
+                  <Contador valor={cuenta} className="sb-cuenta" />
                 </NavLink>
               ))}
             </div>

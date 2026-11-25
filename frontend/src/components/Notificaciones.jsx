@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { activarAvisos, apagarAvisos, estadoAvisos, probarAvisos } from '../utils/push'
+import { estadoAvisos, probarAvisos } from '../utils/push'
+import BotonAvisos from './BotonAvisos'
 
 const TEXTO = {
   apagadas: 'Activalas para enterarte apenas te escriben, aunque tengas la app cerrada.',
@@ -22,19 +23,19 @@ function useEstado() {
   return [estado, setEstado]
 }
 
-// En Mi cuenta: el estado de este dispositivo, con activar, probar y apagar.
+// En Mi cuenta: la campanita (BotonAvisos) prende y apaga las notificaciones de este dispositivo; abajo, el
+// estado en una línea y, si están activas, "Mandarme una de prueba".
 export function NotificacionesCuenta() {
   const [estado, setEstado] = useEstado()
   const [ocupado, setOcupado] = useState(false)
   const [nota, setNota] = useState('')
 
-  async function hacer(fn, despues) {
+  async function probar() {
     setOcupado(true)
     setNota('')
     try {
-      const r = await fn()
-      if (typeof r === 'string') setEstado(r)
-      if (despues) setNota(despues(r))
+      const r = await probarAvisos()
+      setNota(r?.enviados ? 'Listo: en unos segundos te llega una de prueba.' : 'No se pudo mandar. Desactivalas y volvé a activarlas.')
     } catch (err) {
       setNota(err.message || 'No se pudo. Probá de nuevo.')
     } finally {
@@ -45,34 +46,25 @@ export function NotificacionesCuenta() {
   if (!estado) return <p className="cuenta__cargando">Cargando…</p>
   return (
     <div className="cuenta-avisos">
+      <div className="cuenta-avisos__botones">
+        <BotonAvisos estado={estado} alCambiarEstado={setEstado} alFallar={setNota} />
+        {estado === 'activas' ? (
+          <button type="button" className="cuenta-boton is-suave" disabled={ocupado} onClick={probar}>
+            Mandarme una de prueba
+          </button>
+        ) : null}
+      </div>
       <p className={`cuenta-avisos__estado is-${estado}`}>
         <span aria-hidden="true" />
         {TEXTO[estado]}
       </p>
-      <div className="cuenta-avisos__botones">
-        {estado === 'apagadas' ? (
-          <button type="button" className="cuenta-boton" disabled={ocupado} onClick={() => hacer(activarAvisos)}>
-            {ocupado ? 'Activando…' : 'Activar notificaciones'}
-          </button>
-        ) : null}
-        {estado === 'activas' ? (
-          <>
-            <button type="button" className="cuenta-boton is-suave" disabled={ocupado}
-              onClick={() => hacer(probarAvisos, (r) => (r?.enviados ? 'Listo: en unos segundos te llega una de prueba.' : 'No se pudo mandar. Desactivalas y volvé a activarlas.'))}>
-              Mandarme una de prueba
-            </button>
-            <button type="button" className="cuenta-boton is-suave" disabled={ocupado} onClick={() => hacer(apagarAvisos)}>
-              Desactivar
-            </button>
-          </>
-        ) : null}
-      </div>
       {nota ? <p className="cuenta-avisos__nota">{nota}</p> : null}
     </div>
   )
 }
 
-// Arriba de Mensajes: un cartel corto para activarlas, hasta que las activa o lo cierra.
+// Arriba de Mensajes: un cartel corto con la campanita, hasta que las activa o lo cierra. Al activarlas, la
+// campana suena, el cartel dice "Listo" un momento y se va solo.
 export function NotificacionesCartel() {
   const [estado, setEstado] = useEstado()
   const [cerrado, setCerrado] = useState(() => {
@@ -82,9 +74,25 @@ export function NotificacionesCartel() {
       return false
     }
   })
-  const [ocupado, setOcupado] = useState(false)
   const [fallo, setFallo] = useState('')
-  if (cerrado || !['apagadas', 'ios-sin-anclar'].includes(estado)) return null
+  const [recien, setRecien] = useState(false) // las acaba de activar: el cartel se queda un momento
+  const [saliendo, setSaliendo] = useState(false)
+
+  useEffect(() => {
+    if (!recien) return undefined
+    const irse = setTimeout(() => setSaliendo(true), 2200)
+    const fin = setTimeout(() => {
+      setRecien(false)
+      setSaliendo(false)
+    }, 2600)
+    return () => {
+      clearTimeout(irse)
+      clearTimeout(fin)
+    }
+  }, [recien])
+
+  if (cerrado) return null
+  if (!recien && !['apagadas', 'ios-sin-anclar'].includes(estado)) return null
 
   function cerrar() {
     setCerrado(true)
@@ -95,28 +103,29 @@ export function NotificacionesCartel() {
     }
   }
 
+  const texto = fallo
+    ? fallo
+    : estado === 'activas'
+      ? <><b>Listo.</b> <span>Te avisamos apenas te escriban, aunque tengas la app cerrada.</span></>
+      : estado === 'apagadas'
+        ? <><b>Enterate apenas te escriben.</b> <span>Activá las notificaciones, aunque tengas la app cerrada.</span></>
+        : TEXTO[estado] || TEXTO['ios-sin-anclar']
+
   return (
-    <div className="msj-avisos" role="region" aria-label="Notificaciones">
-      <svg viewBox="0 0 20 20" aria-hidden="true">
-        <path d="M10 2.5a5 5 0 0 0-5 5v3.2L3.5 13.5h13L15 10.7V7.5a5 5 0 0 0-5-5zM8 15.5a2 2 0 0 0 4 0" />
-      </svg>
-      <p>{fallo || (estado === 'apagadas' ? 'Activá las notificaciones para enterarte apenas te escriben.' : TEXTO['ios-sin-anclar'])}</p>
-      {estado === 'apagadas' ? (
-        <button type="button" disabled={ocupado} onClick={async () => {
-          setOcupado(true)
-          setFallo('')
-          try {
-            setEstado(await activarAvisos())
-          } catch (err) {
-            setFallo(err.message || 'No se pudieron activar. Probá de nuevo.')
-          } finally {
-            setOcupado(false)
-          }
-        }}>
-          {ocupado ? 'Activando…' : fallo ? 'Reintentar' : 'Activar'}
-        </button>
+    <div className={`avisos-cartel${fallo ? ' is-error' : ''}${saliendo ? ' is-saliendo' : ''}`} role="region" aria-label="Notificaciones">
+      <p>{texto}</p>
+      {estado === 'apagadas' || estado === 'activas' ? (
+        <BotonAvisos
+          tamano="sm"
+          estado={estado}
+          alFallar={setFallo}
+          alCambiarEstado={(nuevo) => {
+            setEstado(nuevo)
+            if (nuevo === 'activas') setRecien(true)
+          }}
+        />
       ) : null}
-      <button type="button" className="msj-avisos__x" onClick={cerrar} aria-label="Cerrar">×</button>
+      <button type="button" className="avisos-cartel__x" onClick={cerrar} aria-label="Cerrar">×</button>
     </div>
   )
 }

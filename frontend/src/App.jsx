@@ -11,6 +11,7 @@ import {
 import { setUnauthorizedHandler } from './api/client'
 import HerramientasEquipo from './components/mac/HerramientasEquipo'
 import AdminRoute from './components/AdminRoute'
+import ModoMiembroAviso from './components/ModoMiembroAviso'
 import EquipoRoute from './components/EquipoRoute'
 import ConsultasPage from './pages/ConsultasPage'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -100,6 +101,7 @@ function AppRoutes() {
     <>
       <UnauthorizedSync />
       <BarraLateral />
+      <ModoMiembroAviso />
       <PausaSync />
       <CierreSync />
       <OnboardingEquipoSync />

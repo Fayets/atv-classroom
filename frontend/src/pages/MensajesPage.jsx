@@ -435,8 +435,21 @@ function EstadoConexion({ conectado }) {
   return <span className="msj-estado">Conectando…</span>
 }
 
+// Modo Miembro (utils/modoMiembro.js): el admin recibe los chats de todos los clientes, pero un miembro
+// tiene uno solo ("Mi canal"). Para que se parezca a lo que ve un miembro, queda el primero.
+function soloUnCanalPropio(lista, modoMiembro) {
+  if (!modoMiembro) return lista
+  let visto = false
+  return lista.filter((c) => {
+    if (c.tipo !== 'cliente') return true
+    if (visto) return false
+    visto = true
+    return true
+  })
+}
+
 export default function MensajesPage() {
-  const { isEquipo, isAdmin } = useAuth()
+  const { isEquipo, isAdmin, modoMiembro } = useAuth()
   const escritorio = useEscritorio()
   const { suscribir, conectado, canalAbierto, esMio, informarDirectos } = useMensajeria()
   const [params, setParams] = useSearchParams()
@@ -461,7 +474,8 @@ export default function MensajesPage() {
   if (enMensajes) guardado.current = { activo: activoUrl, vista: vistaUrl }
   const activo = enMensajes ? activoUrl : guardado.current.activo
   // Todo el equipo (admin y coach) elige entre la bandeja de clientes y sus alertas.
-  // Los mensajes directos viven aparte (se llega desde el menú del avatar): ?v=directos.
+  // Los mensajes directos viven aparte: se llega con el avión de papel de arriba de la lista (?v=directos),
+  // la lista de Mensajes se cierra y una flecha vuelve. Vale para el equipo y para los miembros.
   const vistaPedida = enMensajes ? vistaUrl : guardado.current.vista
   const vista = vistaPedida === 'alertas' || vistaPedida === 'directos' ? vistaPedida : 'bandeja'
 
@@ -486,7 +500,7 @@ export default function MensajesPage() {
     const pedidos = [
       fetchCanales()
         .then((l) => {
-          setCanales(ordenarBandeja(l || []))
+          setCanales(ordenarBandeja(soloUnCanalPropio(l || [], modoMiembro)))
           setErrorCarga('')
         })
         .catch((err) => {
@@ -503,7 +517,7 @@ export default function MensajesPage() {
         cargarRef.current()
       }
     })
-  }, [isEquipo])
+  }, [isEquipo, modoMiembro])
   cargarRef.current = cargar
   const canalesRef = useRef(canales)
   canalesRef.current = canales
@@ -907,6 +921,10 @@ export default function MensajesPage() {
   const conClientesVisibles = directosAbiertos ? conClientes : conClientes.filter((c) => c.id === activo || c.no_leidos > 0 || escriben[c.id])
   // Directos sin leer, contados sobre todos los canales (sin el filtro ni la búsqueda de la barra).
   const directosNuevos = (canales || []).filter((c) => (c.tipo === 'directo' || c.tipo === 'dm') && c.no_leidos > 0).length
+  // El punto del avión de papel: chats directos con algo sin leer (del miembro, también sus privados con otros clientes).
+  const directosConNuevos = isEquipo
+    ? directosNuevos
+    : (canales || []).filter((c) => (c.tipo === 'privado' || c.tipo === 'dm') && c.no_leidos > 0).length
   useEffect(() => {
     if (isEquipo) informarDirectos(directosNuevos)
   }, [isEquipo, directosNuevos, informarDirectos])
@@ -1006,9 +1024,9 @@ export default function MensajesPage() {
   const seccionPrivados =
     !isEquipo && !user?.pausa ? (
       <section className="msj-grupo msj-directos" aria-label="Mensajes directos">
-        <div className="msj-privados__cabeza">
-          <p className="msj-seccion">Mensajes directos</p>
-        </div>
+        {privados.length ? null : (
+          <p className="msj-grupo__vacio">Todavía no tenés mensajes directos. Buscá a otro cliente de ATV para escribirle.</p>
+        )}
         {privados.map((c) => {
           const nuevo = c.no_leidos > 0 && c.id !== activo
           return (
@@ -1127,9 +1145,19 @@ export default function MensajesPage() {
               <h1>{vista === 'alertas' ? 'Mis alertas' : vista === 'directos' ? 'Mensajes directos' : 'Mensajes'}</h1>
               {vista === 'directos' ? null : <EstadoConexion conectado={conectado} />}
             </div>
-            {isEquipo && vista !== 'directos' ? (
+            {vista !== 'directos' ? (
               <div className="msj-lateral__acciones">
-                {vista === 'bandeja' ? (
+                <button
+                  type="button"
+                  className="msj-lateral__directos"
+                  onClick={() => cambiarVista('directos')}
+                  title={directosConNuevos ? `Mensajes directos · ${directosConNuevos} sin leer` : 'Mensajes directos'}
+                  aria-label={directosConNuevos ? `Mensajes directos, ${directosConNuevos} sin leer` : 'Mensajes directos'}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4z" /></svg>
+                  {directosConNuevos ? <i className="msj-lateral__punto" aria-hidden="true" /> : null}
+                </button>
+                {vista === 'bandeja' && isEquipo ? (
                   <button
                     type="button"
                     className={buscando || buscar ? 'is-on' : ''}
@@ -1144,6 +1172,7 @@ export default function MensajesPage() {
                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
                   </button>
                 ) : null}
+                {isEquipo ? (
                 <button
                   type="button"
                   className={vista === 'alertas' ? 'is-on' : ''}
@@ -1158,13 +1187,17 @@ export default function MensajesPage() {
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
                   )}
                 </button>
+                ) : null}
               </div>
             ) : null}
           </div>
 
           {vista === 'alertas' ? <Alertas activo={activo} onAbrir={abrir} /> : null}
-          {vista === 'directos' ? (
+          {vista === 'directos' && isEquipo ? (
             seccionDirectos || <p className="msj-grupo__vacio">Todavía no hay nadie del equipo para escribirle.</p>
+          ) : null}
+          {vista === 'directos' && !isEquipo ? (
+            seccionPrivados || <p className="msj-grupo__vacio">Tu cuenta está en pausa: los mensajes directos vuelven cuando se reactive.</p>
           ) : null}
           {vista === 'bandeja' && isEquipo && (buscando || buscar) ? (
             <input
@@ -1209,8 +1242,6 @@ export default function MensajesPage() {
           {!canales ? <p className="msj-vacio">Cargando…</p> : null}
 
           {seccionCanales}
-          {isEquipo ? null : seccionDirectos}
-          {seccionPrivados}
 
           {isEquipo
             ? grupos.flatMap((g) => (g.id === 'inactivos' ? [seccionSenas, grupoDe(g)] : [grupoDe(g)]))

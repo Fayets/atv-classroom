@@ -157,8 +157,9 @@ html .msj-root[class][class] .msj-fila__hash.is-candado { width: 20px; color: va
 html .msj-root[class][class] .msj-fila .msj-av { width: 20px; height: 20px; font-size: 8px; }
 
 /* sin leer: un punto suave, no un botón */
-html .msj-root[class][class] .msj-fila__punto { width: 7px; height: 7px; background: rgba(192, 57, 43, 0.55); box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.12); }
-html[data-modo="azul"] .msj-root[class][class] .msj-fila__punto { background: rgba(221, 82, 69, 0.6); box-shadow: 0 0 0 3px rgba(221, 82, 69, 0.16); }
+/* sin leer: un punto chico y sólido, sin halo (el nombre del canal ya va en negrita) */
+html .msj-root[class][class] .msj-fila__punto { width: 6px; height: 6px; margin-right: 2px; background: #d2402f; box-shadow: none; }
+html[data-modo="azul"] .msj-root[class][class] .msj-fila__punto { background: #e8594b; box-shadow: none; }
 html .msj-root[class][class] .msj-fila__menciones,
 html .msj-root[class][class] .msj-fila.is-activo .msj-fila__menciones { background: var(--r-rojo); color: #fff; font-size: 10.5px; }
 html .msj-root[class][class] .msj-fila.is-activo .msj-fila__editar:hover { background: var(--r-hover); }
@@ -257,6 +258,10 @@ html .msj-root[class][class] .msj-lateral__head { display: flex; align-items: ce
 .msj-lateral__acciones button:hover { background: var(--r-hover); color: var(--r-ink); }
 .msj-lateral__acciones button.is-on { background: var(--r-sel); color: var(--r-ink); box-shadow: inset 0 0 0 1px var(--r-sel-borde); }
 .msj-lateral__acciones svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* mensajes directos: el avión de papel, con un punto si hay directos sin leer */
+.msj-lateral__acciones .msj-lateral__directos { position: relative; }
+.msj-lateral__acciones .msj-lateral__directos svg { width: 16px; height: 16px; }
+.msj-lateral__punto { position: absolute; top: 5px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: #e0493a; box-shadow: 0 0 0 2px var(--r-lateral, #fff); }
 
 /* Todos / No leídos */
 .msj-filtro { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin: 0 2px 8px; padding: 3px; border-radius: 10px; background: var(--r-campo); }

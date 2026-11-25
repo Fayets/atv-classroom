@@ -1,0 +1,26 @@
+/* ---------- el anillo del programa (Cora) ----------
+   AnilloPrograma (components/inicio/Hoy.jsx): los días que quedan en el centro y el texto girando alrededor.
+   Se usa en Mi cuenta (la credencial). Los colores salen de --anillo-*; si la página no los define, toma los
+   de Material (--pc-*) y el rojo del inicio. */
+.in-anillo {
+  --a-t1: var(--anillo-t1, var(--pc-t1, #1d1d1f));
+  --a-t2: var(--anillo-t2, var(--pc-t2, #5f5f64));
+  --a-t3: var(--anillo-t3, var(--pc-t3, #76767b));
+  --a-linea: var(--anillo-linea, var(--pc-line2, rgba(29, 29, 31, 0.16)));
+  --a-pista: var(--anillo-pista, rgba(255, 255, 255, 0.55));
+  --a-rojo: var(--anillo-rojo, var(--in-rojo, #c0392b));
+  position: relative;
+  flex: none;
+  width: 216px;
+  aspect-ratio: 1;
+}
+.in-anillo > svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.in-anillo text { font-size: 11.4px; font-weight: 700; letter-spacing: 0.06em; fill: var(--a-t2); }
+.in-anillo__giro { transform-origin: 100px 100px; animation: in-gira 38s linear infinite; }
+@keyframes in-gira { to { transform: rotate(360deg); } }
+.in-anillo__pista { fill: var(--a-pista); stroke: var(--a-linea); stroke-width: 10; }
+.in-anillo__arco { fill: none; stroke: var(--a-rojo); stroke-width: 10; stroke-linecap: round; }
+.in-anillo__centro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; pointer-events: none; }
+.in-anillo__centro b { font-size: 46px; font-weight: 700; line-height: 1; letter-spacing: -0.05em; color: var(--a-t1); }
+.in-anillo__centro small { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-t3); }
+@media (prefers-reduced-motion: reduce) { .in-anillo__giro { animation: none; } }

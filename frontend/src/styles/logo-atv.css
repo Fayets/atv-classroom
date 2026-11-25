@@ -1,0 +1,10 @@
+/* El logo de ATV (components/marca/LogoATV.jsx): el PNG (746×976) como máscara, pintado con currentColor. */
+.logo-atv {
+  display: inline-block;
+  flex: none;
+  width: 16px;
+  aspect-ratio: 746 / 976;
+  background: currentColor;
+  -webkit-mask: url('/atv-logo-negro.png') center / contain no-repeat;
+  mask: url('/atv-logo-negro.png') center / contain no-repeat;
+}

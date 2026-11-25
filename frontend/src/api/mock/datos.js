@@ -327,4 +327,3 @@ export const MENSAJES = {
   ],
 }
 
-export const NO_LEIDOS = { no_leidos: 31, esperando: 4 }

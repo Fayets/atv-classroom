@@ -24,8 +24,7 @@ export default function TusDispositivos() {
   }
 
   return (
-    <Tarjeta titulo="Tus dispositivos" icono="dispositivos" cuenta={lista ? lista.length : null}>
-        <p className="disp-ayuda">Donde tenés la sesión abierta. Si no reconocés alguno, cerralo y avisanos.</p>
+    <Tarjeta titulo="Tus dispositivos" icono="dispositivos" cuenta={lista ? lista.length : null} bajada="Donde tenés la sesión abierta. Si no reconocés alguno, cerralo y avisanos.">
         <ul className="disp-lista">
           {(lista || []).map((d) => (
             <li key={d.id}>

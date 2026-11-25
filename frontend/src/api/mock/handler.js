@@ -2,25 +2,18 @@
 // Solo se importa cuando VITE_MOCK_API=1: en cualquier otro caso este archivo
 // ni siquiera entra al bundle.
 
-import { CANALES, CHATS_DEL_COACH, CLIENTE, COACH, EQUIPO, MENSAJES, NO_LEIDOS, USUARIO } from './datos'
+import { CANALES, CHATS_DEL_COACH, CLIENTE, COACH, EQUIPO, MENSAJES, USUARIO } from './datos'
 import { clasesParaEnviar, continuarClase, detalleClase, detallePrograma, listaProgramas, marcarProgreso, sopsClassroom } from './classroom'
-import { frentesDelCliente, marcarPasoRoadmap, roadmapDe, toolsDelCliente, toolsDelEquipo } from './extras'
+import { marcarPasoRoadmap, roadmapDe } from './extras'
 
 // Una demora chica para que se vean los estados de carga mientras se diseña.
 const DEMORA_MS = 140
 
-const json = (data, status = 200) =>
-  new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
-
-const sinContenido = () => new Response(null, { status: 204 })
-
-const cuerpo = (opciones) => {
-  try {
-    return opciones?.body ? JSON.parse(opciones.body) : {}
-  } catch {
-    return {}
-  }
-}
+import { TOKENS, cuerpo, json, quien, sinContenido } from './util'
+import { rutas as rutasAdmin } from './rutas/admin'
+import { rutas as rutasCarpetas } from './rutas/carpetas'
+import { cambiosCuenta, dispositivosCerrados, rutas as rutasInicio, vozElegida } from './rutas/inicio'
+import { rutas as rutasMensajeria } from './rutas/mensajeria'
 
 let proximoId = 9000
 
@@ -61,11 +54,6 @@ const REGLAS_VOZ = [{ id: 1, texto: 'Más corto: una o dos líneas.', creado_en:
 //   - dice "coach"   → Lucho Vicente, del equipo pero sin ser admin
 //   - cualquier otro → Laureano Sierra, admin
 // Se distinguen por el token, que la app manda en cada pedido.
-const TOKENS = { admin: 'mock-token', coach: 'mock-token-coach', cliente: 'mock-token-cliente' }
-const quien = (opciones) => {
-  const token = String(opciones?.headers?.Authorization || '').replace(/^Bearer /, '')
-  return Object.keys(TOKENS).find((k) => TOKENS[k] === token) || 'admin'
-}
 const PERFILES = { admin: { ...USUARIO, fecha_vencimiento: null }, coach: COACH, cliente: CLIENTE }
 const perfil = (opciones) => PERFILES[quien(opciones)]
 const login = (opciones) => {
@@ -102,7 +90,17 @@ const canalesDe = (opciones) => {
   } else {
     lista = CANALES.filter((c) => c.tipo !== 'privado')
   }
-  return lista.map((c) => ({ ...c, puede_administrar: puedeAdministrar(sesion, c) }))
+  // Como el backend (_resumen_canales): las menciones se cuentan solo para el equipo.
+  return lista.map((c) => ({ ...c, menciones: sesion === 'cliente' ? 0 : c.menciones, puede_administrar: puedeAdministrar(sesion, c) }))
+}
+
+// Como mensajeria_service.no_leidos: la suma de lo sin leer de los canales que ve (no un número fijo).
+const noLeidosDe = (opciones) => {
+  const lista = canalesDe(opciones)
+  return {
+    no_leidos: lista.reduce((t, c) => t + (c.no_leidos || 0), 0),
+    esperando: quien(opciones) === 'cliente' ? 0 : lista.filter((c) => c.esperando_desde).length,
+  }
 }
 
 // Privados entre clientes. En el backend (mensajeria_service.buscar_clientes) un cliente solo encuentra
@@ -180,7 +178,6 @@ const RUTAS = [
   ['GET', /^\/api\/programas$/, () => json(listaProgramas())],
   ['GET', /^\/api\/programas\/sops$/, () => json(sopsClassroom())],
   ['GET', /^\/api\/programas\/continuar$/, () => json(continuarClase())],
-  ['GET', /^\/api\/frentes$/, () => json(frentesDelCliente())],
   ['GET', /^\/api\/programas\/(\d+)$/, ([, id]) => {
     const programa = detallePrograma(Number(id))
     return programa ? json(programa) : json({ detail: 'Módulo no encontrado' }, 404)
@@ -192,8 +189,6 @@ const RUTAS = [
   ['PUT', /^\/api\/clases\/(\d+)\/progreso$/, ([, id], opciones) => json(marcarProgreso(Number(id), cuerpo(opciones).completado))],
   ['GET', /^\/api\/acciones$/, () => json({ acciones: [], sugeridas: [] })],
 
-  // Tools: el cliente ve las de su plan y las pagas con candado; el equipo, todas.
-  ['GET', /^\/api\/tools$/, (_, opciones) => json(quien(opciones) === 'cliente' ? toolsDelCliente() : toolsDelEquipo())],
 
   // Roadmap: el cliente ve el suyo en /api/roadmap; el equipo, el de cada cliente. El mock tiene uno solo
   // (el de Alan Klein) y lo muestra para cualquier cliente.
@@ -229,18 +224,18 @@ const RUTAS = [
   ['POST', /^\/api\/acciones\/clases\/(\d+)\/compartir$/, () => json({ ok: true })],
 
   // Mi cuenta
-  ['GET', /^\/api\/cuenta$/, (_, opciones) => json(CUENTAS[quien(opciones)])],
-  ['GET', /^\/api\/cuenta\/equipo$/, () => json({ maximo: 2, miembros: [] })],
-  ['GET', /^\/api\/cuenta\/dispositivos$/, () => json([
+  ['GET', /^\/api\/cuenta$/, (_, opciones) => json({ ...CUENTAS[quien(opciones)], ...cambiosCuenta[quien(opciones)] })],
+  ['GET', /^\/api\/cuenta\/dispositivos$/, () => json(
+    [
     { id: 1, equipo: 'Windows', navegador: 'Chrome', ciudad: 'Córdoba', pais: 'Argentina', ultima: new Date().toISOString(), actual: true },
     { id: 2, equipo: 'iPhone', navegador: 'Safari', ciudad: 'Córdoba', pais: 'Argentina', ultima: new Date(Date.now() - 864e5).toISOString(), actual: false },
-  ])],
-  ['GET', /^\/api\/cuenta\/voz$/, () => json({ elegida: 3, propia: true, opciones: EQUIPO.map((p) => ({ id: p.id, nombre: p.nombre, foto_url: null })) })],
+  ].filter((d) => !dispositivosCerrados.has(d.id)),
+  )],
+  ['GET', /^\/api\/cuenta\/voz$/, (_, opciones) => json({ elegida: vozElegida[quien(opciones)] ?? 3, propia: true, opciones: EQUIPO.map((p) => ({ id: p.id, nombre: p.nombre, foto_url: null })) })],
   ['GET', /^\/api\/cuenta\/fathom$/, () => json({ conectado: false, llamadas: 0, ultima_sync: null, error: null })],
-  ['GET', /^\/api\/admin\/equipos-clientes$/, () => json({ planes: [{ plan: 'high', maximo: 3, miembros: 2 }, { plan: 'boost', maximo: 2, miembros: 1 }] })],
 
   ['GET', /^\/api\/mensajes\/habilitada$/, () => json({ habilitada: true })],
-  ['GET', /^\/api\/mensajes\/no-leidos$/, () => json(NO_LEIDOS)],
+  ['GET', /^\/api\/mensajes\/no-leidos$/, (_, opciones) => json(noLeidosDe(opciones))],
   ['GET', /^\/api\/mensajes\/canales$/, (_, opciones) => json(canalesDe(opciones))],
   ['GET', /^\/api\/mensajes\/buscar-clientes$/, (_, __, url) => json(buscarClientes(url))],
   ['POST', /^\/api\/mensajes\/privados$/, (_, opciones) => {
@@ -302,6 +297,9 @@ const RUTAS = [
   ['GET', /^\/api\/seguimiento\/acceso$/, () => json({ puede: false })],
 ]
 
+// Las de este archivo primero; después las de cada área (rutas/*.js).
+const TODAS = [...RUTAS, ...rutasInicio, ...rutasAdmin, ...rutasCarpetas, ...rutasMensajeria]
+
 const avisadas = new Set()
 
 /**
@@ -316,10 +314,14 @@ export async function responderMock(url, opciones = {}) {
   const metodo = (opciones.method || 'GET').toUpperCase()
   await new Promise((listo) => setTimeout(listo, DEMORA_MS))
 
-  for (const [m, patron, responder] of RUTAS) {
+  for (const [m, patron, responder] of TODAS) {
     if (m !== metodo) continue
     const coincidencia = pathname.match(patron)
-    if (coincidencia) return responder(coincidencia, opciones, url)
+    if (!coincidencia) continue
+    // Una ruta puede devolver null para dejar pasar el pedido a la siguiente (por ejemplo, POST /api/consultas
+    // es la consulta del cliente al coach o la del equipo al Cerebro, según el body).
+    const respuesta = responder(coincidencia, opciones, url)
+    if (respuesta) return respuesta
   }
 
   const clave = `${metodo} ${pathname.replace(/\d+/g, ':id')}`

@@ -7,6 +7,7 @@ import AccesoRestante from '../components/AccesoRestante'
 import { Chevron, EtiquetaRecurso } from '../components/frentes/piezas'
 import Pasos from '../components/frentes/Pasos'
 import SolicitudSop from '../components/frentes/SolicitudSop'
+import NombreTech from '../components/efectos/NombreTech'
 import HazGuia from '../components/inicio/HazGuia'
 import { BandaPaso, TuSemana, useHoy } from '../components/inicio/Hoy'
 import { pedirCartelPausa } from '../components/Pausa'
@@ -121,7 +122,7 @@ export default function InicioPage() {
               <div className="im-hero__inner in-hero">
                 <div className="in-hero__txt">
                   <h1>
-                    {nombre ? `${nombre}, ¿por dónde` : '¿Por dónde'}
+                    {nombre ? <><NombreTech texto={nombre} />, ¿por dónde</> : '¿Por dónde'}
                     <br />
                     <Subrayada>seguimos</Subrayada> hoy?
                   </h1>
@@ -139,7 +140,7 @@ export default function InicioPage() {
             <div className="im-hero__inner in-hero">
               <div className="in-hero__txt">
                 <h1>
-                  {nombre ? `${nombre}, ¿qué` : '¿Qué'} está <Subrayada>trabando</Subrayada>
+                  {nombre ? <><NombreTech texto={nombre} />, ¿qué</> : '¿Qué'} está <Subrayada>trabando</Subrayada>
                   <br />
                   tu negocio hoy?
                 </h1>
@@ -201,7 +202,7 @@ export default function InicioPage() {
               className="in-scroll"
               onClick={() => document.querySelector('.in-banda, .in-semana, .in-frentes')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
             >
-              Scrolleá
+              <NombreTech texto="Scrolleá" etiquetas={false} motas={6} arrastrable={false} />
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
             </button>
           )}

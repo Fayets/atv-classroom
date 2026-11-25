@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchHabilitada, fetchNoLeidos } from '../api/mensajes'
+import { fetchCanales, fetchHabilitada, fetchNoLeidos } from '../api/mensajes'
 import AvisoMencion from '../components/mensajes/AvisoMencion'
+import { modoMiembroActivo } from '../utils/modoMiembro'
 import { resincronizarAvisos } from '../utils/push'
 import { useAuth } from './AuthContext'
 
@@ -19,6 +20,11 @@ export function MensajeriaProvider({ children }) {
   // lista de canales y lo informa acá, para el punto rojo del avatar y el menú.
   const [directosSinLeer, informarDirectos] = useState(0)
   const [aviso, setAviso] = useState(null)
+  // Menciones sin leer por canal (@nombre o @everyone), para el número del contador de Mensajes: lo que no
+  // es mención se marca solo con un punto. Arranca con lo que trae la bandeja (el campo `menciones` de cada
+  // canal, que el backend cuenta solo para el equipo), suma con cada aviso "mencion" en vivo y se pone en
+  // cero en el canal que se lee. Se vuelve a pedir al reconectar, para corregir lo que se haya perdido.
+  const [mencionesPorCanal, setMencionesPorCanal] = useState({})
   const cerrarAviso = useCallback(() => setAviso(null), [])
   const ultimoRefresco = useRef(0)
   const refrescoPendiente = useRef(null) // { reloj, cuando }
@@ -70,6 +76,7 @@ export function MensajeriaProvider({ children }) {
 
   // Lo llama Conversacion cuando marca leído lo que ya estaba sin leer al abrir el canal.
   const avisarLeido = useCallback((canalId) => {
+    setMencionesPorCanal((m) => (m[canalId] ? { ...m, [canalId]: 0 } : m))
     suscriptores.current.forEach((fn) => fn({ tipo: 'leido-propio', canal_id: canalId }))
     refrescarRef.current(1000)
   }, [])
@@ -94,6 +101,17 @@ export function MensajeriaProvider({ children }) {
       clearTimeout(reloj)
     }
   }, [token, isEquipo, pausa])
+
+  const cargarMenciones = useCallback(() => {
+    if (!isEquipo) return // a los clientes el backend no les cuenta menciones: siempre punto
+    fetchCanales()
+      .then((lista) => {
+        const m = {}
+        for (const c of lista || []) if (c.menciones > 0) m[c.id] = c.menciones
+        setMencionesPorCanal(m)
+      })
+      .catch(() => null)
+  }, [isEquipo])
 
   useEffect(() => {
     if (!habilitada) return undefined
@@ -127,11 +145,14 @@ export function MensajeriaProvider({ children }) {
           }, 25000)
           suscriptores.current.forEach((fn) => fn({ tipo: 'reconectado' }))
           refrescarResumen()
+          cargarMenciones()
           return
         }
         if (evento.tipo === 'pong' || evento.tipo === 'error') return
         if (evento.tipo === 'pausa') window.dispatchEvent(new Event('atv-pausa'))
         if (evento.tipo === 'mencion') {
+          const canalId = evento.canal_id
+          if (canalId != null && !aLaVista(canalId)) setMencionesPorCanal((m) => ({ ...m, [canalId]: (m[canalId] || 0) + 1 }))
           setAviso(evento)
           refrescarResumen()
         }
@@ -198,14 +219,23 @@ export function MensajeriaProvider({ children }) {
       socket.current?.close()
       socket.current = null
     }
-  }, [habilitada, token, refrescarResumen])
+  }, [habilitada, token, refrescarResumen, cargarMenciones])
 
-  // El número de sin leer sobre el ícono de la app anclada (iPhone y Android lo muestran).
+  // Sin nada sin leer no puede quedar ninguna mención pendiente (por ejemplo, si se leyó desde otra pestaña).
+  useEffect(() => {
+    if (resumen.no_leidos === 0) setMencionesPorCanal((m) => (Object.keys(m).length ? {} : m))
+  }, [resumen.no_leidos])
+
+  // El contador muestra en cuántos chats te mencionaron (no cuántas menciones hay en total).
+  const menciones = useMemo(() => Object.values(mencionesPorCanal).filter((n) => n > 0).length, [mencionesPorCanal])
+
+  // El globo sobre el ícono de la app anclada (iPhone y Android lo muestran): el número de menciones o,
+  // si solo hay mensajes sin leer, un punto (setAppBadge sin número).
   useEffect(() => {
     if (!('setAppBadge' in navigator)) return
-    const n = resumen.no_leidos || 0
-    ;(n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => null)
-  }, [resumen.no_leidos])
+    const pedido = menciones ? navigator.setAppBadge(menciones) : resumen.no_leidos > 0 ? navigator.setAppBadge() : navigator.clearAppBadge()
+    pedido.catch(() => null)
+  }, [menciones, resumen.no_leidos])
 
   // Si este dispositivo ya tenía notificaciones, quedan a nombre de quien entró.
   useEffect(() => {
@@ -218,13 +248,14 @@ export function MensajeriaProvider({ children }) {
   }, [])
 
   const avisarEscribiendo = useCallback((canalId, activo = true) => {
+    if (modoMiembroActivo()) return // en Modo Miembro nadie tiene que ver "escribiendo…"
     const ws = socket.current
     if (ws?.readyState === 1) ws.send(JSON.stringify({ tipo: 'escribiendo', canal_id: canalId, activo }))
   }, [])
 
   const valor = useMemo(
-    () => ({ habilitada, conectado, resumen, directosSinLeer, informarDirectos, suscribir, avisarEscribiendo, refrescarResumen, avisarLeido, canalAbierto, esMio }),
-    [habilitada, conectado, resumen, directosSinLeer, suscribir, avisarEscribiendo, refrescarResumen, avisarLeido, esMio],
+    () => ({ habilitada, conectado, resumen, menciones, directosSinLeer, informarDirectos, suscribir, avisarEscribiendo, refrescarResumen, avisarLeido, canalAbierto, esMio }),
+    [habilitada, conectado, resumen, menciones, directosSinLeer, suscribir, avisarEscribiendo, refrescarResumen, avisarLeido, esMio],
   )
   return (
     <MensajeriaContext.Provider value={valor}>
