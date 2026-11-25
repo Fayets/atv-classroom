@@ -122,6 +122,7 @@ export function BandaPaso({ paso }) {
   return (
     <section className="in-banda" aria-labelledby="in-banda-t">
       <div className="in-banda__marco">
+        <span className="marca-circulo in-banda__agua" aria-hidden="true" />
         <div className="in-banda__txt">
           <p className="in-banda__etq">
             <span>Tu próximo paso</span>

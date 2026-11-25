@@ -1,0 +1,43 @@
+/* Tipografías del Brandbook de ATV 2026 (Cáscara Collective):
+   - Helvetica Now Display: la base, para todo (títulos y texto). Viene en Regular y Medium: los pesos 500 a 900
+     usan la Medium, así el navegador nunca inventa una negrita.
+   - Hoosegow JNL: la de carácter (títulos secundarios), para acentos puntuales.
+   - Biro Script Plus: la manuscrita (títulos terciarios), para lo que tiene que verse escrito a mano.
+   Lo técnico (etiquetas en mayúsculas, números de tabla) sigue en monoespaciada, como en el brandbook. */
+@font-face {
+  font-family: 'Helvetica Now Display';
+  src: url('/fonts/HelveticaNowDisplay-Regular.otf') format('opentype');
+  font-weight: 100 499;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Helvetica Now Display';
+  src: url('/fonts/HelveticaNowDisplay-Medium.otf') format('opentype');
+  font-weight: 500 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Hoosegow JNL';
+  src: url('/fonts/HoosegowJNL.woff2') format('woff2'), url('/fonts/HoosegowJNL.woff') format('woff');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Biro Script Plus';
+  src: url('/fonts/BiroScriptPlus.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --atv-sans: 'Helvetica Now Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --atv-caracter: 'Hoosegow JNL', 'Rockwell', Georgia, serif;
+  --atv-manuscrita: 'Biro Script Plus', 'Bradley Hand', cursive;
+}
+
+/* los controles no heredan la fuente solos */
+button, input, textarea, select { font-family: inherit; }

@@ -2,7 +2,7 @@
 .esc {
   --esc-menu: 0px;
   --esc-dock: 0px;
-  --mac-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
+  --mac-font: var(--atv-sans);
   position: fixed;
   inset: 0;
   overflow: clip; /* ni el foco ni el teclado pueden desplazar el escritorio */

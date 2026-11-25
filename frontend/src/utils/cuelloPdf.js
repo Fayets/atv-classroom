@@ -1,15 +1,24 @@
 // El PDF del diagnóstico de cuello de botella: sobrio, como pidió Franco. Hoja hueso y el texto en carbón,
-// en Poppins y con el estilo del Google Doc de Juan (Diagnóstico HAR PROGRAM): títulos
+// en Helvetica Now Display (la del Brandbook) y con el estilo del Google Doc de Juan (Diagnóstico HAR PROGRAM): títulos
 // grandes en negrita, subtítulos en negrita, texto con aire. Sale de la versión final que aprobó Juan.
 import { bloques, partir, tituloDocumento, tituloSeccion, tramos } from './docCuello'
 import { loadPdfMake } from './onboardingPdf'
 
 const C = { hueso: '#F3F0E9', carbon: '#242321', piedra: '#8A847C' }
 
-// Poppins, la tipografía de todo lo que ve el cliente (public/fonts, de Google Fonts, licencia OFL).
-function poppins(pdfMake) {
-  const url = (f) => `${window.location.origin}/fonts/${f}.ttf`
-  const fuentes = { Poppins: { normal: url('Poppins-Regular'), bold: url('Poppins-Bold'), italics: url('Poppins-Italic'), bolditalics: url('Poppins-Bold') } }
+// Las fuentes del PDF (public/fonts): Helvetica Now Display, la tipografía del Brandbook (no trae itálica: la
+// cursiva sale derecha), y Poppins de respaldo por si la otra no carga.
+function registrarFuentes(pdfMake) {
+  const url = (f) => `${window.location.origin}/fonts/${f}`
+  const fuentes = {
+    Helvetica: {
+      normal: url('HelveticaNowDisplay-Regular.otf'),
+      bold: url('HelveticaNowDisplay-Medium.otf'),
+      italics: url('HelveticaNowDisplay-Regular.otf'),
+      bolditalics: url('HelveticaNowDisplay-Medium.otf'),
+    },
+    Poppins: { normal: url('Poppins-Regular.ttf'), bold: url('Poppins-Bold.ttf'), italics: url('Poppins-Italic.ttf'), bolditalics: url('Poppins-Bold.ttf') },
+  }
   if (typeof pdfMake.addFonts === 'function') pdfMake.addFonts(fuentes)
   else pdfMake.fonts = { ...(pdfMake.fonts || {}), ...fuentes }
 }
@@ -55,7 +64,7 @@ async function capturas(base, texto) {
 // Los bloques de una sección (subtítulo, párrafo, viñeta, ejemplo, captura) en pdfmake.
 function cuerpo(texto, imgs = {}) {
   const salida = []
-  // Poppins no trae "●": el punto de la viñeta se dibuja.
+  // Las fuentes no siempre traen "●": el punto de la viñeta se dibuja.
   const punto = () => ({ canvas: [{ type: 'ellipse', x: 2, y: 7.5, r1: 1.9, r2: 1.9, color: C.carbon }], width: 16 })
   let previo = null
   for (const b of bloques(texto)) {
@@ -82,7 +91,7 @@ export async function htmlCuello({ cliente, texto, capturas: base = null }) {
   const imgs = await capturas(base, texto || '')
   const p = partir(texto)
   // Google Docs importa sin aire: el interlineado y la separación van explícitos en cada bloque.
-  const fuente = 'font-family:Poppins,Arial,sans-serif;'
+  const fuente = "font-family:'Helvetica Now Display',Helvetica,Arial,sans-serif;"
   const texto11 = `${fuente}font-size:11pt;line-height:1.6;`
   const partes = [`<h1 style="${fuente}font-size:21pt;margin:0 0 18pt 0">${tituloDocumento(p)} ${escapar(cliente || '')}</h1>`]
   for (const s of Object.keys(p)) {
@@ -113,7 +122,7 @@ export async function htmlCuello({ cliente, texto, capturas: base = null }) {
 
 export async function pdfCuello({ cliente, texto, fecha = new Date(), capturas: base = null }) {
   const pdfMake = await loadPdfMake()
-  poppins(pdfMake)
+  registrarFuentes(pdfMake)
   const imgs = await capturas(base, texto || '')
   const p = partir(texto)
   const contenido = [{ text: `${tituloDocumento(p)} ${cliente}`, fontSize: 21, bold: true, margin: [0, 0, 0, 12] }]
@@ -131,10 +140,16 @@ export async function pdfCuello({ cliente, texto, fecha = new Date(), capturas: 
     background: () => ({ canvas: [{ type: 'rect', x: 0, y: 0, w: ANCHO, h: ALTO, color: C.hueso }] }),
     footer: (pagina, total) => (total > 1 ? { text: `${pagina} / ${total}`, fontSize: 7.5, color: C.piedra, alignment: 'right', margin: [64, 20, 64, 0] } : { text: '' }),
     content: contenido,
-    defaultStyle: { font: 'Poppins', fontSize: 10.5, color: C.carbon },
+    defaultStyle: { font: 'Helvetica', fontSize: 10.5, color: C.carbon },
     info: { title: `${tituloDocumento(p)} · ${cliente}`, author: 'ATV — Aumenta Tu Valor' },
   }
-  const blob = await pdfMake.createPdf(doc).getBlob()
+  let blob
+  try {
+    blob = await pdfMake.createPdf(doc).getBlob()
+  } catch {
+    // Si Helvetica Now no carga, el PDF sale igual con Poppins: el diagnóstico nunca se queda sin mandar.
+    blob = await pdfMake.createPdf({ ...doc, defaultStyle: { ...doc.defaultStyle, font: 'Poppins' } }).getBlob()
+  }
   return { blob, nombre: `${slug(tituloDocumento(p))}-${slug(cliente)}-${fecha.toISOString().slice(0, 10)}.pdf` }
 }
 

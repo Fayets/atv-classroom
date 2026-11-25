@@ -21,6 +21,6 @@
 .in-anillo__pista { fill: var(--a-pista); stroke: var(--a-linea); stroke-width: 10; }
 .in-anillo__arco { fill: none; stroke: var(--a-rojo); stroke-width: 10; stroke-linecap: round; }
 .in-anillo__centro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; pointer-events: none; }
-.in-anillo__centro b { font-size: 46px; font-weight: 700; line-height: 1; letter-spacing: -0.05em; color: var(--a-t1); }
+.in-anillo__centro b { font-size: 46px; font-weight: 700; line-height: 1; letter-spacing: -0.03em; color: var(--a-t1); }
 .in-anillo__centro small { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-t3); }
 @media (prefers-reduced-motion: reduce) { .in-anillo__giro { animation: none; } }

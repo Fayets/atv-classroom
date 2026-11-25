@@ -91,7 +91,7 @@ html .cr-root .im-back {
 /* ---------- Todo el material ---------- */
 html .cr-root .mt-grid-page { padding: 36px 32px 120px; gap: 26px; }
 html .cr-root .mt-grid-head { gap: 12px; }
-html .cr-root .mt-grid-head h1 { font-size: 38px; font-weight: 700; letter-spacing: -0.04em; color: var(--pc-t1); }
+html .cr-root .mt-grid-head h1 { font-size: 38px; font-weight: 700; letter-spacing: -0.024em; color: var(--pc-t1); }
 
 /* volver al inicio: una cápsula chica */
 html .cr-root .im-back { padding: 6px 12px 6px 9px; border-radius: 999px; font-size: 12.5px; color: var(--pc-t2); transition: color 140ms ease, transform 160ms var(--pc-ease); }
@@ -139,7 +139,7 @@ html .cr-root .ms-tramo.is-actual .ms-tramo__t { color: var(--pc-t1); }
 
 html .cr-root .ms-mesa { gap: 28px; padding-top: 24px; }
 html .cr-root .ms-video { border-radius: 20px; box-shadow: 0 0 0 1px var(--pc-line), var(--cr-sombra-alta); }
-html .cr-root .ms-ver__head h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.035em; color: var(--pc-t1); }
+html .cr-root .ms-ver__head h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.021em; color: var(--pc-t1); }
 html .cr-root .mt-brief__lead,
 html .cr-root .mt-desc { font-size: 15px; line-height: 1.65; color: var(--pc-t2); }
 
@@ -199,7 +199,7 @@ html[data-modo="azul"] .cr-root .ms-indice__item:hover,
 html[data-modo="azul"] .cr-root .ms-indice__item:focus-visible { background: rgba(255, 255, 255, 0.05); }
 
 /* módulo sin clases todavía */
-html .cr-root .mt-vacio h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.035em; }
+html .cr-root .mt-vacio h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.021em; }
 
 /* ---------- tamaños ---------- */
 @media (max-width: 1080px) {
@@ -288,7 +288,7 @@ html .cr-root .mt-vacio h1 { font-size: 34px; font-weight: 700; letter-spacing: 
   white-space: nowrap;
   font-size: clamp(24px, 3.1vw, 40px);
   font-weight: 600;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.024em;
   line-height: 1.1;
   transition: color 200ms ease;
 }
@@ -556,7 +556,7 @@ html[data-modo="azul"] .cr-lector__panel { background: #262423; -webkit-backdrop
 .cr-lector__cerrar { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: var(--pc-s2); color: var(--pc-t2); cursor: pointer; }
 .cr-lector__cerrar:hover { color: var(--pc-t1); }
 .cr-lector__cerrar svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-.cr-lector__panel h3 { margin: 14px 0 20px; font-size: 24px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.2; color: var(--pc-t1); }
+.cr-lector__panel h3 { margin: 14px 0 20px; font-size: 24px; font-weight: 700; letter-spacing: -0.018em; line-height: 1.2; color: var(--pc-t1); }
 .cr-lector__eti { margin: 18px 0 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--pc-t4); }
 .cr-lector__docs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .cr-lector__docs a,

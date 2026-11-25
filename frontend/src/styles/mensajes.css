@@ -423,7 +423,7 @@
    secciones en control segmentado, barra lateral translúcida, fuente del sistema).
    ====================================================================== */
 html .app-header.app-header--mac {
-  --mac-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
+  --mac-font: var(--atv-sans);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -485,7 +485,7 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 
 /* Mensajes del equipo: densidad y tipografía de una app de Mac (Mail / Mensajes). */
 .msj-root.is-mac {
-  --mac-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
+  --mac-font: var(--atv-sans);
   font-family: var(--mac-font);
 }
 .msj-root.is-mac button, .msj-root.is-mac input, .msj-root.is-mac textarea { font-family: inherit; }
@@ -594,7 +594,7 @@ html .app-header--mac .app-header__menu { font-family: var(--mac-font); border-r
 .msj-everyone { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: rgba(192, 57, 43, 0.12); color: var(--m-acento, #c0392b); font-weight: 700; }
 
 /* crear canal (ventana como una hoja de macOS) */
-.msj-modal__fondo { position: fixed; inset: 0; z-index: 200; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; -webkit-font-smoothing: antialiased; display: grid; place-items: center; background: rgba(var(--m-osc, 0, 0, 0), 0.32); } /* sin backdrop-filter: con textos largos el scroll se trababa */
+.msj-modal__fondo { position: fixed; inset: 0; z-index: 200; font-family: var(--atv-sans); -webkit-font-smoothing: antialiased; display: grid; place-items: center; background: rgba(var(--m-osc, 0, 0, 0), 0.32); } /* sin backdrop-filter: con textos largos el scroll se trababa */
 .msj-modal { width: min(440px, calc(100vw - 32px)); margin: 0; padding: 20px 22px 18px; border-radius: 14px; background: var(--m-tarjeta, #fff); color: var(--m-t1, #1d1d1f); box-shadow: 0 0 0 0.5px rgba(var(--m-osc, 0, 0, 0), 0.2), 0 24px 60px -20px rgba(0, 0, 0, 0.5); font-size: 13.5px; }
 .msj-modal h2 { margin: 0 0 4px; font-size: 17px; font-weight: 650; }
 .msj-modal__ayuda { margin: 0 0 16px; color: var(--m-t3, #6e6e73); font-size: 12.5px; }
@@ -760,7 +760,7 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 /* Visor de imágenes del chat */
 .msj-visor { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 56px 72px 32px; background: rgba(0, 0, 0, 0.86); animation: msj-visor-entra 0.16s ease-out; }
 .msj-visor > img { width: auto; height: auto; max-width: calc(100vw - 144px); max-height: calc(100vh - 88px); max-height: calc(100dvh - 88px); object-fit: contain; border-radius: 8px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); cursor: default; }
-.msj-visor__barra { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 16px; padding: 12px 18px; color: rgba(255, 255, 255, 0.85); font: 500 13px/1.3 -apple-system, system-ui, sans-serif; }
+.msj-visor__barra { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 16px; padding: 12px 18px; color: rgba(255, 255, 255, 0.85); font: 500 13px/1.3 var(--atv-sans); }
 .msj-visor__barra span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msj-visor__barra a { color: #fff; text-decoration: none; font-weight: 600; }
 .msj-visor__barra a:hover { text-decoration: underline; }

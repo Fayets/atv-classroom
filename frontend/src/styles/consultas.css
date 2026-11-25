@@ -1,7 +1,7 @@
 /* Consultas al cerebro: chat del equipo, con la estética clara de Mac de Mensajes. */
 .cq-root { --q-bg: #ffffff; --q-panel: #f5f5f7; --q-linea: rgba(0, 0, 0, 0.08); --q-t1: #1d1d1f; --q-t2: #3a3a3c; --q-t3: #6e6e73; --q-acento: #c0392b;
   height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background: var(--q-bg); color: var(--q-t1);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  font-family: var(--atv-sans); -webkit-font-smoothing: antialiased; }
 .esc-ventana .cq-root { height: 100%; }
 .cq-cuerpo { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; max-width: 860px; margin: 0 auto; }
 .cq-cab { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 22px 24px 12px; }

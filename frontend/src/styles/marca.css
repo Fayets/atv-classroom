@@ -1,0 +1,76 @@
+/* Recursos del Brandbook de ATV 2026 aplicados a la app (los archivos están en public/marca):
+   la textura de papel del modo claro, los sellos del logo (pastilla y círculo), Hoosegow para los números con
+   carácter, Biro Script para la firma del coach y las fotos de la dirección fotográfica. */
+
+/* ---------- textura de papel (solo modo claro) ----------
+   Va DETRÁS del contenido: cada pantalla (.app-shell y el login) arma su propio contexto de apilado y la textura es
+   una capa con z-index -1, así se ve sobre el fondo de la página pero nunca encima de tarjetas, campos o botones. */
+html:not([data-modo="azul"]) :is(.app-shell, .lg-lado) { isolation: isolate; }
+html:not([data-modo="azul"]) :is(.app-shell, .lg-lado)::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url('/marca/papel.webp') center / cover no-repeat;
+  mix-blend-mode: multiply;
+  opacity: 0.09;
+}
+
+/* ---------- sellos del logo, como máscara: toman el color del texto ---------- */
+.marca-pastilla, .marca-circulo {
+  display: inline-block;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: var(--marca-img) center / contain no-repeat;
+  mask: var(--marca-img) center / contain no-repeat;
+}
+.marca-pastilla { --marca-img: url('/marca/pastilla-aumenta.svg'); aspect-ratio: 2819 / 478; width: 150px; }
+.marca-circulo { --marca-img: url('/marca/circulo-atv.svg'); aspect-ratio: 1; width: 120px; }
+
+/* ---------- login: la portada es una foto del brandbook ---------- */
+html .lg-portada { background: #1b1a19; }
+.lg-foto {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  filter: grayscale(0.15) contrast(1.02);
+}
+html .lg-portada::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(20, 18, 16, 0.55) 0%, rgba(20, 18, 16, 0.08) 34%, rgba(20, 18, 16, 0.12) 62%, rgba(20, 18, 16, 0.7) 100%);
+}
+.lg-portada__arriba, .lg-portada__centro, .lg-sello { position: relative; z-index: 1; }
+html .lg-portada .lg-wordmark, html .lg-portada .lg-meta { color: #f3f0e9; }
+.lg-sello { align-self: flex-start; width: 190px; color: #f3f0e9; }
+@media (max-width: 860px) {
+  html .lg-portada { min-height: 240px; }
+  .lg-portada__centro { display: none; }
+  .lg-sello { margin-top: auto; width: 150px; }
+}
+
+/* ---------- Mi cuenta: el sello en el talón de la credencial y el número de días en Hoosegow ---------- */
+.cred__sello { display: block; width: 128px; margin: 14px auto 0; color: var(--cr-ink-3, #8a847c); opacity: 0.8; }
+html .cuenta-root .cred-pase__cuenta b { font-family: var(--atv-caracter); font-weight: 400; letter-spacing: 0; font-size: 40px; line-height: 0.9; }
+
+/* ---------- Inicio: "Tu próximo paso" con el número en Hoosegow y el círculo de marca de agua ---------- */
+.in-banda { position: relative; overflow: hidden; }
+.in-banda__marco { position: relative; }
+.in-banda__agua {
+  position: absolute; right: -40px; top: 50%; width: 340px; transform: translateY(-50%) rotate(-12deg);
+  color: #fff; opacity: 0.09; pointer-events: none;
+}
+.in-banda__txt, .in-banda__lado { position: relative; z-index: 1; }
+html .in-root .in-banda__cuenta { font-family: var(--atv-caracter); font-weight: 400; letter-spacing: 0; }
+html .in-root .in-banda__cuenta small { font-family: var(--atv-caracter); }
+@media (max-width: 720px) { .in-banda__agua { width: 220px; right: -60px; top: 30%; } }
+
+/* ---------- Roadmap: la firma del coach, en manuscrita ---------- */
+.rr-firma { font-family: var(--atv-manuscrita); font-size: 1.45em; line-height: 1; color: var(--pc-t1, #1d1d1f); transform: translateY(1px); }
+
+/* ---------- fotos en los vacíos (roadmap sin pasos, SOP que no existe) ---------- */
+.marca-foto-vacio {
+  display: block; width: min(260px, 70%); aspect-ratio: 4 / 3; object-fit: cover; margin: 0 auto 18px;
+  border-radius: 18px; filter: grayscale(0.2);
+  box-shadow: 0 18px 40px -22px rgba(40, 30, 20, 0.5);
+}
+.mt-sops__vacio { text-align: center; padding: 32px 0; }
+.mt-sops__vacio .marca-foto-vacio { width: min(200px, 60%); aspect-ratio: 1; }

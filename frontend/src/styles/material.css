@@ -6,7 +6,7 @@
 /* ---------- grilla de módulos ---------- */
 .mt-grid-page { max-width: 1180px; margin: 0 auto; padding: 40px 32px 120px; display: flex; flex-direction: column; gap: 28px; }
 .mt-grid-head { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
-.mt-grid-head h1 { margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.1; }
+.mt-grid-head h1 { margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -0.021em; line-height: 1.1; }
 .mt-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 .mt-card {
   display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; color: var(--pc-t1); text-decoration: none;
@@ -126,7 +126,7 @@
   .mt-nav__btn--next:hover .mt-nav__ico { transform: translateX(2px); background: #c14e4e; }
 }
 .mt-vacio { gap: 16px; }
-.mt-vacio h1 { margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -0.035em; }
+.mt-vacio h1 { margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -0.021em; }
 
 @media (max-width: 1080px) {
   .mt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

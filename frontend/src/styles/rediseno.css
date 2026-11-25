@@ -63,7 +63,7 @@ html .msj-root[class][class] .msj-lateral {
   padding: 14px 10px 24px;
   background: var(--r-lateral);
   border-right: 1px solid var(--r-linea);
-  font-family: var(--mac-font, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif);
+  font-family: var(--mac-font, var(--atv-sans));
 }
 html .msj-root[class][class] .msj-lateral__head { padding: 2px 8px 12px; }
 html .msj-root[class][class] .msj-lateral__head h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: var(--r-ink); }

@@ -9,7 +9,7 @@
   --lg-tinta-3: #96928a;
   --lg-linea: rgba(31, 30, 28, 0.14);
   --lg-mono: 'Space Mono', ui-monospace, Menlo, monospace;
-  --lg-sans: 'Poppins', system-ui, -apple-system, sans-serif;
+  --lg-sans: var(--atv-sans);
   min-height: 100vh;
   display: grid;
   grid-template-columns: minmax(0, 1.42fr) minmax(0, 1fr);
@@ -24,7 +24,7 @@
 /* grano del brandbook: estático, sin blur (no cuesta nada al animar) */
 .lg-portada::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.14; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 .lg-portada__arriba { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.lg-wordmark { margin: 0; display: grid; font-family: 'Inter Tight', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 600; font-size: 30px; letter-spacing: -0.035em; line-height: 0.86; text-transform: uppercase; color: var(--lg-tinta); }
+.lg-wordmark { margin: 0; display: grid; font-family: var(--atv-sans); font-weight: 600; font-size: 30px; letter-spacing: -0.021em; line-height: 0.86; text-transform: uppercase; color: var(--lg-tinta); }
 .lg-wordmark sup { font-size: 0.32em; font-weight: 500; vertical-align: top; margin-left: 0.08em; }
 .lg-portada__centro { flex: 1; display: flex; align-items: center; justify-content: center; padding-bottom: 40px; }
 .lg-marca { width: 63px; height: auto; display: block; color: var(--lg-tinta); }

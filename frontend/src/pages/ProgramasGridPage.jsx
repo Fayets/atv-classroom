@@ -337,6 +337,7 @@ function VistaSops() {
         ))
       ) : (
         <p className="mt-sops__vacio">
+          <img className="marca-foto-vacio" src="/marca/fotos/estatua.webp" alt="" />
           No hay un SOP con eso. <Link to="/">Pedilo desde el inicio</Link> y te lo armamos.
         </p>
       )}

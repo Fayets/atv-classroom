@@ -8,7 +8,7 @@
 html[data-modo="azul"] .rr-root { --rr-superficie: #262423; }
 .rr-vacio { padding: 80px 24px; text-align: center; color: var(--pc-t3); }
 
-.rr-cab h1 { margin: 0 0 4px; font-size: 38px; font-weight: 700; letter-spacing: -0.04em; color: var(--pc-t1); }
+.rr-cab h1 { margin: 0 0 4px; font-size: 38px; font-weight: 700; letter-spacing: -0.024em; color: var(--pc-t1); }
 .rr-cab p { margin: 0; font-size: 13.5px; color: var(--pc-t3); }
 
 /* una superficie de vidrio, como en Material */
@@ -40,7 +40,7 @@ html[data-modo="azul"] .rr-root { --rr-superficie: #262423; }
 html[data-modo="azul"] .rr-ahora::before { background: radial-gradient(520px 260px at 100% 0%, rgba(221, 82, 69, 0.1), transparent 70%); }
 .rr-ahora > * { position: relative; }
 .rr-ahora__texto small { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pc-red); }
-.rr-ahora__texto h2 { margin: 10px 0 14px; font-size: clamp(28px, 3.6vw, 46px); font-weight: 650; line-height: 1.08; letter-spacing: -0.04em; color: var(--pc-t1); text-wrap: balance; }
+.rr-ahora__texto h2 { margin: 10px 0 14px; font-size: clamp(28px, 3.6vw, 46px); font-weight: 650; line-height: 1.08; letter-spacing: -0.024em; color: var(--pc-t1); text-wrap: balance; }
 .rr-ahora__de { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: var(--pc-t3); }
 .rr-ahora__acciones { display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 180px; }
 .rr-ahora__avance { position: absolute; left: 32px; right: 32px; bottom: 16px; height: 3px; border-radius: 3px; background: var(--pc-line); overflow: hidden; }
@@ -275,7 +275,7 @@ html[data-modo="azul"] .rr-lugar__abierto { box-shadow: 0 0 0 1px rgba(255, 255,
 .rr-mapa__proximo svg { width: 15px; height: 15px; fill: none; stroke: var(--pc-red); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 .rr-detalle__cab { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 20px; margin-bottom: 18px; }
-.rr-detalle__cab h2 { margin: 0 0 3px; font-size: 26px; font-weight: 700; letter-spacing: -0.03em; }
+.rr-detalle__cab h2 { margin: 0 0 3px; font-size: 26px; font-weight: 700; letter-spacing: -0.018em; }
 .rr-detalle__cab p { margin: 0; font-size: 13px; color: var(--pc-t3); }
 .rr-detalle__links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 .rr-detalle__sin { margin: 0; font-size: 14px; color: var(--pc-t3); }

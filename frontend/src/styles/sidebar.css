@@ -1,6 +1,6 @@
 /* ======================================================================
    Barra lateral de la app (components/Sidebar.jsx), rediseño 2026-11.
-   Papel un tono más hondo que la página, letra Poppins, píldora de tinta para la sección activa y el rojo
+   Papel un tono más hondo que la página, letra Helvetica Now Display (styles/fuentes.css), píldora de tinta para la sección activa y el rojo
    ATV de acento. Oscuro: carbón cálido. La página se corre a la derecha lo que mide la barra (--sb-w).
    ====================================================================== */
 
@@ -17,7 +17,7 @@
   position: fixed; z-index: 70; top: 0; bottom: 0; left: 0; width: 264px;
   display: flex; flex-direction: column; gap: 6px; padding: 14px 12px 12px; box-sizing: border-box;
   background: var(--sb-fondo); border-right: 1px solid var(--sb-linea);
-  font-family: 'Poppins', system-ui, -apple-system, sans-serif; color: var(--sb-t1);
+  font-family: var(--atv-sans); color: var(--sb-t1);
   overflow-y: auto; overflow-x: hidden; scrollbar-width: none;
   transition: width 220ms cubic-bezier(0.23, 1, 0.32, 1), transform 260ms cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -176,7 +176,7 @@ html[data-modo="azul"] .app-migas b { color: #f2eee8; }
    Las ventanas de Clientes, Biblioteca, etc. flotan sobre la página, a la derecha de la barra lateral. La capa no
    toma clics; solo las ventanas abiertas y los modales. */
 .eq-herr {
-  --mac-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
+  --mac-font: var(--atv-sans);
   position: fixed; z-index: 60; top: 0; right: 0; bottom: 0; left: var(--sb-w, 0px); pointer-events: none; font-family: var(--mac-font);
 }
 .eq-herr > :not(.fd-ventana) { pointer-events: auto; }

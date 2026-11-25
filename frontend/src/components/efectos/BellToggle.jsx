@@ -1,4 +1,4 @@
-// BellToggle (React Bits), copiado a mano como TechText y LaserFlow. Único cambio: la campana sale de
+// BellToggle (React Bits), copiado a mano como LaserFlow. Único cambio: la campana sale de
 // components/iconos/hugeicons.js en vez de @hugeicons/core-free-icons (ver ahí por qué). Los colores se le
 // pasan como variables CSS (var(--…)) para que sigan al modo claro u oscuro: ver BotonAvisos.jsx.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';

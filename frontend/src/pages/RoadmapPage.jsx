@@ -322,6 +322,7 @@ export default function RoadmapPage() {
 
         {!todos.length ? (
           <div className="rr-vacio-caja">
+            <img className="marca-foto-vacio" src="/marca/fotos/escaladores-nieve.webp" alt="" />
             <b>Todavía no hay nada en tu roadmap</b>
             <span>Después de cada llamada, tu coach suma acá los próximos pasos.</span>
           </div>
@@ -345,7 +346,7 @@ export default function RoadmapPage() {
                   </h2>
                   <p className="rr-ahora__de">
                     <Cara coach={principal.coach} size={22} />
-                    {nombreDoc(principal)} con {primerNombre(principal.coach.nombre)} · {fechaLarga(principal.fecha)}
+                    {nombreDoc(principal)} con <span className="rr-firma">{primerNombre(principal.coach.nombre)}</span> · {fechaLarga(principal.fecha)}
                   </p>
                 </div>
                 <div className="rr-ahora__acciones">

@@ -7,7 +7,7 @@
   --cb-t2: rgba(246, 236, 230, 0.64);
   --cb-t3: rgba(246, 236, 230, 0.4);
   --cb-acento: #ff6a5b;
-  --cb-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
+  --cb-font: var(--atv-sans);
   height: 100dvh;
   display: flex;
   flex-direction: column;

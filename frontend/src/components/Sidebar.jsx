@@ -110,6 +110,9 @@ function MiniAnillo({ pct, cerrado }) {
   )
 }
 
+// El atajo del buscador (Cmd+K en Mac, Ctrl+K en Windows y Linux): la tecla se muestra según la compu.
+const ATAJO = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘K' : 'Ctrl K'
+
 export default function Sidebar() {
   const { user, logout, isAdmin, isEquipo } = useAuth()
   const { resumen, menciones, habilitada, directosSinLeer } = useMensajeria()
@@ -262,7 +265,7 @@ export default function Sidebar() {
           <button type="button" className="sb-buscar" onClick={irAlBuscador} title="Buscar un SOP o preguntarle a la guía">
             <Icono n="buscar" />
             <span>Buscar o preguntar</span>
-            <kbd>⌘K</kbd>
+            <kbd title="Atajo de teclado para abrir el buscador">{ATAJO}</kbd>
           </button>
         ) : null}
 

@@ -6,7 +6,6 @@ import TuEquipo from '../components/cuenta/TuEquipo'
 import TusDispositivos from '../components/cuenta/TusDispositivos'
 import Tarjeta from '../components/cuenta/Tarjeta'
 import VozTab from '../components/cuenta/VozTab'
-import NombreTech from '../components/efectos/NombreTech'
 import Credencial from '../components/cuenta/Credencial'
 import { NotificacionesCuenta } from '../components/Notificaciones'
 import FathomCuenta from '../components/cuenta/FathomCuenta'
@@ -125,7 +124,7 @@ export default function CuentaPage() {
             <div className="cta-cuerpo">
               <header className="cta-cabeza">
                 <p className="cta-cabeza__arriba">Mi cuenta</p>
-                <h1>{primerNombre ? <><NombreTech texto={primerNombre} />, esto es lo tuyo.</> : 'Tu cuenta'}</h1>
+                <h1>{primerNombre ? `${primerNombre}, esto es lo tuyo.` : 'Tu cuenta'}</h1>
                 <p>
                   {esCliente
                     ? `Tu plan, cómo te avisamos, dónde tenés la sesión abierta${c.miembro ? '' : ' y quién más entra con vos'}.`

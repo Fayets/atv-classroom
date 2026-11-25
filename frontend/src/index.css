@@ -16,8 +16,8 @@
   --error: #e05555;
   --radius: 8px;
   --radius-lg: 10px;
-  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-serif: 'Playfair Display', 'Times New Roman', Georgia, serif;
+  --font: var(--atv-sans);
+  --font-serif: var(--atv-caracter);
 }
 
 html,
@@ -312,7 +312,7 @@ input {
   font-size: clamp(2rem, 5vw, 2.75rem);
   font-weight: 400;
   line-height: 1.15;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.018em;
   color: #f8f8f6;
 }
 

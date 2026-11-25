@@ -4,7 +4,6 @@ import { ApiError, fetchAuthConfig } from '../api/client'
 import GoogleButton from '../components/GoogleButton'
 import { useAuth } from '../context/AuthContext'
 import '../styles/login.css'
-import Isotipo from '../components/marca/Isotipo'
 import { VOLVER_A } from './LeveragePage'
 
 
@@ -30,11 +29,15 @@ function destino(porDefecto) {
   return porDefecto
 }
 
+// Las fotos del brandbook para la portada del login (public/marca/fotos).
+const FOTOS_LOGIN = ['senna', 'jordan-pelota', 'ciclista', 'jordan-retrato', 'corredor-sombra', 'corredores-rojo']
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const { isAuthenticated, isEquipo, login, loginGoogle } = useAuth()
   const [googleClientId, setGoogleClientId] = useState(null)
 
+  const [foto] = useState(() => FOTOS_LOGIN[Math.floor(Math.random() * FOTOS_LOGIN.length)])
   const [email, setEmail] = useState('')
   const [contrasena, setContrasena] = useState('')
   const [verClave, setVerClave] = useState(false)
@@ -109,10 +112,10 @@ export default function LoginPage() {
           </h1>
           <span className="lg-meta">{new Date().getFullYear()}</span>
         </div>
-        <div className="lg-portada__centro">
-          {/* Isotipo "Ø" del Brand System (dos piezas en L inclinadas), redibujado en vector */}
-          <Isotipo className="lg-marca" titulo="ATV" />
-        </div>
+        {/* Una foto del brandbook (dirección fotográfica: "el valor en movimiento"), distinta en cada visita */}
+        <img className="lg-foto" src={`/marca/fotos/${foto}.webp`} alt="" draggable={false} />
+        <div className="lg-portada__centro" />
+        <span className="marca-pastilla lg-sello" role="img" aria-label="Aumenta tu valor" />
       </section>
 
       <main className="lg-lado">
