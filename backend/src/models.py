@@ -259,6 +259,8 @@ class MensajeCanal(db.Entity):
     autor_nombre = Optional(str, nullable=True)
     # Si lo escribió alguien del equipo del cliente: autor_id sigue siendo el cliente y acá va quién.
     miembro_id = Optional(int, nullable=True)
+    # Lo mandó alguien del área VA a nombre de otra cuenta del equipo ("Enviar como"): acá queda quién fue.
+    enviado_por = Optional(int, nullable=True)
     respuesta_a = Optional(int, nullable=True)
     editado_en = Optional(datetime, nullable=True)
     borrado = Required(bool, default=False)

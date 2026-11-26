@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { borrarMensaje, buscarEnCanal, editarMensaje, reaccionar, enviarMensaje, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaEnviada, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto, tildarMensaje } from '../../api/mensajes'
+import { borrarMensaje, buscarEnCanal, editarMensaje, reaccionar, enviarMensaje, fetchEnviarComo, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaEnviada, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto, tildarMensaje } from '../../api/mensajes'
 import { fetchVoz } from '../../api/cuenta'
 import { useAuth } from '../../context/AuthContext'
 import { useMensajeria } from '../../context/MensajeriaContext'
@@ -251,6 +251,17 @@ function agregarSinDuplicar(lista, nuevos) {
   return sumar.length ? [...lista, ...sumar].sort(orden) : lista
 }
 
+// Área VA: a nombre de qué cuenta del equipo escribe (la lista se pide una vez; la elección queda guardada).
+let cuentasComoCache = null
+const COMO_GUARDADO = 'atv_enviar_como'
+function leerComo() {
+  try {
+    return Number(localStorage.getItem(COMO_GUARDADO)) || null
+  } catch {
+    return null
+  }
+}
+
 export default function Conversacion({ canalId, item, onVolver, oculta = false, perfilDe, canales, onAbrirCanal, alPensar }) {
   const { user, isEquipo, isAdmin } = useAuth()
   const { suscribir, avisarEscribiendo, conectado, avisarLeido, canalAbierto } = useMensajeria()
@@ -279,6 +290,31 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const [verEmojis, setVerEmojis] = useState(false)
   const mencionados = useRef(new Map()) // "@Nombre" escrito → id del miembro
   const [archivos, setArchivos] = useState([]) // { clave, nombre, tamano, progreso, adjunto, error, vista }
+  // "Enviar como" (solo área VA): para que Mauri no tenga que cambiar de cuenta para escribir como otro.
+  const [cuentasComo, setCuentasComo] = useState(() => cuentasComoCache || [])
+  const [como, setComo] = useState(leerComo)
+  useEffect(() => {
+    if (!isEquipo || cuentasComoCache) return
+    fetchEnviarComo()
+      .then((l) => {
+        cuentasComoCache = l || []
+        setCuentasComo(cuentasComoCache)
+      })
+      .catch(() => null)
+  }, [isEquipo])
+  const elegirComo = (id) => {
+    setComo(id)
+    try {
+      localStorage.setItem(COMO_GUARDADO, String(id))
+    } catch {
+      // sin almacenamiento: vale para esta pantalla
+    }
+  }
+  const cuentaComo = cuentasComo.length > 1 ? cuentasComo.find((c) => c.id === como && c.id !== user?.usuario_id) || null : null
+  const comoId = cuentaComo?.id ?? null
+  const autorMio = cuentaComo
+    ? { tipo: 'equipo', id: cuentaComo.id, nombre: cuentaComo.nombre, foto_url: cuentaComo.foto_url }
+    : { tipo: isEquipo ? 'equipo' : 'cliente', id: user?.usuario_id, nombre: user?.nombre, foto_url: user?.foto_url }
   const [arrastrando, setArrastrando] = useState(false)
   const selector = useRef(null)
   const lista = useRef(null)
@@ -747,7 +783,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       const clave = `${Date.now()}-${Math.random()}`
       const vista = archivo.type.startsWith('image/') ? URL.createObjectURL(archivo) : null
       setArchivos((a) => [...a, { clave, nombre: archivo.name || 'captura.png', tamano: archivo.size, progreso: 0, vista }])
-      subirAdjunto(canalId, archivo, (p) => setArchivos((a) => a.map((x) => (x.clave === clave ? { ...x, progreso: p } : x))))
+      subirAdjunto(canalId, archivo, (p) => setArchivos((a) => a.map((x) => (x.clave === clave ? { ...x, progreso: p } : x))), comoId)
         .then((adjunto) => setArchivos((a) => a.map((x) => (x.clave === clave ? { ...x, progreso: 100, adjunto } : x))))
         .catch((err) => setArchivos((a) => a.map((x) => (x.clave === clave ? { ...x, error: err.message } : x))))
     })
@@ -783,7 +819,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     const provisorio = {
       id,
       texto: limpio,
-      autor: { tipo: isEquipo ? 'equipo' : 'cliente', id: user.usuario_id, nombre: user.nombre, foto_url: user.foto_url },
+      autor: autorMio,
       respuesta_a: respondiendo ? { id: respondiendo.id, autor_nombre: respondiendo.autor.nombre, texto: respondiendo.texto } : null,
       adjuntos: adjuntosVista,
       creado_en: new Date().toISOString(),
@@ -812,7 +848,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     try {
       const aceptada = aceptadaIA.current
       aceptadaIA.current = null
-      const real = await enviarMensaje(canalId, limpio, provisorio.respuesta_a?.id ?? null, ids, adjuntosIds)
+      const real = await enviarMensaje(canalId, limpio, provisorio.respuesta_a?.id ?? null, ids, adjuntosIds, comoId)
       contarAccion()
       if (aceptada && real?.id) marcarSugerenciaEnviada(aceptada, real.id)
       setMensajes((m) => agregarSinDuplicar(m, [real]))
@@ -833,20 +869,20 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       const respuestaA = respondiendo ? { id: respondiendo.id, autor_nombre: respondiendo.autor.nombre, texto: respondiendo.texto } : null
       setPendientes((p) => [
         ...p,
-        { id, texto: '🎙️ Nota de voz…', autor: { tipo: isEquipo ? 'equipo' : 'cliente', id: user.usuario_id, nombre: user.nombre, foto_url: user.foto_url }, respuesta_a: respuestaA, adjuntos: [], creado_en: new Date().toISOString(), enviando: true },
+        { id, texto: '🎙️ Nota de voz…', autor: autorMio, respuesta_a: respuestaA, adjuntos: [], creado_en: new Date().toISOString(), enviando: true },
       ])
       setRespondiendo(null)
       pegadoAbajo.current = true
       try {
-        const adjunto = await subirAdjunto(canalId, archivo, () => null)
-        const real = await enviarMensaje(canalId, '', respuestaA?.id ?? null, [], [adjunto.id])
+        const adjunto = await subirAdjunto(canalId, archivo, () => null, comoId)
+        const real = await enviarMensaje(canalId, '', respuestaA?.id ?? null, [], [adjunto.id], comoId)
         setMensajes((m) => agregarSinDuplicar(m, [real]))
         setPendientes((p) => p.filter((x) => x.id !== id))
       } catch (err) {
         setPendientes((p) => p.map((x) => (x.id === id ? { ...x, enviando: false, fallo: err.message || 'No se envió la nota de voz' } : x)))
       }
     },
-    [canalId, respondiendo, user, isEquipo],
+    [canalId, respondiendo, autorMio, comoId],
   )
 
   function reintentar(p) {
@@ -1473,6 +1509,16 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
           </div>
         ) : null}
         <form className="msj-redactar" onSubmit={mandar}>
+          {cuentasComo.length > 1 ? (
+            <label className={`msj-como${cuentaComo ? ' is-otro' : ''}`}>
+              <span>Enviar como</span>
+              <select value={cuentaComo?.id ?? user?.usuario_id ?? ''} onChange={(e) => elegirComo(Number(e.target.value))}>
+                {cuentasComo.map((c) => (
+                  <option key={c.id} value={c.id}>{c.id === user?.usuario_id ? `${c.nombre} (vos)` : c.nombre}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           {respondiendo ? (
             <div className="msj-redactar__resp">
               <span>

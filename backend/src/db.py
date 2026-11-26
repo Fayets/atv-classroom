@@ -144,6 +144,7 @@ def _apply_migrations() -> None:
                 _agregar_columna(cur, "cerebro_sugerencias", "cambio_pct", "INTEGER")
                 # Equipo del cliente (setters, closers, socios): quién escribió, sesión y progreso propios.
                 _agregar_columna(cur, "mensajes_canal", "miembro_id", "INTEGER")
+                _agregar_columna(cur, "mensajes_canal", "enviado_por", "INTEGER")
                 _agregar_columna(cur, "sesiones", "miembro_id", "INTEGER")
                 _agregar_columna(cur, "progreso", "miembro_id", "INTEGER")
                 _agregar_columna(cur, "nota", "miembro_id", "INTEGER")

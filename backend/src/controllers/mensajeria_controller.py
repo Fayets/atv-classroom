@@ -43,6 +43,7 @@ class MensajeNuevo(BaseModel):
     respuesta_a: int | None = None
     menciones: list[int] = Field(default_factory=list, max_length=20)
     adjuntos: list[int] = Field(default_factory=list, max_length=10)
+    como: int | None = None  # área VA: a nombre de qué cuenta del equipo sale
 
 
 class MensajeEdicion(BaseModel):
@@ -202,6 +203,12 @@ async def ordenar_canales(body: OrdenCanales, sesion: dict = Depends(sesion_mens
     return {"ok": True}
 
 
+@router.get("/enviar-como")
+async def enviar_como(sesion: dict = Depends(sesion_mensajes)):
+    """Las cuentas a nombre de las que puede escribir quien es del área VA (vacío para el resto)."""
+    return await run_in_threadpool(service.cuentas_enviar_como, sesion)
+
+
 @router.put("/clientes/{cliente_id}/sena")
 async def marcar_sena(cliente_id: int, body: ClienteSena, sesion: dict = Depends(sesion_mensajes)):
     """Mover a mano al grupo Señas (o sacarlo de ahí)."""
@@ -301,6 +308,7 @@ def resolver(mencion_id: int, sesion: dict = Depends(sesion_mensajes)):
 
 @router.post("/canales/{canal_id}/mensajes", status_code=201)
 async def enviar(canal_id: int, body: MensajeNuevo, sesion: dict = Depends(sesion_mensajes)):
+    sesion = await run_in_threadpool(service.sesion_como, sesion, body.como)
     mensaje, canal = await run_in_threadpool(
         service.enviar, sesion, canal_id, body.texto, body.respuesta_a, body.menciones, body.adjuntos
     )
@@ -318,7 +326,8 @@ async def enviar(canal_id: int, body: MensajeNuevo, sesion: dict = Depends(sesio
 
 
 @router.post("/canales/{canal_id}/adjuntos", status_code=201)
-def subir_adjunto(canal_id: int, archivo: UploadFile = File(...), sesion: dict = Depends(sesion_mensajes)):
+def subir_adjunto(canal_id: int, archivo: UploadFile = File(...), como: int | None = None, sesion: dict = Depends(sesion_mensajes)):
+    sesion = service.sesion_como(sesion, como)  # el archivo queda a nombre de la cuenta con la que va a salir
     def partes():
         while True:
             bloque = archivo.file.read(1024 * 1024)

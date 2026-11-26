@@ -1363,3 +1363,24 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .oem-par { margin: 0 0 10px; }
 .oem-par b { display: block; font-size: 12.5px; color: var(--m-t2, #3a3a3c); }
 .oem-par p { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* #seguimiento: clientes dentro de cada grupo y orden de la secuencia arrastrando */
+.seg__grupo { display: flex; flex-direction: column; gap: 4px; }
+.seg__opcion-marca { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.seg__opcion-marca span { display: flex; flex-direction: column; gap: 1px; }
+.seg__ver { flex: none; border: 0; border-radius: 7px; padding: 4px 8px; background: none; color: var(--m-t3, #6e6e73); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.seg__ver:hover { background: rgba(var(--m-osc, 0, 0, 0), .06); color: var(--m-t1, #1d1d1f); }
+.seg__subclientes { margin: 0 0 4px; padding: 6px 8px; list-style: none; max-height: 260px; overflow-y: auto; border: 1px solid var(--m-linea, #e3e3e8); border-radius: 9px; background: var(--m-tarjeta, #fff); }
+.seg__subclientes label { display: flex; align-items: center; gap: 8px; padding: 4px 4px; font-size: 13px; cursor: pointer; border-radius: 6px; }
+.seg__subclientes label:hover { background: rgba(var(--m-osc, 0, 0, 0), .04); }
+.seg__subclientes label.is-apagado { color: var(--m-t4, #8e8e93); cursor: default; }
+.seg__subclientes input { margin: 0; accent-color: var(--m-acento, #c0392b); }
+.seg__num[draggable="true"] { cursor: grab; }
+.seg__globito.is-moviendo { opacity: .45; }
+.seg__globito.is-soltar-arriba { box-shadow: 0 -2px 0 var(--m-acento, #c0392b); }
+.seg__globito.is-soltar-abajo { box-shadow: 0 2px 0 var(--m-acento, #c0392b); }
+
+/* Área VA: "Enviar como" arriba de la caja de mensaje */
+.msj-como { display: flex; align-items: center; gap: 8px; margin: 0 0 6px 4px; font-size: 12px; color: var(--m-t3, #6e6e73); }
+.msj-como select { border: 1px solid var(--m-borde, #d9d9de); border-radius: 7px; padding: 3px 6px; background: var(--m-campo, #fff); color: var(--m-t1, #1d1d1f); font: inherit; font-size: 12.5px; font-weight: 600; }
+.msj-como.is-otro select { border-color: var(--m-acento, #c0392b); color: var(--m-acento, #c0392b); }

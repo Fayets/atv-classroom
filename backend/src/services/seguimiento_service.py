@@ -91,10 +91,14 @@ class SeguimientoServices:
                 if c.tipo in ("grupo", "anuncios")
             ]
             activos = _clientes_activos()
-            ofertas = [
-                {"id": o["id"], "nombre": o["nombre"], "clientes": sum(1 for c in activos if (c.plan_actual or "").lower() in _PLANES[o["id"]])}
-                for o in OFERTAS
-            ]
+            ofertas = []
+            for o in OFERTAS:
+                # Quiénes son, para verlos dentro de cada grupo y sacar a alguno (pedido de Mauri, 26-11).
+                lista = sorted(
+                    ({"id": c.id, "nombre": c.nombre or c.email} for c in activos if (c.plan_actual or "").lower() in _PLANES[o["id"]]),
+                    key=lambda x: (x["nombre"] or "").lower(),
+                )
+                ofertas.append({"id": o["id"], "nombre": o["nombre"], "clientes": len(lista), "lista": lista})
         return {"cuentas": cuentas, "canales": canales, "ofertas": [o for o in ofertas if o["clientes"]]}
 
     def buscar_clientes(self, sesion: dict, q: str) -> list[dict]:
@@ -118,7 +122,8 @@ class SeguimientoServices:
             return [(c.id, None) for c in list(Canal.select()) if c.id in ids and c.tipo in ("grupo", "anuncios")]
         planes = set().union(*(_PLANES.get(o, set()) for o in destino.get("ofertas") or [])) if destino.get("ofertas") else set()
         sueltos = {int(i) for i in destino.get("clientes") or []}
-        elegidos = [c for c in _clientes_activos() if (c.plan_actual or "").lower() in planes or c.id in sueltos]
+        fuera = {int(i) for i in destino.get("excluir") or []}  # destildados dentro de un grupo
+        elegidos = [c for c in _clientes_activos() if ((c.plan_actual or "").lower() in planes and c.id not in fuera) or c.id in sueltos]
         return [(_canal_del_cliente(c.id).id, c) for c in elegidos]
 
     def _validar(self, sesion: dict, datos: dict) -> tuple[int, dict, list[str], datetime]:

@@ -42,6 +42,10 @@ export default function Seguimiento({ onVolver }) {
   const [donde, setDonde] = useState('chat')
   const [canales, setCanales] = useState([])
   const [ofertas, setOfertas] = useState([])
+  const [abiertas, setAbiertas] = useState([]) // grupos desplegados para ver sus clientes
+  const [excluir, setExcluir] = useState([]) // clientes destildados dentro de un grupo tildado
+  const [arrastrado, setArrastrado] = useState(null) // índice del globito que se está moviendo
+  const [sobre, setSobre] = useState(null) // { i, lado }: dónde caería
   const [sueltos, setSueltos] = useState([])
   const [buscar, setBuscar] = useState('')
   const [encontrados, setEncontrados] = useState([])
@@ -83,8 +87,11 @@ export default function Seguimiento({ onVolver }) {
   const alcance = useMemo(() => {
     if (!opciones) return 0
     if (donde === 'canal') return canales.length
-    return opciones.ofertas.filter((o) => ofertas.includes(o.id)).reduce((n, o) => n + o.clientes, 0) + sueltos.length
-  }, [opciones, donde, canales, ofertas, sueltos])
+    const enGrupos = opciones.ofertas
+      .filter((o) => ofertas.includes(o.id))
+      .reduce((n, o) => n + (o.lista || []).filter((c) => !excluir.includes(c.id)).length, 0)
+    return enGrupos + sueltos.length
+  }, [opciones, donde, canales, ofertas, sueltos, excluir])
   const ejemplo = donde === 'chat' ? (sueltos[0]?.nombre || 'Martina').split(' ')[0] : ''
   const vista = globitos
     .map((g) => g.replace(/\{\s*nombre\s*\}/gi, ejemplo).replace(/[ \t]{2,}/g, ' ').replace(/ !/g, '!').trim())
@@ -109,6 +116,17 @@ export default function Seguimiento({ onVolver }) {
     setGlobitos((l) => [...l.slice(0, despues + 1), '', ...l.slice(despues + 1)])
     setActivo(despues + 1)
     enfocar(despues + 1)
+  }
+  // Arrastrar un globito (desde su número) para cambiarlo de lugar en la secuencia.
+  function mover(desde, hasta) {
+    if (desde === null || desde === hasta) return
+    setGlobitos((l) => {
+      const copia = [...l]
+      const [item] = copia.splice(desde, 1)
+      copia.splice(hasta > desde ? hasta - 1 : hasta, 0, item)
+      return copia
+    })
+    setActivo(hasta > desde ? hasta - 1 : hasta)
   }
   function quitar(i) {
     setGlobitos((l) => (l.length > 1 ? l.filter((_, j) => j !== i) : ['']))
@@ -204,7 +222,7 @@ export default function Seguimiento({ onVolver }) {
     try {
       const r = await crearEnvioSeguimiento({
         cuenta_id: cuenta,
-        destino: donde === 'canal' ? { donde, canales } : { donde, ofertas, clientes: sueltos.map((c) => c.id) },
+        destino: donde === 'canal' ? { donde, canales } : { donde, ofertas, clientes: sueltos.map((c) => c.id), excluir },
         mensajes: globitos.map((g) => g.trim()).filter(Boolean),
         cuando: cuando === 'hora' ? new Date(hora).toISOString() : null,
       })
@@ -269,12 +287,39 @@ export default function Seguimiento({ onVolver }) {
           <div className="seg__bloque">
             <span className="seg__rotulo">A quién</span>
             {donde === 'chat'
-              ? opciones.ofertas.map((o) => (
-                  <label key={o.id} className={`seg__opcion${ofertas.includes(o.id) ? ' is-on' : ''}`}>
-                    <input type="checkbox" checked={ofertas.includes(o.id)} onChange={() => alternar(ofertas, setOfertas, o.id)} />
-                    <span><b>{o.nombre}</b><small>{o.clientes} clientes activos</small></span>
-                  </label>
-                ))
+              ? opciones.ofertas.map((o) => {
+                  const on = ofertas.includes(o.id)
+                  const abierta = abiertas.includes(o.id)
+                  const fuera = (o.lista || []).filter((c) => excluir.includes(c.id)).length
+                  return (
+                    <div key={o.id} className={`seg__grupo${abierta ? ' is-abierto' : ''}`}>
+                      <div className={`seg__opcion${on ? ' is-on' : ''}`}>
+                        <label className="seg__opcion-marca">
+                          <input type="checkbox" checked={on} onChange={() => alternar(ofertas, setOfertas, o.id)} />
+                          <span>
+                            <b>{o.nombre}</b>
+                            <small>{on && fuera ? `${o.clientes - fuera} de ${o.clientes} clientes` : `${o.clientes} clientes activos`}</small>
+                          </span>
+                        </label>
+                        <button type="button" className="seg__ver" onClick={() => alternar(abiertas, setAbiertas, o.id)} aria-expanded={abierta} aria-label={`${abierta ? 'Ocultar' : 'Ver'} los clientes de ${o.nombre}`}>
+                          {abierta ? 'Ocultar' : 'Ver'}
+                        </button>
+                      </div>
+                      {abierta ? (
+                        <ul className="seg__subclientes">
+                          {(o.lista || []).map((c) => (
+                            <li key={c.id}>
+                              <label className={!on ? 'is-apagado' : ''}>
+                                <input type="checkbox" disabled={!on} checked={on && !excluir.includes(c.id)} onChange={() => alternar(excluir, setExcluir, c.id)} />
+                                <span>{c.nombre}</span>
+                              </label>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  )
+                })
               : opciones.canales.map((c) => (
                   <label key={c.id} className={`seg__opcion${canales.includes(c.id) ? ' is-on' : ''}`}>
                     <input type="checkbox" checked={canales.includes(c.id)} onChange={() => alternar(canales, setCanales, c.id)} />
@@ -335,9 +380,40 @@ export default function Seguimiento({ onVolver }) {
             <div className="seg__globitos">
               {verEmojis ? <SelectorEmojis onElegir={ponerEmoji} onCerrar={cerrarEmojis} /> : null}
               {globitos.map((g, i) => (
-                <div key={i} className={`seg__globito${i === activo ? ' is-activo' : ''}`}>
+                <div
+                  key={i}
+                  className={`seg__globito${i === activo ? ' is-activo' : ''}${arrastrado === i ? ' is-moviendo' : ''}${sobre?.i === i ? ` is-soltar-${sobre.lado}` : ''}`}
+                  onDragOver={(e) => {
+                    if (arrastrado === null) return
+                    e.preventDefault()
+                    const r = e.currentTarget.getBoundingClientRect()
+                    const lado = e.clientY < r.top + r.height / 2 ? 'arriba' : 'abajo'
+                    if (sobre?.i !== i || sobre?.lado !== lado) setSobre({ i, lado })
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    mover(arrastrado, sobre?.lado === 'abajo' ? i + 1 : i)
+                    setArrastrado(null)
+                    setSobre(null)
+                  }}
+                >
                   {sugerencias?.i === i ? <SugerenciasMencion sugerencias={sugerencias} onElegir={elegir} /> : null}
-                  <span className="seg__num" aria-hidden="true">{i + 1}</span>
+                  <span
+                    className="seg__num"
+                    draggable={globitos.length > 1}
+                    title={globitos.length > 1 ? 'Arrastrá para cambiar el orden' : undefined}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/x-atv-globito', String(i))
+                      e.dataTransfer.effectAllowed = 'move'
+                      setArrastrado(i)
+                    }}
+                    onDragEnd={() => {
+                      setArrastrado(null)
+                      setSobre(null)
+                    }}
+                  >
+                    {i + 1}
+                  </span>
                   <textarea
                     ref={(el) => { cajas.current[i] = el }}
                     className="seg__texto"

@@ -52,18 +52,23 @@ export function fetchMensajes(canalId, { antesDe, despuesDe, hasta } = {}) {
   return request(`/api/mensajes/canales/${canalId}/mensajes${sufijo}`)
 }
 
-export function enviarMensaje(canalId, texto, respuestaA = null, menciones = [], adjuntos = []) {
+export function enviarMensaje(canalId, texto, respuestaA = null, menciones = [], adjuntos = [], como = null) {
   return request(`/api/mensajes/canales/${canalId}/mensajes`, {
     method: 'POST',
-    body: JSON.stringify({ texto, respuesta_a: respuestaA, menciones, adjuntos }),
+    body: JSON.stringify({ texto, respuesta_a: respuestaA, menciones, adjuntos, ...(como ? { como } : {}) }),
   })
 }
 
+// Área VA: las cuentas del equipo a nombre de las que puede escribir (vacío para el resto).
+export function fetchEnviarComo() {
+  return request('/api/mensajes/enviar-como')
+}
+
 /** Sube un archivo con progreso (fetch no informa el avance de subida; XMLHttpRequest sí). */
-export function subirAdjunto(canalId, archivo, alAvanzar) {
+export function subirAdjunto(canalId, archivo, alAvanzar, como = null) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
-    xhr.open('POST', `/api/mensajes/canales/${canalId}/adjuntos`)
+    xhr.open('POST', `/api/mensajes/canales/${canalId}/adjuntos${como ? `?como=${como}` : ''}`)
     const token = getStoredToken()
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
     xhr.upload.onprogress = (e) => e.lengthComputable && alAvanzar?.(Math.round((e.loaded / e.total) * 100))

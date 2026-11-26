@@ -838,6 +838,8 @@ class MensajeriaServices:
                     raise HTTPException(status_code=422, detail="Uno de los archivos no es válido. Volvé a subirlo.")
                 propios.append(a)
             m = MensajeCanal(canal=canal, autor_tipo=yo[0], autor_id=yo[1], texto=texto, respuesta_a=respuesta_a)
+            if sesion.get("enviado_por"):
+                m.enviado_por = sesion["enviado_por"]  # VA escribiendo como otra cuenta
             if sesion.get("miembro_id"):
                 # Alguien del equipo del cliente: la cuenta es la del cliente, la firma es la suya.
                 m.miembro_id = sesion["miembro_id"]
@@ -861,8 +863,9 @@ class MensajeriaServices:
                     globals={"cid": canal.id, "aid": yo[1]},
                 )):
                     abierta.respondida_en = m.creado_en
-                if canal.tipo == "cliente" and texto:
+                if canal.tipo == "cliente" and texto and not sesion.get("enviado_por"):
                     # Si le había aparecido una sugerencia y escribió otra cosa, eso también es su voz.
+                    # (Lo que escribe un VA a nombre de otro no es la voz de ese otro.)
                     from src.services.aprendizaje_service import registrar_descartada
 
                     registrar_descartada(yo[1], canal.id, m)
@@ -1204,6 +1207,38 @@ class MensajeriaServices:
             for i, cid in enumerate(dict.fromkeys(ids)):
                 if cid in canales:
                     canales[cid].orden = i
+
+    # ---------- VA: enviar como otra cuenta del equipo ----------
+
+    @staticmethod
+    def _es_va(sesion: dict) -> bool:
+        if not es_equipo(sesion) or sesion.get("miembro_id"):
+            return False
+        with db_session:
+            a = Admin.get(id=sesion["usuario_id"])
+            return bool(a and a.activo and (a.area or "").lower() == "va")
+
+    def cuentas_enviar_como(self, sesion: dict) -> list[dict]:
+        """Solo para el área VA: las cuentas del equipo a nombre de las que puede escribir (la suya primero)."""
+        if not self._es_va(sesion):
+            return []
+        with db_session:
+            cuentas = [a for a in list(Admin.select()) if a.activo and not a.borrado and a.nombre]
+            cuentas.sort(key=lambda a: (a.id != sesion["usuario_id"], (a.nombre or "").lower()))
+            return [{"id": a.id, "nombre": a.nombre, "foto_url": a.foto_url} for a in cuentas]
+
+    def sesion_como(self, sesion: dict, como: int | None) -> dict:
+        """La sesión con la que sale el mensaje: la propia, o la de otra cuenta si quien escribe es VA."""
+        if not como or como == sesion.get("usuario_id"):
+            return sesion
+        if not self._es_va(sesion):
+            raise HTTPException(status_code=403, detail="Solo el área VA puede escribir a nombre de otra cuenta.")
+        with db_session:
+            otra = Admin.get(id=int(como))
+            if otra is None or not otra.activo or otra.borrado:
+                raise HTTPException(status_code=422, detail="Esa cuenta no está activa.")
+            return {"rol": otra.rol or "admin", "usuario_id": otra.id, "nombre": otra.nombre, "email": otra.email,
+                    "enviado_por": sesion["usuario_id"]}
 
     def marcar_sena(self, sesion: dict, cliente_id: int, sena: bool) -> dict:
         """Mueve a mano un cliente al grupo Señas (sena=True) o lo saca (False): Señas se arma solo, pero
