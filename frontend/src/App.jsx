@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import {
   BrowserRouter,
   Navigate,
@@ -66,19 +66,12 @@ function RutaMensajes() {
 }
 
 // El equipo ya no trabaja en el escritorio de macOS (components/mac/Escritorio.jsx, quedó sin usar): navega con la
-// barra lateral como el cliente, y sus carpetas (Clientes, Biblioteca, etc.) se abren como ventanas flotantes desde
-// ahí (HerramientasEquipo), en PC y tablet.
+// barra lateral como el cliente, y sus carpetas (Clientes, Biblioteca, etc.) se abren desde ahí (HerramientasEquipo):
+// en PC y tablet como carpetas flotantes y en el celular subiendo desde abajo.
 function MarcoEquipo({ children }) {
   const { isEquipo, isAuthenticated } = useAuth()
   const { pathname } = useLocation()
-  const [ancho, setAncho] = useState(() => window.matchMedia('(min-width: 721px)').matches)
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 721px)')
-    const cambiar = () => setAncho(mq.matches)
-    mq.addEventListener('change', cambiar)
-    return () => mq.removeEventListener('change', cambiar)
-  }, [])
-  if (!isAuthenticated || !isEquipo || !ancho || pathname.startsWith('/login')) return children
+  if (!isAuthenticated || !isEquipo || pathname.startsWith('/login')) return children
   return (
     <>
       {children}

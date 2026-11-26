@@ -12,6 +12,7 @@ import BibliotecaApp from './BibliotecaApp'
 import NuevaClase from './NuevaClase'
 import NuevoCliente from '../mensajes/NuevoCliente'
 import '../../styles/finder.css'
+import '../../styles/carpetas.css'
 
 // Las carpetas y apps del equipo (antes en el escritorio de macOS) como ventanas flotantes sobre la página.
 // Se abren desde la barra lateral (Sidebar manda "atv:carpeta" con el id) y Mensajes pide la ficha de un

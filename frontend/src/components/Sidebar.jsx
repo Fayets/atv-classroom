@@ -369,7 +369,7 @@ export default function Sidebar() {
           <div className="sb-grupo sb-grupo--carpetas">
             <p className="sb-etq">Carpetas</p>
             {CARPETAS.filter((c) => isAdmin || !c[3]).map(([id, label, icono = 'carpeta']) => (
-              <button key={id} type="button" className={`sb-item sb-item--carpeta${icono === 'mas' ? ' is-crear' : ''}`} onClick={() => abrirCarpeta(id)} title={riel ? label : undefined}>
+              <button key={id} type="button" className={`sb-item sb-item--carpeta${icono === 'mas' ? ' is-crear' : ''}`} onClick={() => { abrirCarpeta(id); setCajon(false) }} title={riel ? label : undefined}>
                 <span className="sb-carpeta"><Icono n={icono} /></span>
                 <span className="sb-item__txt">{label}</span>
               </button>

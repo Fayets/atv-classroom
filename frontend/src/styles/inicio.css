@@ -71,6 +71,12 @@ html .in-root.im-root .in-ask { position: relative; isolation: isolate; }
 html .in-root.im-root .in-ask > .im-ask__form,
 html .in-root.im-root .in-ask > .in-traba,
 html .in-root.im-root .in-ask > .im-reveal { width: 100%; max-width: var(--in-col); margin-inline: auto; box-sizing: border-box; }
+/* PC y tablet: el campo y la lista arrancan en el mismo borde izquierdo que el saludo (todo en una línea). */
+@media (min-width: 721px) {
+  html .in-root.im-root .in-ask > .im-ask__form,
+  html .in-root.im-root .in-ask > .in-traba,
+  html .in-root.im-root .in-ask > .im-reveal { margin-inline: 0 auto; }
+}
 .in-haz { position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(50% - var(--vista, 100vw) / 2); width: var(--vista, 100vw); pointer-events: none; }
 html .in-root.im-root .in-ask > :not(.in-haz) { position: relative; }
 

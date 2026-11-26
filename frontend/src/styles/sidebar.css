@@ -178,6 +178,14 @@ html[data-modo="azul"] .app-migas b { color: #f2eee8; }
   .sb-fondo.is-abierto { opacity: 1; pointer-events: auto; }
   .app-menu { display: grid; place-items: center; width: 38px; height: 38px; margin-left: -8px; border: 0; border-radius: 10px; background: none; color: inherit; cursor: pointer; }
   .app-menu svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+  /* La barra de arriba, pegada al borde aunque se scrollee rápido. En el iPhone, Safari estira la página al llegar
+     a un borde (el rebote) y la barra, que es sticky, se separaba: por el hueco se veía la página. Dos arreglos:
+     sin rebote en la página, y la barra con una extensión de su mismo color hacia arriba que tapa cualquier hueco. */
+  html, body { overscroll-behavior-y: none; }
+  html .app-header::before {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 100vh;
+    background: inherit; pointer-events: none;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .sb, .sb-pildora, .sb-fondo, .sb-arbol__flecha, body:has(> .sb) { transition: none; }
@@ -196,7 +204,6 @@ html[data-modo="azul"] .app-migas b { color: #f2eee8; }
 .sb-item--carpeta .sb-carpeta { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 7px; background: var(--sb-hover); color: var(--sb-t2); }
 .sb-item--carpeta .sb-carpeta svg { width: 15px; height: 15px; }
 .sb-item--carpeta.is-crear .sb-carpeta { background: var(--sb-rojo); color: #fff; }
-@media (max-width: 720px) { .sb-grupo--carpetas { display: none; } }
 
 /* ---------- grupos como bandejas con pestaña (rediseño de la separación) ----------
    Cada grupo (General, Equipo y admin, Carpetas, Tu material) es una bandeja un tono más clara que la barra,
