@@ -1384,3 +1384,9 @@ html .app-header__menu-logout:hover { background: rgba(215, 0, 21, 0.06); color:
 .msj-como { display: flex; align-items: center; gap: 8px; margin: 0 0 6px 4px; font-size: 12px; color: var(--m-t3, #6e6e73); }
 .msj-como select { border: 1px solid var(--m-borde, #d9d9de); border-radius: 7px; padding: 3px 6px; background: var(--m-campo, #fff); color: var(--m-t1, #1d1d1f); font: inherit; font-size: 12.5px; font-weight: 600; }
 .msj-como.is-otro select { border-color: var(--m-acento, #c0392b); color: var(--m-acento, #c0392b); }
+/* Desplegables (Enviar como, Programar…): en Windows la lista se dibuja con el fondo de la caja, que es
+   transparente, y en modo azul quedaba texto claro sobre blanco. Fondo y texto explícitos, del tema. */
+.msj-root select option,
+.seg select option { background: var(--m-tarjeta, #fff); color: var(--m-t1, #1d1d1f); }
+.msj-root select option:checked,
+.seg select option:checked { background: var(--m-acento, #c0392b); color: #fff; }
