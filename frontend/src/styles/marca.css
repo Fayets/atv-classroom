@@ -14,7 +14,8 @@ html:not([data-modo="azul"]) :is(.app-shell, .lg-lado)::before {
   pointer-events: none;
   background: url('/marca/papel.webp') center / cover no-repeat;
   mix-blend-mode: multiply;
-  opacity: 0.09;
+  /* casi imperceptible: se tiene que sentir, no ver */
+  opacity: 0.025;
 }
 
 /* ---------- sellos del logo, como máscara: toman el color del texto ---------- */

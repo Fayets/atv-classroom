@@ -21,7 +21,7 @@ function guardarHechas(claseId, hechas) {
 }
 
 // La clase como mesa de trabajo: a la izquierda se ve, a la derecha se implementa y se revisa.
-export default function MesaClase({ clase, cargando, guardando, anterior, siguiente, onToggleCompletado, onIr }) {
+export default function MesaClase({ clase, cargando, guardando, anterior, siguiente, posicion = {}, onToggleCompletado, onIr }) {
   const [hechas, setHechas] = useState([])
 
   useEffect(() => {
@@ -39,6 +39,9 @@ export default function MesaClase({ clase, cargando, guardando, anterior, siguie
     const nuevas = hechas.includes(i) ? hechas.filter((x) => x !== i) : [...hechas, i]
     setHechas(nuevas)
     guardarHechas(clase.id, nuevas)
+    // Con todas las claves aplicadas, la clase queda implementada (y suma al % del módulo, en el servidor).
+    // Destildar una después no la desmarca: eso se hace con el botón, por si la habías marcado a mano.
+    if (claves.length && nuevas.length >= claves.length && !clase.completado && !guardando) onToggleCompletado(true)
   }
 
   return (
@@ -123,6 +126,30 @@ export default function MesaClase({ clase, cargando, guardando, anterior, siguie
           >
             <Check done={clase.completado} /> {clase.completado ? 'Implementada' : 'Marcar como implementada'}
           </button>
+          {/* Dónde estás en el módulo y qué sigue: que se note que hay que ir pasando de clase. */}
+          {posicion.total ? (
+            clase.completado ? (
+              siguiente ? (
+                <button type="button" className="ms-avance is-lista" onClick={() => onIr(siguiente.id)}>
+                  <span className="ms-avance__txt">
+                    <small>Clase lista · {posicion.hechas} de {posicion.total} implementadas</small>
+                    <b>Seguí con la {posicion.numero + 1}: {tituloLindo(siguiente.titulo)}</b>
+                  </span>
+                  <span className="ms-avance__ir" aria-hidden="true"><Chevron /></span>
+                </button>
+              ) : (
+                <p className="ms-avance is-fin">
+                  <small>Última clase del módulo</small>
+                  <b>{posicion.hechas === posicion.total ? '¡Completaste el módulo!' : `Te quedan ${posicion.total - posicion.hechas} sin implementar`}</b>
+                </p>
+              )
+            ) : (
+              <p className="ms-avance">
+                <small>Vas por la clase {posicion.numero} de {posicion.total}</small>
+                <b>Implementala para sumar al módulo y pasar a la siguiente</b>
+              </p>
+            )
+          ) : null}
         </section>
       </aside>
 
@@ -138,11 +165,9 @@ export default function MesaClase({ clase, cargando, guardando, anterior, siguie
                 <b>{tituloLindo(anterior.titulo)}</b>
               </span>
             </button>
-          ) : (
-            <span />
-          )}
+          ) : null}
           {siguiente ? (
-            <button type="button" className="mt-nav__btn mt-nav__btn--next" onClick={() => onIr(siguiente.id)}>
+            <button type="button" className={`mt-nav__btn mt-nav__btn--next${anterior ? '' : ' is-sola'}`} onClick={() => onIr(siguiente.id)}>
               <span className="mt-nav__txt">
                 <small>Siguiente clase</small>
                 <b>{tituloLindo(siguiente.titulo)}</b>

@@ -303,3 +303,29 @@ html .in-root.im-root .in-frentes .im-open__next { color: var(--in-rojo); font-w
 
 /* Al bajar con "Scrolleá", la sección no queda tapada por la barra de arriba (que es fija). */
 .in-banda, .in-semana, .in-frentes { scroll-margin-top: var(--in-barra); }
+
+/* ---------- el coach en la banda roja: badge "en vivo" ----------
+   El avatar late con un anillo que se expande (como alguien conectado) y un brillo cruza la píldora cada tanto. */
+.in-banda__coach { position: relative; overflow: hidden; isolation: isolate; padding-right: 14px; background: rgba(0, 0, 0, 0.2); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
+.in-banda__coach i { position: relative; }
+.in-banda__coach i::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--in-crema);
+  opacity: 0; animation: in-late 2.4s cubic-bezier(0.2, 0.7, 0.3, 1) infinite;
+}
+.in-banda__coach::after {
+  content: ''; position: absolute; z-index: -1; top: 0; bottom: 0; left: -40%; width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  animation: in-brillo 4.2s ease-in-out 1s infinite;
+}
+@keyframes in-late { 0% { opacity: 0.85; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(1.7); } }
+@keyframes in-brillo { 0% { left: -40%; } 45%, 100% { left: 120%; } }
+@media (prefers-reduced-motion: reduce) { .in-banda__coach i::after, .in-banda__coach::after { animation: none; } }
+
+/* "Tu chat con ATV": los últimos 2 mensajes del equipo, apilados (el más nuevo abajo). En celular, solo el último. */
+.in-chat__globos { display: flex; flex-direction: column; gap: 8px; }
+.in-chat__globos .in-chat__globo:not(:last-child) { opacity: 0.72; }
+.in-chat__globos .in-chat__texto { -webkit-line-clamp: 2; }
+@media (max-width: 720px) {
+  .in-chat__globos .in-chat__globo:not(:last-child) { display: none; }
+  .in-chat__globos .in-chat__texto { -webkit-line-clamp: 3; }
+}

@@ -39,6 +39,21 @@ export default function BarraModulo({ titulo, secciones, claseActivaId, seccionT
           </span>
           <kbd>⌘K</kbd>
         </button>
+        {/* Pasar de clase sin bajar hasta el final: anterior / "Clase X de Y" / siguiente, bien a la vista. */}
+        {numero ? (
+          <span className="ms-pasos" role="group" aria-label="Cambiar de clase">
+            <button type="button" className="ms-pasos__btn" disabled={numero <= 1} onClick={() => onSelectClase(todas[numero - 2].id)} aria-label="Clase anterior" title="Clase anterior">
+              <Chevron dir="left" />
+            </button>
+            <span className="ms-pasos__n num" aria-live="polite">
+              Clase <b>{numero}</b>
+              <small>/{total}</small>
+            </span>
+            <button type="button" className="ms-pasos__btn is-sig" disabled={numero >= total} onClick={() => onSelectClase(todas[numero].id)} aria-label="Clase siguiente" title="Clase siguiente">
+              <Chevron />
+            </button>
+          </span>
+        ) : null}
         <span className="ms-barra__avance num">
           {hechas} de {todas.length} implementadas
         </span>

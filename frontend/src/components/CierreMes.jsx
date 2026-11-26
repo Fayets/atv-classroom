@@ -49,14 +49,26 @@ function anteriorDe(pendiente, creador) {
 function Formulario({ pendiente, alCerrar, alTerminar, alOtro }) {
   const otro = pendiente.hechos?.length > 0 // ya completó uno este mes: este es el de otro creador
   const [v, setV] = useState({ ...VACIO, creador: '', cambios: [], oferta: '', avatar: '', cuello: '', cuello_por_que: '', satisfaccion: 0, satisfaccion_por_que: '', propuesta: '' })
-  const anterior = anteriorDe(pendiente, v.creador)
+  // El creador "confirmado": recién cuando terminás de escribir el nombre (salís del campo, Enter o lo elegís de la
+  // lista) se busca su oferta y su avatar. Antes cambiaba con cada letra ("a" ya era un creador nuevo).
+  const [creador, setCreador] = useState('')
+  const confirmarCreador = (nombre = v.creador) => setCreador(nombre.trim())
+  const anterior = anteriorDe(pendiente, creador)
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [hecho, setHecho] = useState(null)
   const poner = (k, x) => setV((s) => ({ ...s, [k]: x }))
-  // Al cambiar de creador arranca con lo que contó de él la vez anterior.
+  // Al cambiar de creador arranca con lo que contó de él la vez anterior. Si es un creador nuevo, se vacía solo lo
+  // que había puesto el formulario (lo del creador anterior): lo que escribiste vos no se borra.
+  const puesto = useRef({ oferta: '', avatar: '' })
   useEffect(() => {
-    setV((s) => ({ ...s, cambios: [], oferta: anterior?.oferta || '', avatar: anterior?.avatar || '' }))
+    setV((s) => {
+      const propio = (k) => (s[k] && s[k] !== puesto.current[k] ? s[k] : '')
+      const oferta = anterior?.oferta || propio('oferta')
+      const avatar = anterior?.avatar || propio('avatar')
+      puesto.current = { oferta: anterior?.oferta || '', avatar: anterior?.avatar || '' }
+      return { ...s, cambios: [], oferta, avatar }
+    })
   }, [anterior])
   const cambia = (k) => !anterior || v.cambios.includes(k)
   const alternar = (k) => setV((s) => ({ ...s, cambios: s.cambios.includes(k) ? s.cambios.filter((c) => c !== k) : [...s.cambios, k] }))
@@ -111,7 +123,27 @@ function Formulario({ pendiente, alCerrar, alTerminar, alOtro }) {
             : 'Si manejás varios, escribí de cuál es este cierre: al terminar podés completar el de los otros. Si es uno solo, dejalo vacío.'}
         </p>
         <label className="cm-texto">
-          <input className="cm-input" list="cm-creadores" value={v.creador} onChange={(e) => poner('creador', e.target.value)} placeholder="Nombre del creador" maxLength={80} required={otro} />
+          <input
+            className="cm-input"
+            list="cm-creadores"
+            value={v.creador}
+            onChange={(e) => {
+              poner('creador', e.target.value)
+              // Elegido de la lista de creadores (o borrado del todo): se confirma en el acto.
+              const x = e.target.value.trim().toLowerCase()
+              if (!x || (pendiente.creadores || []).some((c) => c.toLowerCase() === x)) confirmarCreador(e.target.value)
+            }}
+            onBlur={() => confirmarCreador()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                confirmarCreador()
+              }
+            }}
+            placeholder="Nombre del creador"
+            maxLength={80}
+            required={otro}
+          />
           <datalist id="cm-creadores">{(pendiente.creadores || []).map((c) => <option key={c} value={c} />)}</datalist>
         </label>
       </section>
@@ -129,7 +161,7 @@ function Formulario({ pendiente, alCerrar, alTerminar, alOtro }) {
           </>
         ) : (
           <p className="cm-ayuda">
-            {v.creador.trim() ? `Es el primer cierre de ${v.creador.trim()}: contanos su oferta y su avatar.` : 'Es tu primer cierre: contanos tu oferta y tu avatar.'} Los próximos meses solo si cambian.
+            {creador ? `Es el primer cierre de ${creador}: contanos su oferta y su avatar.` : 'Es tu primer cierre: contanos tu oferta y tu avatar.'} Los próximos meses solo si cambian.
           </p>
         )}
         {[['oferta', 'Tu oferta', 'Ayudo a dueños de negocio estancados en $10k/mes a llegar a $100k/mes en 6 meses con 1 a 1, acompañamiento y clases grabadas'], ['avatar', 'Tu avatar', '¿A quién le vendiste este mes?']].map(([k, nombre, ej]) =>

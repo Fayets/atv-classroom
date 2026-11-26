@@ -10,6 +10,7 @@ import Contador from './Contador'
 import { valorContador } from '../utils/contador'
 import LogoATV from './marca/LogoATV'
 import { elegirModo, modoActual } from '../utils/modo'
+import { escucharMigas, migasExtra } from '../utils/migas'
 
 
 // Celular: abre la barra lateral como cajón (components/Sidebar.jsx escucha "atv:menu").
@@ -21,16 +22,85 @@ function BotonMenu() {
   )
 }
 
-// El nombre de la sección para las migas del encabezado.
-function seccionDe(ruta, equipo) {
-  if (ruta === '/') return 'Inicio'
-  if (ruta.startsWith('/classroom')) return equipo ? 'Classroom' : 'Material'
-  if (ruta.startsWith('/admin/cerebro')) return 'Cerebro'
-  if (ruta.startsWith('/admin/equipo')) return 'Equipo'
-  if (ruta.startsWith('/admin')) return 'Módulos'
-  const nombres = { '/roadmap': 'Roadmap', '/tools': 'Tools', '/mensajes': 'Mensajes', '/cuenta': 'Mi cuenta', '/consultas': 'Consultas', '/frentes': 'Frentes', '/recursos': 'Recursos', '/comunidad': 'Comunidad' }
-  const clave = Object.keys(nombres).find((k) => ruta.startsWith(k))
-  return clave ? nombres[clave] : 'ATV'
+// Las migas del encabezado: "ATV › Sección › sub-vista › …". Cada nivel menos el último es un link: "ATV" va al
+// inicio (el del equipo es Mensajes), la sección a su pantalla, y así. Los niveles que salen de la URL se arman acá;
+// los que solo sabe la página (el chat abierto, el módulo y la clase) llegan con ponerMigas() (utils/migas.js).
+const SECCIONES = [
+  ['/admin/cerebro', 'Cerebro'],
+  ['/admin/equipo', 'Equipo'],
+  ['/admin', 'Módulos'],
+  ['/classroom', null], // Material (cliente) o Classroom (equipo)
+  ['/roadmap', 'Roadmap'],
+  ['/tools', 'Tools'],
+  ['/mensajes', 'Mensajes'],
+  ['/cuenta', 'Mi cuenta'],
+  ['/consultas', 'Consultas'],
+  ['/frentes', 'Frentes'],
+  ['/recursos', 'Recursos'],
+  ['/comunidad', 'Comunidad'],
+]
+const titular = (slug) => slug.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase())
+
+function armarMigas({ pathname: ruta, search }, equipo, extras) {
+  const q = new URLSearchParams(search)
+  const lista = [{ label: 'ATV', to: equipo ? '/mensajes' : '/' }]
+  if (ruta === '/') {
+    lista.push({ label: 'Inicio', to: '/' })
+  } else {
+    const [base, nombre] = SECCIONES.find(([b]) => ruta === b || ruta.startsWith(`${b}/`)) || []
+    // Frentes no tiene pantalla propia: se listan en el Inicio.
+    if (base) lista.push({ label: nombre || (equipo ? 'Classroom' : 'Material'), to: base === '/frentes' ? '/' : base })
+    if (base === '/mensajes') {
+      if (q.get('v') === 'directos') lista.push({ label: 'Mensajes directos', to: '/mensajes?v=directos' })
+      if (q.get('v') === 'alertas') lista.push({ label: 'Menciones', to: '/mensajes?v=alertas' })
+      if (q.get('seg') === '1') lista.push({ label: 'Seguimiento', to: '/mensajes?seg=1' })
+    }
+    if (ruta === '/classroom' && q.get('vista') === 'sops') lista.push({ label: 'SOPs', to: '/classroom?vista=sops' })
+    if (ruta === '/admin' && q.get('vista') === 'tools') lista.push({ label: 'Tools', to: '/admin?vista=tools' })
+    if (base === '/roadmap' && q.get('cliente')) lista.push({ label: 'Roadmap del cliente', to: `/roadmap${search}` })
+    if (base === '/frentes' && ruta.split('/')[2]) lista.push({ label: titular(ruta.split('/')[2]), to: ruta })
+  }
+  return [...lista, ...extras]
+}
+
+function Migas({ equipo }) {
+  const location = useLocation()
+  const [extras, setExtras] = useState(migasExtra)
+  useEffect(() => {
+    const dejar = escucharMigas(() => setExtras(migasExtra()))
+    // La pantalla anterior borra sus niveles al irse, antes de que este encabezado empiece a escuchar: se relee.
+    setExtras(migasExtra())
+    return dejar
+  }, [])
+  const lista = armarMigas(location, equipo, extras)
+  return (
+    <nav className="app-migas" aria-label="Estás en">
+      {lista.map((m, i) => {
+        const ultima = i === lista.length - 1
+        return (
+          <Fragment key={`${i}-${m.label}`}>
+            {i ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg> : null}
+            {ultima || !m.to ? <b aria-current={ultima ? 'page' : undefined}>{m.label}</b> : <Link to={m.to}>{m.label}</Link>}
+          </Fragment>
+        )
+      })}
+    </nav>
+  )
+}
+
+// El modo de color como dos íconos (claro / oscuro), a la izquierda del perfil.
+function ModoIconos({ modo, onCambiar }) {
+  const oscuro = modo === 'oscuro' || (modo === 'auto' && document.documentElement.dataset.modo === 'azul')
+  return (
+    <div className="app-modo" role="group" aria-label="Modo de color">
+      <button type="button" className={!oscuro ? 'is-on' : ''} aria-pressed={!oscuro} onClick={() => onCambiar('claro')} title="Modo claro" aria-label="Modo claro">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" /></svg>
+      </button>
+      <button type="button" className={oscuro ? 'is-on' : ''} aria-pressed={oscuro} onClick={() => onCambiar('oscuro')} title="Modo oscuro" aria-label="Modo oscuro">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></svg>
+      </button>
+    </div>
+  )
 }
 
 const PLANES = { advantage: 'High Level', high: 'High Level', boost: 'Boost', mid: 'Mid level', entry: 'Entry level', mentoria: 'Mentoria', '2k': '2K' }
@@ -73,6 +143,8 @@ export default function AppHeader() {
     setModo(m)
   }
   const menuRef = useRef(null)
+  const cierreMenu = useRef(null)
+  useEffect(() => () => clearTimeout(cierreMenu.current), [])
   const initials = getUserInitials(user?.nombre)
 
   useEffect(() => {
@@ -183,12 +255,8 @@ export default function AppHeader() {
             </button>
           </span>
         ) : null}
-        {/* Con la barra lateral (PC y tablet), el encabezado queda como migas: ATV › la sección. */}
-        <span className="app-migas">
-          ATV
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-          <b>{seccionDe(location.pathname, isEquipo)}</b>
-        </span>
+        {/* Con la barra lateral (PC y tablet), el encabezado queda como migas: ATV › la sección › … */}
+        <Migas equipo={isEquipo} />
       </div>
 
       {secciones ? (
@@ -244,7 +312,21 @@ export default function AppHeader() {
       )}
 
       <div className="app-header__right">
-      <div className="app-header__user" ref={menuRef}>
+      <ModoIconos modo={modo} onCambiar={cambiarModo} />
+      {/* El perfil: el menú (Mi cuenta, cerrar sesión) se abre al pasar el mouse o al tocarlo. */}
+      <div
+        className="app-header__user"
+        ref={menuRef}
+        onMouseEnter={(e) => {
+          if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+          clearTimeout(cierreMenu.current)
+          if (e.currentTarget) setMenuOpen(true)
+        }}
+        onMouseLeave={() => {
+          if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+          cierreMenu.current = setTimeout(() => setMenuOpen(false), 220)
+        }}
+      >
         <button
           type="button"
           className="app-header__avatar"
@@ -292,23 +374,6 @@ export default function AppHeader() {
               </div>
             ) : null}
             <div className="app-header__menu-sep" />
-            <div className="app-header__modo" role="group" aria-label="Modo de color">
-              <span>Modo</span>
-              <div>
-                {[['claro', 'Claro'], ['oscuro', 'Oscuro'], ['auto', 'Auto']].map(([m, nombre]) => (
-                  <button
-                    key={m}
-                    type="button"
-                    className={modo === m ? 'is-on' : ''}
-                    aria-pressed={modo === m}
-                    title={m === 'auto' ? 'Oscuro de 20 a 7 h' : undefined}
-                    onClick={() => cambiarModo(m)}
-                  >
-                    {nombre}
-                  </button>
-                ))}
-              </div>
-            </div>
             {isEquipo && habilitada ? (
               <Link to="/mensajes?v=directos" className="app-header__menu-link app-header__menu-link--directos" role="menuitem" onClick={() => setMenuOpen(false)}>
                 <svg viewBox="0 0 24 24" aria-hidden="true">

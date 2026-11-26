@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchProgramas, fetchSopsClassroom, request } from '../../api/client'
-import { fetchCanales } from '../../api/mensajes'
+import { fetchCanales, fetchMensajes } from '../../api/mensajes'
 import { fetchMiRoadmap } from '../../api/roadmap'
 import { useMensajeria } from '../../context/MensajeriaContext'
 import { tituloLindo } from '../../utils/frentes'
@@ -122,7 +122,6 @@ export function BandaPaso({ paso }) {
   return (
     <section className="in-banda" aria-labelledby="in-banda-t">
       <div className="in-banda__marco">
-        <span className="marca-circulo in-banda__agua" aria-hidden="true" />
         <div className="in-banda__txt">
           <p className="in-banda__etq">
             <span>Tu próximo paso</span>
@@ -191,23 +190,59 @@ function Seguir({ clase, modulo }) {
   )
 }
 
+// Los últimos 2 mensajes que te mandó el equipo en tu chat (reales: se piden al canal y se suman los que llegan en
+// vivo). En celular se muestra solo el último (inicio.css).
+function useUltimosDelEquipo(canalId) {
+  const { suscribir } = useMensajeria()
+  const [ultimos, setUltimos] = useState(null)
+  const delEquipo = (m) => m && !m.borrado && m.texto && m.autor?.tipo !== 'cliente'
+  useEffect(() => {
+    if (!canalId) return undefined
+    let vivo = true
+    fetchMensajes(canalId)
+      .then((r) => vivo && setUltimos((r?.mensajes || []).filter(delEquipo).slice(-2)))
+      .catch(() => vivo && setUltimos(null))
+    const dejar = suscribir?.((ev) => {
+      if (ev.tipo === 'mensaje' && ev.mensaje?.canal_id === canalId && delEquipo(ev.mensaje)) {
+        setUltimos((l) => [...(l || []).filter((m) => m.id !== ev.mensaje.id), ev.mensaje].slice(-2))
+      }
+    })
+    return () => {
+      vivo = false
+      dejar?.()
+    }
+  }, [canalId, suscribir])
+  return ultimos
+}
+
 function Chat({ chat }) {
-  const u = chat.ultimo
   const nuevos = chat.no_leidos || 0
+  const ultimos = useUltimosDelEquipo(chat.id)
+  // Si todavía no llegaron (o falló el pedido), el último mensaje que trae la lista de canales.
+  const u = chat.ultimo
+  const lista = ultimos?.length
+    ? ultimos.map((m) => ({ id: m.id, nombre: m.autor?.nombre, texto: m.texto, cuando: m.creado_en }))
+    : u?.texto && u.de !== 'cliente'
+      ? [{ id: 'ultimo', nombre: u.autor_nombre, texto: u.texto, cuando: u.creado_en }]
+      : []
   return (
     <Link to={`/mensajes?c=${chat.id}`} className={`in-card in-chat${nuevos ? ' is-nuevos' : ''}`}>
       <small className="in-card__etq">
         Tu chat con ATV
         {nuevos ? <span className="in-chat__cuenta num">{nuevos > 99 ? '99+' : nuevos}</span> : null}
       </small>
-      {u?.texto ? (
-        <span className="in-chat__globo">
-          <span className="in-chat__quien">
-            <i aria-hidden="true">{iniciales(u.autor_nombre)}</i>
-            {u.de === 'cliente' ? 'Vos' : u.autor_nombre}
-            <span>{haceCuanto(u.creado_en)}</span>
-          </span>
-          <span className="in-chat__texto">{u.texto}</span>
+      {lista.length ? (
+        <span className="in-chat__globos">
+          {lista.map((m) => (
+            <span key={m.id} className="in-chat__globo">
+              <span className="in-chat__quien">
+                <i aria-hidden="true">{iniciales(m.nombre)}</i>
+                {m.nombre}
+                <span>{haceCuanto(m.cuando)}</span>
+              </span>
+              <span className="in-chat__texto">{m.texto}</span>
+            </span>
+          ))}
         </span>
       ) : (
         <span className="in-chat__vacio">Escribile al equipo: te responde tu coach.</span>

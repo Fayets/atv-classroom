@@ -1038,7 +1038,7 @@ html .app-header--cliente .app-header__avatar { background: #242321; color: #f3f
 @media (max-width: 720px) {
   html .app-header.app-header--cliente { grid-template-columns: 1fr auto; grid-template-areas: "marca yo"; padding: 10px 18px; }
   .cliente-nav { display: none; }
-  html .app-header .app-header__user { display: none; }
+  /* el perfil y el modo siguen arriba a la derecha (Mi cuenta y cerrar sesión, en el menú del perfil) */
 }
 
 /* iPhone: un campo con letra menor a 16px hace zoom al tocarlo; en la app anclada eso desarma la pantalla. */

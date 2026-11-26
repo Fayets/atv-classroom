@@ -639,3 +639,37 @@ html[data-modo="azul"] .cr-lector__video { background: #302d2b; }
 html[data-modo="azul"] .cr-mesa__filtro.is-abierto { background: #2b2927; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.09), 0 24px 50px -20px rgba(0, 0, 0, 0.7); }
 @keyframes cr-filtro-abre { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .cr-mesa__filtro.is-abierto { animation: none; } }
+
+/* ---------- la clase: pasar de clase tiene que ser obvio ----------
+   Arriba, un selector "‹ Clase 6/8 ›"; el tramo de la clase actual late; abajo del botón de implementar, qué sigue.
+   "Siguiente clase" cuando no hay anterior va a la izquierda (no queda flotando a la derecha). */
+html .cr-root .mt-nav__btn--next.is-sola { grid-column: 1; text-align: left; }
+html .cr-root .mt-nav__btn--next.is-sola .mt-nav__txt { align-items: flex-start; }
+
+.ms-pasos { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 12px; background: rgba(255, 255, 255, 0.6); box-shadow: inset 0 0 0 1px var(--pc-line); }
+html[data-modo="azul"] .ms-pasos { background: #302d2b; }
+.ms-pasos__btn { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 9px; background: none; color: var(--pc-t2); cursor: pointer; transition: background-color 150ms ease, color 150ms ease, transform 150ms ease; }
+.ms-pasos__btn:hover:not(:disabled) { background: var(--pc-line); color: var(--pc-t1); }
+.ms-pasos__btn:active:not(:disabled) { transform: scale(0.92); }
+.ms-pasos__btn:disabled { opacity: 0.3; cursor: default; }
+.ms-pasos__btn.is-sig:not(:disabled) { background: var(--pc-red); color: #fff; }
+.ms-pasos__btn.is-sig:not(:disabled):hover { background: #a93226; }
+.ms-pasos__n { padding: 0 8px; font-size: 13px; color: var(--pc-t3); white-space: nowrap; }
+.ms-pasos__n b { color: var(--pc-t1); font-size: 15px; }
+.ms-pasos__n small { font-size: 12px; }
+html .cr-root .ms-seg.is-now { animation: ms-late 1.8s ease-in-out infinite; }
+@keyframes ms-late { 0%, 100% { box-shadow: 0 0 0 3px var(--pc-red-soft); } 50% { box-shadow: 0 0 0 6px rgba(192, 57, 43, 0.08); } }
+
+.ms-avance { display: flex; flex-direction: column; gap: 2px; width: 100%; margin: 12px 0 0; padding: 12px 14px; border: 0; border-radius: 14px; background: var(--pc-line); text-align: left; font: inherit; color: var(--pc-t1); }
+.ms-avance small { font-size: 12px; color: var(--pc-t3); }
+.ms-avance b { font-size: 14px; font-weight: 600; line-height: 1.3; }
+.ms-avance.is-lista { flex-direction: row; align-items: center; gap: 12px; cursor: pointer; background: linear-gradient(120deg, rgba(31, 138, 76, 0.14), rgba(31, 138, 76, 0.04)); box-shadow: inset 0 0 0 1px rgba(31, 138, 76, 0.3); animation: ms-entra 420ms cubic-bezier(0.23, 1, 0.32, 1); }
+.ms-avance.is-lista small { color: var(--pc-ok); font-weight: 600; }
+.ms-avance__txt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ms-avance__ir { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--pc-ok); color: #fff; animation: ms-empuja 1.6s ease-in-out infinite; }
+.ms-avance.is-lista:hover .ms-avance__ir { animation: none; transform: translateX(2px); }
+.ms-avance.is-fin small { color: var(--pc-ok); font-weight: 600; }
+@keyframes ms-entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes ms-empuja { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+@media (max-width: 720px) { .ms-pasos__n { padding: 0 4px; } }
+@media (prefers-reduced-motion: reduce) { html .cr-root .ms-seg.is-now, .ms-avance.is-lista, .ms-avance__ir { animation: none; } }

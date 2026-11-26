@@ -1,15 +1,14 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { fetchProgramas } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { useMensajeria } from '../context/MensajeriaContext'
-import { elegirModo, modoActual } from '../utils/modo'
-import { getUserInitials } from '../utils/user'
 import Contador from './Contador'
 import { valorContador } from '../utils/contador'
 import LogoATV from './marca/LogoATV'
 import { abrirCarpeta } from './mac/HerramientasEquipo'
+import BuscadorBarra from './BuscadorBarra'
 import '../styles/sidebar.css'
 
 // La barra lateral de la app (rediseño 2026-11, styles/sidebar.css), para el cliente y el equipo.
@@ -47,6 +46,7 @@ const I = {
   carpeta: <path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" />,
   libro: <><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z" /><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z" /></>,
   mas: <path d="M12 5v14M5 12h14" />,
+  sop: <><path d="M6 3.5h8l4 4v13H6z" /><path d="M14 3.5v4h4M9 12h6M9 15.5h6" /></>,
 }
 const Icono = ({ n }) => <svg viewBox="0 0 24 24" aria-hidden="true">{I[n]}</svg>
 
@@ -112,6 +112,20 @@ function useRiel() {
   return [riel, alternar]
 }
 
+// Las carpetas del equipo: [id, nombre, ícono, solo admin].
+const CARPETAS = [
+  ['clientes', 'Clientes', 'carpeta', true],
+  ['contratos', 'Contratos', 'carpeta', true],
+  ['cierres', 'Cierres de mes', 'carpeta', true],
+  ['onboardings', 'Onboardings', 'carpeta'],
+  ['llamadas', 'Llamadas', 'carpeta'],
+  ['cuellos', 'Cuellos de botella', 'carpeta'],
+  ['sops', 'SOPs solicitados', 'carpeta'],
+  ['biblioteca', 'Biblioteca', 'libro'],
+  ['alta', 'Nuevo onboarding', 'mas'],
+  ['clase', 'Nueva clase', 'mas', true],
+]
+
 // Un anillo chico con el avance del módulo (o un candado si está cerrado).
 function MiniAnillo({ pct, cerrado }) {
   if (cerrado) return <span className="sb-mod__ico is-cerrado"><Icono n="candado" /></span>
@@ -129,12 +143,10 @@ function MiniAnillo({ pct, cerrado }) {
 const ATAJO = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘K' : 'Ctrl K'
 
 export default function Sidebar() {
-  const { user, logout, isAdmin, isEquipo } = useAuth()
-  const { resumen, menciones, habilitada, directosSinLeer } = useMensajeria()
-  const navigate = useNavigate()
+  const { user, isAdmin, isEquipo } = useAuth()
+  const { resumen, menciones, habilitada } = useMensajeria()
   const { pathname } = useLocation()
   const [riel, alternarRiel] = useRiel()
-  const [modo, setModo] = useState(modoActual)
   // "Tu material" abierto o cerrado (como carpeta); queda guardado en este dispositivo.
   const [arbol, setArbolEstado] = useState(() => localStorage.getItem('atv_sb_material') !== '0')
   const setArbol = (abierto) => {
@@ -155,7 +167,6 @@ export default function Sidebar() {
 
   const conTools = !isEquipo && user?.permisos?.tools === 'si'
   const conRoadmap = !isEquipo && (user?.permisos?.roadmaps ?? (user?.rol === '2k' ? 'no' : 'si')) !== 'no'
-  const conGuia = !isEquipo && (user?.permisos?.ia ?? (user?.rol === '2k' ? 'no' : 'si')) !== 'no'
   const contador = valorContador(menciones, resumen.no_leidos)
 
   // Las secciones en grupos: lo de todos y, para el equipo, sus herramientas (y las del admin).
@@ -211,40 +222,21 @@ export default function Sidebar() {
     return () => ro.disconnect()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ⌘K / Ctrl+K: al buscador de la guía del inicio.
-  useEffect(() => {
-    if (!conGuia) return undefined
-    const tecla = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        irAlBuscador()
-      }
-    }
-    document.addEventListener('keydown', tecla)
-    return () => document.removeEventListener('keydown', tecla)
-  })
-
   // Cerrar el cajón (celular) al cambiar de pantalla.
   useEffect(() => {
     setCajon(false)
   }, [pathname])
 
-  function irAlBuscador() {
-    if (pathname !== '/') navigate('/')
-    setTimeout(() => document.getElementById('im-q')?.focus(), pathname === '/' ? 0 : 250)
-    onCerrarCajon?.()
-  }
-
-  function cambiarModo() {
-    const siguiente = modo === 'claro' ? 'oscuro' : modo === 'oscuro' ? 'auto' : 'claro'
-    elegirModo(siguiente)
-    setModo(siguiente)
-  }
-
-  function salir() {
-    logout()
-    navigate('/login', { replace: true })
-  }
+  // Lo que se puede buscar en la barra: las secciones (con SOPs y Mi cuenta) y, para el equipo, sus carpetas.
+  const seccionesBuscables = [
+    ...grupos.flatMap(([, items]) => items.map(([to, label, icono]) => ({ to, label, icono }))),
+    { to: '/classroom?vista=sops', label: 'SOPs', icono: 'sop' },
+    ...(isEquipo && habilitada ? [{ to: '/mensajes?v=directos', label: 'Mensajes directos', icono: 'directos' }] : []),
+    { to: '/cuenta', label: 'Mi cuenta', icono: 'cuenta' },
+  ]
+  const carpetasBuscables = isEquipo
+    ? CARPETAS.filter((c) => isAdmin || !c[3]).map(([id, label]) => ({ label, abrir: () => abrirCarpeta(id) }))
+    : []
 
   const plan = isEquipo ? (isAdmin ? 'Administrador' : 'Coach') : PLANES[user?.rol] || 'Tu programa'
   const dias = !isEquipo && user?.dias_restantes != null ? user.dias_restantes : null
@@ -256,6 +248,79 @@ export default function Sidebar() {
     ? Math.round((100 * disponibles.reduce((n, m) => n + (m.total_clases * (m.porcentaje_progreso || 0)) / 100, 0)) / totalClases)
     : null
 
+  // "Tu material" (o "Módulos del classroom"): abierto como árbol, cerrado como carpeta entera. Al cliente le va
+  // adentro de la bandeja de "Tu espacio"; al equipo, debajo de sus grupos.
+  const material = riel ? (
+    // Plegada: un ícono de carpeta; al tocarlo se despliega la barra con el árbol abierto.
+    abiertos.length ? (
+      <button
+        type="button"
+        className="sb-item sb-material-riel"
+        onClick={() => {
+          setArbol(true)
+          alternarRiel()
+        }}
+        title={isEquipo ? 'Módulos del classroom' : 'Tu material'}
+        aria-label={`${isEquipo ? 'Módulos del classroom' : 'Tu material'}: abrir`}
+      >
+        <Icono n="carpeta" />
+      </button>
+    ) : null
+  ) : (
+    <>
+          {/* "Tu material": abierto, los módulos como un árbol con su avance; cerrado, una carpeta entera con el
+              nombre y el resumen escritos en el frente (al pasar el mouse asoman las hojas). */}
+          {abiertos.length && !arbol ? (
+            <button type="button" className="sb-folder" onClick={() => setArbol(true)} aria-expanded="false" title="Abrir">
+              <span className="sb-folder__atras" aria-hidden="true" />
+              <span className="sb-folder__hojas" aria-hidden="true">
+                <i />
+                <i />
+              </span>
+              <span className="sb-folder__frente">
+                <b>{isEquipo ? 'Módulos del classroom' : 'Tu material'}</b>
+                <small>
+                  <span className="num">{abiertos.length}</span> módulos
+                  {!isEquipo && avanceTotal != null ? <> · <span className="num">{avanceTotal}%</span> hecho</> : null}
+                </small>
+              </span>
+            </button>
+          ) : null}
+          {abiertos.length && arbol ? (
+            <section className="sb-arbol">
+              <button type="button" className="sb-etq sb-arbol__cab" onClick={() => setArbol(false)} aria-expanded="true">
+                <span className={`sb-arbol__flecha${arbol ? ' is-abierto' : ''}`}><Icono n="chevron" /></span>
+                {isEquipo ? 'Módulos del classroom' : 'Tu material'}
+              </button>
+              {arbol ? (
+                <ul>
+                  {abiertos.map((m) => {
+                    const pct = Math.min(100, Math.max(0, m.porcentaje_progreso ?? 0))
+                    const hechas = Math.round((m.total_clases * pct) / 100)
+                    return (
+                      <li key={m.id}>
+                        {m.bloqueado ? (
+                          <span className="sb-mod is-cerrado" title={`${m.titulo}: bloqueado`}>
+                            <MiniAnillo cerrado />
+                            <span className="sb-mod__txt">{m.titulo}</span>
+                          </span>
+                        ) : (
+                          <NavLink to={`/classroom/${m.id}`} className={({ isActive }) => `sb-mod${isActive ? ' is-on' : ''}`} title={`${m.titulo}: ${hechas} de ${m.total_clases} clases`}>
+                            <MiniAnillo pct={pct} />
+                            <span className="sb-mod__txt">{m.titulo}</span>
+                            {isEquipo ? <span className="sb-mod__n num">{m.total_clases}</span> : <span className="sb-mod__n num">{hechas}/{m.total_clases}</span>}
+                          </NavLink>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : null}
+            </section>
+          ) : null}
+      </>
+  )
+
   return createPortal(
     <>
       <div className={`sb-fondo${cajonAbierto ? ' is-abierto' : ''}`} onClick={onCerrarCajon} aria-hidden="true" />
@@ -266,8 +331,12 @@ export default function Sidebar() {
             <span className="sb-cred__txt">
               <b>ATV Classroom</b>
               <small>
-                {plan}
-                {dias != null ? <> · <span className={dias <= 15 ? 'is-poco' : ''}>{dias < 0 ? 'vencido' : `${dias} ${dias === 1 ? 'día' : 'días'}`}</span></> : null}
+                {/* El rango como un sello con borde que brilla: que se sienta el plan que tiene. */}
+                <span className="sb-rango">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z" /></svg>
+                  {plan}
+                </span>
+                {dias != null ? <span className={`sb-dias${dias <= 15 ? ' is-poco' : ''}`}>{dias < 0 ? 'vencido' : `${dias} ${dias === 1 ? 'día' : 'días'}`}</span> : null}
               </small>
             </span>
           </div>
@@ -276,18 +345,12 @@ export default function Sidebar() {
           </button>
         </div>
 
-        {conGuia ? (
-          <button type="button" className="sb-buscar" onClick={irAlBuscador} title="Buscar un SOP o preguntarle a la guía">
-            <Icono n="buscar" />
-            <span>Buscar o preguntar</span>
-            <kbd title="Atajo de teclado para abrir el buscador">{ATAJO}</kbd>
-          </button>
-        ) : null}
+        <BuscadorBarra secciones={seccionesBuscables} modulos={modulos} carpetas={carpetasBuscables} atajo={ATAJO} Icono={Icono} riel={riel} />
 
         <nav className="sb-nav" ref={lista}>
           <span className="sb-pildora" ref={pildora} aria-hidden="true" />
           {grupos.map(([titulo, items]) => (
-            <div key={titulo} className="sb-grupo">
+            <div key={titulo} className={`sb-grupo${isEquipo ? '' : ' sb-grupo--espacio'}`}>
               <p className="sb-etq">{titulo}</p>
               {items.map(([to, label, icono, cuenta, exacta]) => (
                 <NavLink key={to} to={to} end={Boolean(exacta)} className={({ isActive }) => `sb-item${isActive ? ' is-on' : ''}`} title={riel ? label : undefined}>
@@ -296,6 +359,7 @@ export default function Sidebar() {
                   <Contador valor={cuenta} className="sb-cuenta" />
                 </NavLink>
               ))}
+              {isEquipo ? null : material}
             </div>
           ))}
         </nav>
@@ -304,16 +368,7 @@ export default function Sidebar() {
         {isEquipo ? (
           <div className="sb-grupo sb-grupo--carpetas">
             <p className="sb-etq">Carpetas</p>
-            {[
-              ...(isAdmin ? [['clientes', 'Clientes'], ['contratos', 'Contratos'], ['cierres', 'Cierres de mes']] : []),
-              ['onboardings', 'Onboardings'],
-              ['llamadas', 'Llamadas'],
-              ['cuellos', 'Cuellos de botella'],
-              ['sops', 'SOPs solicitados'],
-              ['biblioteca', 'Biblioteca', 'libro'],
-              ['alta', 'Nuevo onboarding', 'mas'],
-              ...(isAdmin ? [['clase', 'Nueva clase', 'mas']] : []),
-            ].map(([id, label, icono = 'carpeta']) => (
+            {CARPETAS.filter((c) => isAdmin || !c[3]).map(([id, label, icono = 'carpeta']) => (
               <button key={id} type="button" className={`sb-item sb-item--carpeta${icono === 'mas' ? ' is-crear' : ''}`} onClick={() => abrirCarpeta(id)} title={riel ? label : undefined}>
                 <span className="sb-carpeta"><Icono n={icono} /></span>
                 <span className="sb-item__txt">{label}</span>
@@ -322,82 +377,8 @@ export default function Sidebar() {
           </div>
         ) : null}
 
-        {/* "Tu material": abierto, los módulos como un árbol con su avance; cerrado, una carpeta entera con el
-            nombre y el resumen escritos en el frente (al pasar el mouse asoman las hojas). */}
-        {abiertos.length && !arbol ? (
-          <button type="button" className="sb-folder" onClick={() => setArbol(true)} aria-expanded="false" title="Abrir">
-            <span className="sb-folder__atras" aria-hidden="true" />
-            <span className="sb-folder__hojas" aria-hidden="true">
-              <i />
-              <i />
-            </span>
-            <span className="sb-folder__frente">
-              <b>{isEquipo ? 'Módulos del classroom' : 'Tu material'}</b>
-              <small>
-                <span className="num">{abiertos.length}</span> módulos
-                {!isEquipo && avanceTotal != null ? <> · <span className="num">{avanceTotal}%</span> hecho</> : null}
-              </small>
-            </span>
-          </button>
-        ) : null}
-        {abiertos.length && arbol ? (
-          <section className="sb-arbol">
-            <button type="button" className="sb-etq sb-arbol__cab" onClick={() => setArbol(false)} aria-expanded="true">
-              <span className={`sb-arbol__flecha${arbol ? ' is-abierto' : ''}`}><Icono n="chevron" /></span>
-              {isEquipo ? 'Módulos del classroom' : 'Tu material'}
-            </button>
-            {arbol ? (
-              <ul>
-                {abiertos.map((m) => {
-                  const pct = Math.min(100, Math.max(0, m.porcentaje_progreso ?? 0))
-                  const hechas = Math.round((m.total_clases * pct) / 100)
-                  return (
-                    <li key={m.id}>
-                      {m.bloqueado ? (
-                        <span className="sb-mod is-cerrado" title={`${m.titulo}: bloqueado`}>
-                          <MiniAnillo cerrado />
-                          <span className="sb-mod__txt">{m.titulo}</span>
-                        </span>
-                      ) : (
-                        <NavLink to={`/classroom/${m.id}`} className={({ isActive }) => `sb-mod${isActive ? ' is-on' : ''}`} title={`${m.titulo}: ${hechas} de ${m.total_clases} clases`}>
-                          <MiniAnillo pct={pct} />
-                          <span className="sb-mod__txt">{m.titulo}</span>
-                          {isEquipo ? <span className="sb-mod__n num">{m.total_clases}</span> : <span className="sb-mod__n num">{hechas}/{m.total_clases}</span>}
-                        </NavLink>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            ) : null}
-          </section>
-        ) : null}
 
-        <div className="sb-pie">
-          <NavLink to="/cuenta" className={({ isActive }) => `sb-yo${isActive ? ' is-on' : ''}`} title="Mi cuenta">
-            <span className="sb-yo__av" aria-hidden="true">
-              {user?.foto_url ? <img src={user.foto_url} alt="" referrerPolicy="no-referrer" /> : getUserInitials(user?.nombre)}
-            </span>
-            <span className="sb-yo__txt">
-              <b>{user?.nombre || 'Mi cuenta'}</b>
-              <small>Mi cuenta y configuración</small>
-            </span>
-          </NavLink>
-          <div className="sb-acciones">
-            {isEquipo && habilitada ? (
-              <NavLink to="/mensajes?v=directos" className="sb-accion" title="Mensajes directos" aria-label="Mensajes directos">
-                <Icono n="directos" />
-                {directosSinLeer ? <i className="sb-accion__punto" /> : null}
-              </NavLink>
-            ) : null}
-            <button type="button" className="sb-accion" onClick={cambiarModo} title={`Modo: ${modo} (tocá para cambiar)`} aria-label={`Modo de color: ${modo}. Cambiar`}>
-              <Icono n={modo === 'oscuro' ? 'luna' : modo === 'auto' ? 'auto' : 'sol'} />
-            </button>
-            <button type="button" className="sb-accion" onClick={salir} title="Cerrar sesión" aria-label="Cerrar sesión">
-              <Icono n="salir" />
-            </button>
-          </div>
-        </div>
+        {isEquipo ? material : null}
       </aside>
     </>,
     document.body,

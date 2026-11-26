@@ -28,6 +28,7 @@ import { nombreVisible } from '../utils/canales'
 import ContextoCliente from '../components/mensajes/ContextoCliente'
 import '../styles/contexto.css'
 import '../styles/rediseno.css'
+import { ponerMigas } from '../utils/migas'
 
 // "martin zuniga" encuentra "Martín Zúñiga": sin tildes, sin ñ y sin mayúsculas.
 const sinTildes = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -782,6 +783,18 @@ export default function MensajesPage() {
     onDrop: (e) => soltar(e, grupoId),
   })
   const item = canales?.find((c) => c.id === activo)
+  // Migas del encabezado: el chat abierto va como último nivel ("ATV › Mensajes › Alan Klein").
+  const nombreChat = !item
+    ? null
+    : item.tipo === 'cliente'
+      ? isEquipo ? item.cliente?.nombre || item.nombre : 'Mi canal'
+      : item.tipo === 'grupo' || item.tipo === 'anuncios'
+        ? `#${nombreVisible(item.nombre)}`
+        : item.nombre
+  useEffect(() => {
+    ponerMigas(nombreChat ? [{ label: nombreChat }] : [])
+    return () => ponerMigas([])
+  }, [nombreChat])
   // Lo que se puede nombrar con "#": los chats de clientes por su slug y los canales de la comunidad por su nombre sin
   // emoji ni tildes ("👋︙presentación" → presentacion). Estos últimos solo se vuelven link con el "#" adelante.
   const porSlug = useMemo(() => {

@@ -17,6 +17,8 @@ import SubirLiveSession from '../components/clase/SubirLiveSession'
 import { useAuth } from '../context/AuthContext'
 import { Chevron } from '../components/frentes/piezas'
 import { flattenClases, navegacionClase } from '../utils/programa'
+import { ponerMigas } from '../utils/migas'
+import { tituloLindo } from '../utils/frentes'
 
 function primeraClaseId(secciones) {
   for (const seccion of secciones) {
@@ -65,6 +67,17 @@ export default function ProgramaDetailPage() {
   const claseActivaId = searchParams.get('clase')
     ? Number(searchParams.get('clase'))
     : null
+
+  // Migas del encabezado: Material › el módulo › la clase abierta (el módulo lleva al índice del módulo).
+  useEffect(() => {
+    if (!programa) return
+    const clase = claseActivaId ? flattenClases(programa.secciones).find((c) => c.id === claseActivaId) : null
+    ponerMigas([
+      { label: programa.titulo, to: clase ? `/classroom/${programaId}` : undefined },
+      clase ? { label: tituloLindo(clase.titulo) } : null,
+    ])
+    return () => ponerMigas([])
+  }, [programa, claseActivaId, programaId])
 
   const tieneContenido =
     programa?.secciones?.some((seccion) => seccion.clases?.length > 0) ?? false
@@ -254,6 +267,11 @@ export default function ProgramaDetailPage() {
             clase={claseDetalle}
             anterior={nav.anterior}
             siguiente={nav.siguiente}
+            posicion={{
+              numero: nav.actual?.numero,
+              total: nav.total,
+              hechas: flattenClases(programa.secciones).filter((c) => c.completado).length,
+            }}
             cargando={cargandoClase}
             guardando={guardandoProgreso}
             onToggleCompletado={handleToggleCompletado}

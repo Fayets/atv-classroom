@@ -34,7 +34,7 @@ El login mock no mira la contraseña (cualquiera sirve). El rol sale de lo que c
 | contiene `coach` (ej. `coach@atv.io`) | **Lucho Vicente**, coach (equipo, sin admin) |
 | cualquier otro (ej. `admin@atv.io`) | **Laureano Sierra**, admin |
 
-Para cambiar de usuario: avatar → Cerrar sesión.
+Para cambiar de usuario: avatar arriba a la derecha → Cerrar sesión (ver 2.9).
 
 ### Cosas a saber del mock
 
@@ -42,6 +42,7 @@ Para cambiar de usuario: avatar → Cerrar sesión.
 - Admin (Permisos, Tools, Contenido), Cerebro y Equipo muestran "Sin datos de prueba para esta ruta":
   esas rutas no están simuladas.
 - La **guía con IA** del Inicio no está simulada: al preguntarle algo muestra "Sin datos de prueba para esta ruta".
+- (Desde 2.8 el mock cubre muchas más rutas: guía, frentes, admin, cerebro, consultas, equipo, carpetas.)
 - Se agregaron al mock (copiando la forma exacta del backend) `/api/programas/continuar`
   (`continuarClase` en `api/mock/classroom.js`) y `/api/frentes` (`frentesDelCliente` en `api/mock/extras.js`),
   para que el Inicio muestre "Seguí donde quedaste" y "Tus frentes abiertos".
@@ -178,6 +179,83 @@ panel como Pipefy). No se copió: árbol de módulos con anillos de avance y gru
   ficha). Al ir a un chat o pantalla desde una carpeta, las ventanas se cierran. `Escritorio.jsx` y
   `EscritorioContext.jsx` quedaron sin usar (no se borraron, por si se quiere volver).
 
+### 2.8 Trabajo hecho desde la otra PC (commits `6f40485`, `0fc7dc4`, `bbc34da`, `62c43cb`)
+Resumido de los mensajes de commit; en algunos puntos reemplaza lo descrito arriba.
+- **Branding 2026** (`styles/marca.css` y otros):
+  - Fuente de toda la app: **Helvetica Now Display**. **Hoosegow JNL** en números y **Biro Script Plus** en la
+    firma del coach y la pizarra. El PDF del diagnóstico de cuellos usa Helvetica Now (Poppins de respaldo).
+  - **Login** con fotos del brandbook (22 en rotación) y el sello "Aumenta tu valor". Sello y círculo ATV en la
+    credencial y en la banda roja del Inicio.
+  - Textura de papel detrás del contenido en modo claro; fotos en los estados vacíos de SOPs y Roadmap.
+  - Logo y favicon con los íconos de `public/icons`.
+  - El **título del Inicio** quedó más chico (cambia lo de 2.6).
+- **Mi cuenta**: credencial en carbón liso, sin holograma ni brillos y con más contraste (antes hubo una versión
+  holográfica con "pase perforado de semanas", reemplazada).
+- **Celular (cambia lo de 2.2 y 2.7)**: **ya no hay barra de abajo ni avatar**. Solo el menú hamburguesa: abre la
+  barra lateral como cajón, con el fondo sin scroll y el pie (Mi cuenta, modo de color, cerrar sesión) fijo abajo.
+- **Notificaciones**: campanita en Mensajes (roadmap, pasos, cierre de mes, acceso, avisos), con vistas por
+  dispositivo. Archivos nuevos en `utils/alertasApp.js`.
+- **Contador de Mensajes** (`utils/contador.js`): muestra el número solo cuando hay menciones; si solo hay sin
+  leer, un punto. **Mensajes directos** tienen su propia vista (ícono de avión).
+- **Cierre de mes**: aviso, cartel y formulario con la paleta de la app, en claro y oscuro.
+- **SOPs**: en celular y tablet los filtros van en un desplegable; filas de módulos y "Tu próximo paso" con más aire.
+- **Barra lateral**: el árbol de módulos se actualiza al marcar una clase (evento `atv:progreso`). El atajo del
+  buscador dice Ctrl K o ⌘K según la compu.
+- **Tools** en celular: la última tarjeta se apila como las demás. **Roadmap**: tocar el punto abierto lo pliega.
+- **Se sacaron**: el efecto TechText (nombre y "Scrolleá") y el "Modo Miembro" del admin (existió un tiempo).
+- **Mock ampliado**: rutas para guía, frentes, foto de perfil, admin, cerebro, consultas, equipo, tools, carpetas
+  del equipo y mensajería/seguimiento. Para probar en el celular de la misma red: `npm run dev:mock -- --host`.
+- **Importante**: el "cerebro" de la app (backend / repo `cerebro-productos-digitales`) **no se toca** desde este
+  trabajo. En la otra PC Claude intentó subir el contexto ahí por error; el contexto del chat va en este archivo.
+
+### 2.9 Feedback del superior (noviembre 2026), en tandas — **reemplaza partes de 2.7**
+Se trabajó "de a poco y muy preciso": cada pedido se verificó en el navegador (PC, celular, claro y oscuro,
+miembro y admin).
+- **Perfil arriba a la derecha, en todas las pantallas (también celular)** — `components/AppHeader.jsx`:
+  - A la izquierda del avatar, el **modo de color como dos íconos** (☀ claro / 🌙 oscuro), `ModoIconos`.
+  - El avatar abre su menú **al pasar el mouse** (PC) **o al tocarlo** (celular): nombre, plan y días, Mi cuenta,
+    Mensajes directos (equipo) y **Cerrar sesión**. Se sacó del menú la fila "Modo".
+  - **La barra lateral ya no tiene pie** (cuenta, modo y salir se fueron arriba). En celular el cajón ya no reserva
+    lugar abajo: la bandeja de "Tu espacio" llega hasta el final.
+- **"Tu material" adentro de la bandeja de "Tu espacio"** (solo miembro): la bandeja blanca llega hasta abajo de la
+  barra y la carpeta (o el árbol) va adentro. El equipo lo sigue teniendo debajo de sus grupos.
+  - **Barra plegada (riel)**: "Tu material" es un ícono de carpeta; al tocarlo se despliega la barra con el árbol
+    abierto (`sb-material-riel`).
+- **Sección activa**: se sacó la rayita roja de afuera; ahora hay una **línea roja pegada al borde izquierdo, por
+  dentro de la píldora, con una luz roja** que se difumina (`.sb-pildora::before/::after`).
+- **Buscador propio de la barra** — `components/BuscadorBarra.jsx` (nuevo): ya **no lleva al Inicio**. Al tocarlo (o
+  Ctrl K / ⌘K) abre un panel con sugerencias (SOPs, "Seguí con <módulo a medias>", secciones) y **filtra mientras
+  escribís** secciones, módulos, SOPs y (equipo) carpetas; con "S" aparece primero "SOPs". Sinónimos ("procesos" →
+  SOPs, "perfil" → Mi cuenta). Flechas, Enter y Esc. Resultados agrupados por tipo.
+- **Migas funcionales** — `AppHeader.jsx` (`armarMigas`, `Migas`) + `utils/migas.js` (nuevo): cada nivel es un
+  link ("ATV" → Inicio; al equipo → Mensajes). Niveles que salen de la URL (Mensajes directos, Menciones,
+  Seguimiento, SOPs, Admin › Tools, Roadmap del cliente, Frentes) y niveles que informa la página con
+  `ponerMigas()`: **MensajesPage** el chat abierto y **ProgramaDetailPage** el módulo y la clase. Cada página
+  borra sus niveles al irse (limpieza del efecto) y el encabezado los relee al montarse.
+- **Textura de papel** (modo claro, `styles/marca.css`): opacidad de 0.09 a **0.025**, casi imperceptible.
+- **Banda roja del Inicio**: se sacó el sello de ATV detrás del "1/5"; el **badge del coach está animado** (el
+  avatar late con un anillo y un brillo cruza la píldora), respeta "reducir movimiento".
+- **"Tu chat con ATV"** (Inicio): muestra los **últimos 2 mensajes reales que mandó el equipo** (pide los mensajes
+  del canal y suma los nuevos en vivo; los del propio cliente no cuentan). En celular, solo el último.
+- **Progreso de los módulos**: el % sale de las clases marcadas como **implementadas** (se guarda en el servidor).
+  Ahora **tildar todas las claves de "Aplicalo en tu negocio" marca la clase como implementada** sola
+  (`MesaClase.jsx`); destildar una no la desmarca (eso se hace con el botón). Verificado: al volver a "Todo el
+  material" el % sube o baja.
+- **La clase: que se note cómo avanzar** (`BarraModulo.jsx`, `MesaClase.jsx`, `classroom-rediseno.css`):
+  - Arriba, selector **‹ Clase X/Y ›** (la flecha siguiente en rojo) y el segmento de la clase actual **late**.
+  - Debajo del botón de implementar, una guía: "Vas por la clase X de Y…" y, al implementarla, una tarjeta verde
+    **"Clase lista · N de M implementadas · Seguí con la X: …"** que lleva a la siguiente. En la última clase dice si
+    completaste el módulo o cuántas faltan.
+  - "Siguiente clase" sola (sin "Anterior") queda alineada a la izquierda.
+- **Mensajes**: "En vivo" va **debajo del título "Mensajes"**, con el punto verde que late.
+- **Credencial de la barra**: el plan es un **sello ★ BOOST con borde de gradiente que gira** (rojo ATV, ámbar,
+  crema) y los días al lado; para el equipo dice Administrador/Coach.
+- **Cierre de mes** (`components/CierreMes.jsx`): el campo "Nombre del creador" **decide el creador recién al
+  terminar de escribir** (salir del campo, Enter o elegirlo de la lista); antes cambiaba con cada letra ("a" ya era
+  un creador nuevo y se iban las opciones de "Tu negocio"). Además **no borra la oferta/avatar que ya escribiste**
+  (solo reemplaza lo que el formulario había completado del creador anterior). Cada creador tiene su propia oferta
+  y su avatar: un nombre nuevo pide los dos.
+
 ---
 
 ## 3. Preferencias y forma de trabajar del dueño del proyecto
@@ -189,7 +267,10 @@ panel como Pipefy). No se copió: árbol de módulos con anillos de avance y gru
   en monitores grandes (prueba en 1920×993), que nada salte de lugar al interactuar.
 - Pide los cambios en **PC, tablet y celular**, y en **modo claro y oscuro**.
 - Revisa con capturas marcadas; cuando dice que algo "está bien" no hay que moverlo.
-- Hacer commit/push solo cuando lo pide.
+- Hacer commit/push solo cuando lo pide, y **antes de pushear actualizar este CONTEXTO.md**.
+- Le gusta ir "de a poco y muy preciso": varios pedidos por mensaje, cada uno verificado.
+- En esa PC hay skills instaladas solo localmente (`.claude/skills/`, emilkowalski/skills y taste-skill), excluidas
+  de git con `.git/info/exclude`; no están en el repo.
 
 ---
 
@@ -220,7 +301,10 @@ panel como Pipefy). No se copió: árbol de módulos con anillos de avance y gru
 - Modo oscuro: `<html data-modo="azul">` (lo cambia el botón de modo de la barra lateral o el menú del avatar en
   celular).
 - Eventos de ventana usados entre componentes: `atv:menu` (abrir el cajón en celular), `atv:carpeta` (abrir una
-  carpeta del equipo), `atv:ficha` (abrir la ficha de un cliente).
+  carpeta del equipo), `atv:ficha` (abrir la ficha de un cliente), `atv:progreso` (refrescar el avance de los
+  módulos en la barra), `atv:migas` (niveles extra de las migas).
+- Ojo al editar con scripts de `node -e` dentro de bash: los template literals (`` `...${x}` ``) se los come el
+  shell; mejor editar con el editor.
 - Verificación hecha en cada cambio: `npx oxlint` sobre los archivos tocados y `npx vite build` (pasan).
 - La vista previa del navegador de Claude, si el panel está oculto, corre a ~1 cuadro por segundo: las
   animaciones (como la entrada del haz) tardan mucho ahí; no es un bug de la app.
