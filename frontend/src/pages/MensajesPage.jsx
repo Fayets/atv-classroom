@@ -1061,7 +1061,7 @@ export default function MensajesPage() {
         ))}
         {puedeSeguimiento ? (
           <button type="button" className={`msj-fila${enSeguimiento ? ' is-activo' : ''}`} onClick={() => setParams({ seg: '1' })} title="Recordar las clases a nombre de otra cuenta">
-            <span className="msj-fila__nombre"><em className="msj-fila__hash">#</em>seguimiento</span>
+            <span className="msj-fila__nombre"><em className="msj-fila__hash">#</em>📲︙seguimiento</span>
           </button>
         ) : null}
         {isEquipo && !canalesGrupo.length ? <p className="msj-grupo__vacio">Todavía no hay canales. Creá uno con el +.</p> : null}

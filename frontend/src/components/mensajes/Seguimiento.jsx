@@ -258,7 +258,7 @@ export default function Seguimiento({ onVolver }) {
     <div className="seg">
       <header className="seg__head">
         <button type="button" className="seg__volver" onClick={onVolver} aria-label="Volver">‹</button>
-        <h2># seguimiento</h2>
+        <h2># 📲︙seguimiento</h2>
         <span>lo ven los admins</span>
       </header>
 
