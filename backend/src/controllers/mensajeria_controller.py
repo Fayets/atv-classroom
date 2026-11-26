@@ -308,7 +308,7 @@ def resolver(mencion_id: int, sesion: dict = Depends(sesion_mensajes)):
 
 @router.post("/canales/{canal_id}/mensajes", status_code=201)
 async def enviar(canal_id: int, body: MensajeNuevo, sesion: dict = Depends(sesion_mensajes)):
-    sesion = await run_in_threadpool(service.sesion_como, sesion, body.como)
+    sesion = await run_in_threadpool(service.sesion_como, sesion, body.como, canal_id)
     mensaje, canal = await run_in_threadpool(
         service.enviar, sesion, canal_id, body.texto, body.respuesta_a, body.menciones, body.adjuntos
     )
@@ -327,7 +327,7 @@ async def enviar(canal_id: int, body: MensajeNuevo, sesion: dict = Depends(sesio
 
 @router.post("/canales/{canal_id}/adjuntos", status_code=201)
 def subir_adjunto(canal_id: int, archivo: UploadFile = File(...), como: int | None = None, sesion: dict = Depends(sesion_mensajes)):
-    sesion = service.sesion_como(sesion, como)  # el archivo queda a nombre de la cuenta con la que va a salir
+    sesion = service.sesion_como(sesion, como, canal_id)  # el archivo queda a nombre de la cuenta con la que va a salir
     def partes():
         while True:
             bloque = archivo.file.read(1024 * 1024)

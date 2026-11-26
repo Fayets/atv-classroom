@@ -1227,17 +1227,23 @@ class MensajeriaServices:
             cuentas.sort(key=lambda a: (a.id != sesion["usuario_id"], (a.nombre or "").lower()))
             return [{"id": a.id, "nombre": a.nombre, "foto_url": a.foto_url} for a in cuentas]
 
-    def sesion_como(self, sesion: dict, como: int | None) -> dict:
-        """La sesión con la que sale el mensaje: la propia, o la de otra cuenta si quien escribe es VA."""
+    def sesion_como(self, sesion: dict, como: int | None, canal_id: int | None = None) -> dict:
+        """La sesión con la que sale el mensaje: la propia, o la de otra cuenta si quien escribe es VA.
+        Solo en chats de clientes y canales: un mensaje directo es entre dos personas, ahí sale siempre como uno."""
         if not como or como == sesion.get("usuario_id"):
             return sesion
         if not self._es_va(sesion):
             raise HTTPException(status_code=403, detail="Solo el área VA puede escribir a nombre de otra cuenta.")
         with db_session:
+            if canal_id is not None:
+                canal = Canal.get(id=canal_id)
+                if canal is None or canal.tipo not in ("cliente", "grupo", "anuncios"):
+                    return sesion
             otra = Admin.get(id=int(como))
             if otra is None or not otra.activo or otra.borrado:
                 raise HTTPException(status_code=422, detail="Esa cuenta no está activa.")
-            return {"rol": otra.rol or "admin", "usuario_id": otra.id, "nombre": otra.nombre, "email": otra.email,
+            # Ve lo mismo que quien escribe (VA es admin): un coach elegido no ve todos los canales y fallaba.
+            return {"rol": "admin", "usuario_id": otra.id, "nombre": otra.nombre, "email": otra.email,
                     "enviado_por": sesion["usuario_id"]}
 
     def marcar_sena(self, sesion: dict, cliente_id: int, sena: bool) -> dict:

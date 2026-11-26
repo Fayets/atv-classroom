@@ -310,7 +310,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       // sin almacenamiento: vale para esta pantalla
     }
   }
-  const cuentaComo = cuentasComo.length > 1 ? cuentasComo.find((c) => c.id === como && c.id !== user?.usuario_id) || null : null
+  // Solo en chats de clientes y canales: un mensaje directo es entre dos personas y sale siempre como uno.
+  const sePuedeComo = ['cliente', 'grupo', 'anuncios'].includes(item?.tipo) && cuentasComo.length > 1
+  const cuentaComo = sePuedeComo ? cuentasComo.find((c) => c.id === como && c.id !== user?.usuario_id) || null : null
   const comoId = cuentaComo?.id ?? null
   const autorMio = cuentaComo
     ? { tipo: 'equipo', id: cuentaComo.id, nombre: cuentaComo.nombre, foto_url: cuentaComo.foto_url }
@@ -1509,7 +1511,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
           </div>
         ) : null}
         <form className="msj-redactar" onSubmit={mandar}>
-          {cuentasComo.length > 1 ? (
+          {sePuedeComo ? (
             <label className={`msj-como${cuentaComo ? ' is-otro' : ''}`}>
               <span>Enviar como</span>
               <select value={cuentaComo?.id ?? user?.usuario_id ?? ''} onChange={(e) => elegirComo(Number(e.target.value))}>
