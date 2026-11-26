@@ -33,7 +33,6 @@ function aLocal(fecha) {
   return d.toISOString().slice(0, 16)
 }
 const formato = new Intl.DateTimeFormat('es-AR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-const ESTADOS = { pendiente: 'Programado', enviando: 'Saliendo', enviado: 'Enviado', cancelado: 'Cancelado', error: 'Falló' }
 
 export default function Seguimiento({ onVolver }) {
   const [opciones, setOpciones] = useState(null)
@@ -477,20 +476,18 @@ export default function Seguimiento({ onVolver }) {
             </div>
           </div>
 
-          {envios.length ? (
+          {/* Solo lo que todavía no salió, para poder cancelarlo (el historial se sacó: Franco, 26-11). */}
+          {envios.some((e) => e.estado === 'pendiente') ? (
             <div className="seg__bloque">
-              <span className="seg__rotulo">Últimos envíos</span>
+              <span className="seg__rotulo">Programados</span>
               <ul className="seg__envios">
-                {envios.map((e) => (
+                {envios.filter((e) => e.estado === 'pendiente').map((e) => (
                   <li key={e.id}>
-                    <span className={`seg__estado is-${e.estado}`}>{ESTADOS[e.estado] || e.estado}</span>
                     <span className="seg__envio-txt">
-                      <b>{e.cuenta}</b> → {e.a_quien} · {formato.format(new Date(e.cuando))}
-                      {e.estado === 'enviado' ? ` · a ${e.enviados}` : ''}
-                      {e.globitos > 1 ? ` · secuencia de ${e.globitos}` : ''}
+                      <b>{formato.format(new Date(e.cuando))} · como {e.cuenta}</b>
                       <small>{e.texto}</small>
                     </span>
-                    {e.estado === 'pendiente' ? <button type="button" onClick={() => cancelar(e.id)}>Cancelar</button> : null}
+                    <button type="button" onClick={() => cancelar(e.id)}>Cancelar</button>
                   </li>
                 ))}
               </ul>
