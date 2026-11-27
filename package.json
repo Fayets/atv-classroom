@@ -1,0 +1,8 @@
+{
+  "name": "atv-leverage-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:mock": "node mock/server.mjs"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "ATV Leverage",
+  "short_name": "Leverage",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAFA",
+  "theme_color": "#FAFAFA",
+  "icons": [{ "src": "/ui/icon-512.png", "sizes": "512x512", "type": "image/png" }]
+}

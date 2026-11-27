@@ -1,0 +1,115 @@
+# Contexto del rediseño de ATV Leverage (noviembre 2026)
+
+Este archivo reúne lo que hay que saber para trabajar el diseño de Leverage. Se actualiza en cada tanda.
+El de Classroom está en `ATV-CLASSROOM/.claude/CONTEXTO.md`, y ese repo queda quieto en `prueba-v1`.
+
+## 1. Qué es Leverage
+
+- Es una app de escritorio (Electron) donde el **dueño de un negocio** (en los datos de prueba, "Franco Ruiz · Escala Digital")
+  maneja un **equipo de agentes de IA**:
+  - el **Asistente**, que es su mano derecha;
+  - **departamentos** (Marketing, Ventas, Contenido, Ops y Sistemas), cada uno con un capitán y especialistas
+    (estratega, analista, setter, closer, guionista, editor, bugs…).
+- Los agentes piensan con la cuenta de Claude del dueño. Lo que gasta plata, publica o le escribe a alguien
+  **espera su OK** en la Bandeja, salvo que el **piloto automático** lo apruebe.
+- Tiene **carpetas por cliente**: la "Principal" es la empresa, y cada cliente tiene su propio equipo y sus datos.
+- Se conecta con el Classroom de ATV: "Entrar con el classroom" le da una clave personal de solo lectura
+  (ver `ATV-CLASSROOM/docs/agentes-api.md`, sección "Claves personales de ATV Leverage", y `LeveragePage.jsx`).
+
+## 2. Qué tenemos y qué no
+
+- **Solo la interfaz** (`ui/`): HTML, CSS y JavaScript sin frameworks. Ver `LEEME.md`.
+  - **No** tenemos el servidor, el método, los datos ni las claves. "El cerebro de la app no lo tocamos".
+  - Se entrega **devolviendo los archivos tocados con la misma estructura de carpetas**. ATV los prueba con la app real.
+- `ui/index.html` carga `/ui/app.js`, que es la **unión de `ui/app/*.js` en orden alfabético**: el servidor real
+  los concatena y el mock hace lo mismo. Todos los scripts comparten el mismo ámbito global (`state`, `view`,
+  `extra`, `api()`, `go()`, `renderBody()`…).
+- No es una carpeta de git. Hacer copia antes de cambios grandes, o inicializar git solo local si hace falta.
+
+## 3. Cómo levantarlo (mock)
+
+- Usamos `npm run dev:mock` dentro de `ATV-LEVERAGE` (o el preview `leverage-mock` de `D:\Landings - Copy\ATV\.claude\launch.json`).
+  Queda en **http://localhost:5180**.
+- El mock está en `mock/` y **no es parte de la entrega**:
+  - `server.mjs` sirve `ui/`, arma `/ui/app.js`, reemplaza `__TOKEN__` del HTML, dibuja avatares con
+    iniciales (`/avatar/:id.svg`) y responde la API.
+  - `datos.mjs` tiene los datos inventados: 12 agentes en 4 áreas, pedidos para aprobar, entregas, #ceo,
+    órdenes entre agentes, KPIs, rutinas, tickets, uso, Instagram conectado y 2 clientes.
+  - Lo que se manda por POST se acepta y, en lo simple (aprobar, chatear, prender rutinas, piloto), cambia los
+    datos en memoria. **Si cambiás el mock, hay que reiniciar el server** (Node no recarga solo).
+  - Lo que no está programado en el mock devuelve una lista vacía.
+- Pantallas que **todavía se ven vacías o con error** por falta de datos (sumarlos cuando se rediseñen):
+  - Ventas/DMs (`/ig/...`), Automatizaciones (`/ig/flujos`) y Contenido (`/contenido`);
+  - Biblioteca (`/library`), Roadmap (`state.roadmap`), Juan IA (`/juan/chats`), Classroom (piloto y consultas)
+    y las Conexiones de Ajustes.
+- El tema se guarda en `localStorage.tema` (`"light"`, `"dark"` o `"system"`) y se aplica en `<html data-theme>`.
+
+## 4. Mapa de la interfaz
+
+- **Barra de arriba** (`renderSide`, en `01-paneles-y-tablero.js`):
+  - logo, pestañas Tablero · Bandeja (con contador) · Ventas · Contenido (si Instagram está conectado) · Equipo · Roadmap;
+  - a la derecha: selector de carpeta (Principal/clientes), piloto automático (avión), Classroom, navegador y el menú
+    (Equipo, Biblioteca, Tickets, Rutinas, Uso, Decisiones, Actividad, Configuración).
+- Las vistas están en `VIEWS` (`10-navegador.js`), y el dibujo va por `renderShell`, `renderHead` y `renderBody` (`11-pintar.js`):
+
+  | Vista | Archivo | Qué muestra |
+  |---|---|---|
+  | `tablero` | 01 | Cuatro columnas: "Esperan tu OK", "En curso", "Entregado hoy" y "Programado", más la caja de pedido "Para: Asistente". |
+  | `historial` | 01 | Rutinas programadas y lo hecho por persona. |
+  | `agent` | 02 | Chat con un agente: a la izquierda las conversaciones por área (`renderConvs`), a la derecha el panel "Trabajo en curso" (`renderPanel`). |
+  | `ceo` | 02 | El canal #ceo, con los reportes de los directores. |
+  | `juan` | 02 | Juan IA. |
+  | `roadmap` | 02 | El roadmap. |
+  | `bandeja` | 03 | Lista de chats, filtros (Todos / Te necesitan / Reportes / Entregas) y el hilo con lo que pide OK. |
+  | `onboarding`, `carpeta` y `equipo` | 04 | Primeros pasos, la carpeta del cliente y el organigrama (dueño → Asistente → áreas). |
+  | `ajustes` | 05 | Secciones: Embudos, General, Objetivo, Conexiones, Píxel, Clientes, Horario libre, Claves, Gasto… |
+  | `biblioteca`, `rutinas`, `uso`, `decisiones`, `actividad` y `tickets` | 06 | Una pantalla cada una. |
+  | `auto` | 07 | Automatizaciones de Instagram. |
+  | `dms` | 08 | Ventas: DMs de Instagram y contactos. |
+  | `contenido` | 08-z | Contenido. |
+  | `classroom` | 09 | El Classroom de ATV adentro de Leverage. |
+
+- El resto de los archivos:
+  - `12-voz.js`: notas de voz;
+  - `13-acciones-y-avisos.js`: clics, avisos, licencia y actualización;
+  - `14-arranque.js`: arranca y vuelve a pedir el estado (`/state` cada 2,5 s, los mensajes cada 2 s).
+- Ojo con `renderBody`: **repinta todo con `innerHTML`** y guarda el scroll y el foco. Animaciones de entrada con
+  CSS se repetirían en cada repintado si la vista cambia de HTML. Conviene animar solo al cambiar de vista.
+
+## 5. Sistema visual actual (`ui/app.css`, unas 2450 líneas)
+
+- **Tipografías**: General Sans para el texto (`--sans`) y Satoshi 700 para el logo (`--logo`). Las dos vienen de Fontshare.
+- **Colores claros**:
+
+  | Variable | Valor |
+  |---|---|
+  | `--bg` y `--sheet` | `#FFF` |
+  | `--fg` | `#242321` (carbón ATV) |
+  | `--line` y `--bubble` | `#F3F0E9` (hueso) |
+  | `--me` (azul, burbuja propia y foco) | `#1351C2` |
+  | `--red` | `#F65046` |
+
+- **Colores oscuros**: `html[data-theme="dark"]`, con `--bg #1C1B19` y `--sheet #242321`.
+- **Layout**:
+  - `.app` es una grilla con la barra arriba (`.side.topbar`), las conversaciones (`.convs`), `.main` como hoja
+    blanca con borde y radio 12, el `.panel` a la derecha y el `#dock` del navegador;
+  - tiene 40 `@media`.
+- **Marca ATV** (la misma que el Classroom): hueso `#F3F0E9`, carbón `#242321` y rojo vivo `#FF2518`.
+  - En el Classroom usamos el rojo `#c0392b`, la tinta, el papel y el kraft, con wordmark ΛUMENTA® TU >ALOR e isotipo.
+  - El logo de Leverage es el isotipo de ATV con una ® en círculo.
+
+## 6. Preferencias del dueño del proyecto (vienen del Classroom)
+
+- Habla en español rioplatense y los textos van en voseo.
+- Quiere un diseño **innovador, que no parezca hecho con IA**, con referencias brasileñas.
+- Cuida el UX/UI básico: márgenes, nada tirado a un costado, que nada salte.
+- Siempre se verifica en **PC, tablet y celular**, en **claro y oscuro**.
+- Revisa con capturas marcadas; si dice que algo "está bien", no se toca.
+- Va "de a poco y muy preciso", varios pedidos por mensaje, cada uno verificado.
+- Commit/push solo cuando lo pide (acá no hay repo: la entrega es devolver los archivos de `ui/`), y se
+  actualiza este archivo antes de entregar.
+
+## 7. Bitácora
+
+- **2026-11-27**: se armó el mock (`mock/`, `package.json` con `dev:mock`), se levantó en el puerto 5180 y se
+  recorrieron todas las vistas. Todavía no se tocó nada de `ui/`.
