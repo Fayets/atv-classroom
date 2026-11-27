@@ -245,6 +245,25 @@ El de Classroom está en `ATV-CLASSROOM/.claude/CONTEXTO.md`, y ese repo queda q
     - El mundo baja 76 px para no quedar tapado por el título.
     - En el celular se sigue explorando arrastrando: achicarlo para que entre haría ilegible el texto.
   - Probado en 1440, celular y oscuro.
+- **2026-11-27 · Gestión y Configuración**: en Tickets, Rutinas, Uso, Decisiones, Actividad y Configuración
+  todo es de estilos, salvo una línea de JS.
+  - En `renderHead` (11), `#main` queda con `data-vista="<pantalla>"`. Con eso se adapta la cabecera según la pantalla.
+    - En Gestión, Configuración, Biblioteca y Carpeta, la cabecera es de página: ícono en un cuadrado de tinta, título grande y bajada en mono.
+    - En Equipo se oculta, porque ya tiene su título grande.
+    - En el celular la cabecera no lleva sangría (el espacio era para la flecha de volver de los chats).
+  - **Tablas** (`.kt`: Rutinas, Uso, KPIs): hojas redondeadas con el encabezado en mono sobre fondo suave y filas con hover.
+    En el celular se deslizan de costado.
+  - **Interruptor** (`.sw`) en tinta, más grande, con el botón con sombra.
+  - **Tickets**: la caja de nuevo ticket es flotante, con Crear en rojo. Cada ticket es una tarjeta con su número en mono.
+  - **Uso**: cuentas y cifras en tarjetas, y las barras de límite en tinta, ámbar o rojo según cuánto se usó.
+  - **Actividad**: los días en mono y una línea de tiempo que une los avatares.
+  - **Configuración**:
+    - el menú es una bandeja suave con la sección elegida **en tinta**, como la barra lateral; en el celular pasa a
+      pastillas que se deslizan;
+    - cada bloque es una tarjeta con su rótulo en mono;
+    - los botones Guardar van en tinta y los selectores en la cápsula;
+    - las opciones del **piloto automático** son tarjetas, con la elegida en tinta.
+  - Probado en 1440, celular y oscuro.
 - **Git local**: se inicializó un repo solo local en `ATV-LEVERAGE` para ver los cambios (`git diff c718430`),
   y hay una copia de la `ui/` original en `D:\Landings - Copy\ATV\ui-original-leverage-backup`.
   Para entregar se devuelven los archivos de `ui/` que cambiaron: `git diff --name-only c718430 -- ui`.

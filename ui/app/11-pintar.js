@@ -196,6 +196,9 @@ function inboxTools() {
 
 function renderHead() {
 	const a = activeAgent();
+	// La pantalla abierta queda marcada en la hoja: el diseño (atv.css) adapta la cabecera según cuál sea.
+	const hoja = document.getElementById("main");
+	if (hoja) hoja.dataset.vista = view.type;
 	if (view.type === "onboarding" || view.type === "tablero" || view.type === "historial" || view.type === "bandeja") {
 		setHtml("head", "");
 		return;
