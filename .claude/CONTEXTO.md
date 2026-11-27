@@ -256,6 +256,41 @@ miembro y admin).
   (solo reemplaza lo que el formulario había completado del creador anterior). Cada creador tiene su propia oferta
   y su avatar: un nombre nuevo pide los dos.
 
+### 2.10 Feedback del cliente + pedidos de Laureano (noviembre 2026, sobre `2fc67b4`)
+
+El cliente dijo: le gustó la tipografía y lo "clean", siente el salto de calidad; pidió **otra propuesta de login**
+(las fotos no tenían que ver con el classroom) y **otra vista de módulos** (no generaba curiosidad).
+
+- **Login nuevo** (`pages/LoginPage.jsx`, `styles/login.css`):
+  - Fondo a pantalla completa con **Lightfall** (React Bits, `components/efectos/Lightfall.jsx` + `.css`, copiado
+    a mano porque el proyecto no usa shadcn). Claro: `lightMode` con colores `#c0392b/#571306` (los props que pasó
+    el usuario); oscuro: rojos sobre carbón. Mantener apretado acelera la luz (`holdToWarp`). En celular `dpr=1`.
+  - Sin fotos. Arriba isotipo + "ATV Classroom", "Acceso de socios · año" y un **botón claro/oscuro** (`.lg-modo`,
+    usa `elegirModo` de `utils/modo.js`, queda guardado). En celular se oculta "Acceso de socios".
+  - Titular "Tu programa, clase por clase." a la izquierda y la ficha de ingreso (papel con filo rojo) a la
+    derecha; en tablet/celular la ficha baja. El wordmark **ΛUMENTA® TU >ALOR** pasó al pie, enorme y cortado.
+  - Contraste: un velo del color del fondo detrás del encabezado y del titular (`.lg-top::before`,
+    `.lg-texto::before`) y textos más oscuros/gruesos.
+- **Módulos como carpetas de archivo** (`components/clase/ArchivoModulos.jsx`, `styles/archivo.css`; reemplaza
+  el índice editorial `IndiceModulos` en `ProgramasGridPage.jsx`):
+  - Cada módulo es una carpeta de cartón (mismo kraft que `carpetas.css`): pestaña con el número (roja en el que
+    estás haciendo), portada y una hoja escrita asomando, y en el frente nombre, clases, estado y barra de avance.
+  - Hover: el frente se abre (`rotateX`) y las hojas suben (variable `--abrir`); táctil: ya asoman de entrada.
+  - Completo = sello verde; bloqueado = banda elástica roja; sin clases = carpeta punteada. Solo el estado en
+    avance va en rojo. Celular: 2 columnas.
+  - **Módulo abierto** (`BarraModulo.jsx` con `.ar-abierta`, estilos al final de `archivo.css`): la barra es la
+    carpeta abierta con el nombre del módulo en la pestaña (`data-modulo`); cada sección es un **separador**
+    clickeable (lleva a su primera clase, muestra hechas/total); el de la sección actual es del color de la hoja y
+    se une a la clase (`.ms-mesa` como hoja). En tablet/celular los separadores se deslizan de costado.
+- **Carpetas del admin** (Llamadas, Clientes, etc., `components/mac/*`): se arrastran desde **todo el borde de
+  cartón** (índice, márgenes y pestaña), no solo desde la barra blanca; la hoja de adentro sigue arrastrando solo
+  desde su barra. Abrían "esquinadas" porque cada una tenía un corrimiento inicial del viejo escritorio macOS
+  (`pos = useRef({x: 84, y: 52})`…): ahora todas abren centradas (`{x: 0, y: 0}`).
+- **Mi cuenta** (`components/cuenta/Credencial.jsx`): se sacó el talón (rol/área o pase perforado y fechas), el
+  sello, el pie con estado y "Cerrar sesión", y el **tachito para quitar la foto** (confundía; la foto se cambia
+  con la cámara). Aplica a todos los roles: los días de acceso siguen en "Tu plan" y en la barra lateral, y el
+  logout en el menú del avatar.
+
 ---
 
 ## 3. Preferencias y forma de trabajar del dueño del proyecto

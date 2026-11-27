@@ -5,6 +5,8 @@ import { tituloLindo } from '../../utils/frentes'
 import IndiceClases from './IndiceClases'
 
 // Arriba de la clase: volver, el índice (también con ⌘K) y el avance del módulo por tramos.
+// Con el estilo de archivo (archivo.css): la barra es el cartón de la carpeta abierta, con el nombre del módulo
+// en la pestaña, y cada sección es un separador con sus clases; el de la clase abierta se une a la hoja de abajo.
 export default function BarraModulo({ titulo, secciones, claseActivaId, seccionTitulo, numero, total, onSelectClase }) {
   const [abierto, setAbierto] = useState(false)
 
@@ -23,7 +25,7 @@ export default function BarraModulo({ titulo, secciones, claseActivaId, seccionT
   const hechas = todas.filter((c) => c.completado).length
 
   return (
-    <div className="ms-barra">
+    <div className="ms-barra ar-abierta" data-modulo={titulo}>
       <div className="ms-barra__fila">
         <Link to="/classroom" className="im-back">
           <Chevron dir="left" /> Todo el material
@@ -65,7 +67,7 @@ export default function BarraModulo({ titulo, secciones, claseActivaId, seccionT
           if (!clases.length) return null
           const actual = clases.some((c) => c.id === claseActivaId)
           return (
-            <div key={s.id} className={`ms-tramo${actual ? ' is-actual' : ''}`} style={{ flexGrow: clases.length }}>
+            <div key={s.id} className={`ms-tramo${actual ? ' is-actual' : ''}`} style={{ flexGrow: clases.length, '--n': clases.length }}>
               <div className="ms-tramo__segs">
                 {clases.map((c) => (
                   <button
@@ -79,7 +81,12 @@ export default function BarraModulo({ titulo, secciones, claseActivaId, seccionT
                   />
                 ))}
               </div>
-              <span className="ms-tramo__t">{tituloLindo(s.titulo)}</span>
+              <button type="button" className="ms-tramo__t" onClick={() => onSelectClase(clases[0].id)} aria-label={`Ir a ${tituloLindo(s.titulo)}`}>
+                {tituloLindo(s.titulo)}
+                <small className="num">
+                  {clases.filter((c) => c.completado).length}/{clases.length}
+                </small>
+              </button>
             </div>
           )
         })}

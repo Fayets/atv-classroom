@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { cambiarNombre, fetchCuenta, prepararFoto, quitarFoto, subirFoto } from '../api/cuenta'
+import { cambiarNombre, fetchCuenta, prepararFoto, subirFoto } from '../api/cuenta'
 import AppHeader from '../components/AppHeader'
 import CuposEquipo from '../components/cuenta/CuposEquipo'
 import TuEquipo from '../components/cuenta/TuEquipo'
@@ -36,7 +36,7 @@ function textoDias(dias) {
 }
 
 export default function CuentaPage() {
-  const { logout, actualizarUsuario } = useAuth()
+  const { actualizarUsuario } = useAuth()
   const [cuenta, setCuenta] = useState(null)
   const [error, setError] = useState('')
   const [subiendo, setSubiendo] = useState(false)
@@ -68,20 +68,6 @@ export default function CuentaPage() {
     }
   }
 
-  async function sacarFoto() {
-    setSubiendo(true)
-    setError('')
-    try {
-      const { foto_url } = await quitarFoto()
-      setCuenta((c) => ({ ...c, foto_url, foto_propia: false }))
-      actualizarUsuario({ foto_url })
-    } catch (err) {
-      setError(err.message || 'No se pudo quitar la foto.')
-    } finally {
-      setSubiendo(false)
-    }
-  }
-
   const c = cuenta
   const esCliente = c?.tipo === 'cliente'
   const esEquipo = c?.tipo === 'equipo'
@@ -103,8 +89,6 @@ export default function CuentaPage() {
                 tipo={esCliente ? (c.miembro ? 'Equipo del cliente' : 'Miembro') : c.rol_nombre || 'Equipo'}
                 subiendo={subiendo}
                 alElegirFoto={() => selector.current?.click()}
-                alQuitarFoto={sacarFoto}
-                alSalir={logout}
                 nombre={
                   esCliente && !c.miembro ? (
                     <NombreTitular

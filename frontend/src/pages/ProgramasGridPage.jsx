@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError, fetchProgramas, fetchSopsClassroom } from '../api/client'
 import AppHeader from '../components/AppHeader'
+import ArchivoModulos from '../components/clase/ArchivoModulos'
 import { Chevron } from '../components/frentes/piezas'
 import Isotipo from '../components/marca/Isotipo'
 import { tipoRecurso, tituloLindo, urlRecurso } from '../utils/frentes'
-import { getModuloCoverUrl } from '../utils/modules'
 import '../styles/frentes.css'
 import '../styles/material.css'
 import '../styles/classroom-rediseno.css'
@@ -76,139 +76,9 @@ export default function ProgramasGridPage() {
         ) : !programas ? (
           <p className="pc-loading">Cargando módulos…</p>
         ) : (
-          <IndiceModulos modulos={programas} />
+          <ArchivoModulos modulos={programas} />
         )}
       </main>
-    </div>
-  )
-}
-
-// Todo el material como el índice de un libro: una fila por módulo con su número y su nombre en grande.
-// La línea de abajo de cada fila es su barra de avance. Con mouse, la portada aparece flotando junto al
-// cursor (las demás filas se apagan); en el celular va como miniatura en la fila. Arriba, un acceso
-// directo al módulo que quedó a medio hacer.
-function IndiceModulos({ modulos }) {
-  const marco = useRef(null)
-  const vista = useRef(null)
-  const [enFoco, setEnFoco] = useState(null) // el módulo bajo el mouse
-  const posicion = useRef({ x: 0, y: 0, cuadro: 0 })
-
-  // La vista previa sigue al cursor con transform (sin re-render en cada movimiento). Va relativa a esta
-  // sección y no a la pantalla: en el escritorio del equipo la ventana es el contenedor de lo "fixed".
-  const mover = (e) => {
-    posicion.current.x = e.clientX
-    posicion.current.y = e.clientY
-    if (posicion.current.cuadro) return
-    posicion.current.cuadro = requestAnimationFrame(() => {
-      posicion.current.cuadro = 0
-      const caja = marco.current?.getBoundingClientRect()
-      if (!caja) return
-      vista.current?.style.setProperty('--x', `${posicion.current.x - caja.left}px`)
-      vista.current?.style.setProperty('--y', `${posicion.current.y - caja.top}px`)
-    })
-  }
-  useEffect(() => () => cancelAnimationFrame(posicion.current.cuadro), [])
-
-  const seguir = modulos.find((m) => !m.bloqueado && m.total_clases && (m.porcentaje_progreso ?? 0) > 0 && m.porcentaje_progreso < 100)
-
-  return (
-    <div className="cr-material" ref={marco}>
-      {seguir ? (
-        <Link to={`/classroom/${seguir.id}`} className="cr-seguir">
-          <span className="cr-seguir__portada" aria-hidden="true">
-            <img src={getModuloCoverUrl(seguir)} alt="" decoding="async" />
-          </span>
-          <span className="cr-seguir__txt">
-            <small>Seguí donde quedaste</small>
-            <b>{seguir.titulo}</b>
-          </span>
-          <span className="cr-seguir__pct num">{seguir.porcentaje_progreso}%</span>
-          <span className="cr-seguir__ir" aria-hidden="true">
-            <Chevron />
-          </span>
-        </Link>
-      ) : null}
-
-      <ol
-        className={`cr-indice${enFoco ? ' con-foco' : ''}`}
-        onMouseMove={mover}
-        onMouseLeave={() => setEnFoco(null)}
-        aria-label="Módulos"
-      >
-        {modulos.map((m, i) => {
-          const vacio = !m.total_clases
-          const cerrado = vacio || m.bloqueado
-          const pct = Math.min(100, Math.max(0, m.porcentaje_progreso ?? 0))
-          const completo = !cerrado && pct === 100
-          const numero = String(i + 1).padStart(2, '0')
-          const estado = m.bloqueado
-            ? m.motivo_bloqueo === 'plan' ? 'Bloqueado' : 'Se desbloquea pronto'
-            : vacio
-              ? 'Próximamente'
-              : completo
-                ? 'Completo'
-                : pct
-                  ? `${pct}%`
-                  : 'Sin empezar'
-          const fila = (
-            <>
-              <span className="cr-fila__num num" aria-hidden="true">
-                {completo ? (
-                  <svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" /></svg>
-                ) : (
-                  numero
-                )}
-              </span>
-              <span className="cr-fila__mini" aria-hidden="true">
-                <img src={getModuloCoverUrl(m)} alt="" loading="lazy" decoding="async" />
-              </span>
-              <span className="cr-fila__titulo">{m.titulo}</span>
-              <span className="cr-fila__meta">
-                {vacio ? null : <span className="num">{m.total_clases} clases</span>}
-                <span className={`cr-fila__estado${cerrado ? ' is-cerrado' : completo ? ' is-completo' : pct ? ' is-avance' : ''}`}>
-                  {m.bloqueado ? (
-                    <svg viewBox="0 0 16 16" aria-hidden="true">
-                      <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
-                      <path d="M5.5 7V5a2.5 2.5 0 015 0v2" />
-                    </svg>
-                  ) : null}
-                  {estado}
-                </span>
-              </span>
-              <span className="cr-fila__ir" aria-hidden="true">
-                {cerrado ? null : <Chevron />}
-              </span>
-              <span className="cr-fila__avance" aria-hidden="true">
-                <i style={{ transform: `scaleX(${cerrado ? 0 : pct / 100})` }} />
-              </span>
-            </>
-          )
-          const clases = `cr-fila${cerrado ? ' is-cerrado' : ''}${completo ? ' is-completo' : ''}${enFoco?.id === m.id ? ' is-foco' : ''}`
-          return (
-            <li key={m.id} style={{ '--i': i }}>
-              {cerrado ? (
-                <div className={clases} onMouseEnter={() => setEnFoco(m)}>
-                  {fila}
-                </div>
-              ) : (
-                <Link
-                  to={`/classroom/${m.id}`}
-                  className={clases}
-                  onMouseEnter={() => setEnFoco(m)}
-                  aria-label={`${m.titulo}: ${m.total_clases} clases, ${estado}`}
-                >
-                  {fila}
-                </Link>
-              )}
-            </li>
-          )
-        })}
-      </ol>
-
-      {/* La portada que sigue al cursor. Una sola para toda la lista: cambia la imagen, no se crea otra. */}
-      <div className={`cr-vista${enFoco ? ' is-visible' : ''}${enFoco && (enFoco.bloqueado || !enFoco.total_clases) ? ' is-cerrado' : ''}`} ref={vista} aria-hidden="true">
-        {enFoco ? <img src={getModuloCoverUrl(enFoco)} alt="" decoding="async" /> : null}
-      </div>
     </div>
   )
 }

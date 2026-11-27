@@ -71,6 +71,13 @@ html .eq-herr .fd-ventana::before {
   font-size: 14px; font-weight: 600; letter-spacing: -0.01em; color: var(--cp-tinta);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
 }
+/* toda la carpeta se agarra para moverla: el kraft, el índice y la pestaña (no solo la barra de la hoja) */
+html .eq-herr .fd-ventana:not(.is-grande) { cursor: grab; user-select: none; -webkit-user-select: none; }
+html .eq-herr .fd-ventana:not(.is-grande):active { cursor: grabbing; }
+html .eq-herr .fd-ventana:not(.is-grande)::before { pointer-events: auto; }
+html .eq-herr .fd-ventana .fd-principal { cursor: auto; user-select: text; -webkit-user-select: text; }
+html .eq-herr .fd-ventana:not(.is-grande) .fd-barra { cursor: grab; }
+html .eq-herr .fd-ventana .fd-lado { cursor: pointer; }
 /* agrandada: ocupa la mesa, pero la pestaña sigue a la vista */
 html .eq-herr .fd-ventana.is-grande { inset: 36px 0 0 0; width: auto; height: auto; border-radius: 4px 20px 0 0; translate: none; }
 

@@ -405,7 +405,10 @@ export default function Finder({ abierta, alCerrar, alEnfocar, alFrente, alAbrir
       ref={ventana}
       className={`fd-ventana${abierta ? ' is-abierta' : ''}${grande ? ' is-grande' : ''}${alFrente ? ' is-frente' : ''}`}
       style={grande ? undefined : { transform: `translate(${pos.current.x}px, ${pos.current.y}px)` }}
-      onPointerDown={alEnfocar}
+      onPointerDown={(e) => {
+        alEnfocar()
+        if (!e.target.closest('.fd-principal')) arrastrar(e)
+      }}
       onKeyDown={teclas}
       tabIndex={-1}
       role="dialog"

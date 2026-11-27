@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiError, fetchAuthConfig } from '../api/client'
 import GoogleButton from '../components/GoogleButton'
+import Lightfall from '../components/efectos/Lightfall'
+import Isotipo from '../components/marca/Isotipo'
+import { elegirModo } from '../utils/modo'
 import { useAuth } from '../context/AuthContext'
 import '../styles/login.css'
 import { VOLVER_A } from './LeveragePage'
@@ -29,19 +32,25 @@ function destino(porDefecto) {
   return porDefecto
 }
 
-// Las fotos del brandbook para la portada del login (public/marca/fotos).
-const FOTOS_LOGIN = [
-  'senna', 'jordan-pelota', 'ciclista', 'jordan-retrato', 'corredor-sombra', 'corredores-rojo',
-  'auto-rojo', 'caminante-rojo', 'espejo-corbata', 'basquet', 'valija', 'jordan-azul', 'esquiador', 'corredor-ruta',
-  'retrato-azul', 'corredor', 'pelo-rojo', 'bici-traje', 'escalador-azul', 'escalera', 'ciclista-2', 'ciclista-movimiento',
-]
+// Claro / oscuro: sigue a <html data-modo="azul"> (index.html lo aplica antes de pintar).
+function useModoOscuro() {
+  const [oscuro, setOscuro] = useState(() => document.documentElement.dataset.modo === 'azul')
+  useEffect(() => {
+    const html = document.documentElement
+    const mirar = new MutationObserver(() => setOscuro(html.dataset.modo === 'azul'))
+    mirar.observe(html, { attributes: true, attributeFilter: ['data-modo'] })
+    return () => mirar.disconnect()
+  }, [])
+  return oscuro
+}
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const { isAuthenticated, isEquipo, login, loginGoogle } = useAuth()
   const [googleClientId, setGoogleClientId] = useState(null)
 
-  const [foto] = useState(() => FOTOS_LOGIN[Math.floor(Math.random() * FOTOS_LOGIN.length)])
+  const oscuro = useModoOscuro()
+  const [angosto] = useState(() => window.matchMedia('(max-width: 720px)').matches)
   const [email, setEmail] = useState('')
   const [contrasena, setContrasena] = useState('')
   const [verClave, setVerClave] = useState(false)
@@ -107,23 +116,73 @@ export default function LoginPage() {
 
   return (
     <div className="lg-root">
-      <section className="lg-portada" aria-label="ATV · Aumenta Tu Valor">
-        <div className="lg-portada__arriba">
-          {/* Wordmark del Brand System: la A sin travesaño (Λ) y la V como ">" */}
-          <h1 className="lg-wordmark" aria-label="Aumenta tu valor">
-            <span>ΛUMENTA<sup>®</sup></span>
-            <span>TU &gt;ALOR</span>
-          </h1>
-          <span className="lg-meta">{new Date().getFullYear()}</span>
-        </div>
-        {/* Una foto del brandbook (dirección fotográfica: "el valor en movimiento"), distinta en cada visita */}
-        <img className="lg-foto" src={`/marca/fotos/${foto}.webp`} alt="" draggable={false} />
-        <div className="lg-portada__centro" />
-        <span className="marca-pastilla lg-sello" role="img" aria-label="Aumenta tu valor" />
-      </section>
+      {/* La lluvia de luz (Lightfall) cubre todo el login; en celular, a menos resolución para no gastar batería. */}
+      <div className="lg-fondo" aria-hidden="true">
+        <Lightfall
+          key={oscuro ? 'oscuro' : 'claro'}
+          colors={oscuro ? ['#ff2518', '#c0392b', '#7a1a0c'] : ['#c0392b', '#571306']}
+          backgroundColor={oscuro ? '#c0392b' : '#94a3b8'}
+          speed={0.3}
+          streakCount={2}
+          streakWidth={0.6}
+          twinkle={0.5}
+          backgroundGlow={oscuro ? 0.06 : 0.1}
+          headGlow={0.55}
+          bloom={0.3}
+          mouseInteraction
+          holdToWarp
+          intro
+          streakLength={1}
+          density={0.6}
+          glow={1}
+          depth={0.5}
+          zoom={3}
+          mouseStrength={0.4}
+          mouseRadius={0.35}
+          lens={0.5}
+          fade={0}
+          lightMode={!oscuro}
+          dpr={angosto ? 1 : undefined}
+        />
+      </div>
 
-      <main className="lg-lado">
-        <div className="lg-caja">
+      <header className="lg-top">
+        <span className="lg-top__marca">
+          <Isotipo className="lg-top__iso" />
+          <span>ATV Classroom</span>
+        </span>
+        <span className="lg-top__der">
+          <span className="lg-meta">Acceso de socios · {new Date().getFullYear()}</span>
+          {/* Claro / oscuro desde el login: queda guardado igual que desde el menú del avatar. */}
+          <button
+            type="button"
+            className="lg-modo"
+            onClick={() => elegirModo(oscuro ? 'claro' : 'oscuro')}
+            aria-label={oscuro ? 'Pasar a modo claro' : 'Pasar a modo oscuro'}
+            title={oscuro ? 'Modo claro' : 'Modo oscuro'}
+          >
+            {oscuro ? (
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" /></svg>
+            ) : (
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></svg>
+            )}
+          </button>
+        </span>
+      </header>
+
+      <div className="lg-escena">
+        <section className="lg-texto">
+          <p className="lg-meta lg-texto__ojo">El Classroom de ATV</p>
+          <h1>
+            Tu programa,
+            <br />
+            <em>clase por clase.</em>
+          </h1>
+          <p className="lg-texto__bajada">Los módulos, las sesiones en vivo y tu equipo en un solo lugar. Entrá y seguí donde lo dejaste.</p>
+        </section>
+
+        <main className="lg-ficha">
+          <div className="lg-caja">
           <h2>Iniciá sesión</h2>
           <form className="lg-form" onSubmit={handleSubmit} noValidate>
             {error ? (
@@ -195,7 +254,15 @@ export default function LoginPage() {
             <p className="lg-ayuda">¿No te llega la clave? Escribinos por tu canal.</p>
           </div>
         </div>
-      </main>
+        </main>
+      </div>
+
+      {/* El wordmark del Brand System (la A sin travesaño y la V como ">"), ahora como firma grande al pie. */}
+      <footer className="lg-firma" aria-label="Aumenta tu valor">
+        <span aria-hidden="true">
+          ΛUMENTA<sup>®</sup> TU &gt;ALOR
+        </span>
+      </footer>
     </div>
   )
 }

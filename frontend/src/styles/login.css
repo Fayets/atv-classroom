@@ -1,38 +1,113 @@
-/* Login: dos paneles piedra (el de la marca un tono más oscuro), tinta casi negra, rótulos en mono
-   espaciado y un formulario de líneas, sin cajas. Sin blur ni animaciones caras (pantallas de 240 Hz). */
+/* Login (rediseño 2026-11): una sola escena a pantalla completa con la lluvia de luz (Lightfall) de fondo.
+   Arriba, el isotipo y el nombre; al centro, el titular a la izquierda y la ficha de ingreso a la derecha; al pie,
+   el wordmark ΛUMENTA® TU >ALOR enorme, cortado por el borde, como firma. Sin fotos: todo habla del classroom.
+   Claro y oscuro (html[data-modo="azul"]). */
 .lg-root {
   /* Brand System ATV: hueso #F3F0E9, carbón #242321, rojo vivo #FF2518 */
-  --lg-portada: #e7e3db;
-  --lg-lado: #f3f0e9;
+  --lg-fondo: #f3f0e9;
+  --lg-ficha: #fbf9f5;
+  --lg-lado: var(--lg-ficha);
   --lg-tinta: #242321;
   --lg-tinta-2: #5c5953;
   --lg-tinta-3: #96928a;
   --lg-linea: rgba(31, 30, 28, 0.14);
+  --lg-firma: rgba(36, 35, 33, 0.9);
+  --lg-rojo: #ff2518;
   --lg-mono: 'Space Mono', ui-monospace, Menlo, monospace;
   --lg-sans: var(--atv-sans);
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: minmax(0, 1.42fr) minmax(0, 1fr);
-  background: var(--lg-lado);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--lg-fondo);
   color: var(--lg-tinta);
   font-family: var(--lg-sans);
 }
-.lg-meta { font-family: var(--lg-mono); font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--lg-tinta-2); }
+html[data-modo="azul"] .lg-root {
+  --lg-fondo: #161514;
+  --lg-ficha: #22211f;
+  --lg-tinta: #f3f0e9;
+  --lg-tinta-2: #c9c2b8;
+  --lg-tinta-3: #8f897f;
+  --lg-linea: rgba(243, 240, 233, 0.14);
+  --lg-firma: rgba(243, 240, 233, 0.92);
+}
+.lg-meta { font-family: var(--lg-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.28em; text-transform: uppercase; color: var(--lg-tinta); }
 
-/* Portada */
-.lg-portada { position: relative; display: flex; flex-direction: column; padding: 44px 56px; background: var(--lg-portada); border-right: 1px solid var(--lg-linea); overflow: hidden; }
-/* grano del brandbook: estático, sin blur (no cuesta nada al animar) */
-.lg-portada::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.14; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
-.lg-portada__arriba { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.lg-wordmark { margin: 0; display: grid; font-family: var(--atv-sans); font-weight: 600; font-size: 30px; letter-spacing: -0.021em; line-height: 0.86; text-transform: uppercase; color: var(--lg-tinta); }
-.lg-wordmark sup { font-size: 0.32em; font-weight: 500; vertical-align: top; margin-left: 0.08em; }
-.lg-portada__centro { flex: 1; display: flex; align-items: center; justify-content: center; padding-bottom: 40px; }
-.lg-marca { width: 63px; height: auto; display: block; color: var(--lg-tinta); }
+/* La lluvia de luz, detrás de todo */
+.lg-fondo { position: absolute; inset: 0; z-index: -1; }
+/* grano del brandbook, estático */
+.lg-root::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0.1; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+/* Arriba */
+.lg-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 28px clamp(20px, 4vw, 56px) 0; }
+.lg-top__marca { display: inline-flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.lg-top__iso { width: 20px; height: auto; color: var(--lg-tinta); }
+.lg-top__der { display: inline-flex; align-items: center; gap: 14px; }
+.lg-modo {
+  display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  background: var(--lg-ficha); color: var(--lg-tinta); box-shadow: inset 0 0 0 1px var(--lg-linea), 0 4px 12px -6px rgba(40, 20, 10, 0.25);
+  transition: transform 160ms ease, background 160ms ease;
+}
+.lg-modo svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.lg-modo:hover { transform: rotate(-12deg); }
+.lg-modo:active { transform: scale(0.94); }
+.lg-modo:focus-visible { outline: 2px solid var(--lg-rojo); outline-offset: 3px; }
+/* Contraste: la lluvia pasa por detrás del texto; un velo del color del fondo la apaga ahí (arriba y en el titular). */
+.lg-top::before {
+  content: ''; position: absolute; inset: 0 0 -28px; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, var(--lg-fondo) 30%, color-mix(in srgb, var(--lg-fondo) 0%, transparent));
+}
+.lg-texto { position: relative; }
+.lg-texto::before {
+  content: ''; position: absolute; inset: -48px -64px; z-index: -1; pointer-events: none;
+  background: radial-gradient(closest-side, var(--lg-fondo) 58%, color-mix(in srgb, var(--lg-fondo) 70%, transparent) 78%, transparent);
+}
+
+/* La escena: titular + ficha */
+.lg-escena {
+  flex: 1; width: 100%; max-width: 1240px; margin: 0 auto;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); align-items: center; gap: clamp(32px, 6vw, 96px);
+  padding: 40px clamp(20px, 4vw, 56px) clamp(120px, 15vw, 210px);
+}
+.lg-texto { display: flex; flex-direction: column; gap: 22px; max-width: 560px; }
+.lg-texto__ojo { margin: 0; display: inline-flex; align-items: center; gap: 12px; color: var(--lg-tinta); font-weight: 700; }
+.lg-texto__ojo::before { content: ''; width: 28px; height: 2px; background: var(--lg-rojo); }
+.lg-texto h1 { margin: 0; font-size: clamp(40px, 5.4vw, 76px); font-weight: 600; line-height: 0.98; letter-spacing: -0.045em; text-wrap: balance; }
+.lg-texto h1 em { font-style: normal; color: var(--lg-tinta); opacity: 0.62; }
+.lg-texto__bajada { margin: 0; max-width: 40ch; font-size: 16px; font-weight: 500; line-height: 1.55; color: var(--lg-tinta); opacity: 0.82; }
+
+/* La ficha de ingreso: papel, con el filo rojo arriba como la credencial */
+.lg-ficha {
+  position: relative; padding: 36px 34px 30px; border-radius: 22px;
+  background: var(--lg-ficha); border: 1px solid var(--lg-linea);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 40px 80px -40px rgba(60, 20, 10, 0.35), 0 8px 20px -12px rgba(40, 20, 10, 0.18);
+  animation: lg-sube 700ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both;
+}
+.lg-ficha::before { content: ''; position: absolute; top: -1px; left: 34px; width: 56px; height: 3px; border-radius: 0 0 3px 3px; background: var(--lg-rojo); }
+html[data-modo="azul"] .lg-ficha { box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.8); }
+.lg-texto { animation: lg-sube 700ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both; }
+@keyframes lg-sube { from { opacity: 0; transform: translateY(14px); } }
+
+/* La firma al pie: el wordmark enorme, cortado por el borde de abajo */
+.lg-firma {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 0; pointer-events: none;
+  display: flex; justify-content: center; overflow: hidden; line-height: 0.74;
+}
+.lg-firma span {
+  display: block; white-space: nowrap; transform: translateY(6%);
+  font-family: var(--atv-sans); font-weight: 600; font-size: min(10.9vw, 250px); letter-spacing: -0.05em;
+  color: var(--lg-firma);
+}
+.lg-firma sup { font-size: 0.22em; font-weight: 500; vertical-align: top; letter-spacing: 0; margin: 0.18em 0.1em 0 0.02em; display: inline-block; }
+.lg-top, .lg-escena { position: relative; z-index: 1; }
 
 /* Formulario */
-.lg-lado { display: flex; align-items: center; justify-content: center; padding: 44px 40px; min-width: 0; }
-.lg-caja { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 34px; }
-.lg-caja h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.005em; }
+.lg-caja { width: 100%; display: flex; flex-direction: column; gap: 28px; }
+.lg-caja h2 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
 .lg-form { display: flex; flex-direction: column; gap: 14px; }
 .lg-campo { position: relative; display: flex; flex-direction: column; gap: 6px; }
 .lg-campo input { height: 50px; width: 100%; padding: 0 2px; border: 0; border-bottom: 1px solid var(--lg-tinta-3); border-radius: 0; background: transparent; color: var(--lg-tinta); font: 400 15px var(--lg-sans); outline: none; transition: border-color 0.15s; }
@@ -44,8 +119,9 @@
 .lg-pass input { padding-right: 76px; }
 .lg-pass__ver { position: absolute; right: 0; top: 25px; transform: translateY(-50%); border: 0; background: none; padding: 8px 0 8px 8px; font-family: var(--lg-mono); font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--lg-tinta-2); cursor: pointer; }
 .lg-pass__ver:hover { color: var(--lg-tinta); }
-.lg-entrar { margin-top: 14px; height: 52px; border: 0; border-radius: 2px; background: var(--lg-tinta); color: #f2efe8; font: 600 15px var(--lg-sans); letter-spacing: 0.02em; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; cursor: pointer; transition: background-color 0.15s; }
-.lg-entrar:hover:not(:disabled) { background: #3a3835; }
+.lg-entrar { margin-top: 14px; height: 52px; border: 0; border-radius: 999px; background: var(--lg-tinta); color: var(--lg-ficha); font: 600 15px var(--lg-sans); letter-spacing: 0.02em; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; cursor: pointer; transition: background-color 0.15s; }
+.lg-entrar:hover:not(:disabled) { background: color-mix(in srgb, var(--lg-tinta) 86%, var(--lg-ficha)); }
+.lg-entrar:active:not(:disabled) { transform: scale(0.985); }
 .lg-entrar:disabled { cursor: default; opacity: 0.8; }
 .lg-entrar svg { width: 24px; height: 11px; color: #ff2518; }
 .lg-entrar__spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(242, 239, 232, 0.35); border-top-color: #f2efe8; animation: lg-gira 0.7s linear infinite; }
@@ -65,10 +141,22 @@
 .lg-google__fallo { margin: 0; font-size: 12px; color: #b3261e; }
 .lg-ayuda { margin: 0; font-size: 12.5px; color: var(--lg-tinta-3); }
 
-@media (max-width: 860px) {
-  .lg-root { grid-template-columns: minmax(0, 1fr); }
-  .lg-portada { padding: 24px 16px 28px; border-right: 0; border-bottom: 1px solid var(--lg-linea); }
-  .lg-portada__centro { padding: 36px 0 8px; gap: 24px; }
-  .lg-lado { padding: 36px 16px 48px; }
+/* Tablet: la ficha baja debajo del titular, centrada */
+@media (max-width: 960px) {
+  .lg-escena { grid-template-columns: minmax(0, 1fr); max-width: 620px; gap: 36px; padding-top: 48px; }
+  .lg-texto { max-width: none; }
 }
-@media (prefers-reduced-motion: reduce) { .lg-entrar__spin { animation-duration: 2s; } }
+/* Celular */
+@media (max-width: 720px) {
+  .lg-top { padding-top: calc(18px + env(safe-area-inset-top, 0px)); }
+  .lg-top .lg-meta { display: none; }
+  .lg-texto::before { inset: -36px -24px; }
+  .lg-escena { padding: 28px 16px calc(84px + env(safe-area-inset-bottom, 0px)); gap: 26px; align-items: start; }
+  .lg-texto { gap: 14px; }
+  .lg-texto h1 { font-size: clamp(34px, 10vw, 44px); }
+  .lg-texto__bajada { font-size: 15px; }
+  .lg-ficha { padding: 28px 20px 22px; border-radius: 20px; }
+  .lg-ficha::before { left: 20px; }
+  .lg-campo input { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .lg-entrar__spin { animation-duration: 2s; } .lg-ficha, .lg-texto { animation: none; } }

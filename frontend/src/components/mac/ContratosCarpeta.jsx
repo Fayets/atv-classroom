@@ -86,7 +86,7 @@ export default function ContratosCarpeta({ abierta, alCerrar, alEnfocar, alFrent
   const [grande, setGrande] = useState(false)
   const [zip, setZip] = useState('')
   const ventana = useRef(null)
-  const pos = useRef({ x: 60, y: 40 })
+  const pos = useRef({ x: 0, y: 0 }) // abre centrada (carpetas.css); se mueve arrastrando la carpeta
 
   useEffect(() => {
     if (!abierta) return
@@ -160,7 +160,10 @@ export default function ContratosCarpeta({ abierta, alCerrar, alEnfocar, alFrent
       ref={ventana}
       className={`fd-ventana${abierta ? ' is-abierta' : ''}${grande ? ' is-grande' : ''}${alFrente ? ' is-frente' : ''}`}
       style={grande ? undefined : { transform: `translate(${pos.current.x}px, ${pos.current.y}px)` }}
-      onPointerDown={alEnfocar}
+      onPointerDown={(e) => {
+        alEnfocar()
+        if (!e.target.closest('.fd-principal')) arrastrar(e)
+      }}
       onKeyDown={(e) => {
         if (e.target.tagName === 'INPUT') return
         if (e.key === 'Enter' && sel && !dentro) (enRaiz ? ir(sel) : setDentro(sel))

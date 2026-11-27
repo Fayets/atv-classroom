@@ -320,7 +320,7 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
   const [metricas, setMetricas] = useState(false)
   const [filtro, setFiltro] = useState(null) // { titulo, ids }: los que eligieron una nota o un cuello
   const ventana = useRef(null)
-  const pos = useRef({ x: 90, y: 60 })
+  const pos = useRef({ x: 0, y: 0 }) // abre centrada (carpetas.css); se mueve arrastrando la carpeta
 
   function cargar() {
     fetchCierres()
@@ -410,7 +410,10 @@ export default function CierresCarpeta({ abierta, alCerrar, alEnfocar, alFrente 
       ref={ventana}
       className={`fd-ventana${abierta ? ' is-abierta' : ''}${grande ? ' is-grande' : ''}${alFrente ? ' is-frente' : ''}`}
       style={grande ? undefined : { transform: `translate(${pos.current.x}px, ${pos.current.y}px)` }}
-      onPointerDown={alEnfocar}
+      onPointerDown={(e) => {
+        alEnfocar()
+        if (!e.target.closest('.fd-principal')) arrastrar(e)
+      }}
       onKeyDown={(e) => {
         if (e.target.tagName === 'INPUT') return
         if (e.key === 'Enter' && sel && !dentro) (periodo ? grupos.some((g) => g.id === sel) && setDentro(sel) : ir(sel))

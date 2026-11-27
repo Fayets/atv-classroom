@@ -451,7 +451,7 @@ export default function CuellosCarpeta({ abierta, alFrente, alEnfocar, alCerrar 
   const [error, setError] = useState('')
   const [menu, setMenu] = useState(null) // click derecho sobre un diagnóstico: { d, x, y, seguro }
   const ventana = useRef(null)
-  const pos = useRef({ x: 120, y: 70 })
+  const pos = useRef({ x: 0, y: 0 }) // abre centrada (carpetas.css); se mueve arrastrando la carpeta
 
   useEffect(() => {
     if (!menu) return undefined
@@ -529,7 +529,10 @@ export default function CuellosCarpeta({ abierta, alFrente, alEnfocar, alCerrar 
       ref={ventana}
       className={`fd-ventana cb-ventana${abierta ? ' is-abierta' : ''}${grande ? ' is-grande' : ''}${alFrente ? ' is-frente' : ''}`}
       style={grande ? undefined : { transform: `translate(${pos.current.x}px, ${pos.current.y}px)` }}
-      onPointerDown={alEnfocar}
+      onPointerDown={(e) => {
+        alEnfocar()
+        if (!e.target.closest('.fd-principal')) arrastrar(e)
+      }}
       tabIndex={-1}
       role="dialog"
       aria-label="Cuellos de botella"

@@ -223,7 +223,7 @@ export default function BibliotecaApp({ abierta, alCerrar, alEnfocar, alFrente, 
   const [grande, setGrande] = useState(false)
   const ventana = useRef(null)
   const contenido = useRef(null)
-  const pos = useRef({ x: 70, y: 40 })
+  const pos = useRef({ x: 0, y: 0 }) // abre centrada (carpetas.css); se mueve arrastrando la carpeta
 
   useEffect(() => {
     if (!abierta) return
@@ -269,7 +269,10 @@ export default function BibliotecaApp({ abierta, alCerrar, alEnfocar, alFrente, 
       ref={ventana}
       className={`fd-ventana bb-ventana${abierta ? ' is-abierta' : ''}${grande ? ' is-grande' : ''}${alFrente ? ' is-frente' : ''}`}
       style={grande ? undefined : { transform: `translate(${pos.current.x}px, ${pos.current.y}px)` }}
-      onPointerDown={alEnfocar}
+      onPointerDown={(e) => {
+        alEnfocar()
+        if (!e.target.closest('.fd-principal')) arrastrar(e)
+      }}
       tabIndex={-1}
       role="dialog"
       aria-label="Biblioteca"

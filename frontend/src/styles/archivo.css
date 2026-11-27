@@ -1,0 +1,227 @@
+/* Todo el material como un archivo de carpetas (components/clase/ArchivoModulos).
+   Cada carpeta: el cartón de atrás con la pestaña numerada, dos hojas adentro (la portada y una hoja escrita)
+   que asoman por arriba, y el frente con la etiqueta. Al pasar el mouse el frente se abre hacia adelante y las
+   hojas suben; en pantallas táctiles ya asoman de entrada. Mismo cartón que las carpetas del equipo (carpetas.css).
+   Claro y oscuro (html[data-modo="azul"]); va dentro de .cr-root. */
+
+html .cr-root {
+  --ar-atras: #cdbfa6;
+  --ar-atras-2: #c2b398;
+  --ar-frente: #e7dcc8;
+  --ar-frente-2: #ddd0b8;
+  --ar-tinta: #2a2622;
+  --ar-tinta-2: #6c6256;
+  --ar-hoja: #fbf9f5;
+  --ar-hoja-tinta: #242321;
+  --ar-linea: rgba(70, 52, 32, 0.14);
+  --ar-sombra: 0 1px 0 rgba(255, 255, 255, 0.55) inset, 0 -1px 0 rgba(70, 52, 32, 0.08) inset, 0 18px 34px -22px rgba(70, 44, 16, 0.55);
+}
+html[data-modo="azul"] .cr-root {
+  --ar-atras: #3b3631;
+  --ar-atras-2: #332f2b;
+  --ar-frente: #4a443d;
+  --ar-frente-2: #423c36;
+  --ar-tinta: #f3eee6;
+  --ar-tinta-2: #c3b9ab;
+  --ar-hoja: #efe9df;
+  --ar-linea: rgba(255, 255, 255, 0.1);
+  --ar-sombra: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 20px 36px -20px rgba(0, 0, 0, 0.8);
+}
+
+.ar-archivo {
+  list-style: none; margin: 10px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 40px 26px;
+}
+.ar-archivo > li { min-width: 0; animation: ar-entra 520ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--i, 0) * 45ms); }
+@keyframes ar-entra { from { opacity: 0; transform: translateY(14px); } }
+
+/* ---------- la carpeta ---------- */
+.ar-carpeta {
+  --abrir: 0;
+  position: relative; display: block; aspect-ratio: 5 / 4; container-type: inline-size;
+  color: var(--ar-tinta); text-decoration: none; perspective: 900px; -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+/* el cartón de atrás, con la pestaña */
+.ar-carpeta__atras {
+  position: absolute; inset: 14px 0 0 0; border-radius: 4px 16px 16px 16px;
+  background: linear-gradient(180deg, var(--ar-atras), var(--ar-atras-2));
+  box-shadow: 0 0 0 1px var(--ar-linea);
+}
+.ar-carpeta__pestana {
+  position: absolute; left: 0; bottom: calc(100% - 1px); display: flex; align-items: center;
+  height: 22px; min-width: 38%; padding: 0 14px; border-radius: 10px 18px 0 0;
+  background: var(--ar-atras); box-shadow: 0 -1px 0 var(--ar-linea);
+  font-family: 'Space Mono', ui-monospace, Menlo, monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--ar-tinta-2);
+}
+.ar-carpeta.is-en-curso .ar-carpeta__pestana { color: var(--pc-red); box-shadow: inset 0 2px 0 var(--pc-red); }
+
+/* las hojas de adentro: asoman por arriba y suben al abrir */
+.ar-carpeta__hojas { position: absolute; left: 7%; right: 7%; top: 26px; bottom: 34%; pointer-events: none; }
+.ar-hoja {
+  position: absolute; inset: 0; border-radius: 8px; overflow: hidden;
+  background: var(--ar-hoja); color: var(--ar-hoja-tinta);
+  box-shadow: 0 0 0 1px rgba(70, 52, 32, 0.12), 0 6px 14px -8px rgba(60, 40, 20, 0.35);
+  transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ar-hoja--texto {
+  display: flex; flex-direction: column; gap: 6px; padding: 12px 14px;
+  transform: translate(6%, calc(var(--abrir) * -30%)) rotate(calc(2deg + var(--abrir) * 3deg));
+}
+.ar-hoja--texto small { font-family: 'Space Mono', ui-monospace, Menlo, monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pc-red); }
+.ar-hoja--texto b { font-size: 12.5px; font-weight: 600; line-height: 1.3; letter-spacing: -0.01em; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ar-hoja__renglones { flex: 1; background: repeating-linear-gradient(180deg, transparent 0 9px, rgba(36, 35, 33, 0.09) 9px 10px); }
+.ar-hoja--foto {
+  background: #d9d2c6; transform: translate(-4%, calc(8% - var(--abrir) * 22%)) rotate(calc(-2.5deg - var(--abrir) * 2deg));
+  border: 5px solid var(--ar-hoja);
+}
+.ar-hoja--foto img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* el frente: se inclina hacia adelante al abrir */
+.ar-carpeta__frente {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 62%; z-index: 2;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; padding: 14px 16px 16px;
+  border-radius: 16px; background: linear-gradient(180deg, var(--ar-frente), var(--ar-frente-2));
+  box-shadow: var(--ar-sombra), 0 0 0 1px var(--ar-linea);
+  transform-origin: 50% 100%; transform: rotateX(calc(var(--abrir) * -16deg));
+  transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 320ms ease;
+}
+/* el borde de arriba del frente, como el filo del cartón */
+.ar-carpeta__frente::before { content: ''; position: absolute; left: 16px; right: 16px; top: 0; height: 1px; background: rgba(255, 255, 255, 0.5); }
+html[data-modo="azul"] .ar-carpeta__frente::before { background: rgba(255, 255, 255, 0.08); }
+.ar-carpeta__titulo { font-size: max(17px, 8.4cqi); font-weight: 650; line-height: 1.02; letter-spacing: -0.035em; text-wrap: balance; overflow-wrap: anywhere; }
+.ar-carpeta__meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; font-weight: 500; color: var(--ar-tinta-2); }
+.ar-carpeta__estado { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+.ar-carpeta__estado svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.ar-carpeta__estado.is-avance { color: var(--pc-red); }
+.ar-carpeta__avance { display: block; height: 4px; border-radius: 99px; background: rgba(70, 52, 32, 0.14); overflow: hidden; }
+html[data-modo="azul"] .ar-carpeta__avance { background: rgba(255, 255, 255, 0.1); }
+.ar-carpeta__avance i { display: block; height: 100%; border-radius: inherit; background: var(--pc-red); transform-origin: left; transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1); }
+.ar-carpeta.is-completo .ar-carpeta__avance i { background: var(--pc-ok); }
+
+/* completo: un sello de goma */
+.ar-sello {
+  position: absolute; top: -12px; right: 14px; padding: 4px 9px; border: 2px solid var(--pc-ok); border-radius: 6px;
+  font-family: 'Space Mono', ui-monospace, Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--pc-ok); background: var(--ar-frente); transform: rotate(-7deg); opacity: 0.92;
+}
+
+/* bloqueado: una banda elástica cruzada; sin clases: carpeta vacía, punteada */
+.ar-banda { position: absolute; z-index: 3; top: 14px; bottom: 0; right: 20%; width: 9px; border-radius: 2px; background: linear-gradient(90deg, #8e2a1f, #c0392b 45%, #8e2a1f); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25); }
+.ar-carpeta.is-cerrado .ar-carpeta__frente { height: 74%; }
+.ar-carpeta.is-cerrado .ar-carpeta__titulo, .ar-carpeta.is-cerrado .ar-carpeta__meta { opacity: 0.62; }
+.ar-carpeta.is-vacio .ar-carpeta__atras, .ar-carpeta.is-vacio .ar-carpeta__pestana { background: transparent; box-shadow: none; border: 1.5px dashed var(--ar-linea); }
+.ar-carpeta.is-vacio .ar-carpeta__pestana { border-bottom: 0; }
+.ar-carpeta.is-vacio .ar-carpeta__frente { background: transparent; box-shadow: none; border: 1.5px dashed rgba(70, 52, 32, 0.22); }
+html[data-modo="azul"] .ar-carpeta.is-vacio .ar-carpeta__frente { border-color: rgba(255, 255, 255, 0.16); }
+
+/* abrir: con mouse al pasar por encima; con teclado, al enfocar */
+@media (hover: hover) and (pointer: fine) {
+  .ar-carpeta:not(.is-cerrado):hover { --abrir: 1; }
+  .ar-carpeta:not(.is-cerrado):hover .ar-carpeta__frente { box-shadow: var(--ar-sombra), 0 0 0 1px var(--ar-linea), 0 26px 40px -24px rgba(70, 44, 16, 0.6); }
+}
+.ar-carpeta:not(.is-cerrado):focus-visible { --abrir: 1; }
+.ar-carpeta:focus-visible .ar-carpeta__frente { box-shadow: var(--ar-sombra), 0 0 0 2px var(--pc-red); }
+.ar-carpeta:not(.is-cerrado):active .ar-carpeta__frente { transform: rotateX(-22deg) scale(0.99); }
+/* táctil: las hojas ya asoman un poco */
+@media (hover: none) { .ar-carpeta:not(.is-cerrado) { --abrir: 0.45; } }
+
+/* ---------- tamaños ---------- */
+@media (max-width: 720px) {
+  .ar-archivo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 12px; margin-top: 18px; }
+  .ar-carpeta { aspect-ratio: 4 / 4.1; }
+  .ar-carpeta__frente { height: 64%; padding: 10px 11px 12px; gap: 6px; border-radius: 13px; }
+  .ar-carpeta__atras { border-radius: 4px 13px 13px 13px; }
+  .ar-carpeta__titulo { font-size: max(15px, 9.6cqi); }
+  .ar-carpeta__meta { font-size: 11px; flex-wrap: wrap; gap: 2px 8px; }
+  .ar-carpeta__pestana { font-size: 10px; padding: 0 10px; height: 20px; }
+  .ar-hoja--texto { padding: 9px 10px; }
+  .ar-hoja--texto b { font-size: 11px; -webkit-line-clamp: 2; }
+  .ar-sello { font-size: 8.5px; padding: 3px 6px; right: 8px; }
+}
+@media (max-width: 360px) {
+  .ar-archivo { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ar-archivo > li { animation: none; }
+  .ar-hoja, .ar-carpeta__frente { transition: none; }
+}
+
+/* ======================================================================
+   El módulo abierto (BarraModulo con .ar-abierta + la clase): la barra es el cartón de la carpeta, con el
+   nombre del módulo en la pestaña; cada sección es un separador con su avance; el de la clase abierta es del
+   color de la hoja y se une a ella (la clase, .ms-mesa, es la hoja que sacaste de la carpeta).
+   ====================================================================== */
+html .cr-root { --ar-papel: #fbf9f5; }
+html[data-modo="azul"] .cr-root { --ar-papel: #262423; }
+
+html .cr-root .ms-barra.ar-abierta {
+  position: relative; margin-top: 26px; padding: 14px 16px 0; gap: 14px;
+  border-radius: 4px 20px 0 0;
+  background: linear-gradient(180deg, var(--ar-frente), var(--ar-frente-2));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset, 0 0 0 1px var(--ar-linea);
+  color: var(--ar-tinta);
+}
+html[data-modo="azul"] .cr-root .ms-barra.ar-abierta { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 0 0 1px var(--ar-linea); }
+/* la pestaña con el nombre del módulo */
+html .cr-root .ms-barra.ar-abierta::before {
+  content: attr(data-modulo);
+  position: absolute; left: 0; bottom: calc(100% - 1px); max-width: min(60%, 420px);
+  height: 26px; display: flex; align-items: center; padding: 0 22px 0 14px; border-radius: 10px 20px 0 0;
+  background: var(--ar-frente); box-shadow: inset 0 3px 0 var(--pc-red), 0 -1px 0 var(--ar-linea);
+  font-size: 12.5px; font-weight: 650; letter-spacing: -0.01em; color: var(--ar-tinta);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+html .cr-root .ms-barra.ar-abierta :is(.im-back, .ms-indice-btn, .ms-pasos) { background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px var(--ar-linea); -webkit-backdrop-filter: none; backdrop-filter: none; }
+html[data-modo="azul"] .cr-root .ms-barra.ar-abierta :is(.im-back, .ms-indice-btn, .ms-pasos) { background: rgba(0, 0, 0, 0.18); }
+html .cr-root .ms-barra.ar-abierta .ms-barra__avance { color: var(--ar-tinta-2); }
+
+/* los separadores: uno por sección, apoyados en el borde de abajo */
+html .cr-root .ar-abierta .ms-tramos { gap: 4px; align-items: flex-end; }
+html .cr-root .ar-abierta .ms-tramo {
+  min-width: 0; gap: 7px; padding: 8px 11px 10px; border-radius: 11px 11px 0 0;
+  background: var(--ar-atras); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 1px 0 0 var(--ar-linea), inset -1px 0 0 var(--ar-linea);
+  transition: background 200ms ease, padding 200ms ease;
+}
+html[data-modo="azul"] .cr-root .ar-abierta .ms-tramo { box-shadow: inset 1px 0 0 var(--ar-linea), inset -1px 0 0 var(--ar-linea); }
+html .cr-root .ar-abierta .ms-tramo__t {
+  order: -1; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0;
+  padding: 0; border: 0; background: none; cursor: pointer; font: inherit; text-align: left;
+  font-size: 11.5px; font-weight: 650; letter-spacing: 0.02em; text-transform: none; color: var(--ar-tinta-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+html .cr-root .ar-abierta .ms-tramo__t small { flex: none; font-size: 10.5px; font-weight: 500; opacity: 0.75; }
+html .cr-root .ar-abierta .ms-tramo__t:focus-visible { outline: 2px solid var(--pc-red); outline-offset: 2px; border-radius: 4px; }
+html .cr-root .ar-abierta .ms-seg { height: 5px; background: rgba(70, 52, 32, 0.16); }
+html[data-modo="azul"] .cr-root .ar-abierta .ms-seg { background: rgba(255, 255, 255, 0.12); }
+html .cr-root .ar-abierta .ms-seg.is-done { background: var(--pc-ok); }
+html .cr-root .ar-abierta .ms-seg.is-now { background: var(--pc-red); }
+/* el separador de la sección abierta: del color de la hoja, más alto, unido a la clase */
+html .cr-root .ar-abierta .ms-tramo.is-actual { background: var(--ar-papel); padding-top: 11px; box-shadow: 0 -6px 14px -10px rgba(70, 44, 16, 0.35); }
+html .cr-root .ar-abierta .ms-tramo.is-actual .ms-tramo__t { color: var(--pc-t1); }
+@media (hover: hover) and (pointer: fine) {
+  html .cr-root .ar-abierta .ms-tramo:not(.is-actual):hover { background: color-mix(in srgb, var(--ar-atras) 70%, var(--ar-papel)); }
+}
+
+/* la clase: la hoja, pegada a la carpeta */
+html .cr-root .ms-barra.ar-abierta + .ms-mesa,
+html .cr-root .ms-barra.ar-abierta ~ .ms-mesa {
+  margin-top: 0; padding: 26px; border-radius: 0 0 22px 22px;
+  background: var(--ar-papel);
+  box-shadow: 0 0 0 1px var(--ar-linea), 0 30px 60px -40px rgba(70, 44, 16, 0.45);
+}
+html[data-modo="azul"] .cr-root .ms-barra.ar-abierta ~ .ms-mesa { box-shadow: 0 0 0 1px var(--ar-linea), 0 30px 60px -36px rgba(0, 0, 0, 0.8); }
+
+/* tablet y celular: los separadores se deslizan de costado y muestran su nombre */
+@media (max-width: 900px) {
+  html .cr-root .ar-abierta .ms-tramos { overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; scroll-padding: 0 16px; }
+  html .cr-root .ar-abierta .ms-tramos::-webkit-scrollbar { display: none; }
+  html .cr-root .ar-abierta .ms-tramo { flex: 0 0 auto !important; width: max(132px, calc(var(--n, 1) * 22px)); }
+  html .cr-root .ar-abierta .ms-tramo__t { display: flex; }
+}
+@media (max-width: 720px) {
+  html .cr-root .ms-barra.ar-abierta { margin-top: 22px; padding: 10px 12px 0; border-radius: 4px 16px 0 0; }
+  html .cr-root .ms-barra.ar-abierta::before { height: 24px; font-size: 12px; max-width: 70%; }
+  html .cr-root .ar-abierta .ms-tramos { margin: 0 -12px; padding: 0 12px; }
+  html .cr-root .ms-barra.ar-abierta ~ .ms-mesa { padding: 14px 12px 20px; border-radius: 0 0 18px 18px; }
+}

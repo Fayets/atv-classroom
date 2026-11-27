@@ -133,7 +133,7 @@ export default function SopsCarpeta({ abierta, alCerrar, alEnfocar, alFrente, al
   const [buscar, setBuscar] = useState('')
   const [grande, setGrande] = useState(false)
   const ventana = useRef(null)
-  const pos = useRef({ x: 110, y: 64 })
+  const pos = useRef({ x: 0, y: 0 }) // abre centrada (carpetas.css); se mueve arrastrando la carpeta
 
   useEffect(() => {
     if (!abierta) return
@@ -189,7 +189,10 @@ export default function SopsCarpeta({ abierta, alCerrar, alEnfocar, alFrente, al
       ref={ventana}
       className={`fd-ventana${abierta ? ' is-abierta' : ''}${grande ? ' is-grande' : ''}${alFrente ? ' is-frente' : ''}`}
       style={grande ? undefined : { transform: `translate(${pos.current.x}px, ${pos.current.y}px)` }}
-      onPointerDown={alEnfocar}
+      onPointerDown={(e) => {
+        alEnfocar()
+        if (!e.target.closest('.fd-principal')) arrastrar(e)
+      }}
       onKeyDown={(e) => {
         if (e.target.tagName === 'INPUT') return
         if (e.key === 'Enter' && sel != null && !dentro) setDentro(sel)
