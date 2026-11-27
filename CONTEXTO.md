@@ -264,6 +264,51 @@ El de Classroom está en `ATV-CLASSROOM/.claude/CONTEXTO.md`, y ese repo queda q
     - los botones Guardar van en tinta y los selectores en la cápsula;
     - las opciones del **piloto automático** son tarjetas, con la elegida en tinta.
   - Probado en 1440, celular y oscuro.
+- **2026-11-27 · Juan IA**. Es el mentor del método ATV: contesta con los SOPs y las clases. Ahora:
+  - **Juan habla primero.** El inicio arranca con la cara de Juan, "Juan IA · tu mentor del método ATV" y el saludo. Abajo hay hasta
+    **3 preguntas que Juan te haría hoy**, armadas con el estado real (`preguntasDeJuan` en 02):
+    - el paso del roadmap en curso;
+    - lo que espera tu OK;
+    - un KPI propuesto;
+    - el último reporte en #ceo.
+    Si no hay nada de eso, quedan las preguntas del tema. Tocar una la deja en la caja (`data-juan-idea`) para mandarla o cambiarla.
+    Debajo van la caja, "O mirá tu negocio desde" (los temas, en pastillas) y las ideas.
+  - **La charla es un cuaderno**, no globos de chat:
+    - lo de Juan va en una hoja de papel con un margen rojo, renglones y su firma "JUAN" en una pastilla roja, con lo importante resaltado;
+    - lo tuyo es una nota corta en tinta;
+    - "Trabajando" lleva un punto rojo que late.
+  - La lista de chats queda a la derecha, con "Chat nuevo" en rojo y el abierto en tinta. En el celular se oculta.
+  - **Mock**: `state.juanChats` trae 2 chats. `POST /juan/chats` crea uno o lo continúa, muestra los pasos y contesta a los 2,5 s.
+- **2026-11-27 · Classroom: cómo funciona** (09-classroom.js). **No es el classroom**: es el **escritorio del equipo de ATV** sobre
+  los chats del classroom de los clientes. Se conecta con "Entrar con el classroom", que en el repo del Classroom es
+  `/leverage/conectar` y da una clave personal de lectura. En la app de escritorio, además, abre el classroom en el navegador
+  del costado. Tiene tres pestañas:
+  - **Consultas**: lo que los clientes esperan que el equipo responda. Vienen del "update de Mauri" o de chats que dejó el piloto.
+    - Cada una dice cuánto espera y si está tomada. Filtros: Sin tomar / Mías / Todas.
+    - Al abrir una, se ve el chat del cliente (con adjuntos y Looms). "Armar respuesta" **toma** la consulta, y el equipo ve
+      quién la está respondiendo.
+    - Juan IA lee todo, transcribe los Looms y deja un borrador con "qué le estás diciendo, en simple". Se corrige, y se manda con
+      "Mandar como X", "Pedir otra" o "Descartar".
+  - **Responder**: lo mismo, pero buscando a cualquier cliente por nombre.
+  - **Piloto**: el que contesta solo a los clientes.
+    - Lo de hoy: salieron solos, borradores mandados tal cual, editados y para el equipo.
+    - El **modo de cada coach**: apagado, borrador o automático.
+    - "Esperan respuesta": lo que el piloto dejó para el equipo, y se abre en el classroom.
+    - El conocimiento: las llamadas de Fathom de Juan.
+- **2026-11-27 · Classroom: rediseño**:
+  - La cabecera es propia (el título, "● classroom.atvos.io · conectado" y las pestañas en la cápsula, con las consultas
+    sin tomar en rojo). La cabecera chica se oculta (`data-vista="classroom"`).
+  - **Consultas**: una bandeja suave con fichas. La abierta va en tinta y la espera, en una pastilla que pasa de gris a ámbar y a rojo.
+    El chat del cliente va sobre papel: el cliente en papel y el equipo en tinta, con los adjuntos en pastillas.
+  - **La respuesta que arma Juan va en su hoja de cuaderno** (la misma de Juan IA, con su firma "JUAN IA"): el texto se corrige
+    sobre los renglones, "Qué le estás diciendo" va en una nota roja suave y "Mandar como…" en rojo.
+  - **Piloto**: las cifras del día en un marcador 2×2 (lo que es para el equipo, en rojo), el modo de cada coach en la cápsula
+    y "Esperan respuesta" con la espera en rojo.
+  - **Mock**: `mock/classroom.mjs` sirve las consultas, los clientes, el chat, armar (borrador a los 3 s), tomar, soltar,
+    mandar, descartar y el modo del piloto.
+  - **Choque de clases**: el classroom usa `.cls-msg.eq` para los mensajes del equipo, y el Equipo tenía su raíz en `.eq`
+    con `container-type`, que aplastaba esas burbujas. **La raíz del Equipo ahora es `.eqm`.**
+  - Probado en 1440, celular y oscuro (las dos pantallas).
 - **Git local**: se inicializó un repo solo local en `ATV-LEVERAGE` para ver los cambios (`git diff c718430`),
   y hay una copia de la `ui/` original en `D:\Landings - Copy\ATV\ui-original-leverage-backup`.
   Para entregar se devuelven los archivos de `ui/` que cambiaron: `git diff --name-only c718430 -- ui`.

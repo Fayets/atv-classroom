@@ -351,7 +351,38 @@ function juanHtml() {
 		return `<div class="jv">${lista}<section class="jcharla"><div class="jmsgs" data-charla="${chat.id}:${chat.mensajes.length}">${burbujas}${chat.esperando ? accionesHtml(vivos, `${chat.id}-vivo`, true) || `<div class="jpensando">Pensando</div>` : ""}</div>${juanCaja(chat, true)}</section></div>`;
 	}
 	const tema = JUAN_TEMAS.find(t => t[0] === juanTema) ?? JUAN_TEMAS[0];
-	return `<div class="jv">${lista}<section class="jhome"><h1>${nombreProyecto(proyectoElegido()) ? `¿Qué vemos de ${esc(nombreProyecto(proyectoElegido()))}?` : "¿En qué te ayudo hoy?"} 👋</h1>${juanCaja(null, false)}<div class="jchips">${JUAN_TEMAS.map(([id, nombre]) => `<button class="${id === tema[0] ? "on" : ""}" data-juan-tema="${id}">${nombre}</button>`).join("")}</div><div class="jideas">${tema[2].map(p => `<button data-juan-idea="${esc(p)}">${esc(p)}</button>`).join("")}</div></section></div>`;
+	// Juan habla primero: en vez de una caja vacía, las preguntas que él te haría hoy, armadas con lo que pasa en tu negocio.
+	// Tocar una la deja escrita en la caja (data-juan-idea), lista para mandar o para cambiarla.
+	const preguntas = preguntasDeJuan(tema);
+	const h = new Date().getHours();
+	const saludo = h < 6 || h >= 20 ? "Buenas noches" : h < 13 ? "Buen día" : "Buenas tardes";
+	const nombre = (state.settings?.owner?.name ?? "").split(/\s+/)[0];
+	const de = nombreProyecto(proyectoElegido());
+	const juan = state.agents.find(a => a.role === "juan") ?? { id: "juan" };
+	return `<div class="jv">${lista}<section class="jhome">
+		<header class="jcab"><span class="jcara">${avatar(juan, "hd")}</span><div><p class="jojo">Juan IA · tu mentor del método ATV</p><h1>${saludo}${nombre ? `, ${esc(nombre)}` : ""}.<br><em>${de ? `Mirando ${esc(de)}, yo te preguntaría esto:` : "Antes de que me preguntes, yo te preguntaría esto:"}</em></h1></div></header>
+		<div class="jpregs">${preguntas.map((p, i) => `<button class="jpreg" data-juan-idea="${esc(p.texto)}" style="--i:${i}"><small>${esc(p.dato)}</small><b>${esc(p.texto)}</b><span class="jpreg-ir">Preguntárselo ${ic("arrow-up-right")}</span></button>`).join("")}</div>
+		${juanCaja(null, false)}
+		<div class="jchips"><small>O mirá tu negocio desde</small>${JUAN_TEMAS.map(([id, nombre]) => `<button class="${id === tema[0] ? "on" : ""}" data-juan-tema="${id}">${nombre}</button>`).join("")}</div>
+		<div class="jideas">${tema[2].map(p => `<button data-juan-idea="${esc(p)}">${esc(p)}</button>`).join("")}</div>
+	</section></div>`;
+}
+
+/** Las preguntas con las que Juan abre la charla: salen del estado real (roadmap, lo que espera tu OK, KPIs, reportes).
+ * Si no hay nada que mirar, quedan las del tema elegido. Siempre tres como mucho: simple. */
+function preguntasDeJuan(tema) {
+	const lista = [];
+	const r = state.roadmap;
+	const paso = r?.pasos?.find(p => p.estado === "en curso");
+	if (paso) lista.push({ dato: `Roadmap · paso ${paso.n} de ${r.pasos.length}`, texto: `Estoy en «${paso.titulo}». ¿Qué tendría que estar listo para aprobar este paso?` });
+	const piden = pending().length;
+	if (piden) lista.push({ dato: `${piden} ${piden === 1 ? "pedido espera" : "pedidos esperan"} tu OK`, texto: `Tengo ${piden} ${piden === 1 ? "pedido" : "pedidos"} esperando mi OK. ¿Cuál aprobarías primero y por qué?` });
+	const kpi = proposed()[0];
+	if (kpi) lista.push({ dato: `KPI propuesto por ${kpi.proposedBy}`, texto: `${kpi.proposedBy} propuso medir «${kpi.name}» con meta ${kpi.target}. ¿Es el número correcto para esta etapa?` });
+	const reporte = state.ceo?.filter(p => p.agentId !== "dueno").at(-1);
+	if (reporte) lista.push({ dato: `Último reporte · ${reporte.author}`, texto: `Leé el último reporte de ${reporte.author}: ¿qué decisión tomarías vos?` });
+	for (const p of tema[2]) lista.push({ dato: tema[1], texto: p });
+	return lista.slice(0, 3);
 }
 
 async function enviarAJuan() {

@@ -502,10 +502,10 @@ function equipoHtml() {
 	const modal = editing
 		? `<div class="omodal" data-modal-close><div class="ocard" role="dialog" aria-label="Ficha de ${esc(editing.name)}" data-modal-stay><div class="ohead"><span class="oface">${avatar(editing)}</span><span class="ct"><b>${esc(editing.name)}</b><small>${editing.department ? esc(nombre(editing.department)) : "Tu mano derecha"}</small></span><button class="b" data-agent="${editing.id}">Abrir chat</button></div><label>Nombre<input id="agent-name" value="${esc(editing.name)}" maxlength="40" autocomplete="off"></label><label>Cargo<input id="agent-title" value="${esc(editing.title ?? "")}" placeholder="${esc(ROLE_NAMES[editing.role] ?? "Agente")}" autocomplete="off"></label>${modeloHtml(editing)}${editing.role === "asistente" ? "" : `<label>Reporta a<select id="agent-boss">${state.agents.filter(a => a.id !== editing.id).map(a => `<option value="${a.id}" ${a.id === bossId(editing) ? "selected" : ""}>${esc(a.name)}</option>`).join("")}</select></label>`}${agentError ? `<div class="soft-note">${esc(agentError)}</div>` : ""}<div class="fa">${editing.role === "asistente" ? "" : `<button class="b ghost danger" data-agent-remove="${editing.id}">${removing ? "¿Seguro?" : "Sacar"}</button>`}<span class="sp"></span><button class="b ghost" data-modal-close>Cancelar</button><button class="b go" data-agent-save="${editing.id}">Guardar</button></div></div></div>`
 		: "";
-	if (!state.agents.length) return `<div class="eq"><div class="orghint">Tu equipo crece cuando le pedís al Asistente que arme un departamento.</div></div>${modal}`;
+	if (!state.agents.length) return `<div class="eqm"><div class="orghint">Tu equipo crece cuando le pedís al Asistente que arme un departamento.</div></div>${modal}`;
 
 	const titulo = trabajando ? `${state.agents.length} agentes, <em>${trabajando} trabajando ahora.</em>` : `${state.agents.length} agentes, <em>todos tranquilos.</em>`;
-	return `<div class="eq">
+	return `<div class="eqm">
 	<header class="eq-cab">
 		<div><p class="tb2-ojo">Tu equipo · en vivo${carpeta ? ` · ${esc(state.carpeta?.nombre ?? "")}` : company ? ` · ${esc(company)}` : ""}</p><h1>${titulo}</h1></div>
 		<div class="eq-leyenda">${leyenda}</div>
@@ -559,7 +559,7 @@ function eqCredencial(a, estado, ESTADO, piden) {
 
 /** Después de pintar: las animaciones siguen el reloj de la página (no arrancan de nuevo con cada repintado). */
 function drawOrg() {
-	const raiz = document.querySelector(".eq");
+	const raiz = document.querySelector(".eqm");
 	if (!raiz) return;
 	for (const anim of raiz.getAnimations({ subtree: true })) anim.startTime = 0;
 	const svg = raiz.querySelector(".eq-svg");

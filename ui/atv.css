@@ -543,8 +543,8 @@ html .bwm .card .ca .b { white-space: nowrap; flex: none; }
    Vos en el centro, el Asistente en la primera órbita, cada área un sector. Los hilos son las órdenes de la
    semana; los rojos con una luz que viaja, las de la última hora. A la derecha, la credencial del elegido.
    ====================================================================== */
-.eq { --eq-tinta: #1d1c1b; --eq-papel: #f3efe8; --eq-rojo-suave: rgba(192, 57, 43, 0.1); container-type: inline-size; display: flex; flex-direction: column; gap: 20px; padding: 14px 10px 24px; }
-html[data-theme="dark"] .eq { --eq-tinta: #111010; --eq-papel: #1e1d1b; --eq-rojo-suave: rgba(221, 82, 69, 0.16); }
+.eqm { --eq-tinta: #1d1c1b; --eq-papel: #f3efe8; --eq-rojo-suave: rgba(192, 57, 43, 0.1); container-type: inline-size; display: flex; flex-direction: column; gap: 20px; padding: 14px 10px 24px; }
+html[data-theme="dark"] .eqm { --eq-tinta: #111010; --eq-papel: #1e1d1b; --eq-rojo-suave: rgba(221, 82, 69, 0.16); }
 .eq-cab { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px; }
 .eq-cab h1 { margin: 0; font-size: clamp(28px, 3.4vw, 42px); line-height: 1.04; font-weight: 600; letter-spacing: -0.04em; }
 .eq-cab h1 em { font-style: normal; color: var(--mut); }
@@ -683,7 +683,7 @@ html[data-theme="dark"] .eq-yo:not(.sm) { background: #f3f0e9; color: #1b1a19; b
   .eq-cielo { padding: 8px; }
 }
 @media (max-width: 760px) {
-  .eq { padding: 8px 2px 20px; }
+  .eqm { padding: 8px 2px 20px; }
   .eq-leyenda { gap: 4px; }
   .eq-ley { height: 28px; padding: 0 10px; font-size: 11.5px; }
 }
@@ -1036,7 +1036,7 @@ html .rmentrega :is(a, button) { color: var(--fg); background: var(--sheet); }
 #main[data-vista] .head.slim > b { font-size: 24px; line-height: 1.1; font-weight: 600; letter-spacing: -0.035em; }
 #main[data-vista] .head.slim > small { grid-column: 2; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg2); margin: 0; }
 /* Equipo ya tiene su propio título grande */
-#main[data-vista="equipo"] .head.slim { display: none; }
+#main:is([data-vista="equipo"], [data-vista="classroom"]) .head.slim { display: none; }
 
 /* ---------- tablas (Rutinas, Uso, KPIs) ---------- */
 html .kt { max-width: 1000px; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--borde); background: var(--sheet); }
@@ -1139,3 +1139,211 @@ html .piloto-ops label.on small { color: color-mix(in srgb, var(--sheet) 75%, tr
   html .kt td:first-child { min-width: 180px; }
 }
 @media (max-width: 760px) { #main[data-vista]:not([data-vista="agent"]):not([data-vista="ceo"]) #head { padding-left: 0; } }
+
+/* ======================================================================
+   Juan IA (juanHtml y preguntasDeJuan en 02): no es un chat más.
+   - Juan habla primero: arriba, las tres preguntas que él te haría hoy, armadas con lo que pasa en tu negocio
+     (paso del roadmap, lo que espera tu OK, un KPI propuesto, el último reporte). Tocar una la deja en la caja.
+   - La charla es un cuaderno: lo de Juan va escrito sobre papel con un margen rojo, como una hoja de apuntes;
+     lo tuyo, como una nota corta en tinta. Sin globos de chat.
+   - La lista de chats, a la derecha, como la Bandeja: el abierto en tinta.
+   ====================================================================== */
+html .jv { grid-template-columns: minmax(0, 1fr) 280px; background: var(--sheet); }
+html .jv .jlista { gap: 2px; padding: 16px 10px; background: var(--suave); border-left: 1px solid var(--line); }
+html .jnuevo { height: 42px; border-radius: 13px; background: var(--rojo); color: #fff; font-weight: 600; box-shadow: 0 8px 18px -10px rgba(192, 57, 43, 0.6); }
+html .jnuevo:hover { filter: brightness(1.05); }
+html .jlista > small { margin: 16px 10px 6px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg2); }
+html .jitem { padding: 10px 12px; border-radius: 13px; transition: background 140ms ease; }
+html .jitem:hover { background: rgba(var(--acento-rgb), 0.05); }
+html .jitem.on { background: var(--fg); color: var(--sheet); box-shadow: 0 8px 18px -10px rgba(29, 29, 31, 0.55); }
+html .jitem.on small { color: color-mix(in srgb, var(--sheet) 70%, transparent); }
+html .jborrar { border-radius: 9px; }
+
+/* ---------- el inicio: Juan pregunta primero ---------- */
+html .jhome { width: min(820px, 100%); justify-content: flex-start; gap: 18px; padding: 44px 28px 32px; }
+.jcab { display: flex; align-items: flex-start; gap: 16px; }
+.jcara { position: relative; flex: none; }
+.jcara .av.hd { width: 54px; height: 54px; box-shadow: 0 0 0 4px var(--sheet), 0 0 0 5px var(--borde); }
+.jcara::after { content: ""; position: absolute; right: 0; bottom: 2px; width: 13px; height: 13px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px var(--sheet); }
+.jojo { margin: 2px 0 8px; display: flex; align-items: center; gap: 10px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg2); }
+.jojo::before { content: ""; width: 22px; height: 2px; border-radius: 2px; background: var(--rojo); }
+html .jhome h1 { margin: 0; font-size: clamp(26px, 3vw, 36px); line-height: 1.08; font-weight: 600; letter-spacing: -0.04em; text-wrap: balance; }
+html .jhome h1 em { font-style: normal; color: var(--mut); }
+/* las preguntas de Juan: tres fichas con el dato que las provoca arriba */
+.jpregs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 4px; }
+.jpreg {
+  position: relative; display: flex; flex-direction: column; gap: 8px; min-height: 150px; padding: 16px 16px 14px; border-radius: 18px; text-align: left;
+  background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde), 0 1px 2px rgba(60, 48, 40, 0.05);
+  transition: transform 220ms var(--ease), box-shadow 220ms ease, background 220ms ease;
+}
+.jpreg::before { content: ""; position: absolute; left: 16px; top: -1px; width: 32px; height: 3px; border-radius: 0 0 3px 3px; background: var(--rojo); }
+.jpreg small { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rojo-texto); }
+.jpreg b { font-size: 15px; line-height: 1.38; font-weight: 600; letter-spacing: -0.015em; color: var(--fg); }
+.jpreg-ir { margin-top: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; color: var(--fg2); transition: color 160ms ease, gap 200ms var(--ease); }
+.jpreg-ir .i { width: 14px; height: 14px; }
+@media (hover: hover) and (pointer: fine) {
+  .jpreg:hover { transform: translateY(-3px); box-shadow: inset 0 0 0 1px var(--borde), 0 18px 30px -20px rgba(40, 30, 20, 0.45); }
+  .jpreg:hover .jpreg-ir { color: var(--fg); gap: 8px; }
+}
+.jpreg:active { transform: scale(0.98); }
+/* la caja */
+html .jbox2 { padding: 14px 14px 10px; border: 0; border-radius: 24px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde), 0 22px 44px -24px rgba(40, 30, 20, 0.45); transition: box-shadow 200ms ease; }
+html .jbox2:focus-within { box-shadow: inset 0 0 0 1.5px var(--fg), 0 22px 44px -24px rgba(40, 30, 20, 0.45); }
+html .jpill { border: 0; background: var(--suave); font-weight: 500; }
+html .jsend { width: 40px; height: 40px; border-radius: 13px; background: var(--rojo); color: #fff; }
+/* mirarlo desde: la cápsula */
+html .jchips { justify-content: flex-start; align-items: center; gap: 6px; }
+html .jchips small { margin-right: 4px; font-size: 12.5px; color: var(--fg2); }
+html .jchips button { height: 32px; padding: 0 13px; border: 0; border-radius: 999px; background: var(--suave); font-size: 13px; font-weight: 600; color: var(--fg2); }
+html .jchips button.on { background: var(--fg); color: var(--sheet); }
+html .jideas { justify-items: start; gap: 2px; }
+html .jideas button { padding: 6px 10px; border-radius: 10px; font-size: 13.5px; }
+html .jideas button::before { content: "→ "; color: var(--rojo); }
+html .jideas button:hover { background: var(--suave); color: var(--fg); }
+
+/* ---------- la charla: un cuaderno ---------- */
+html .jcharla { width: min(820px, 100%); }
+html .jmsgs { gap: 18px; padding-top: 56px; }
+/* lo tuyo: una nota corta en tinta, a la derecha */
+html .jyo { max-width: 72%; padding: 11px 16px; border-radius: 18px 18px 6px 18px; background: var(--fg); color: var(--sheet); font-size: 14.5px; line-height: 1.5; box-shadow: 0 8px 18px -12px rgba(29, 29, 31, 0.7); }
+/* lo de Juan: una hoja de apuntes con el margen rojo y renglones */
+html .jel {
+  position: relative; align-self: stretch; max-width: none; padding: 16px 20px 16px 46px; border-radius: 6px 20px 20px 20px;
+  background-color: #fbf8f2;
+  background-image: linear-gradient(90deg, transparent 33px, rgba(192, 57, 43, 0.35) 33px, rgba(192, 57, 43, 0.35) 34.5px, transparent 34.5px), repeating-linear-gradient(180deg, transparent 0 25px, rgba(36, 35, 33, 0.06) 25px 26px);
+  box-shadow: inset 0 0 0 1px rgba(70, 52, 32, 0.12), 0 12px 26px -18px rgba(40, 30, 20, 0.4);
+  color: #242321; font-size: 15px; line-height: 26px;
+}
+html[data-theme="dark"] .jel { background-color: #2a2826; background-image: linear-gradient(90deg, transparent 33px, rgba(221, 82, 69, 0.45) 33px, rgba(221, 82, 69, 0.45) 34.5px, transparent 34.5px), repeating-linear-gradient(180deg, transparent 0 25px, rgba(243, 240, 233, 0.05) 25px 26px); color: #f3f0e9; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+/* la firma de Juan, arriba de cada hoja */
+html .jel::before { content: "Juan"; position: absolute; left: 46px; top: -10px; padding: 1px 9px; border-radius: 999px; background: var(--rojo); color: #fff; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+html .jel p { margin: 0; }
+html .jel p + p, html .jel p + ul, html .jel p + ol, html .jel ul + p, html .jel ol + p { margin-top: 10px; }
+html .jel strong, html .jel b { background: linear-gradient(transparent 62%, rgba(192, 57, 43, 0.18) 62%); }
+html .jel ol, html .jel ul { margin: 6px 0 0; padding-left: 20px; }
+/* lo que hizo para responder: una línea liviana arriba de la hoja */
+html .jacc button { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: 999px; background: var(--suave); font-size: 12px; font-weight: 600; color: var(--fg2); }
+html .jpensando { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px; background: var(--suave); font-size: 13px; color: var(--fg2); }
+html .jpensando::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--rojo); animation: sb-late 1.2s ease-in-out infinite; }
+
+@media (max-width: 900px) {
+  html .jv { grid-template-columns: minmax(0, 1fr); }
+  html .jv .jlista { display: none; }
+}
+@media (max-width: 760px) {
+  html .jhome { padding: 22px 14px 24px; gap: 14px; }
+  .jcab { gap: 12px; }
+  .jcara .av.hd { width: 44px; height: 44px; }
+  .jpregs { grid-template-columns: minmax(0, 1fr); }
+  .jpreg { min-height: 0; }
+  html .jel { padding: 14px 14px 14px 36px; background-image: linear-gradient(90deg, transparent 24px, rgba(192, 57, 43, 0.35) 24px, rgba(192, 57, 43, 0.35) 25.5px, transparent 25.5px), repeating-linear-gradient(180deg, transparent 0 25px, rgba(36, 35, 33, 0.06) 25px 26px); }
+  html .jel::before { left: 36px; }
+  html .jyo { max-width: 86%; }
+}
+@media (prefers-reduced-motion: reduce) { html .jpensando::before { animation: none; } }
+
+/* ======================================================================
+   Classroom (09): el escritorio del equipo de ATV sobre los chats del classroom.
+   Mismo lenguaje que Mensajes del Classroom: la lista con la consulta abierta en tinta y la espera en pastilla
+   (más roja cuanto más espera), el chat del cliente sobre papel, y la respuesta que arma Juan IA en su hoja de
+   cuaderno (la misma de Juan IA) para corregirla y mandarla. Piloto: el marcador del día y el modo de cada coach.
+   ====================================================================== */
+html .cls-cab { margin: 0 0 16px; padding: 4px 4px 14px; }
+.cls-ok { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--green); vertical-align: 1px; box-shadow: 0 0 0 3px rgba(31, 138, 76, 0.15); }
+html .cls-tabs { margin: 0; gap: 2px; padding: 4px; border: 0; border-radius: 999px; background: var(--suave); box-shadow: inset 0 0 0 1px var(--borde); }
+html .cls-tabs button { height: 34px; padding: 0 16px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--fg2); display: inline-flex; align-items: center; gap: 6px; }
+html .cls-tabs button.on { background: var(--fg); color: var(--sheet); box-shadow: 0 2px 6px rgba(29, 29, 31, 0.18); }
+.cls-n { min-width: 18px; height: 18px; padding: 0 5px; display: inline-grid; place-items: center; border-radius: 9px; background: var(--rojo); color: #fff; font-size: 10.5px; font-weight: 700; }
+
+/* ---------- Consultas y Responder: dos paneles ---------- */
+html .cls-resp-grid { gap: 14px; min-height: calc(100vh - 200px); }
+html .cls-consultas, html .cls-buscar { flex: 1 1 300px; max-width: 360px; display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 12px; border-radius: 22px; background: var(--suave); box-shadow: inset 0 0 0 1px var(--borde); }
+html .cls-filtros { align-self: flex-start; gap: 2px; padding: 4px; border: 0; border-radius: 999px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde); }
+html .cls-filtros button { height: 30px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
+html .cls-filtros button.on { background: var(--fg); color: var(--sheet); }
+html .cls-q-lista { display: flex; flex-direction: column; gap: 6px; }
+html .cls-q { display: flex; flex-direction: column; gap: 5px; width: 100%; padding: 12px 14px; border-radius: 16px; background: var(--sheet); text-align: left; box-shadow: inset 0 0 0 1px var(--borde); transition: background 160ms ease, transform 200ms var(--ease); }
+html .cls-q:hover { transform: translateY(-1px); }
+html .cls-q.on { background: var(--fg); color: var(--sheet); box-shadow: 0 10px 22px -12px rgba(29, 29, 31, 0.6); }
+html .cls-q.on :is(b, small, .cls-q-que, .cls-q-de, .cls-q-estado) { color: var(--sheet); }
+html .cls-q-top { display: flex; align-items: center; gap: 8px; }
+html .cls-q-top b { font-size: 14px; }
+html .cls-q-que { font-size: 13px; line-height: 1.4; color: var(--fg); }
+html .cls-q-de { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mut); }
+html .cls-q-estado { font-size: 11.5px; font-weight: 600; color: var(--fg2); }
+/* la espera: más roja cuanto más tiempo lleva */
+html .cls-espera { height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 999px; background: var(--suave); color: var(--fg2); font-size: 11px; font-weight: 700; }
+html .cls-espera.media { background: rgba(183, 121, 31, 0.14); color: #9a6614; }
+html .cls-espera.mucha { background: var(--rojo); color: #fff; }
+html[data-theme="dark"] .cls-espera.media { color: #f0b85a; }
+html .cls-q.on .cls-espera:not(.mucha) { background: rgba(255, 255, 255, 0.14); color: var(--sheet); }
+/* buscar un cliente */
+html .cls-lbl { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+html .cls-lbl input { height: 40px; border-radius: 12px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde); font-family: var(--sans); text-transform: none; letter-spacing: 0; }
+html .cls-cli { padding: 9px 10px; border-radius: 14px; }
+html .cls-cli:hover { background: var(--sheet); }
+html .cls-cli.on { background: var(--fg); color: var(--sheet); }
+html .cls-cli.on small { color: color-mix(in srgb, var(--sheet) 70%, transparent); }
+html .cls-cara { width: 36px; height: 36px; border-radius: 11px; color: #fff; font-weight: 700; }
+
+/* el chat del cliente */
+html .cls-chat { border-radius: 22px; box-shadow: inset 0 0 0 1px var(--borde), var(--sombra); overflow: hidden; }
+html .cls-chat-top { gap: 10px; padding: 14px 18px; }
+html .cls-chat-top b { font-size: 16px; letter-spacing: -0.02em; }
+html .cls-tomada { height: 24px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 999px; background: rgba(31, 138, 76, 0.1); color: var(--green); font-weight: 600; }
+html .cls-tomada.otro { background: rgba(192, 57, 43, 0.1); color: var(--rojo-texto); }
+html .cls-msgs { gap: 14px; padding: 20px 22px; background: #f3efe8; max-height: calc(100vh - 320px); }
+html[data-theme="dark"] .cls-msgs { background: #1e1d1b; }
+html .cls-msg small { font-size: 11.5px; }
+html .cls-burbuja { padding: 11px 15px; border-radius: 6px 18px 18px 18px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde); font-size: 14px; line-height: 1.5; }
+html .cls-msg.eq .cls-burbuja { border-radius: 18px 6px 18px 18px; background: var(--fg); color: var(--sheet); box-shadow: none; }
+html .cls-adj { height: 30px; border-radius: 999px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde); font-weight: 600; }
+/* la respuesta que arma Juan IA: su hoja de cuaderno */
+html .cls-resp {
+  position: relative; display: flex; flex-direction: column; gap: 12px; margin-top: 8px; padding: 18px 18px 14px 46px; border-radius: 6px 20px 20px 20px;
+  background-color: #fbf8f2;
+  background-image: linear-gradient(90deg, transparent 33px, rgba(192, 57, 43, 0.35) 33px, rgba(192, 57, 43, 0.35) 34.5px, transparent 34.5px);
+  box-shadow: inset 0 0 0 1px rgba(70, 52, 32, 0.12), 0 16px 30px -18px rgba(40, 30, 20, 0.45); color: #242321;
+}
+html[data-theme="dark"] .cls-resp { background-color: #2a2826; background-image: linear-gradient(90deg, transparent 33px, rgba(221, 82, 69, 0.45) 33px, rgba(221, 82, 69, 0.45) 34.5px, transparent 34.5px); color: #f3f0e9; }
+html .cls-resp::before { content: "Juan IA"; position: absolute; left: 46px; top: -10px; padding: 1px 9px; border-radius: 999px; background: var(--rojo); color: #fff; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+html .cls-resp-top b { font-size: 15px; }
+html .cls-resp-top small { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg2); }
+html .cls-resp textarea { width: 100%; box-sizing: border-box; padding: 4px 0; border: 0; resize: vertical; background-color: transparent; background-image: repeating-linear-gradient(180deg, transparent 0 25px, rgba(36, 35, 33, 0.07) 25px 26px); font: inherit; font-size: 14.5px; line-height: 26px; color: inherit; outline: none; }
+html .cls-porque { display: grid; gap: 4px; padding: 10px 12px; border-radius: 14px; background: rgba(192, 57, 43, 0.07); font-size: 13px; }
+html .cls-porque b { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rojo-texto); }
+html .cls-resp-acc { display: flex; flex-wrap: wrap; gap: 8px; }
+html .cls-resp-acc .b { height: 38px; border-radius: 12px; font-weight: 600; }
+html .cls-resp-acc .b.go { background: var(--rojo); color: #fff; border-color: var(--rojo); }
+html .cls-resp.armando { padding-block: 22px; }
+html .cls-resp.armando b::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 8px; border-radius: 50%; background: var(--rojo); animation: sb-late 1.2s ease-in-out infinite; }
+html .cls-pie { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+html .cls-pie .b.go { height: 40px; padding: 0 18px; border-radius: 12px; background: var(--fg); color: var(--sheet); border-color: var(--fg); font-weight: 600; }
+
+/* ---------- Piloto ---------- */
+html .clsdos { gap: 18px; }
+html .cls-tit { font-size: 22px; letter-spacing: -0.03em; }
+html .cls-tit span { min-width: 24px; height: 24px; padding: 0 8px; display: inline-grid; place-items: center; border-radius: 12px; background: var(--rojo); color: #fff; font-size: 12px; font-weight: 700; }
+html .clsdos .cls-vos { padding: 14px; border-radius: 18px; }
+html .clsdos .cls-vos small.cls-espera { color: #fff; }
+html .cls-tiles { gap: 0; border-radius: 18px; overflow: hidden; background: var(--suave); box-shadow: inset 0 0 0 1px var(--borde); }
+html .cls-tile { border-radius: 0; background: none; padding: 14px 16px; }
+html .cls-tile:nth-child(even) { box-shadow: inset 1px 0 0 var(--borde); }
+html .cls-tile:nth-child(n + 3) { border-top: 1px solid var(--borde); }
+html .cls-tile b { font-size: 30px; letter-spacing: -0.04em; }
+html .cls-tile.rojo b { color: var(--rojo); }
+html .cls-seg { gap: 2px; padding: 3px; border: 0; border-radius: 999px; background: var(--suave); box-shadow: inset 0 0 0 1px var(--borde); }
+html .cls-seg button { height: 28px; border-radius: 999px; font-weight: 600; }
+html .cls-seg button.on { background: var(--fg); color: var(--sheet); }
+html .cls-fila { padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; font-weight: 500; }
+html .cls-fila:last-child { border-bottom: 0; }
+
+@media (max-width: 760px) {
+  html .cls-cab { margin: 0 0 12px; padding: 0 0 12px; }
+  html .cls-consultas, html .cls-buscar { max-width: none; }
+  html .cls-msgs { max-height: none; padding: 16px 12px; }
+  html .cls-resp { padding-left: 36px; background-image: linear-gradient(90deg, transparent 24px, rgba(192, 57, 43, 0.35) 24px, rgba(192, 57, 43, 0.35) 25.5px, transparent 25.5px); }
+  html .cls-resp::before { left: 36px; }
+}
+@media (prefers-reduced-motion: reduce) { html .cls-resp.armando b::after { animation: none; } }
+html .clsdos .cls-vos .cls-espera { background: var(--rojo); color: #fff; }

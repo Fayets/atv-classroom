@@ -209,10 +209,13 @@ function consultasHtml() {
 function classroomHtml() {
 	const c = extra.classroom;
 	const tab = (id, nombre) => `<button role="tab" aria-selected="${clsTab === id}" class="${clsTab === id ? "on" : ""}" data-cls-tab="${id}">${nombre}</button>`;
-	const tabs = `<div class="seg cls-tabs" role="tablist" aria-label="Classroom">${tab("consultas", "Consultas")}${tab("responder", "Responder")}${tab("piloto", "Piloto")}</div>`;
+	// Arriba: el classroom al que está conectado y las pestañas en la cápsula (atv.css). Las consultas sin tomar llevan su número.
+	const sinTomar = (clsConsultas?.consultas ?? []).filter(q => !q.marca).length;
+	const host = (c?.url ?? CLS_DEFECTO).replace(/^https?:\/\//, "");
+	const tabs = `<div class="vt-cab cls-cab"><span class="vt-tit"><b>Classroom</b><small>${c?.conectado ? `<i class="cls-ok"></i>${esc(host)} · conectado` : esc(host)}</small></span>${c?.conectado && !c.error ? `<div class="seg cls-tabs" role="tablist" aria-label="Classroom">${tab("consultas", `Consultas${sinTomar ? ` <span class="cls-n">${sinTomar}</span>` : ""}`)}${tab("responder", "Responder")}${tab("piloto", "Piloto")}</div>` : ""}</div>`;
 	if (c?.conectado && !c.error && clsTab === "consultas") return `${tabs}${consultasHtml()}`;
 	if (c?.conectado && !c.error && clsTab === "responder") return `${tabs}${responderHtml()}`;
-	return `${c?.conectado && !c.error ? tabs : ""}${pilotoClsHtml()}`;
+	return `${tabs}${pilotoClsHtml()}`;
 }
 
 function pilotoClsHtml() {

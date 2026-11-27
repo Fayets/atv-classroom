@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { estado, mensajes, rutinas, agentes, hace, uso } from './datos.mjs'
 import * as ventas from './ventas.mjs'
 import * as bib from './biblioteca.mjs'
+import * as cls from './classroom.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const UI = join(RAIZ, 'ui')
@@ -53,6 +54,10 @@ async function appJs() {
 // Respuestas de las rutas GET que no son /state. Lo que no está acá devuelve una lista vacía.
 function rutaGet(p, url) {
   // Ventas y Contenido (mock/ventas.mjs)
+  if (p === '/classroom/piloto') return cls.piloto()
+  if (p === '/classroom/consultas') return cls.consultas()
+  if (p === '/classroom/clientes') return cls.clientes(url.searchParams.get('buscar') ?? '')
+  if (p === '/classroom/chat') return cls.chat(url.searchParams.get('cliente_id'))
   if (p === '/library') return bib.biblioteca()
   if (p === '/swipes') return bib.swipes()
   if (p === '/ig/bandeja') return ventas.bandeja()
@@ -91,7 +96,19 @@ function rutaGet(p, url) {
 }
 
 async function rutaPost(p, cuerpo) {
-  const ap = /^\/requests\/([^/]+)\/(approve|aprobar|reject|rechazar)$/.exec(p)
+  // Classroom: tomar/marcar/soltar una consulta, pedirle a Juan IA la respuesta, mandarla o descartarla, y el modo del piloto.
+  const cq = /^\/classroom\/consultas\/(tomar|marcar|soltar)$/.exec(p)
+  if (cq) return cls.marcar(cq[1], cuerpo)
+  if (p === '/classroom/armar') return cls.armar(cuerpo)
+  const cr = /^\/classroom\/respuesta\/([^/]+)\/(mandar|descartar)$/.exec(p)
+  if (cr) return cls.responder(cr[1])
+  const cm = /^\/classroom\/piloto\/([^/]+)$/.exec(p)
+  if (cm) {
+    const m = cls.piloto().modos.find((x) => String(x.admin_id) === cm[1])
+    if (m) m.modo = cuerpo.modo
+    return { ok: true }
+  }
+  const ap =/^\/requests\/([^/]+)\/(approve|aprobar|reject|rechazar)$/.exec(p)
   if (ap) {
     const r = st.requests.find((x) => x.id === ap[1])
     if (r) r.state = /approve|aprobar/.test(ap[2]) ? 'aprobado' : 'rechazado'
@@ -108,6 +125,23 @@ async function rutaPost(p, cuerpo) {
     const r = rut.find((x) => x.id === cuerpo.id && x.departamento === cuerpo.departamento)
     if (r) r.prendida = Boolean(cuerpo.prendida)
     return rut
+  }
+  // Juan IA: un chat nuevo o uno que sigue; contesta con una respuesta de prueba a los 2,5 s.
+  if (p === '/juan/chats' && cuerpo.texto) {
+    let chat = st.juanChats.find((c) => c.id === cuerpo.chat)
+    if (!chat) {
+      chat = { id: `j${Date.now()}`, titulo: cuerpo.texto.slice(0, 48), proyecto: cuerpo.proyecto ?? '', mensajes: [] }
+      st.juanChats.unshift(chat)
+    }
+    chat.mensajes.push({ rol: 'yo', texto: cuerpo.texto })
+    chat.esperando = true
+    chat.at = hace(0)
+    st.juanPasos = { ...(st.juanPasos ?? {}), [chat.id]: [{ kind: 'leer', text: 'Leyendo el SOP que corresponde' }, { kind: 'buscar', text: 'Mirando tus números' }] }
+    setTimeout(() => {
+      chat.mensajes.push({ rol: 'juan', pasos: st.juanPasos[chat.id], texto: 'Buena pregunta. **Esto es una respuesta de prueba del mock.**\n\nEn la app real, Juan contesta con el método de ATV y con los datos de tu negocio.' })
+      chat.esperando = false
+    }, 2500)
+    return { id: chat.id }
   }
   if (p === '/settings/autopiloto' && cuerpo.modo) {
     st.settings.autopiloto = { modo: cuerpo.modo }

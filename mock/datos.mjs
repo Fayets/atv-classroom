@@ -76,7 +76,18 @@ export function estado() {
     licencia: { activa: true },
     licenciaEquipo: null,
     claudeLogin: { state: 'done' },
-    juanChats: [],
+    juanChats: [
+      {
+        id: 'j1', titulo: 'Cómo valido la oferta del programa', proyecto: '', at: hace(180), esperando: false,
+        mensajes: [
+          { rol: 'yo', texto: '¿Cómo valido la oferta del programa High Ticket antes de lanzar?' },
+          { rol: 'juan', pasos: [{ kind: 'leer', text: 'Leyendo el SOP de validación de oferta' }, { kind: 'buscar', text: 'Buscando tus números de ventas' }], texto: 'Con lo que tenés hoy, la validás en **dos pasos**:\n\n1. **10 conversaciones de venta reales** antes de tocar la landing. Si 3 de cada 10 piden precio, la oferta está viva.\n2. **Una preventa chica**: 5 lugares a precio de fundador. Si se llenan en 7 días, escalás.\n\nTu show rate es bueno (80 %). Lo que me preocupa es el cierre: **25 %**. Antes de validar la oferta, revisaría el guion de la llamada.' },
+          { rol: 'yo', texto: '¿Y qué le cambio al guion?' },
+          { rol: 'juan', texto: 'Tres cosas, en este orden:\n\n- Que la persona diga **su número actual y su meta** en los primeros 5 minutos.\n- Mostrá **un caso parecido al suyo**, no el mejor que tengas.\n- El precio va **después** de que diga que sí al plan, nunca antes.\n\nSi querés, le pido al Asistente que Joaquín lo reescriba con esto.' },
+        ],
+      },
+      { id: 'j2', titulo: 'Qué dolor ataco esta semana', proyecto: 'cli-fit', at: hace(2900), esperando: false, mensajes: [{ rol: 'yo', texto: '¿Qué dolor ataco esta semana?' }, { rol: 'juan', texto: 'El que más chats trajo: **"No sé cómo vender online"**. Hacé una secuencia con el caso de Nati y pedí que escriban PROGRAMA en la última historia.' }] },
+    ],
     juanPasos: [],
     tickets: [
       { id: 'T-12', title: 'El calendario no sincroniza con Google', owner: 'sis-bugs', state: 'en curso', detail: 'Desde el martes los eventos nuevos no aparecen en Calendly.', notes: [{ author: 'Agustina', text: 'Reconecté la cuenta; lo vuelvo a probar mañana.' }], at: hace(600) },
