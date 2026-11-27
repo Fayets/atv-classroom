@@ -1347,3 +1347,93 @@ html .cls-fila:last-child { border-bottom: 0; }
 }
 @media (prefers-reduced-motion: reduce) { html .cls-resp.armando b::after { animation: none; } }
 html .clsdos .cls-vos .cls-espera { background: var(--rojo); color: #fff; }
+
+/* ======================================================================
+   Repaso general: lo que quedaba con el diseño viejo.
+   ====================================================================== */
+
+/* ---------- Programado e historial: la otra pestaña del Tablero, con su misma cabecera ---------- */
+html .tablero:not(.tb2) { gap: 20px; padding: 14px 10px 24px; }
+html .tablero:not(.tb2) .tbhead { align-items: flex-end; justify-content: space-between; }
+html .tablero:not(.tb2) .tbhead small { display: flex; align-items: center; gap: 10px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg2); }
+html .tablero:not(.tb2) .tbhead small::before { content: ""; width: 24px; height: 2px; border-radius: 2px; background: var(--rojo); }
+html .tablero:not(.tb2) .tbhead h1 { margin-top: 12px; font-size: clamp(28px, 3.4vw, 42px); line-height: 1.04; letter-spacing: -0.04em; }
+html .tablero:not(.tb2) .tbseg { padding: 4px; gap: 2px; border: 0; border-radius: 999px; background: var(--suave); box-shadow: inset 0 0 0 1px var(--borde); }
+html .tablero:not(.tb2) .tbseg button { height: 34px; padding: 0 16px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--fg2); }
+html .tablero:not(.tb2) .tbseg button.on { background: var(--fg); color: var(--sheet); box-shadow: 0 2px 6px rgba(29, 29, 31, 0.18); }
+html .hsdos { gap: 16px; }
+html .hsdos > .tbcol { padding: 16px; border-radius: 22px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde); }
+html .hsdos .tbcol h2 { font-size: 15px; letter-spacing: -0.015em; }
+html .hsdos .tblista { border-radius: 16px; }
+html .hsfiltros { display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--suave); box-shadow: inset 0 0 0 1px var(--borde); align-self: flex-start; }
+html .hsfiltros .chipb { height: 30px; padding: 0 12px; border: 0; border-radius: 999px; background: none; font-size: 12.5px; font-weight: 600; color: var(--fg2); }
+html .hsfiltros .chipb.on { background: var(--fg); color: var(--sheet); }
+html .hsesp summary { cursor: pointer; }
+
+/* ---------- el visor de archivos: una hoja que entra desde la derecha ---------- */
+html .filepanel { border-radius: 22px 0 0 22px; overflow: hidden; background: var(--sheet); box-shadow: -1px 0 0 var(--borde), -30px 0 60px -30px rgba(40, 30, 20, 0.45); }
+html .filepanel .p-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+html .filepanel .p-head .doc { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 11px; background: var(--fg); color: var(--sheet); }
+html .filepanel .p-head b { font-size: 15px; letter-spacing: -0.015em; }
+html .filepanel .p-head .b { height: 34px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--suave); font-weight: 600; }
+html .filepanel .p-head .b:hover { background: var(--fg); color: var(--sheet); }
+/* el documento se lee como una hoja: ancho de lectura, títulos con aire y el rojo para lo importante */
+html .docview { overflow: auto; padding: 28px 34px 48px; background: #fbf8f2; color: #242321; font-size: 15px; line-height: 1.65; }
+html[data-theme="dark"] .docview { background: #2a2826; color: #f3f0e9; }
+html .docview > * { max-width: 68ch; }
+html .docview h1 { margin: 0 0 6px; font-size: 28px; line-height: 1.1; letter-spacing: -0.035em; }
+html .docview h2 { margin: 26px 0 8px; padding-top: 18px; border-top: 1px dashed rgba(70, 52, 32, 0.25); font-size: 18px; letter-spacing: -0.02em; }
+html .docview h3 { margin: 18px 0 6px; font-size: 15px; }
+html .docview strong, html .docview b { background: linear-gradient(transparent 62%, rgba(192, 57, 43, 0.18) 62%); }
+html .docview ul, html .docview ol { padding-left: 22px; }
+html .docview li::marker { color: var(--rojo); }
+
+/* ---------- Embudos (la carpeta de tu empresa o de un cliente) ---------- */
+html .lib.carpv { gap: 16px; padding: 8px 6px 24px; }
+html .lib.carpv > section { padding: 16px 18px; border-radius: 22px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde); }
+html .lib.carpv > section > h3 { margin: 0 0 12px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg2); }
+html .lib.carpv > section > h3 small { margin-left: 6px; letter-spacing: 0.06em; color: var(--mut); }
+html .lib.carpv .kt { box-shadow: inset 0 0 0 1px var(--borde); }
+html .lib.carpv .pill.idle { height: 28px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; background: var(--suave); font-weight: 600; }
+html .lib.carpv .chipb { height: 28px; padding: 0 12px; border-radius: 999px; border: 1.5px dashed var(--line2); background: none; font-weight: 600; color: var(--fg2); }
+html .lib.carpv .lnk { font-weight: 600; color: var(--rojo-texto); }
+html .soft-note { border-radius: 14px; }
+/* el menú de "Tu espacio" queda por encima de las secciones de la barra (antes se veían a través) */
+html .sb-espacio { z-index: 5; }
+html .sb-espacio .carpm { z-index: 40; }
+
+/* ---------- la ficha de un agente (modal): la hoja con el filo rojo, el modelo elegido en tinta ---------- */
+html .omodal { background: rgba(30, 24, 18, 0.32); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); z-index: 80; }
+html .ocard { position: relative; width: min(420px, 100%); padding: 22px; border-radius: 24px; background: var(--sheet); box-shadow: 0 0 0 1px var(--borde), 0 40px 80px -30px rgba(40, 30, 20, 0.55); }
+html .ocard::before { content: ""; position: absolute; left: 24px; top: -1px; width: 56px; height: 3px; border-radius: 0 0 3px 3px; background: var(--rojo); }
+html .ocard .ohead { font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--fg); }
+html .ocard .ohead b { font-size: 17px; letter-spacing: -0.02em; }
+html .ocard .ohead .b { height: 34px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--suave); font-weight: 600; }
+html .ocard label { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg2); }
+html .ocard input, html .ocard select { height: 42px; border: 0; border-radius: 12px; background: var(--suave); font-family: var(--sans); font-size: 14px; letter-spacing: 0; text-transform: none; }
+html .ocard input:focus { box-shadow: inset 0 0 0 1.5px var(--fg); }
+html .omods { display: grid; gap: 6px; }
+html .ocard label.omod { padding: 10px 12px; border-radius: 14px; background: var(--suave); font-family: var(--sans); letter-spacing: 0; text-transform: none; cursor: pointer; }
+html .ocard label.omod.on { background: var(--fg); color: var(--sheet); }
+html .ocard label.omod.on small { color: color-mix(in srgb, var(--sheet) 70%, transparent); }
+html .ocard .fa .b { height: 40px; border-radius: 12px; font-weight: 600; }
+html .ocard .fa .b.go { background: var(--fg); color: var(--sheet); border-color: var(--fg); }
+html .ocard .fa .danger { color: var(--rojo-texto); }
+html .ocard label.omod :is(b, small) { font-family: var(--sans); letter-spacing: 0; text-transform: none; }
+html .ocard label.omod b { font-size: 14px; color: inherit; }
+html .omods > .olabel { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg2); }
+html .lib { grid-template-columns: minmax(0, 1fr); }
+html .lib > *, html .lib.carpv > section { min-width: 0; }
+@media (max-width: 760px) {
+  /* Automatizaciones: en el celular los números bajan a una fila propia debajo del nombre */
+  html .afila:not(.acab-num) { flex-wrap: wrap; row-gap: 8px; }
+  html .afila:not(.acab-num) .dmtx { flex: 1 1 calc(100% - 60px); }
+  html .afila .anum { flex: 1 1 0; min-width: 0; font-size: 12px; }
+  html .afila.acab-num { display: none; }
+  html .afila .aestado { margin-left: auto; }
+  /* Juan IA: el pie de la caja sin la pastilla de Juan, que ya está arriba */
+  html .jpie { flex-wrap: wrap; }
+  html .jpie > .jpill:not(.jsel):last-of-type { display: none; }
+  html .jpie .jsel { max-width: 150px; overflow: hidden; }
+}
+html .afila .amini-v { width: 42px; height: 56px; flex: none; display: grid; place-items: center; border-radius: 8px; background: var(--suave); }

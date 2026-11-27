@@ -54,6 +54,12 @@ async function appJs() {
 // Respuestas de las rutas GET que no son /state. Lo que no está acá devuelve una lista vacía.
 function rutaGet(p, url) {
   // Ventas y Contenido (mock/ventas.mjs)
+  if (p === '/embudos') return {
+    negocio: { pitch: 'Programa High Ticket para profesionales del bienestar que quieren vender online: 12 semanas, con acompañamiento 1 a 1.', web: 'https://escaladigital.com' },
+    hosting: true, voz: 0, redes: [], crm: { contactos: [{ nombre: 'Natalia Ferreyra', etapa: 'cliente' }, { nombre: 'Lucas Benítez', etapa: 'lead' }, { nombre: 'Juli Gómez', etapa: 'cliente' }] },
+    publicados: [{ tipo: 'pagina', nombre: 'Landing del programa High Ticket', link: 'https://escaladigital.com/programa' }, { tipo: 'formulario', nombre: 'Aplicación al programa', link: 'https://escaladigital.com/aplicar' }, { tipo: 'gancho', nombre: 'Avisos de nuevas aplicaciones', link: '' }],
+    workflows: [{ id: 'w1', nombre: 'Aplicación → agenda en Calendly', agente: 'ven-setter', corridas: 47, activo: true }, { id: 'w2', nombre: 'No vino → recordatorio por WhatsApp', agente: 'ven-closer', corridas: 12, activo: false }],
+  }
   if (p === '/classroom/piloto') return cls.piloto()
   if (p === '/classroom/consultas') return cls.consultas()
   if (p === '/classroom/clientes') return cls.clientes(url.searchParams.get('buscar') ?? '')
@@ -180,6 +186,11 @@ createServer(async (req, res) => {
     if (av) {
       res.writeHead(200, { 'content-type': TIPOS['.svg'] })
       return res.end(avatarSvg(av[1]))
+    }
+    // Un archivo entregado (los .md se leen en el visor de Leverage): un documento de prueba.
+    if (p === '/file') {
+      res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
+      return res.end('# Guiones de reels de la semana\n\nPara: Escala Digital · Lo escribió Bruno\n\n## 1. "3 errores que te frenan a vender online"\n\n**Gancho:** Si vendés online y no te compran, mirá esto.\n\n- Error 1: hablás de vos y no de lo que le pasa a tu cliente.\n- Error 2: no pedís nada al final.\n- Error 3: cambiás de oferta cada semana.\n\n**Pedido:** Comentá GUIA y te la mando.\n\n## 2. "Cómo armé mi agenda de 6 meses"\n\n**Gancho:** Hace un año no tenía ni un cliente.\n\n1. Elegí un solo dolor.\n2. Hice 30 historias con casos.\n3. Pedí la llamada, siempre.\n')
     }
     if (req.method === 'GET') return json(res, rutaGet(p, url))
     return json(res, await rutaPost(p, await leerCuerpo(req)))

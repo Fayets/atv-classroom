@@ -309,6 +309,27 @@ El de Classroom está en `ATV-CLASSROOM/.claude/CONTEXTO.md`, y ese repo queda q
   - **Choque de clases**: el classroom usa `.cls-msg.eq` para los mensajes del equipo, y el Equipo tenía su raíz en `.eq`
     con `container-type`, que aplastaba esas burbujas. **La raíz del Equipo ahora es `.eqm`.**
   - Probado en 1440, celular y oscuro (las dos pantallas).
+- **2026-11-27 · Repaso general**: se recorrieron las 19 vistas y las 8 secciones de Configuración sin errores de consola.
+  - **Lo que quedaba con el diseño viejo**:
+    - **Programado e historial**, la otra pestaña del Tablero: ahora tiene su misma cabecera (línea roja, título grande, cápsula),
+      columnas en tarjetas y filtros en la cápsula.
+    - **Visor de archivos**: una hoja que entra desde la derecha. El documento se lee en papel, con un ancho de lectura,
+      títulos con aire, lo importante resaltado y las viñetas en rojo.
+    - **Embudos / Negocio** (vista `carpeta`): cada bloque es una tarjeta con su rótulo en mono, y el CRM es la carpeta de cartón.
+    - **La ficha del agente** (modal): una hoja con el filo rojo, campos suaves, rótulos en mono y el modelo elegido en tinta.
+  - **Errores arreglados**:
+    - el menú de "Tu espacio" era transparente y se veían las secciones de la barra a través: `z-index` en `.sb-espacio`;
+    - en la ficha, las opciones del modelo heredaban el rótulo en mono;
+    - en el celular, Embudos y la Biblioteca se salían por la derecha: `.lib` con `minmax(0, 1fr)`;
+    - en el celular, en Automatizaciones los números bajan a su propia fila y el ícono sin miniatura mide lo mismo que las miniaturas;
+    - en el celular, la caja de Juan IA esconde la pastilla de Juan para no desbordar.
+  - Se midió el desborde horizontal de todas las vistas en el celular: quedó en cero (salvo los paneles laterales ocultos a propósito).
+  - **Mock**: `/embudos` (negocio, publicados, workflows y CRM) y `/file`, un .md de prueba para el visor.
+- **Para entregar**: los archivos de `ui/` que cambiaron desde el original salen con `git diff --name-only c718430 -- ui`.
+  - Archivos nuevos: `ui/atv.css` y `ui/fonts/` (Helvetica Now Display).
+  - Archivos tocados: `ui/index.html` (`atv.css` y los elementos de la barra), `ui/app.css` (colores a variables) y
+    `ui/app/01, 02, 04, 08, 08-z, 09 y 11`.
+  - `mock/`, `package.json`, `CONTEXTO.md` y `.claude/` **no** se entregan.
 - **Git local**: se inicializó un repo solo local en `ATV-LEVERAGE` para ver los cambios (`git diff c718430`),
   y hay una copia de la `ui/` original en `D:\Landings - Copy\ATV\ui-original-leverage-backup`.
   Para entregar se devuelven los archivos de `ui/` que cambiaron: `git diff --name-only c718430 -- ui`.
