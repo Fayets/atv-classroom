@@ -171,6 +171,33 @@ El de Classroom está en `ATV-CLASSROOM/.claude/CONTEXTO.md`, y ese repo queda q
   - Ojo con la especificidad: `app.css` tiene reglas `html[data-theme="dark"] …` para `.convs .item.on`, `.btag.rojo`,
     `.bwchip` y otras. En `atv.css` esas reglas van con `html .app …` o `html .bw …` para ganarles.
   - Probado en 1440, celular (lista → chat → volver) y oscuro.
+- **2026-11-27 · Equipo: "la constelación en vivo"** (`equipoHtml`, `eqPosiciones`, `eqCredencial` y `drawOrg`
+  en `04-onboarding-carpeta-equipo.js`; estilos `.eq-*` en `atv.css`). Se pidió algo que impresione. Hay referencias de vistas de agentes
+  como "Agents Office", con el estado del equipo a la vista, y de los canvas de equipos de Relevance AI, además de páginas de equipo premiadas en Awwwards.
+  - **El mapa** (lienzo de 1000 × 1000 en %): vos en el centro (disco de tinta con tus iniciales), el Asistente en la primera
+    órbita, y cada área es un **sector** con su capitán (órbita 300) y su gente más afuera (425). Lleva órbitas punteadas,
+    sectores en tonos alternados y el nombre del área en mono en el borde.
+  - **Estados** en el aro de cada agente:
+    - trabajando: aro rojo que gira y un halo que late;
+    - te necesita: aro rojo y número;
+    - en fila: aro punteado;
+    - dormido: en gris;
+    - disponible: aro verde.
+  - **Hilos**: cada par que se habló en la semana (`talks()`: comms, pedidos, #ceo) es una curva hacia el centro. Las de la
+    **última hora** van en rojo, con el trazo que fluye y una luz que viaja (`animateMotion`). Al pasar el mouse por alguien
+    se encienden sus hilos y su rama, y lo demás se apaga.
+  - **Credencial** del elegido, a la derecha (como la de Mi cuenta del Classroom):
+    - la lámina oscura con las iniciales de marca de agua, el estado, el nombre, el cargo y chips (área, modelo, a quién reporta);
+    - el talón con el corte punteado: qué está haciendo, la orden entre comillas y quién se la pidió, las cifras
+      (esperan tu OK, entregas, charlas en 7 días), lo que espera tu OK (abre la Bandeja) y Abrir chat / Editar ficha
+      (la ficha de siempre, `data-edit-agent`).
+  - Abajo de la credencial, **"Lo último que se dijeron"**: las acciones crudas (GMAIL_SEND_EMAIL) se leen como "Mandar un mail".
+    Tocar un agente o una charla lo elige (`data-eq-sel`). En pantallas angostas baja hasta la credencial.
+  - Las animaciones quedan atadas al reloj de la página en `drawOrg` (`startTime = 0`): repintar no las reinicia.
+  - Los KPIs aprobados siguen abajo, como antes. Del organigrama viejo ya no se usan `fitOrg` ni `#org-talks`.
+  - Tamaños: en PC, el mapa al lado de la credencial (container query a partir de 900 px). Si no, el mapa arriba y la credencial
+    abajo. Los nodos se achican en dos escalones (560 y 420 px). Probado en 1440, tablet, celular, claro y oscuro.
+  - Ojo: el panel de vista previa de Claude anima lento si no está en foco; en las capturas la píldora puede salir a mitad de camino.
 - **Git local**: se inicializó un repo solo local en `ATV-LEVERAGE` para ver los cambios (`git diff c718430`),
   y hay una copia de la `ui/` original en `D:\Landings - Copy\ATV\ui-original-leverage-backup`.
   Para entregar se devuelven los archivos de `ui/` que cambiaron: `git diff --name-only c718430 -- ui`.

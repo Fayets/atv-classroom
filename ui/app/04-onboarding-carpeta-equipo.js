@@ -395,18 +395,104 @@ function modeloHtml(a) {
 	return `<div class="omods" role="radiogroup" aria-label="Modelo"><span class="olabel">Modelo</span>${opciones}</div>`;
 }
 
-function equipoHtml() {
+/** El Equipo como una constelación en vivo (estilos .eq en atv.css). En el centro, vos; en la primera órbita, el
+ * Asistente; cada área es un sector con su capitán y su gente más afuera. Las órdenes de la última semana se ven
+ * como hilos que van de quien pidió a quien recibió, y las de la última hora llevan una luz que viaja por el hilo.
+ * Al tocar un agente, a la derecha aparece su credencial (como la de Mi cuenta del Classroom): qué está haciendo,
+ * quién se lo pidió, lo que espera tu OK y los botones para chatear o editar su ficha. Abajo, lo último que se dijeron.
+ * Las animaciones quedan atadas al reloj de la página (drawOrg): repintar no las hace arrancar de nuevo. */
+let eqSel = null;
+const EQ_HORA = 3600_000;
+
+/** Dónde va cada uno, en un lienzo de 1000 × 1000 con vos en el centro. */
+function eqPosiciones() {
+	const pos = { dueno: { x: 500, y: 500, ang: -90 } };
 	const assistant = state.agents.find(a => a.role === "asistente");
-	const owner = ownerNode();
-	const kidsOf = id => state.agents.filter(a => a.id !== id && bossId(a) === id);
-	const branch = (a, top) => {
-		const kids = kidsOf(a.id);
-		// Los equipos sin gente a cargo van en columna: así entra toda la empresa a lo ancho.
-		const stacked = kids.length > 1 && kids.every(k => !kidsOf(k.id).length);
-		return `<div class="obranch ${stacked ? "rail" : ""}">${orgNode(a)}${kids.length ? `<div class="okids ${stacked ? "stack" : ""}">${kids.map(k => branch(k, false)).join("")}</div>` : ""}</div>`;
+	if (assistant) pos[assistant.id] = { x: 500, y: 500 - 150, ang: -90 };
+	const areas = [...new Set(state.agents.filter(a => a.department && a.role !== "asistente").map(a => a.department))];
+	const sueltos = state.agents.filter(a => !a.department && a.role !== "asistente");
+	const n = Math.max(1, areas.length);
+	const span = 360 / n;
+	const polar = (r, grados) => ({ x: 500 + r * Math.cos((grados * Math.PI) / 180), y: 500 + r * Math.sin((grados * Math.PI) / 180), ang: grados });
+	const sectores = areas.map((d, i) => {
+		const centro = -90 + span / 2 + i * span;
+		const gente = state.agents.filter(a => a.department === d);
+		const capitan = gente.find(a => a.role === "captain" || a.role === "head-content") ?? gente[0];
+		pos[capitan.id] = polar(300, centro);
+		const resto = gente.filter(a => a !== capitan);
+		const paso = Math.min(span * 0.62 / Math.max(1, resto.length - 1), 28);
+		resto.forEach((a, j) => (pos[a.id] = polar(resto.length > 4 && j % 2 ? 385 : 425, centro + (j - (resto.length - 1) / 2) * paso)));
+		return { d, centro, desde: centro - span / 2, hasta: centro + span / 2, etiqueta: polar(478, centro) };
+	});
+	sueltos.forEach((a, j) => (pos[a.id] = polar(230, -90 + (j + 1) * 40)));
+	return { pos, sectores };
+}
+
+function equipoHtml() {
+	const { pos, sectores } = eqPosiciones();
+	const assistant = state.agents.find(a => a.role === "asistente");
+	if (!eqSel || !state.agents.some(a => a.id === eqSel)) eqSel = state.agents.find(a => a.busy)?.id ?? assistant?.id ?? state.agents[0]?.id ?? null;
+	const ahora = Date.now();
+	const piden = id => pending().filter(r => r.agentId === id).length + proposed().filter(k => k.agentId === id).length;
+	const estado = a => (a.busy ? "trabaja" : piden(a.id) ? "pide" : a.queued ? "fila" : a.asleep ? "duerme" : "libre");
+	const ESTADO = { trabaja: "Trabajando", pide: "Te necesita", fila: "En fila", duerme: "Dormido", libre: "Disponible" };
+
+	// Los hilos: cada par que se habló en la semana, curvado hacia el centro. Las charlas de la última hora, encendidas.
+	const pares = new Map();
+	for (const t of talks().filter(t => ahora - new Date(t.at).getTime() < WEEK_MS)) {
+		if (!pos[t.from] || !pos[t.to] || t.from === t.to) continue;
+		const clave = `${t.from}>${t.to}`;
+		const p = pares.get(clave) ?? { from: t.from, to: t.to, n: 0, ultima: 0 };
+		p.n += 1;
+		p.ultima = Math.max(p.ultima, new Date(t.at).getTime());
+		pares.set(clave, p);
+	}
+	const curva = (a, b, tiron = 0.35) => {
+		const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+		const cx = mx + (500 - mx) * tiron, cy = my + (500 - my) * tiron;
+		return `M${a.x.toFixed(1)} ${a.y.toFixed(1)}Q${cx.toFixed(1)} ${cy.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
 	};
-	const tops = assistant ? kidsOf(assistant.id) : state.agents.filter(a => !bossId(a));
-	const columns = tops.map(a => branch(a, true));
+	const jerarquia = state.agents.map(a => [bossId(a) ?? "dueno", a.id]).filter(([p, c]) => pos[p] && pos[c]).map(([p, c]) => `<path class="eq-rama" data-a="${p}" data-b="${c}" d="${curva(pos[p], pos[c], 0)}"/>`).join("");
+	const hilos = [...pares.values()].map((p, i) => {
+		const vivo = ahora - p.ultima < EQ_HORA;
+		const d = curva(pos[p.from], pos[p.to], 0.28 + (i % 3) * 0.06);
+		return `<g class="eq-hilo ${vivo ? "vivo" : ""}" data-a="${p.from}" data-b="${p.to}"><path d="${d}"/>${vivo ? `<circle r="5"><animateMotion dur="${2.4 + (i % 4) * 0.5}s" repeatCount="indefinite" path="${d}"/></circle>` : ""}</g>`;
+	}).join("");
+	const sectoresSvg = sectores.map((s, i) => {
+		const arco = (r, a0, a1) => {
+			const p0 = [500 + r * Math.cos((a0 * Math.PI) / 180), 500 + r * Math.sin((a0 * Math.PI) / 180)];
+			const p1 = [500 + r * Math.cos((a1 * Math.PI) / 180), 500 + r * Math.sin((a1 * Math.PI) / 180)];
+			return [p0, p1];
+		};
+		const [o0, o1] = arco(470, s.desde + 1.5, s.hasta - 1.5);
+		const [i0, i1] = arco(210, s.desde + 1.5, s.hasta - 1.5);
+		const grande = s.hasta - s.desde > 180 ? 1 : 0;
+		return `<path class="eq-sector ${i % 2 ? "par" : ""}" data-area="${esc(s.d)}" d="M${i0[0]} ${i0[1]}L${o0[0]} ${o0[1]}A470 470 0 ${grande} 1 ${o1[0]} ${o1[1]}L${i1[0]} ${i1[1]}A210 210 0 ${grande} 0 ${i0[0]} ${i0[1]}Z"/>`;
+	}).join("");
+
+	const nodo = a => {
+		const p = pos[a.id];
+		if (!p) return "";
+		const e = estado(a);
+		const n = piden(a.id);
+		const tam = a.role === "asistente" ? "xl" : a.role === "captain" || a.role === "head-content" ? "lg" : "md";
+		return `<button class="eq-nodo is-${e} ${tam} ${eqSel === a.id ? "on" : ""}" style="left:${p.x / 10}%;top:${p.y / 10}%" data-eq-sel="${a.id}" data-eq-nodo="${a.id}" aria-label="${esc(a.name)}: ${ESTADO[e]}" aria-pressed="${eqSel === a.id}"><span class="eq-cara">${avatar(a)}<i class="eq-aro" aria-hidden="true"></i>${n ? `<span class="eq-pide">${n}</span>` : ""}</span><span class="eq-nom">${esc(a.name)}</span></button>`;
+	};
+	const { name, company } = state.settings?.owner ?? {};
+	const centro = `<div class="eq-centro" style="left:50%;top:50%" data-eq-nodo="dueno"><span class="eq-yo">${esc(initials(name || "Vos"))}</span><span class="eq-nom">Vos</span></div>`;
+	const etiquetas = sectores.map(s => `<span class="eq-area" style="left:${s.etiqueta.x / 10}%;top:${s.etiqueta.y / 10}%" data-area="${esc(s.d)}">${esc(nombre(s.d))}</span>`).join("");
+
+	const trabajando = state.agents.filter(a => a.busy).length;
+	const totalPiden = state.agents.reduce((t, a) => t + piden(a.id), 0);
+	const enFila = state.agents.filter(a => a.queued && !a.busy).length;
+	const leyenda = [["trabaja", "Trabajando", trabajando], ["pide", "Te necesitan", state.agents.filter(a => piden(a.id)).length], ["fila", "En fila", enFila], ["libre", "Disponibles", state.agents.filter(a => estado(a) === "libre").length]].map(([k, t, n]) => `<span class="eq-ley is-${k}"><i></i>${t}<b>${n}</b></span>`).join("");
+	const quienEq = id => (id === "dueno" ? "Vos" : who(id));
+	const textoEq = txt => {
+		const linea = String(txt ?? "").split(/\n/)[0];
+		return (/^[A-Z0-9_]+$/.test(linea) ? actionOf({ kind: "accion", title: linea }).title : linea).slice(0, 90);
+	};
+	const ultimas = talks().filter(t => t.from !== t.to).slice(0, 6).map(t => `<li><button data-eq-sel="${esc(t.from === "dueno" ? t.to : t.from)}">${t.from === "dueno" ? `<span class="eq-yo sm">${esc(initials(name || "Vos"))}</span>` : avatar({ id: t.from }, "xs")}<span class="eq-dijo"><b>${esc(quienEq(t.from))}</b> → <b>${esc(quienEq(t.to))}</b><small>${esc(textoEq(t.text))}</small></span><time>${ago(t.at)}</time></button></li>`).join("");
+
 	const rows = state.kpis.filter(k => k.state === "aprobada").map(k => {
 		const r = state.readings.filter(x => x.kpi === k.id).at(-1);
 		return `<tr><td>${esc(k.name)}</td><td>${r?.value ?? (r ? "falló" : "—")}</td><td>${esc(k.target)}</td></tr>`;
@@ -416,80 +502,90 @@ function equipoHtml() {
 	const modal = editing
 		? `<div class="omodal" data-modal-close><div class="ocard" role="dialog" aria-label="Ficha de ${esc(editing.name)}" data-modal-stay><div class="ohead"><span class="oface">${avatar(editing)}</span><span class="ct"><b>${esc(editing.name)}</b><small>${editing.department ? esc(nombre(editing.department)) : "Tu mano derecha"}</small></span><button class="b" data-agent="${editing.id}">Abrir chat</button></div><label>Nombre<input id="agent-name" value="${esc(editing.name)}" maxlength="40" autocomplete="off"></label><label>Cargo<input id="agent-title" value="${esc(editing.title ?? "")}" placeholder="${esc(ROLE_NAMES[editing.role] ?? "Agente")}" autocomplete="off"></label>${modeloHtml(editing)}${editing.role === "asistente" ? "" : `<label>Reporta a<select id="agent-boss">${state.agents.filter(a => a.id !== editing.id).map(a => `<option value="${a.id}" ${a.id === bossId(editing) ? "selected" : ""}>${esc(a.name)}</option>`).join("")}</select></label>`}${agentError ? `<div class="soft-note">${esc(agentError)}</div>` : ""}<div class="fa">${editing.role === "asistente" ? "" : `<button class="b ghost danger" data-agent-remove="${editing.id}">${removing ? "¿Seguro?" : "Sacar"}</button>`}<span class="sp"></span><button class="b ghost" data-modal-close>Cancelar</button><button class="b go" data-agent-save="${editing.id}">Guardar</button></div></div></div>`
 		: "";
-	const hint = columns.length ? "" : `<div class="orghint">Tu equipo crece cuando le pedís al Asistente que arme un departamento.</div>`;
-	const trabajando = state.agents.filter(a => a.busy).length;
-	const cuenta = trabajando ? `<div class="ocuenta"><i></i>${trabajando} ${trabajando === 1 ? "agente trabajando" : "agentes trabajando"}${carpeta ? ` para ${esc(state.carpeta?.nombre ?? "este cliente")}` : ""}</div>` : "";
-	return `<div class="orgpage">${cuenta}<div class="org" id="org"><svg id="org-links" aria-hidden="true"></svg><svg id="org-talks" aria-hidden="true"></svg><div class="olevel">${owner}</div>${assistant ? `<div class="olevel">${orgNode(assistant)}</div>` : ""}${columns.length ? `<div class="olevel depts">${columns.join("")}</div>` : ""}</div>${hint}
-	${kpis}</div>${modal}`;
+	if (!state.agents.length) return `<div class="eq"><div class="orghint">Tu equipo crece cuando le pedís al Asistente que arme un departamento.</div></div>${modal}`;
+
+	const titulo = trabajando ? `${state.agents.length} agentes, <em>${trabajando} trabajando ahora.</em>` : `${state.agents.length} agentes, <em>todos tranquilos.</em>`;
+	return `<div class="eq">
+	<header class="eq-cab">
+		<div><p class="tb2-ojo">Tu equipo · en vivo${carpeta ? ` · ${esc(state.carpeta?.nombre ?? "")}` : company ? ` · ${esc(company)}` : ""}</p><h1>${titulo}</h1></div>
+		<div class="eq-leyenda">${leyenda}</div>
+	</header>
+	<div class="eq-cuerpo">
+		<section class="eq-cielo" aria-label="Mapa del equipo">
+			<div class="eq-lienzo" id="eq-lienzo">
+				<svg class="eq-svg" viewBox="0 0 1000 1000" aria-hidden="true">
+					<circle class="eq-orbita" cx="500" cy="500" r="150"/><circle class="eq-orbita" cx="500" cy="500" r="300"/><circle class="eq-orbita fina" cx="500" cy="500" r="425"/>
+					${sectoresSvg}${jerarquia}${hilos}
+				</svg>
+				${etiquetas}${centro}${state.agents.map(nodo).join("")}
+			</div>
+			<p class="eq-pista">Tocá a alguien para ver su credencial. Las líneas rojas son órdenes de la última hora.</p>
+		</section>
+		<aside class="eq-lado">${eqCredencial(state.agents.find(a => a.id === eqSel), estado, ESTADO, piden)}
+			${ultimas ? `<section class="eq-feed"><h2>Lo último que se dijeron</h2><ol>${ultimas}</ol></section>` : ""}
+		</aside>
+	</div>
+	${kpis}
+</div>${modal}`;
 }
 
-/** Las líneas se dibujan una vez por cambio, no por cuadro. */
+/** La credencial del agente elegido: la lámina oscura con sus iniciales de fondo, como la de Mi cuenta del Classroom. */
+function eqCredencial(a, estado, ESTADO, piden) {
+	if (!a) return "";
+	const e = estado(a);
+	const orden = ordenDe(a);
+	const paso = a.busy ? (a.ahora ? pasoLegible(a.ahora) : "Trabajando") : a.queued ? "En fila, arranca en un rato" : a.asleep ? "Dormido hasta que lo llamen" : "Disponible para lo que le pidas";
+	const cargo = (a.title && a.title !== a.name ? a.title : "") || ROLE_NAMES[a.role] || "Agente";
+	const pedidos = pending().filter(r => r.agentId === a.id);
+	const entregas = state.requests.filter(r => r.agentId === a.id && r.kind === "entrega").length;
+	const charlas = talks().filter(t => (t.from === a.id || t.to === a.id) && Date.now() - new Date(t.at).getTime() < WEEK_MS).length;
+	const modelo = MODELOS.find(([id]) => id === (a.modelo ?? (typeof a.model === "string" ? a.model : "")))?.[1];
+	const jefe = bossId(a);
+	return `<article class="eq-cred is-${e}" aria-label="Credencial de ${esc(a.name)}">
+		<div class="eq-cred__lamina">
+			<span class="eq-cred__mono" aria-hidden="true">${esc(initials(a.name))}</span>
+			<div class="eq-cred__tapa"><span>ATV · Agente</span><span class="eq-cred__estado"><i></i>${ESTADO[e]}</span></div>
+			<div class="eq-cred__quien">${avatar(a, "hd")}<div><b>${esc(a.name)}</b><small>${esc(cargo)}</small></div></div>
+			<div class="eq-cred__chips">${a.department ? `<span>${esc(nombre(a.department))}</span>` : `<span>Mano derecha</span>`}${modelo ? `<span>${esc(modelo)}</span>` : ""}${jefe ? `<span>Reporta a ${esc(who(jefe))}</span>` : ""}</div>
+		</div>
+		<div class="eq-cred__talon">
+			<div class="eq-cred__ahora"><small>Ahora</small><p><i class="${a.busy ? "tbgira" : "tbespera"}" aria-hidden="true"></i>${esc(paso)}</p>${orden ? `<blockquote>“${esc(orden.text.split(/\n/)[0].trim().slice(0, 140))}”<cite>${esc(orden.from === "dueno" ? "Se lo pediste vos" : `Se lo pidió ${who(orden.from)}`)} · hace ${lasted(orden.at, new Date())}</cite></blockquote>` : ""}</div>
+			<dl class="eq-cred__cifras"><div><dt>Esperan tu OK</dt><dd class="${piden(a.id) ? "rojo" : ""}">${piden(a.id)}</dd></div><div><dt>Entregas</dt><dd>${entregas}</dd></div><div><dt>Charlas · 7 días</dt><dd>${charlas}</dd></div></dl>
+			${pedidos.length ? `<button class="eq-cred__pide" data-ver-pedido="${pedidos[0].id}">${ic("inbox")}<span><b>${esc(actionOf(pedidos[0])?.title ?? pedidos[0].title)}</b><small>Espera tu OK</small></span>${ic("chevron-right")}</button>` : ""}
+			<div class="eq-cred__bots"><button class="b go" data-agent="${a.id}">Abrir chat</button><button class="b" data-edit-agent="${a.id}">Editar ficha</button></div>
+		</div>
+	</article>`;
+}
+
+/** Después de pintar: las animaciones siguen el reloj de la página (no arrancan de nuevo con cada repintado). */
 function drawOrg() {
-	const org = document.getElementById("org");
-	const svg = document.getElementById("org-links");
-	if (!org || !svg) return;
-	org.style.transform = "none";
-	const base = org.getBoundingClientRect();
-	const size = [org.offsetWidth, org.offsetHeight];
-	for (const layer of [svg, document.getElementById("org-talks")]) {
-		layer.style.width = `${size[0]}px`;
-		layer.style.height = `${size[1]}px`;
-		layer.setAttribute("viewBox", `0 0 ${size[0]} ${size[1]}`);
-	}
-	const box = id => {
-		const r = org.querySelector(`[data-node="${id}"]`)?.getBoundingClientRect();
-		const dx = org.scrollLeft - base.left;
-		const dy = org.scrollTop - base.top;
-		return r && { x: r.left + dx + r.width / 2, left: r.left + dx, right: r.right + dx, top: r.top + dy, bottom: r.bottom + dy, mid: r.top + dy + r.height / 2 };
-	};
-	const tree = state.agents.map(a => [bossId(a) ?? "dueno", a.id]);
-	const lines = tree.map(([p, c]) => {
-		const [from, to] = [box(p), box(c)];
-		if (!from || !to) return "";
-		if (org.querySelector(`[data-node="${c}"]`).closest(".okids")?.classList.contains("stack")) {
-			const rail = from.left + 12;
-			return `<path class="ol" d="M${rail} ${from.bottom}V${to.mid - 8}Q${rail} ${to.mid} ${rail + 8} ${to.mid}H${to.left}"/>`;
-		}
-		const y = (from.bottom + to.top) / 2;
-		return `<path class="ol" d="M${from.x} ${from.bottom}C${from.x} ${y} ${to.x} ${y} ${to.x} ${to.top}"/>`;
-	});
-	const pairs = new Map();
-	for (const t of talks().filter(t => Date.now() - new Date(t.at).getTime() < WEEK_MS)) {
-		const key = [t.from, t.to].sort().join("|");
-		pairs.set(key, (pairs.get(key) ?? 0) + 1);
-	}
-	const talksSvg = [...pairs].map(([key, n], i) => {
-		const [p, c] = key.split("|");
-		const [a, b] = [box(p), box(c)];
-		if (!a || !b) return "";
-		const [up, down] = a.mid <= b.mid ? [a, b] : [b, a];
-		// En la misma columna la línea sale por el costado, para no pasar por detrás de las tarjetas.
-		const sameColumn = Math.abs(up.x - down.x) < 40;
-		const start = sameColumn ? [up.right, up.mid] : [up.x, up.bottom];
-		const end = sameColumn ? [down.right, down.mid] : [down.x, down.top];
-		const reach = sameColumn ? 26 + (down.mid - up.mid) * 0.18 : (i % 2 ? 1 : -1) * 28;
-		const cx = (start[0] + end[0]) / 2 + reach;
-		const cy = (start[1] + end[1]) / 2;
-		const apex = [(start[0] + end[0] + 2 * cx) / 4, cy];
-		return `<g class="talk" data-a="${p}" data-b="${c}"><path class="ot" d="M${start[0]} ${start[1]}Q${cx} ${cy} ${end[0]} ${end[1]}"/><g transform="translate(${apex[0]} ${apex[1]})"><circle r="10"/><text text-anchor="middle" dy="4">${n}</text></g></g>`;
-	});
-	svg.innerHTML = lines.join("");
-	const over = document.getElementById("org-talks");
-	over.innerHTML = talksSvg.join("");
-	fitOrg(org, size);
+	const raiz = document.querySelector(".eq");
+	if (!raiz) return;
+	for (const anim of raiz.getAnimations({ subtree: true })) anim.startTime = 0;
+	const svg = raiz.querySelector(".eq-svg");
+	if (svg?.setCurrentTime) svg.setCurrentTime((performance.now() / 1000) % 60);
 }
 
-/** Toda la empresa a la vista: si no entra, se achica entera en vez de pedir scroll. */
-function fitOrg(org, [width, height]) {
-	const page = org.parentElement;
-	const body = document.getElementById("body");
-	const below = [...page.children].filter(el => el !== org).reduce((sum, el) => sum + el.offsetHeight + 12, 0);
-	const pad = parseFloat(getComputedStyle(body).paddingTop) + parseFloat(getComputedStyle(body).paddingBottom);
-	const scale = Math.min(1, page.clientWidth / width, (body.clientHeight - pad - below) / height);
-	org.style.transform = `scale(${scale})`;
-	org.style.marginLeft = `${(page.clientWidth - width * scale) / 2}px`;
-	org.style.marginBottom = `${height * scale - height}px`;
-}
+document.addEventListener("click", e => {
+	const t = e.target.closest?.("[data-eq-sel]");
+	if (!t) return;
+	eqSel = t.dataset.eqSel;
+	lastBody = "";
+	renderBody();
+	// En pantallas angostas la credencial queda abajo del mapa: se baja hasta ella.
+	if (matchMedia("(max-width:1100px)").matches) document.querySelector(".eq-cred")?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+});
+/** Al pasar por alguien se encienden sus hilos y su rama; lo demás se apaga un poco. */
+document.addEventListener("mouseover", e => {
+	const lienzo = document.getElementById("eq-lienzo");
+	if (!lienzo) return;
+	const id = e.target.closest?.("[data-eq-nodo]")?.dataset.eqNodo ?? null;
+	if (lienzo.dataset.foco === (id ?? "")) return;
+	lienzo.dataset.foco = id ?? "";
+	lienzo.classList.toggle("con-foco", Boolean(id));
+	for (const el of lienzo.querySelectorAll("[data-a]")) el.classList.toggle("foco", Boolean(id) && (el.dataset.a === id || el.dataset.b === id));
+	for (const el of lienzo.querySelectorAll("[data-eq-nodo]")) el.classList.toggle("foco", el.dataset.eqNodo === id);
+});
 
 const SECTIONS = [
 	["general", "sliders-horizontal", "General"],
