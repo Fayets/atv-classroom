@@ -224,6 +224,27 @@ El de Classroom está en `ATV-CLASSROOM/.claude/CONTEXTO.md`, y ese repo queda q
     - el mapa y "Lo que se ve" en un bloque redondeado, con las cifras grandes en rojo;
     - Secuencias y Reels en bloques, con miniaturas redondeadas y el pedido marcado en rojo.
   - Probado en 1440, celular (lista → chat, Contenido) y oscuro.
+- **2026-11-27 · Biblioteca y Roadmap**:
+  - **Mock**: `mock/biblioteca.mjs` sirve los datos de prueba.
+    - `/library`: 9 historias, 3 reels, guías de "lo que aprendieron" y material (brandbook, landings, Miro, caso, VSL, mercado);
+    - `/swipes`;
+    - `state.roadmap`: "Lanzamiento del programa High Ticket", 5 pasos. El 3 está en curso, con partes, una tarea que espera tu OK y una entrega.
+  - **Biblioteca** (solo estilos):
+    - las pestañas en la cápsula del Classroom y "Sumar material" en rojo;
+    - **Historias y Reels son carpetas de cartón** con pestaña roja: las fotos asoman como hojas y suben al pasar el mouse;
+    - cada estante es una **bandeja con pestaña** (BRANDBOOK, LANDINGS, MIROS…) en dos columnas; los que faltan, punteados y rayados;
+    - "Lo que aprendieron tus agentes" es una nota con el filo rojo;
+    - "Tus decisiones" va al costado en papel; con poco ancho baja.
+    - Ojo: `.lib` tenía `margin: 0 auto` y se encogía dentro de la grilla; ahora va con `margin: 0` y `width: 100%`.
+  - **Roadmap**: mantiene el sendero en zigzag que ya tenía y se puede arrastrar.
+    - El título es una tarjeta con "Roadmap · paso X de N" en mono, el nombre del plan y una barra por pasos:
+      tinta lo aprobado y rojo que late lo que está en curso (cambio chico en `roadmapHtml`, 02).
+    - El sendero hecho va en tinta y los pasos aprobados en tinta con el tilde. El paso en curso va en rojo, con un halo que late.
+    - Las etiquetas son pastillas de papel. La tarjeta abierta es una hoja con el filo rojo; el "Punto de encuentro" va en
+      una caja suave y Aprobar en tinta. Las entregas siguen el tema (en oscuro se veían blancas).
+    - El mundo baja 76 px para no quedar tapado por el título.
+    - En el celular se sigue explorando arrastrando: achicarlo para que entre haría ilegible el texto.
+  - Probado en 1440, celular y oscuro.
 - **Git local**: se inicializó un repo solo local en `ATV-LEVERAGE` para ver los cambios (`git diff c718430`),
   y hay una copia de la `ui/` original en `D:\Landings - Copy\ATV\ui-original-leverage-backup`.
   Para entregar se devuelven los archivos de `ui/` que cambiaron: `git diff --name-only c718430 -- ui`.

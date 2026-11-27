@@ -9,6 +9,7 @@ import { extname, join, normalize, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { estado, mensajes, rutinas, agentes, hace, uso } from './datos.mjs'
 import * as ventas from './ventas.mjs'
+import * as bib from './biblioteca.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const UI = join(RAIZ, 'ui')
@@ -16,6 +17,7 @@ const PUERTO = Number(process.env.PORT) || 5180
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json' }
 
 const st = estado()
+st.roadmap = bib.roadmap()
 const chats = structuredClone(mensajes)
 const rut = structuredClone(rutinas)
 
@@ -51,6 +53,8 @@ async function appJs() {
 // Respuestas de las rutas GET que no son /state. Lo que no está acá devuelve una lista vacía.
 function rutaGet(p, url) {
   // Ventas y Contenido (mock/ventas.mjs)
+  if (p === '/library') return bib.biblioteca()
+  if (p === '/swipes') return bib.swipes()
   if (p === '/ig/bandeja') return ventas.bandeja()
   if (p === '/ig/buscar') { const q = (url.searchParams.get('q') ?? '').toLowerCase(); return { conversaciones: ventas.bandeja().conversaciones.filter((c) => (c.nombre + ' ' + c.usuario).toLowerCase().includes(q)) } }
   if (p.startsWith('/ig/chat/')) return ventas.chat(decodeURIComponent(p.slice(9)))
@@ -73,7 +77,6 @@ function rutaGet(p, url) {
     '/usage': uso,
     '/connections': { composio: { accounts: [] }, apps: [], problem: null },
     '/departments': [],
-    '/library': [],
     '/library/items': [],
     '/embudos': [],
     '/juan/chats': [],
