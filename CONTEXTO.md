@@ -135,6 +135,20 @@ El de Classroom está en `ATV-CLASSROOM/.claude/CONTEXTO.md`, y ese repo queda q
     cierra al elegir una sección, al tocar afuera o con Esc. En el celular no hay riel.
   - Pendiente: las pantallas en sí (Tablero, Bandeja, chat, Equipo…) todavía tienen su diseño viejo, aunque ya toman
     la paleta y la tipografía nuevas. En el chat, la columna de conversaciones queda pegada a la barra: se rediseña con esa pantalla.
+- **2026-11-27 · Tablero** ( en , estilos  en ), con el lenguaje del Inicio del Classroom:
+  - **Saludo**: línea roja + fecha y empresa en mono, y el título "Buen día / Buenas tardes / Buenas noches, Franco. Esto es lo de tu equipo hoy."
+    A la derecha, la cápsula Hoy / Programado e historial.
+  - **Marcador**: una tira con 4 cifras. Esperan tu OK va en rojo; trabajando ahora lleva un punto verde que late; después, entregas hoy y en la agenda.
+  - **Grilla** de dos columnas independientes cuando hay lugar (container query a partir de 820 px):
+    - **Esperan tu OK**: fichas con el tipo (con el logo de la app si es una acción, como Gmail o Instagram), el pedido,
+      quién lo pide y cuándo, y Aprobar (tinta) / Ver.
+    - **Entregado hoy**: cada entrega es una hoja con la extensión del archivo (PDF, MD, HTML) y su estado.
+    - **Trabajando ahora**: cada agente con un aro rojo que gira, su tarea, el paso y el indicador "En vivo".
+    - **Lo que viene**: una agenda con la hora a la izquierda y una línea que une los puntos.
+  - Angosto: una columna, en este orden: OK, trabajando, entregado y lo que viene. El marcador pasa a 2×2.
+  - Al pie, el pedido al Asistente (la caja de siempre, , con otro estilo).
+  - Sin animaciones de entrada: el tablero se repinta cada pocos segundos y se repetirían.
+  - Probado en 1440, tablet y celular, claro y oscuro. Aprobar funciona (en el mock cambia los datos: reiniciar el server para volver a cero).
 - **Git local**: se inicializó un repo solo local en `ATV-LEVERAGE` para ver los cambios (`git diff c718430`),
   y hay una copia de la `ui/` original en `D:\Landings - Copy\ATV\ui-original-leverage-backup`.
   Para entregar se devuelven los archivos de `ui/` que cambiaron: `git diff --name-only c718430 -- ui`.

@@ -221,38 +221,79 @@ function historialHtml() {
 </div>`;
 }
 
-/** El inicio: lo que espera tu OK, lo que está en curso, lo que se entregó hoy y lo que viene. */
+/** El inicio, con el diseño del Classroom (estilos .tb2 en atv.css): el saludo, el marcador del día y cuatro bloques.
+ * Lo que espera tu OK va primero y más grande; al lado, quién está trabajando ahora; abajo, lo que se entregó hoy
+ * (como hojas, con el tipo de archivo) y lo que viene programado (como una agenda). Al pie, el pedido al Asistente.
+ * No tiene animaciones de entrada: el tablero se vuelve a pintar entero cada pocos segundos. */
 function tableroHtml() {
 	const okReq = [...pending()].sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""));
 	const okKpi = proposed();
-	const enCurso = state.agents.filter(a => a.busy || a.queued);
+	const enCurso = state.agents.filter(a => a.busy || a.queued).sort((a, b) => Number(Boolean(b.busy)) - Number(Boolean(a.busy)));
 	const entregas = state.requests.filter(r => r.kind === "entrega" && hoyEs(r.at)).sort((a, b) => b.at.localeCompare(a.at));
 	const rutinas = (extra.routines ?? []).filter(r => r.prendida).map(r => ({ r, cuando: proximaVez(r) })).filter(x => x.cuando).sort((a, b) => a.cuando - b.cuando);
 	const totalOk = okReq.length + okKpi.length;
-	const instagram = state.instagram?.connected ? [`<div><b>Guardar las historias de Instagram</b><small>Leverage · cada hora${state.instagram.lastSync ? ` · la última, ${hora(state.instagram.lastSync)}` : ""}</small></div>`] : [];
-	const fecha = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
-	const tipo = r => ({ ok: "Pide tu OK", accion: "Quiere hacer esto", entrega: "Entrega" })[r.kind] ?? "Pide tu OK";
-	const okCard = r => {
-		const accion = actionOf(r);
-		return `<article class="tbcard"><b>${esc(accion?.title ?? r.title)}</b><small class="${r.kind === "accion" ? "riesgo" : ""}">${esc(r.author)} · ${tipo(r)}</small><div class="tbbots"><button class="b p" data-approve="${r.id}">Aprobar</button><button class="b" data-ver-pedido="${r.id}">Ver</button></div></article>`;
+	const ahora = new Date();
+	const fecha = ahora.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+	const h = ahora.getHours();
+	const saludo = h < 6 || h >= 20 ? "Buenas noches" : h < 13 ? "Buen día" : "Buenas tardes";
+	const primerNombre = (state.settings?.owner?.name ?? "").split(/\s+/)[0];
+	const empresa = state.carpeta?.nombre ?? state.settings?.owner?.company ?? "";
+	const quien = id => state.agents.find(a => a.id === id);
+	const tipo = r => ({ ok: "Pide tu OK", accion: "Quiere hacer esto", entrega: "Entrega para revisar" })[r.kind] ?? "Pide tu OK";
+	const app = r => {
+		const a = actionOf(r)?.app;
+		return a ? `<img class="tb2-app" src="/ui/apps/${esc(a)}.svg" alt="" onerror="this.remove()">` : "";
 	};
-	const kpiCardTb = k => `<article class="tbcard"><b>Nuevo KPI: ${esc(k.name)}</b><small>${esc(k.proposedBy)} · meta ${esc(k.target)}</small><div class="tbbots"><button class="b" data-ver-pedido="${k.id}">Ver</button></div></article>`;
+	const okCard = r => {
+		const ag = quien(r.agentId);
+		return `<article class="tb2-pide ${r.kind === "accion" ? "is-accion" : ""}">
+			<span class="tb2-tipo">${app(r)}${tipo(r)}</span>
+			<b class="tb2-pide__t">${esc(actionOf(r)?.title ?? r.title)}</b>
+			<span class="tb2-quien">${ag ? avatar(ag, "xs") : ""}<span>${esc(r.author)}${r.at ? ` · ${ago(r.at).toLowerCase()}` : ""}</span></span>
+			<div class="tb2-bots"><button class="b go" data-approve="${r.id}">Aprobar</button><button class="b" data-ver-pedido="${r.id}">Ver</button></div>
+		</article>`;
+	};
+	const kpiCard = k => `<article class="tb2-pide"><span class="tb2-tipo">Nuevo KPI</span><b class="tb2-pide__t">${esc(k.name)}</b><span class="tb2-quien"><span>${esc(k.proposedBy)} · meta ${esc(k.target)}</span></span><div class="tb2-bots"><button class="b" data-ver-pedido="${k.id}">Ver</button></div></article>`;
 	const cursoCard = a => {
 		const orden = ordenDe(a);
 		const paso = a.busy ? (a.ahora ? pasoLegible(a.ahora) : "Trabajando") : "En fila, arranca en un rato";
-		const tarea = orden ? `<span class="tbtarea"><span>${esc(orden.text.split(/\n/)[0].trim().slice(0, 90))}</span><small>hace ${lasted(orden.at, new Date())}</small></span>` : "";
-		return `<button class="tbcard tbcurso" data-agent="${a.id}"><span class="tbquien">${avatar(a, "xs")}<b>${esc(a.name)}</b></span>${tarea}<span class="tbpaso"><i class="${a.busy ? "tbgira" : "tbespera"}" aria-hidden="true"></i><span class="${a.busy ? "tbrespira" : ""}">${esc(paso)}</span></span></button>`;
+		const area = a.department ? nombre(a.department) : ROLE_NAMES[a.role] ?? "";
+		return `<button class="tb2-curso ${a.busy ? "is-trabaja" : ""}" data-agent="${a.id}">
+			<span class="tb2-curso__av">${avatar(a, "sm")}<i aria-hidden="true"></i></span>
+			<span class="tb2-curso__txt"><b>${esc(a.name)}<small>${esc(area)}</small></b>${orden ? `<span class="tb2-curso__tarea">${esc(orden.text.split(/\n/)[0].trim().slice(0, 110))}</span>` : ""}<span class="tb2-curso__paso"><i class="${a.busy ? "tbgira" : "tbespera"}" aria-hidden="true"></i><span class="${a.busy ? "tbrespira" : ""}">${esc(paso)}</span>${orden ? `<small>· ${lasted(orden.at, ahora)}</small>` : ""}</span></span>
+		</button>`;
 	};
-	const entregaCard = r => `<article class="tbcard tbhecho"><b>${esc(r.title)}</b><small>${esc(r.author)} · ${hora(r.at)}${r.state === "aprobado" ? " · aprobado" : r.state === "pendiente" ? " · espera tu OK" : ""}</small>${r.file ? `<button class="tbchip" data-file="${esc(r.file)}">Ver archivo</button>` : ""}</article>`;
-	const vacio = texto => `<p class="tbvacio">${texto}</p>`;
-	const col = (clave, titulo, n, cuerpo, punto) => `<section class="tbcol tb-${clave} ${n ? "" : "cero"}" aria-label="${titulo}"><h2><i class="${punto}" aria-hidden="true"></i>${titulo}<span>${n}</span></h2>${cuerpo}</section>`;
-	return `<div class="tablero">
-	<div class="tbhead"><div><small>${fecha[0].toUpperCase()}${fecha.slice(1)}</small><h1>Tu equipo, hoy</h1></div><div class="seg tbseg"><button class="${view.type === "tablero" ? "on" : ""}" data-view="tablero">Hoy</button><button class="${view.type === "historial" ? "on" : ""}" data-view="historial">Programado e historial</button></div><div class="tbnums"><div class="${totalOk ? "rojo" : ""}"><b>${totalOk}</b><small>esperan tu OK</small></div><div><b>${enCurso.length}</b><small>en curso</small></div><div><b>${entregas.length}</b><small>entregados hoy</small></div></div></div>
-	<div class="tbcols">
-		${col("ok", "Esperan tu OK", totalOk, okReq.map(okCard).join("") + okKpi.map(kpiCardTb).join("") || vacio("Nada espera tu OK."), "rojo")}
-		${col("curso", "En curso", enCurso.length, enCurso.map(cursoCard).join("") || vacio("Nadie está trabajando ahora."), "carbon")}
-		${col("hecho", "Entregado hoy", entregas.length, entregas.slice(0, 4).map(entregaCard).join("") + (entregas.length > 4 ? `<button class="tbmas" data-view="historial">Ver los otros ${entregas.length - 4}</button>` : "") || vacio("Todavía no hay entregas hoy."), "piedra")}
-		${col("prog", "Programado", rutinas.length + instagram.length, rutinas.length + instagram.length ? `<div class="tblista">${instagram.join("")}${rutinas.slice(0, 5).map(({ r, cuando }) => `<div><b>${esc(rutinaNombre(r))}</b><small>${esc(rutinaQuien(r))} · ${cuandoTexto(cuando)}</small></div>`).join("")}</div>${rutinas.length > 5 ? `<button class="tbmas" data-view="historial">Ver todas</button>` : ""}` : vacio("No hay nada programado."), "aro")}
+	const extension = ruta => (/\.([a-z0-9]+)$/i.exec(ruta ?? "")?.[1] ?? "").toUpperCase();
+	const entregaCard = r => {
+		const ext = extension(r.file);
+		const estado = r.state === "aprobado" ? `<span class="tb2-estado is-ok">Aprobado</span>` : r.state === "pendiente" ? `<span class="tb2-estado is-pide">Espera tu OK</span>` : "";
+		const cuerpo = `<span class="tb2-hoja" aria-hidden="true"><i>${esc(ext || "DOC")}</i></span><span class="tb2-entrega__txt"><b>${esc(r.title)}</b><small>${esc(r.author)} · ${hora(r.at)}</small></span>${estado}`;
+		return r.file ? `<button class="tb2-entrega" data-file="${esc(r.file)}" title="Ver archivo">${cuerpo}</button>` : `<div class="tb2-entrega">${cuerpo}</div>`;
+	};
+	const instagram = state.instagram?.connected ? [{ cuando: "Cada hora", nombre: "Guardar las historias de Instagram", quien: `Leverage${state.instagram.lastSync ? ` · la última, ${hora(state.instagram.lastSync)}` : ""}` }] : [];
+	const agenda = [...instagram, ...rutinas.map(({ r, cuando }) => ({ cuando: cuandoTexto(cuando), nombre: rutinaNombre(r), quien: rutinaQuien(r) }))];
+	const vacio = (titulo, texto) => `<div class="tb2-vacio"><b>${titulo}</b><span>${texto}</span></div>`;
+	const sec = (clave, titulo, n, cuerpo, extraCab = "") => `<section class="tb2-sec tb2-${clave}" aria-label="${titulo}"><header class="tb2-sec__cab"><h2>${titulo}</h2>${n ? `<span class="tb2-n">${n}</span>` : ""}<span class="sp"></span>${extraCab}</header>${cuerpo}</section>`;
+	const cifra = (n, texto, cls = "") => `<div class="tb2-cifra ${cls}"><b>${n}</b><small>${texto}</small></div>`;
+	return `<div class="tablero tb2">
+	<header class="tb2-cab">
+		<div class="tb2-titulo"><p class="tb2-ojo">${fecha[0].toUpperCase()}${fecha.slice(1)}${empresa ? `<span class="tb2-ojo__emp"> · ${esc(empresa)}</span>` : ""}</p><h1>${saludo}${primerNombre ? `, ${esc(primerNombre)}` : ""}.<br><em>Esto es lo de tu equipo hoy.</em></h1></div>
+		<div class="seg tbseg"><button class="${view.type === "tablero" ? "on" : ""}" data-view="tablero">Hoy</button><button class="${view.type === "historial" ? "on" : ""}" data-view="historial">Programado e historial</button></div>
+	</header>
+	<div class="tb2-marcador" role="list">
+		${cifra(totalOk, totalOk === 1 ? "espera tu OK" : "esperan tu OK", totalOk ? "is-pide" : "")}
+		${cifra(enCurso.filter(a => a.busy).length, "trabajando ahora", enCurso.some(a => a.busy) ? "is-vivo" : "")}
+		${cifra(entregas.length, entregas.length === 1 ? "entrega hoy" : "entregas hoy")}
+		${cifra(agenda.length, "en la agenda")}
+	</div>
+	<div class="tb2-grilla">
+		<div class="tb2-col">
+		${sec("ok", "Esperan tu OK", totalOk, totalOk ? `<div class="tb2-lista">${okReq.map(okCard).join("")}${okKpi.map(kpiCard).join("")}</div>` : vacio("Nada espera tu OK", "Cuando alguien del equipo te pida algo, aparece acá."), totalOk ? `<button class="tb2-link" data-view="bandeja">Ir a la Bandeja ${ic("chevron-right")}</button>` : "")}
+		${sec("hecho", "Entregado hoy", entregas.length, entregas.length ? `<div class="tb2-entregas">${entregas.slice(0, 6).map(entregaCard).join("")}</div>${entregas.length > 6 ? `<button class="tb2-link" data-view="historial">Ver las otras ${entregas.length - 6} ${ic("chevron-right")}</button>` : ""}` : vacio("Todavía no hay entregas hoy", "Lo que el equipo termine va a quedar acá, listo para abrir."))}
+		</div><div class="tb2-col">
+		${sec("vivo", "Trabajando ahora", enCurso.length, enCurso.length ? `<div class="tb2-lista">${enCurso.map(cursoCard).join("")}</div>` : vacio("Nadie está trabajando", "Pedile algo al Asistente y lo reparte con el equipo."), `<span class="tb2-envivo ${enCurso.some(a => a.busy) ? "on" : ""}"><i></i>En vivo</span>`)}
+		${sec("prog", "Lo que viene", agenda.length, agenda.length ? `<ol class="tb2-agenda">${agenda.slice(0, 6).map(x => `<li><span class="tb2-agenda__cuando">${esc(x.cuando)}</span><span class="tb2-agenda__txt"><b>${esc(x.nombre)}</b><small>${esc(x.quien)}</small></span></li>`).join("")}</ol>${agenda.length > 6 ? `<button class="tb2-link" data-view="historial">Ver todo lo programado ${ic("chevron-right")}</button>` : ""}` : vacio("No hay nada programado", "Las rutinas se prenden en Rutinas."))}
+		</div>
 	</div>
 	<form class="tbpedido" id="tb-form"><span class="tbpara">Para: Asistente</span><label class="tbcampo"><span class="tbvh">Pedido para tu equipo</span><textarea id="tb-input" rows="1" autocomplete="off" placeholder="Pedile algo a tu equipo…"></textarea></label>${botonVoz("tb-input")}<button class="send" aria-label="Enviar">${ic("arrow-up")}</button></form>
 </div>`;

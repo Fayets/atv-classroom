@@ -239,3 +239,148 @@ html[data-theme="dark"] .sb-pildora::after { background: radial-gradient(120% 14
   .sb-piloto__punto { animation: none; }
 }
 .sb-espacio :is(.carp, .carpo) .badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: grid; place-items: center; background: var(--rojo); color: #fff; font-size: 11px; font-weight: 700; line-height: 1; }
+
+/* ======================================================================
+   El Tablero (tableroHtml en 01-paneles-y-tablero.js), con el lenguaje del Inicio del Classroom
+   ====================================================================== */
+.tb2 { --tb2-rojo-suave: rgba(192, 57, 43, 0.08); container-type: inline-size; gap: 22px; padding: 14px 10px 0; }
+html[data-theme="dark"] .tb2 { --tb2-rojo-suave: rgba(221, 82, 69, 0.14); }
+
+/* el saludo */
+.tb2-cab { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px 32px; }
+.tb2-titulo { min-width: 0; }
+.tb2-ojo { margin: 0 0 12px; display: flex; align-items: center; gap: 10px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg2); }
+.tb2-ojo::before { content: ""; width: 24px; height: 2px; border-radius: 2px; background: var(--rojo); }
+.tb2-titulo h1 { margin: 0; font-size: clamp(28px, 3.4vw, 42px); line-height: 1.04; font-weight: 600; letter-spacing: -0.04em; text-wrap: balance; }
+.tb2-titulo h1 em { font-style: normal; color: var(--mut); }
+/* Hoy / Programado: la cápsula del Classroom (Módulos / SOPs) */
+.tb2 .tbseg { align-self: flex-end; padding: 4px; gap: 2px; border: 0; border-radius: 999px; background: var(--suave); box-shadow: inset 0 0 0 1px var(--borde); }
+.tb2 .tbseg button { height: 34px; padding: 0 16px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--fg2); }
+.tb2 .tbseg button.on { background: var(--fg); color: var(--sheet); box-shadow: 0 2px 6px rgba(29, 29, 31, 0.18); }
+
+/* el marcador del día: cuatro cifras en una tira, separadas por líneas finas */
+.tb2-marcador { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-radius: 20px; background: var(--suave); box-shadow: inset 0 0 0 1px var(--borde); overflow: hidden; }
+.tb2-cifra { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 16px 20px 15px; }
+.tb2-cifra + .tb2-cifra { box-shadow: inset 1px 0 0 var(--borde); }
+.tb2-cifra b { font-size: 34px; line-height: 1; font-weight: 600; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.tb2-cifra small { font-size: 12.5px; color: var(--fg2); }
+.tb2-cifra.is-pide { background: var(--tb2-rojo-suave); }
+.tb2-cifra.is-pide b { color: var(--rojo); }
+.tb2-cifra.is-vivo b::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 8px; vertical-align: 0.35em; border-radius: 50%; background: var(--green); animation: sb-late 1.6s ease-in-out infinite; }
+
+/* la grilla: lo que espera tu OK y quién trabaja arriba; lo entregado y lo que viene abajo */
+.tb2-grilla { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.tb2-col { display: contents; }
+.tb2-ok { order: 1; } .tb2-vivo { order: 2; } .tb2-hecho { order: 3; } .tb2-prog { order: 4; }
+/* ancho: dos columnas que crecen cada una a su ritmo (sin huecos entre filas) */
+@container (min-width: 820px) {
+  .tb2-grilla { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+  .tb2-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+}
+.tb2-sec { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 16px; border-radius: 22px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde); }
+.tb2-sec__cab { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 2px; }
+.tb2-sec__cab h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.015em; }
+.tb2-n { min-width: 22px; height: 22px; padding: 0 7px; display: grid; place-items: center; border-radius: 11px; background: var(--suave); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--fg2); }
+.tb2-ok .tb2-n { background: var(--rojo); color: #fff; }
+.tb2-link { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 6px 0 10px; border-radius: 999px; color: var(--fg2); font-size: 12.5px; font-weight: 600; }
+.tb2-link:hover { background: var(--suave); color: var(--fg); }
+.tb2-link .i { width: 14px; height: 14px; }
+.tb2-sec > .tb2-link { align-self: flex-start; }
+.tb2-lista { display: flex; flex-direction: column; gap: 8px; }
+.tb2-vacio { display: flex; flex-direction: column; gap: 4px; padding: 18px; border-radius: 16px; background: var(--suave); }
+.tb2-vacio b { font-size: 14px; font-weight: 600; }
+.tb2-vacio span { font-size: 13px; color: var(--fg2); }
+
+/* esperan tu OK: fichas con el tipo arriba, el pedido, quién lo pide y los botones */
+.tb2-ok { background: linear-gradient(180deg, var(--tb2-rojo-suave), transparent 120px), var(--sheet); }
+.tb2-pide { position: relative; display: grid; gap: 8px; padding: 14px 14px 12px; border-radius: 16px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde), 0 1px 2px rgba(60, 48, 40, 0.05); }
+.tb2-pide.is-accion::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--rojo); }
+.tb2-tipo { justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--suave); font-size: 11.5px; font-weight: 600; color: var(--fg2); }
+.tb2-pide.is-accion .tb2-tipo { background: var(--tb2-rojo-suave); color: var(--rojo-texto); }
+.tb2-app { width: 14px; height: 14px; border-radius: 3px; }
+.tb2-pide__t { font-size: 15.5px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.3; }
+.tb2-quien { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--fg2); }
+.tb2-quien .av.xs { width: 20px; height: 20px; }
+.tb2-bots { display: flex; gap: 8px; margin-top: 4px; }
+.tb2-bots .b { flex: 1; justify-content: center; height: 38px; border-radius: 12px; font-size: 13.5px; font-weight: 600; }
+.tb2-bots .b.go { flex: 1.4; background: var(--fg); color: var(--sheet); border-color: var(--fg); }
+.tb2-bots .b.go:hover { background: var(--fg); opacity: 0.9; }
+.tb2-bots .b:not(.go) { background: var(--sheet); border-color: var(--borde); }
+.tb2-bots .b:not(.go):hover { background: var(--suave); }
+.tb2-bots .b:active { transform: scale(0.98); }
+
+/* trabajando ahora: cada agente con un aro que gira si está trabajando */
+.tb2-curso { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; width: 100%; padding: 12px; border-radius: 16px; text-align: left; box-shadow: inset 0 0 0 1px var(--borde); transition: background 160ms ease, box-shadow 160ms ease; }
+.tb2-curso:hover { background: var(--suave); }
+.tb2-curso__av { position: relative; display: grid; place-items: center; width: 36px; height: 36px; }
+.tb2-curso__av .av.sm { width: 30px; height: 30px; }
+.tb2-curso__av i { position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--borde); }
+.tb2-curso.is-trabaja .tb2-curso__av i { box-shadow: none; border: 2px solid transparent; border-top-color: var(--rojo); border-right-color: var(--rojo); animation: tb-gira 1.1s linear infinite; }
+.tb2-curso__txt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tb2-curso__txt > b { display: flex; align-items: baseline; gap: 8px; font-size: 14.5px; font-weight: 600; }
+.tb2-curso__txt > b small { font-size: 12px; font-weight: 500; color: var(--mut); }
+.tb2-curso__tarea { font-size: 13px; line-height: 1.45; color: var(--fg2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tb2-curso__paso { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--fg); }
+.tb2-curso__paso small { color: var(--mut); }
+.tb2-curso:not(.is-trabaja) .tb2-curso__paso { color: var(--fg2); }
+.tb2-envivo { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--mut); }
+.tb2-envivo i { width: 7px; height: 7px; border-radius: 50%; background: var(--mut); }
+.tb2-envivo.on { color: var(--green); }
+.tb2-envivo.on i { background: var(--green); animation: sb-late 1.6s ease-in-out infinite; }
+
+/* entregado hoy: cada entrega es una hoja con el tipo de archivo en la esquina doblada */
+.tb2-entregas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.tb2-entrega { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; gap: 6px 12px; align-items: center; padding: 12px; border-radius: 16px; text-align: left; box-shadow: inset 0 0 0 1px var(--borde); transition: background 160ms ease; }
+button.tb2-entrega:hover { background: var(--suave); }
+button.tb2-entrega:hover .tb2-hoja { transform: rotate(-3deg) translateY(-2px); }
+.tb2-hoja { grid-row: 1 / 3; position: relative; width: 38px; height: 46px; border-radius: 5px 12px 5px 5px; background: #fbf8f2; box-shadow: inset 0 0 0 1px rgba(70, 52, 32, 0.16), 0 2px 5px -2px rgba(60, 40, 20, 0.25); transition: transform 220ms var(--ease); }
+.tb2-hoja::before { content: ""; position: absolute; top: 0; right: 0; width: 11px; height: 11px; border-radius: 0 0 0 4px; background: #e6ddcf; box-shadow: -1px 1px 0 rgba(70, 52, 32, 0.12); }
+.tb2-hoja::after { content: ""; position: absolute; left: 7px; right: 12px; top: 14px; height: 2px; border-radius: 1px; background: rgba(36, 35, 33, 0.14); box-shadow: 0 5px 0 rgba(36, 35, 33, 0.14), 0 10px 0 rgba(36, 35, 33, 0.1); }
+.tb2-hoja i { position: absolute; left: -4px; bottom: 5px; padding: 1px 4px; border-radius: 3px; background: var(--rojo); color: #fff; font-style: normal; font-family: ui-monospace, Menlo, monospace; font-size: 8.5px; font-weight: 700; letter-spacing: 0.04em; }
+.tb2-entrega__txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tb2-entrega__txt b { font-size: 13.5px; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb2-entrega__txt small { font-size: 12px; color: var(--fg2); }
+.tb2-estado { justify-self: start; grid-column: 2; height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.tb2-estado.is-ok { background: rgba(31, 138, 76, 0.1); color: var(--green); }
+.tb2-estado.is-pide { background: var(--tb2-rojo-suave); color: var(--rojo-texto); }
+
+/* lo que viene: una agenda con la hora a la izquierda y una línea que une los puntos */
+.tb2-agenda { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tb2-agenda li { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px; }
+.tb2-agenda__txt { position: relative; padding: 8px 0 12px 20px; }
+.tb2-agenda__txt::before { content: ''; position: absolute; left: 0; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--sheet); box-shadow: inset 0 0 0 2px var(--fg2); }
+.tb2-agenda li:first-child .tb2-agenda__txt::before { background: var(--rojo); box-shadow: 0 0 0 3px var(--tb2-rojo-suave); }
+.tb2-agenda__txt::after { content: ''; position: absolute; left: 3.5px; top: 25px; bottom: -13px; width: 1px; background: var(--line2); }
+.tb2-agenda li:last-child .tb2-agenda__txt::after { display: none; }
+.tb2-agenda__cuando { padding-top: 10px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 600; line-height: 1.35; color: var(--fg2); text-align: right; }
+.tb2-agenda__txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tb2-agenda__txt b { font-size: 13.5px; font-weight: 600; }
+.tb2-agenda__txt small { font-size: 12px; color: var(--fg2); }
+
+/* el pedido al Asistente, abajo: como el campo de la guía del Inicio */
+.tb2 .tbpedido { width: min(780px, 100%); min-height: 60px; padding: 8px; border-radius: 22px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde), 0 18px 40px -18px rgba(40, 30, 20, 0.35); }
+html .tb2 .tbpara { height: 42px; padding: 0 14px; border-radius: 14px; background: var(--fg); color: var(--sheet); font-weight: 600; }
+.tb2 .tbpedido .send { width: 44px; height: 44px; border-radius: 14px; background: var(--rojo); }
+.tb2 .tbpedido textarea { font-size: 15px; }
+
+/* angosto (tablet con barra, celular) */
+@container (max-width: 620px) {
+  .tb2-marcador { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tb2-cifra:nth-child(3) { box-shadow: inset 0 1px 0 var(--borde); }
+  .tb2-cifra:nth-child(4) { box-shadow: inset 1px 0 0 var(--borde), inset 0 1px 0 var(--borde); }
+  .tb2-cifra b { font-size: 28px; }
+  .tb2-agenda li { grid-template-columns: 92px minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .tb2 { padding: 8px 2px 0; gap: 18px; }
+  .tb2-ojo { letter-spacing: 0.12em; }
+  .tb2-ojo__emp { display: none; }
+  .tb2 .tbseg { align-self: stretch; }
+  .tb2 .tbseg button { flex: 1; }
+  .tb2-sec { padding: 12px; border-radius: 18px; }
+  .tb2 .tbpara { display: none; }
+  .tb2 .tbpedido textarea { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tb2-curso.is-trabaja .tb2-curso__av i, .tb2-envivo.on i, .tb2-cifra.is-vivo b::after { animation: none; }
+}
