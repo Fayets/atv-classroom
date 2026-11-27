@@ -384,3 +384,156 @@ html .tb2 .tbpara { height: 42px; padding: 0 14px; border-radius: 14px; backgrou
 @media (prefers-reduced-motion: reduce) {
   .tb2-curso.is-trabaja .tb2-curso__av i, .tb2-envivo.on i, .tb2-cifra.is-vivo b::after { animation: none; }
 }
+
+/* ======================================================================
+   Bandeja (03-bandeja.js) y chat con un agente (02-chats…, renderConvs/renderPanel en 01), con el lenguaje
+   de Mensajes del Classroom: la lista como bandeja de papel con la fila activa en tinta (como la píldora de la
+   barra), la charla sobre papel cálido, burbujas con cola, fichas con pestaña y la caja de escribir flotante.
+   Solo estilos: el HTML y la lógica siguen iguales.
+   ====================================================================== */
+.bw, .app.chat { --bw-papel: #f3efe8; --bw-rojo-suave: rgba(192, 57, 43, 0.08); }
+html[data-theme="dark"] :is(.bw, .app.chat) { --bw-papel: #1e1d1b; --bw-rojo-suave: rgba(221, 82, 69, 0.14); }
+
+/* ---------- la Bandeja: dos paneles ---------- */
+.bw { gap: 14px; }
+.bwlista, .bwhilo-caja { border-radius: 22px; box-shadow: inset 0 0 0 1px var(--borde), var(--sombra); }
+html[data-theme="dark"] :is(.bwlista, .bwhilo-caja) { box-shadow: inset 0 0 0 1px var(--borde); }
+.bwlista { background: var(--sheet); }
+.bwcab { gap: 12px; padding: 18px 16px 12px; }
+.bwtit h1 { font-size: 26px; line-height: 1.1; font-weight: 600; letter-spacing: -0.035em; }
+.bwtit .b.ghost { height: 30px; padding: 0 12px; border-radius: 999px; border: 0; background: var(--suave); color: var(--fg2); font-size: 12.5px; font-weight: 600; }
+.bwtit .b.ghost:hover { color: var(--fg); }
+.bwbusca { height: 40px; border-radius: 12px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--borde); transition: box-shadow 160ms ease; }
+.bwbusca:focus-within { box-shadow: inset 0 0 0 1.5px var(--fg); }
+/* filtros: la cápsula del Classroom */
+.bwchips { gap: 4px; padding: 4px; border-radius: 999px; background: var(--suave); box-shadow: inset 0 0 0 1px var(--borde); flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.bwchips::-webkit-scrollbar { display: none; }
+.bwchip { flex: none; height: 30px; padding: 0 12px; border-radius: 999px; background: none; color: var(--fg2); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.bwchip:hover:not(.on) { color: var(--fg); }
+.bwchip.rojo { background: none; color: var(--rojo-texto); }
+html .bw .bwchip.on, html .bw .bwchip.rojo.on { background: var(--fg); color: var(--sheet); box-shadow: 0 2px 6px rgba(29, 29, 31, 0.18); }
+
+/* las filas: separadas, redondeadas; la abierta en tinta como la sección activa de la barra */
+.bwfilas { display: flex; flex-direction: column; gap: 2px; padding: 4px 8px 10px; }
+.bwfila { position: relative; gap: 12px; padding: 10px 10px; border-top: 0; border-radius: 14px; transition: background 160ms ease; }
+.bwfila:hover { background: var(--suave); }
+.bwfila.pide { box-shadow: none; }
+.bwfila.pide::before { content: ""; position: absolute; left: -8px; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--rojo); }
+.bwfila .av.bw, .bwfila .bwcara { width: 42px; height: 42px; }
+.bwcara { background: var(--fg); color: var(--sheet); border-radius: 13px; }
+.bwfl b { font-size: 14px; }
+.bwprev { font-size: 12.5px; }
+html .bwfila.on { background: var(--fg); color: var(--sheet); box-shadow: 0 8px 18px -10px rgba(29, 29, 31, 0.55); }
+html .bw .bwfila.on :is(.bwfl b, .bwprev, .bwprev b, .bwfl small) { color: var(--sheet); }
+html .bwfila.on .bwprev { opacity: 0.72; }
+html .bwfila.on .bwcara { background: var(--sheet); color: var(--fg); }
+.bwn { box-shadow: 0 0 0 2px var(--sheet); }
+
+/* ---------- la charla ---------- */
+.bwhilo-caja { background: var(--sheet); }
+.bwhcab { gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.bwhcab .av.bw, .bwhcab .bwcara { width: 42px; height: 42px; }
+.bwhq b { font-size: 16px; letter-spacing: -0.02em; }
+.bwhq small { font-size: 12.5px; }
+.bwhcab > .b { height: 34px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--suave); font-size: 13px; font-weight: 600; }
+.bwhcab > .b:hover { background: var(--fg); color: var(--sheet); }
+.bwhilo { gap: 12px; padding: 22px 28px; background: var(--bw-papel); }
+.bwdia { margin: 6px 0; padding: 4px 12px; border-radius: 999px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde); font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg2); }
+/* burbujas: la del equipo en papel con borde; la tuya en tinta */
+html .bwm { padding: 10px 14px 7px; border-radius: 6px 18px 18px 18px; box-shadow: inset 0 0 0 1px var(--borde), 0 1px 2px rgba(60, 48, 40, 0.05); line-height: 1.5; }
+html .bwm.yo { border-radius: 18px 6px 18px 18px; box-shadow: 0 6px 16px -10px rgba(29, 29, 31, 0.6); }
+html .bw .bwm.yo > time { color: color-mix(in srgb, var(--sheet) 62%, transparent); }
+.bwm > time { font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.bwquien { color: var(--rojo-texto); font-size: 11.5px; letter-spacing: 0.02em; }
+/* fichas (pedidos, entregas, reportes): una hoja con la etiqueta como pestaña */
+html .bwm.tarjeta { gap: 10px; padding: 14px 16px 9px; border-radius: 18px; background: var(--sheet); }
+html .bwm.tarjeta.pide { padding-left: 16px; box-shadow: inset 0 0 0 1px rgba(192, 57, 43, 0.28), 0 10px 24px -16px rgba(192, 57, 43, 0.5); background: linear-gradient(180deg, var(--bw-rojo-suave), transparent 70px), var(--sheet); }
+.bwm.foco { box-shadow: 0 0 0 2px var(--rojo), 0 10px 24px -16px rgba(192, 57, 43, 0.5); }
+html .bwtag .btag { height: 22px; display: inline-flex; align-items: center; padding: 0 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; background: var(--suave); color: var(--fg2); }
+html .bwtag .btag.rojo { background: var(--rojo); color: #fff; }
+html .bwtag .btag.azul { background: var(--fg); color: var(--sheet); }
+.bwrt { font-size: 16px; letter-spacing: -0.02em; }
+.bwm .card .ca .b { height: 36px; padding: 0 16px; border-radius: 12px; font-weight: 600; }
+.bwm .card .ca .b.p, .bwm .card .ca .b.go { background: var(--fg); color: var(--sheet); border-color: var(--fg); }
+/* los pasos mientras trabaja */
+.bwpasos { border-radius: 16px; }
+.bwpcab b { display: inline-flex; align-items: center; gap: 8px; }
+.bwpcab b::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--rojo); animation: sb-late 1.6s ease-in-out infinite; }
+
+/* la caja de escribir: flotante y redonda, como el campo de la guía del Inicio */
+.bwcaja { gap: 8px; margin: 0 14px 14px; padding: 8px; border-top: 0; border-radius: 22px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde), 0 16px 34px -18px rgba(40, 30, 20, 0.4); }
+.bwhilo-caja:has(.bwcaja) .bwhilo { padding-bottom: 18px; }
+.bwcampo { min-height: 44px; padding: 0 12px; border-radius: 14px; background: none; }
+.bwcaja .send { border-radius: 14px; background: var(--rojo); }
+
+/* ---------- el chat con un agente ---------- */
+/* las conversaciones: una bandeja de papel al lado de la barra, con la activa en tinta */
+.app.chat .convs { margin: 16px 0 16px 16px; padding: 14px 8px; gap: 2px; border-radius: 22px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde), var(--sombra); }
+html[data-theme="dark"] .app.chat .convs { box-shadow: inset 0 0 0 1px var(--borde); }
+.cvtit { padding: 0 10px 8px; font-size: 20px; font-weight: 600; letter-spacing: -0.03em; color: var(--fg); }
+.convs .item { gap: 10px; padding: 8px 10px; border-radius: 12px; transition: background 160ms ease; }
+.convs .item:hover { background: var(--suave); }
+html .app .convs .item.on { background: var(--fg); box-shadow: 0 8px 18px -10px rgba(29, 29, 31, 0.55); }
+html .app .convs .item.on :is(b, small, small.pide) { color: var(--sheet); }
+html .app .convs .item.on small { opacity: 0.7; }
+html .app .convs .item small.pide { color: var(--rojo-texto); font-weight: 600; }
+.convs .ihash { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: var(--fg); color: var(--sheet); }
+html .app .convs .item.on .ihash { background: var(--sheet); color: var(--fg); }
+.convs .grp { margin-top: 6px; background: none; border-radius: 0; }
+.convs .grp > .row { height: 30px; padding: 0 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mut); }
+.convs .grp > .row .i:first-child { display: none; }
+.app.chat .main { margin-left: 14px; }
+
+/* la cabecera del chat */
+.app.chat .head { gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.app.chat .head .av.hd { width: 38px; height: 38px; }
+.app.chat .head h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+.app.chat .head .pill { height: 26px; display: inline-flex; align-items: center; gap: 6px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--suave); color: var(--fg2); }
+.app.chat .head .pill:not(.idle):not(.wait)::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--rojo); animation: sb-late 1.6s ease-in-out infinite; }
+.app.chat .head .pill.wait { background: var(--bw-rojo-suave); color: var(--rojo-texto); }
+.app.chat .head .ic { width: 34px; height: 34px; border-radius: 10px; }
+.app.chat .head .ic:hover { background: var(--suave); }
+
+/* la charla sobre papel, como la Bandeja */
+.app.chat #body.thread { background: var(--bw-papel); }
+.app.chat .col { gap: 12px; padding-top: 8px; }
+.app.chat .bub { padding: 11px 15px; border-radius: 6px 18px 18px 18px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde), 0 1px 2px rgba(60, 48, 40, 0.05); line-height: 1.55; }
+.app.chat .me .bub { border-radius: 18px 6px 18px 18px; background: var(--fg); color: var(--sheet); box-shadow: 0 6px 16px -10px rgba(29, 29, 31, 0.6); }
+.app.chat .msg { gap: 12px; }
+.app.chat .when { font-size: 11px; font-variant-numeric: tabular-nums; }
+.app.chat .work .fold-h { height: 28px; padding: 0 10px; border-radius: 999px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde); font-size: 12.5px; font-weight: 600; color: var(--fg2); }
+.app.chat .empty { padding: 28px; border-radius: 22px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde); }
+.app.chat .empty b { font-size: 18px; letter-spacing: -0.02em; }
+/* la caja de escribir */
+.app.chat .composer { padding: 10px 18px 16px; background: var(--bw-papel); }
+.app.chat .box { padding: 8px; border: 0; border-radius: 22px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde), 0 16px 34px -18px rgba(40, 30, 20, 0.4); }
+.app.chat .send { width: 42px; height: 42px; border-radius: 14px; background: var(--rojo); color: #fff; }
+.app.chat .box:has(textarea:placeholder-shown) .send { background: var(--suave); color: var(--mut); }
+
+/* el panel de la derecha (trabajo en curso, lo que espera tu OK, archivos) */
+.panel { padding: 16px 16px 16px 0; gap: 12px; }
+.pnsec { gap: 10px; padding: 16px; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--borde); }
+.pnsec h2 { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg2); }
+.pnorden { font-size: 15px; letter-spacing: -0.015em; }
+.pnpide .b { height: 34px; border-radius: 11px; font-weight: 600; }
+.pnpide .b.p { background: var(--fg); color: var(--sheet); border-color: var(--fg); }
+
+/* ---------- angosto ---------- */
+@media (max-width: 1100px) and (min-width: 761px) {
+  .app.chat .convs { margin-left: 12px; }
+}
+@media (max-width: 760px) {
+  .bw { gap: 0; }
+  .bwhilo { padding: 16px 12px; }
+  .bwcaja { margin: 0 8px 8px; }
+  .bwm, .bwm.tarjeta { max-width: 88%; width: auto; }
+  .bwm.tarjeta { width: 92%; }
+  .app.chat.showside .convs { margin: 8px; }
+  .app.chat .composer { padding: 8px 10px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bwpcab b::before, .app.chat .head .pill::before { animation: none; }
+}
+.app.chat .convs, .bwfilas, .bwhilo { scrollbar-width: thin; scrollbar-color: var(--borde) transparent; }
+html .bwm .card .ca { display: flex; flex-wrap: wrap; gap: 8px; }
+html .bwm .card .ca .b { white-space: nowrap; flex: none; }

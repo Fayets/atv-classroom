@@ -149,6 +149,28 @@ El de Classroom está en `ATV-CLASSROOM/.claude/CONTEXTO.md`, y ese repo queda q
   - Al pie, el pedido al Asistente (la caja de siempre, `tb-form`, con otro estilo).
   - Sin animaciones de entrada: el tablero se repinta cada pocos segundos y se repetirían.
   - Probado en 1440, tablet y celular, claro y oscuro. Aprobar funciona (en el mock cambia los datos: reiniciar el server para volver a cero).
+- **2026-11-27 · Bandeja y chat con agentes**: solo con estilos, el HTML y la lógica de `03-bandeja.js` y del chat no cambian.
+  Va en `atv.css`, en la sección "Bandeja… y chat con un agente", con el lenguaje de Mensajes del Classroom.
+  - **Lista de la Bandeja**:
+    - título grande y buscador con borde;
+    - los filtros, en la cápsula del Classroom;
+    - filas redondeadas, con la abierta en **tinta** (como la píldora de la barra) y un filo rojo a la izquierda en las que te necesitan;
+    - #ceo con un cuadradito de tinta.
+  - **Charla**:
+    - fondo de papel cálido (`--bw-papel`) y los días como pastilla mono;
+    - burbujas con cola: la del equipo en papel con borde, la tuya en tinta;
+    - las fichas (pedidos, entregas, reportes) como hojas con la etiqueta como pestaña. "Te necesito" va en rojo,
+      con un degradé y un borde rojo suave. Aprobar va en tinta y los botones no se cortan en el celular.
+  - **Caja de escribir**: flotante y redonda, con sombra, como el campo de la guía del Inicio. Enviar va en rojo.
+  - **Chat con un agente**:
+    - la columna "Conversaciones" es una bandeja de papel al lado de la barra, con la activa en tinta y los grupos
+      por área como etiquetas en mayúsculas;
+    - la cabecera tiene el estado en una pastilla (con un punto rojo que late si está trabajando);
+    - la charla, la caja y las burbujas son iguales a las de la Bandeja;
+    - el panel de la derecha tiene títulos mono.
+  - Ojo con la especificidad: `app.css` tiene reglas `html[data-theme="dark"] …` para `.convs .item.on`, `.btag.rojo`,
+    `.bwchip` y otras. En `atv.css` esas reglas van con `html .app …` o `html .bw …` para ganarles.
+  - Probado en 1440, celular (lista → chat → volver) y oscuro.
 - **Git local**: se inicializó un repo solo local en `ATV-LEVERAGE` para ver los cambios (`git diff c718430`),
   y hay una copia de la `ui/` original en `D:\Landings - Copy\ATV\ui-original-leverage-backup`.
   Para entregar se devuelven los archivos de `ui/` que cambiaron: `git diff --name-only c718430 -- ui`.
