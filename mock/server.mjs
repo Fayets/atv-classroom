@@ -8,6 +8,7 @@ import { readFile, readdir } from 'node:fs/promises'
 import { extname, join, normalize, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { estado, mensajes, rutinas, agentes, hace, uso } from './datos.mjs'
+import * as ventas from './ventas.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const UI = join(RAIZ, 'ui')
@@ -48,7 +49,22 @@ async function appJs() {
 }
 
 // Respuestas de las rutas GET que no son /state. Lo que no está acá devuelve una lista vacía.
-function rutaGet(p) {
+function rutaGet(p, url) {
+  // Ventas y Contenido (mock/ventas.mjs)
+  if (p === '/ig/bandeja') return ventas.bandeja()
+  if (p === '/ig/buscar') { const q = (url.searchParams.get('q') ?? '').toLowerCase(); return { conversaciones: ventas.bandeja().conversaciones.filter((c) => (c.nombre + ' ' + c.usuario).toLowerCase().includes(q)) } }
+  if (p.startsWith('/ig/chat/')) return ventas.chat(decodeURIComponent(p.slice(9)))
+  if (p === '/ig/embudo') return ventas.embudo()
+  if (p === '/ig/contactos') return ventas.contactos()
+  if (p === '/ig/flujos') return ventas.flujos()
+  if (p === '/ig/vista') return ventas.vista()
+  if (p === '/ig/llamadas') return { c1: 'agendo', c2: 'vino', c5: 'cerro', c7: 'no_vino' }
+  if (p === '/ig/calificados') return { conversaciones: ventas.bandeja().conversaciones.filter((c) => c.calificacion.veredicto === 'calificado') }
+  if (p === '/ig/calificacion') { const u = url.searchParams.get('usuario'); return ventas.bandeja().conversaciones.find((c) => c.usuario === u)?.calificacion ?? { veredicto: 'pendiente' } }
+  if (p === '/ig/notas') return { notas: [{ id: 'n1', rol: 'setter', autor: 'Sofía', fecha: hace(300), texto: 'Muy interesada; le mandé el link de la agenda.' }, { id: 'n2', rol: 'closer', autor: 'Joaquín', fecha: hace(60), texto: 'Llamada el jueves 16 h.' }] }
+  if (p.startsWith('/ig/seguimiento/')) return {}
+  if (p === '/ig/contenido') return { historias: [], reels: [] }
+
   if (p === '/state') return st
   if (p === '/routines') return rut
   const m = /^\/agents\/([^/]+)\/messages$/.exec(p)
@@ -118,12 +134,17 @@ createServer(async (req, res) => {
       res.writeHead(200, { 'content-type': TIPOS[extname(archivo)] ?? 'application/octet-stream', 'cache-control': 'no-store' })
       return res.end(datos)
     }
+    const mini = /^\/media\/historias\/([^/]+)$/.exec(p)
+    if (mini) {
+      res.writeHead(200, { 'content-type': TIPOS['.svg'] })
+      return res.end(ventas.miniatura(mini[1]))
+    }
     const av = /^\/avatar\/([^/]+)\.svg$/.exec(p)
     if (av) {
       res.writeHead(200, { 'content-type': TIPOS['.svg'] })
       return res.end(avatarSvg(av[1]))
     }
-    if (req.method === 'GET') return json(res, rutaGet(p))
+    if (req.method === 'GET') return json(res, rutaGet(p, url))
     return json(res, await rutaPost(p, await leerCuerpo(req)))
   } catch (e) {
     console.error(p, e)

@@ -198,6 +198,32 @@ El de Classroom está en `ATV-CLASSROOM/.claude/CONTEXTO.md`, y ese repo queda q
   - Tamaños: en PC, el mapa al lado de la credencial (container query a partir de 900 px). Si no, el mapa arriba y la credencial
     abajo. Los nodos se achican en dos escalones (560 y 420 px). Probado en 1440, tablet, celular, claro y oscuro.
   - Ojo: el panel de vista previa de Claude anima lento si no está en foco; en las capturas la píldora puede salir a mitad de camino.
+- **2026-11-27 · Ventas y Contenido**:
+  - **Mock**: `mock/ventas.mjs` sirve las rutas de Ventas y Contenido. En `server.mjs`, `rutaGet` recibe la URL para leer
+    los parámetros, y `/media/historias/*` dibuja miniaturas SVG con degradés de la marca.
+    - `/ig/bandeja`: 8 chats con calificación, solicitudes, anuncios y verificados;
+    - `/ig/chat/:id`, `/ig/buscar`, `/ig/embudo` (12 días), `/ig/contactos`, `/ig/notas`, `/ig/calificacion`,
+      `/ig/calificados` y `/ig/llamadas`;
+    - `/ig/flujos`: 4 automatizaciones (prendida, apagada y borrador);
+    - `/ig/vista`: Contenido, con 3 secuencias, 3 ideas de reels, dolores, "Lo que se ve" y los números de ventas.
+  - **Cabecera** `.vt-cab` arriba de las dos secciones: el título y "@cuenta · …" en mono.
+    - En Ventas, las pestañas (Bandeja / Reporte / Contactos / Automatizaciones) van al lado, en la cápsula del Classroom (`ventasModos`, en 08).
+    - En Contenido, la cabecera se agregó en `contenidoHtml` (08-z).
+  - **DMs**, como la Bandeja:
+    - la lista y el chat en tarjetas, con la fila abierta en tinta y el punto de sin leer en rojo;
+    - las burbujas tuyas en tinta, en lugar del azul de Instagram;
+    - la charla sobre papel, la caja flotante con Enviar en rojo y el estado de la llamada como pastilla.
+  - **Reporte**: el embudo va de la tinta al rojo ATV a medida que baja hasta los cierres (variables `--emb-0` a `--emb-5`).
+    Las tasas son fichas con su color (bien, ojo, alerta) y la tabla de días tiene cabecera mono.
+  - **Contactos**: filtros en pastillas y filas como tarjetas; la fila abierta va en tinta y el paso actual, en rojo.
+  - **Automatizaciones**: filas como tarjetas, con la miniatura de la historia o del reel. "Prendida" tiene un punto verde
+    que late y "+ Nueva" va en rojo. El celular de la vista previa sigue en azul de Instagram a propósito: es cómo lo ve el lead.
+  - **Contenido**:
+    - filtros en la cápsula del Classroom (en el celular se deslizan de costado);
+    - los números de ventas, como el marcador del Tablero, con los cierres en rojo;
+    - el mapa y "Lo que se ve" en un bloque redondeado, con las cifras grandes en rojo;
+    - Secuencias y Reels en bloques, con miniaturas redondeadas y el pedido marcado en rojo.
+  - Probado en 1440, celular (lista → chat, Contenido) y oscuro.
 - **Git local**: se inicializó un repo solo local en `ATV-LEVERAGE` para ver los cambios (`git diff c718430`),
   y hay una copia de la `ui/` original en `D:\Landings - Copy\ATV\ui-original-leverage-backup`.
   Para entregar se devuelven los archivos de `ui/` que cambiaron: `git diff --name-only c718430 -- ui`.
