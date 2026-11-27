@@ -1,21 +1,146 @@
+// La barra lateral, con el diseño del Classroom de ATV (atv.css): arriba la credencial (Leverage y tu empresa) y
+// "Tu espacio" (la carpeta abierta: tu empresa o un cliente); en el medio las secciones en bandejas con pestaña y
+// la píldora de tinta que se desliza a la activa; abajo el piloto automático, el navegador y el modo claro/oscuro.
+// En tablet se puede plegar a un riel de íconos; en el celular es un cajón que se abre desde la barra de arriba.
+// Los botones conservan sus data-view / data-section / data-dock: los clics los maneja 13-acciones-y-avisos.js.
+let sbRiel = stored("sbRiel", false);
+let sbCajon = false;
+let sbPildoraAntes = null;
+// En el celular la barra es un cajón: el riel no aplica.
+const sbCelular = matchMedia("(max-width:760px)");
+sbCelular.addEventListener("change", () => renderSide());
+const SB_SECCIONES = () => [
+	["Tu equipo", [["tablero", "layout-grid", "Tablero", ["tablero", "historial"]], ["bandeja", "inbox", "Bandeja", ["bandeja", "ceo", "agent"]], ["equipo", "users", "Equipo"], ["roadmap", "route", "Roadmap"]]],
+	...(state.instagram?.connected ? [["Ventas", [["dms", "instagram", "Ventas", ["dms", "auto"]], ["contenido", "video", "Contenido"]]]] : []),
+	["Herramientas", [["juan", "user-round", "Juan IA"], ...(sinClassroom() ? [] : [["classroom", "graduation-cap", "Classroom"]]), ["biblioteca", "book-open", "Biblioteca"]]],
+	["Gestión", [["tickets", "ticket", "Tickets"], ["rutinas", "clock", "Rutinas"], ["uso", "gauge", "Uso"], ["decisiones", "scale", "Decisiones"], ["actividad", "activity", "Actividad"], ["ajustes", "settings", "Configuración"]]],
+];
+const SOL = '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>';
+const temaOscuro = () => document.documentElement.dataset.theme === "dark";
+
 function renderSide() {
 	const count = newInbox().length + unreadCeo().length;
-	const ventas = state.instagram?.connected ? pestana("dms", "Ventas", "", ["dms", "auto"]) + pestana("contenido", "Contenido") : "";
 	const avisos = [
-		state.login === false && state.settings?.onboarding?.done !== false ? `<button class="tbaviso" data-section="cuentas">${ic("user-round")}<span>Falta iniciar sesión con Claude</span></button>` : "",
-		state.outOfQuota ? `<button class="tbaviso" data-section="cuentas">${ic("gauge")}<span>Sin cupo de Claude</span></button>` : "",
-		state.memoria?.presion === "critica" ? `<button class="tbaviso" data-section="general">${ic("gauge")}<span>Memoria de la compu al límite</span></button>` : "",
+		state.login === false && state.settings?.onboarding?.done !== false ? `<button class="sb-aviso" data-section="cuentas">${ic("user-round")}<span>Falta iniciar sesión con Claude</span></button>` : "",
+		state.outOfQuota ? `<button class="sb-aviso" data-section="cuentas">${ic("gauge")}<span>Sin cupo de Claude</span></button>` : "",
+		state.memoria?.presion === "critica" ? `<button class="sb-aviso" data-section="general">${ic("gauge")}<span>Memoria de la compu al límite</span></button>` : "",
 	].join("");
+	const item = ([id, icono, texto, activas = [id]]) => {
+		const on = activas.includes(view.type);
+		const cuenta = id === "bandeja" && count ? `<span class="sb-cuenta">${count}</span>` : "";
+		return `<button class="sb-item ${on ? "is-on" : ""}" data-view="${id}" ${on ? 'aria-current="page"' : ""} title="${texto}">${ic(icono)}<span class="sb-item__txt">${texto}</span>${cuenta}</button>`;
+	};
+	const modo = state.settings?.autopiloto?.modo ?? "apagado";
+	const piloto = { apagado: "Apagado", interno: "Aprueba lo interno", todo: "Aprueba todo" }[modo];
+	const empresa = state.settings?.owner?.company || "Tu empresa";
 	setHtml("side", `
-	<div class="tbfila">
-		<button class="logo" data-view="tablero" aria-label="Ir al tablero">${document.getElementById("logo").innerHTML}<span>Leverage</span></button>
-		<nav class="tbnav" aria-label="Principal">${pestana("tablero", "Tablero", "", ["tablero", "historial"])}${pestana("bandeja", "Bandeja", count ? `<span class="badge">${count}</span>` : "", ["bandeja", "ceo"])}${ventas}${pestana("equipo", "Equipo")}${pestana("roadmap", "Roadmap")}${pestana("biblioteca", "Biblioteca")}${pestana("juan", "Juan IA")}</nav>
-		<div class="tbder">${carpetaSelector()}${pilotoBoton()}${sinClassroom() ? "" : `<button class="ic ${view.type === "classroom" ? "on" : ""}" data-view="classroom" data-tip="Classroom" aria-label="Classroom">${ic("graduation-cap")}</button>`}<button class="ic" data-dock data-tip="Tu navegador" aria-label="Tu navegador">${ic("globe")}</button><button class="ic ${menuOpen ? "on" : ""}" data-menu data-tip="Menú" aria-label="Menú">${ic("settings")}</button></div>
-	</div>${avisos ? `<div class="tbavisos">${avisos}</div>` : ""}${menuOpen ? menuHtml() : ""}`);
+	<div class="sb-cab">
+		<button class="sb-cred" data-view="tablero" aria-label="Ir al tablero"><span class="sb-cred__logo">${document.getElementById("logo").innerHTML}</span><span class="sb-cred__txt"><b>Leverage</b><small>${esc(empresa)}</small></span></button>
+		<button class="sb-plegar" data-sb-riel aria-label="${sbRiel ? "Mostrar la barra" : "Plegar la barra"}" title="${sbRiel ? "Mostrar la barra" : "Plegar la barra"}">${ic("panel-left")}</button>
+	</div>
+	<div class="sb-espacio"><span class="sb-etq">Tu espacio</span>${carpetaSelector()}</div>
+	${avisos ? `<div class="sb-avisos">${avisos}</div>` : ""}
+	<nav class="sb-nav" aria-label="Principal"><span class="sb-pildora" aria-hidden="true"></span>${SB_SECCIONES().map(([titulo, items]) => `<div class="sb-grupo"><span class="sb-etq">${titulo}</span>${items.map(item).join("")}</div>`).join("")}</nav>
+	<div class="sb-pie">
+		<button class="sb-piloto ${modo === "apagado" ? "" : "is-on"}" data-section="general" title="Piloto automático: ${piloto}">${ic("plane")}<span class="sb-piloto__txt"><b>Piloto automático</b><small>${piloto}</small></span>${modo === "apagado" ? "" : `<i class="sb-piloto__punto ${modo}"></i>`}</button>
+		<div class="sb-acciones">
+			<button class="sb-accion" data-dock aria-label="Tu navegador" title="Tu navegador">${ic("globe")}</button>
+			<button class="sb-accion" data-lev-tema aria-label="${temaOscuro() ? "Modo claro" : "Modo oscuro"}" title="${temaOscuro() ? "Modo claro" : "Modo oscuro"}">${temaOscuro() ? SOL : ic("moon")}</button>
+			<button class="sb-accion" data-section="general" aria-label="Configuración" title="Configuración">${ic("sliders-horizontal")}</button>
+		</div>
+	</div>`);
+	const side = document.getElementById("side");
+	side.classList.add("sb");
+	const riel = sbRiel && !sbCelular.matches;
+	side.classList.toggle("is-riel", riel);
+	side.classList.toggle("is-cajon", sbCajon);
+	document.getElementById("sb-fondo")?.classList.toggle("is-abierto", sbCajon);
+	document.body.classList.toggle("sb-riel", riel);
+	moverPildora();
+	renderBarraMovil(count);
 	document.querySelector(".app")?.classList.toggle("chat", esVistaDeChat());
 	renderConvs();
 	renderPanel();
 }
+
+/** La píldora de tinta se desliza desde donde estaba hasta la sección activa (la barra se vuelve a pintar entera). */
+function moverPildora() {
+	const nav = document.querySelector(".sb-nav");
+	const pildora = nav?.querySelector(".sb-pildora");
+	if (!pildora) return;
+	const activo = nav.querySelector(".sb-item.is-on");
+	if (!activo) {
+		pildora.style.opacity = "0";
+		sbPildoraAntes = null;
+		return;
+	}
+	const caja = nav.getBoundingClientRect();
+	const r = activo.getBoundingClientRect();
+	const destino = { y: r.top - caja.top, x: r.left - caja.left, w: r.width, h: r.height };
+	const poner = d => {
+		pildora.style.transform = `translate(${d.x}px, ${d.y}px)`;
+		pildora.style.width = `${d.w}px`;
+		pildora.style.height = `${d.h}px`;
+	};
+	if (sbPildoraAntes && (sbPildoraAntes.y !== destino.y || sbPildoraAntes.w !== destino.w)) {
+		pildora.style.transition = "none";
+		poner(sbPildoraAntes);
+		pildora.style.opacity = "1";
+		void pildora.offsetWidth;
+		pildora.style.transition = "";
+	} else if (!sbPildoraAntes) pildora.style.transition = "none";
+	poner(destino);
+	pildora.style.opacity = "1";
+	if (!sbPildoraAntes) {
+		void pildora.offsetWidth;
+		pildora.style.transition = "";
+	}
+	sbPildoraAntes = destino;
+}
+addEventListener("resize", () => {
+	sbPildoraAntes = null;
+	moverPildora();
+});
+
+/** En el celular: la barra de arriba con el menú (abre el cajón), el logo y lo que espera tu OK. */
+function renderBarraMovil(count) {
+	setHtml("sb-movil", `<button class="sb-movil__menu" data-sb-cajon aria-label="Abrir el menú"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button><button class="sb-movil__logo" data-view="tablero" aria-label="Ir al tablero">${document.getElementById("logo").innerHTML}<span>Leverage</span></button><span class="sp"></span>${count ? `<button class="sb-movil__cuenta" data-view="bandeja" aria-label="Bandeja: ${count} sin ver">${ic("inbox")}<span>${count}</span></button>` : ""}`);
+}
+
+document.addEventListener("click", e => {
+	if (e.target.closest("[data-sb-riel]")) {
+		sbRiel = !sbRiel;
+		store("sbRiel", sbRiel);
+		sbPildoraAntes = null;
+		renderSide();
+		return;
+	}
+	if (e.target.closest("[data-sb-cajon]")) {
+		sbCajon = true;
+		renderSide();
+		return;
+	}
+	if (e.target.closest("[data-lev-tema]")) {
+		themePref = temaOscuro() ? "light" : "dark";
+		store("tema", themePref);
+		applyLook();
+		renderSide();
+		lastBody = "";
+		renderBody();
+		return;
+	}
+	// En el celular, elegir una sección (o tocar afuera) cierra el cajón. Abrir "Tu espacio" no lo cierra.
+	if (sbCajon && (e.target.closest("#sb-fondo") || e.target.closest(".sb [data-view], .sb [data-section], .sb [data-dock], .sb [data-carp]"))) {
+		sbCajon = false;
+		setTimeout(renderSide);
+	}
+});
+addEventListener("keydown", e => {
+	if (e.key === "Escape" && sbCajon) {
+		sbCajon = false;
+		renderSide();
+	}
+});
 
 /** Al costado del chat con un agente: en qué anda, lo que espera tu OK y lo que fue dejando. */
 function renderPanel() {

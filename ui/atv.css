@@ -1,0 +1,241 @@
+/* ======================================================================
+   ATV Leverage con el diseño del Classroom de ATV (rediseño 2026-11).
+   Se carga después de app.css y solo pisa: la base (tipografía, colores, fondos) y la barra lateral, que
+   reemplaza a la barra de arriba. Las pantallas se van pasando de a una en tandas siguientes.
+   Marca: hueso #F3F0E9, carbón #242321, rojo ATV. Claro y oscuro (html[data-theme="dark"]).
+   ====================================================================== */
+
+/* ---------- tipografía del Brandbook (la misma del Classroom) ---------- */
+@font-face { font-family: 'Helvetica Now Display'; src: url('/ui/fonts/HelveticaNowDisplay-Regular.otf') format('opentype'); font-weight: 100 499; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Helvetica Now Display'; src: url('/ui/fonts/HelveticaNowDisplay-Medium.otf') format('opentype'); font-weight: 500 900; font-style: normal; font-display: swap; }
+
+/* ---------- la base: papel cálido, hojas blancas tibias, tinta carbón y el rojo ATV ---------- */
+:root {
+  --sans: 'Helvetica Now Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --logo: var(--sans);
+  --bg: #f6f4f0;
+  --sheet: #fffefb;
+  --line: #ece7df;
+  --line2: rgba(36, 35, 33, 0.16);
+  --bubble: #f1ede6;
+  --group: rgba(36, 35, 33, 0.045);
+  --sel: rgba(36, 35, 33, 0.08);
+  --suave: #f1ede6;
+  --borde: rgba(36, 35, 33, 0.1);
+  --me: var(--acento);
+  --red: var(--rojo);
+  --green: #1f8a4c;
+  --hl: 241, 237, 230;
+  --sombra: 0 1px 2px rgba(60, 48, 40, 0.05), 0 12px 32px -14px rgba(60, 48, 40, 0.18);
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --sb-w: 252px;
+}
+html[data-theme="dark"] {
+  --acento: #f3f0e9;
+  --acento-rgb: 243, 240, 233;
+  --rojo: #dd5245;
+  --rojo-texto: #f08a7e;
+  --bg: #1b1a19;
+  --sheet: #232120;
+  --line: rgba(243, 240, 233, 0.08);
+  --bubble: rgba(243, 240, 233, 0.07);
+  --suave: rgba(243, 240, 233, 0.07);
+  --borde: rgba(243, 240, 233, 0.1);
+  --green: #5fd197;
+  --sombra: 0 14px 30px -16px rgba(0, 0, 0, 0.7);
+}
+body { font-size: 14px; letter-spacing: -0.01em; }
+:focus-visible { outline-color: var(--rojo); }
+::selection { background: rgba(192, 57, 43, 0.18); }
+/* lo que en oscuro quedaba blanco sobre el acento (que ahora es hueso) */
+html[data-theme="dark"] :is(.sop-msg.persona, .rmnodo.ok) { color: var(--sheet); }
+
+/* la hoja de trabajo: blanca tibia, con la sombra cálida del Classroom */
+.main { border-radius: 22px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--borde), var(--sombra); }
+html[data-theme="dark"] .main { box-shadow: inset 0 0 0 1px var(--borde); }
+.badge { background: var(--rojo); }
+
+/* ======================================================================
+   La barra lateral (renderSide en 01-paneles-y-tablero.js)
+   ====================================================================== */
+.app { grid-template-rows: minmax(0, 1fr); padding-left: var(--sb-w); transition: padding-left 220ms var(--ease); }
+.app > :is(.convs, .main, .panel) { grid-row: 1; }
+.app .main { margin-top: 16px; }
+body.sb-riel { --sb-w: 76px; }
+.app.onboarding { padding-left: 0; }
+.app.onboarding :is(.sb, .sb-movil, .sb-fondo) { display: none !important; }
+.sb-movil, .sb-fondo { display: none; }
+
+.sb {
+  --sb-fondo: #efebe4;
+  --sb-linea: rgba(29, 29, 31, 0.09);
+  --sb-t1: #1d1d1f;
+  --sb-t2: #4a4744;
+  --sb-t3: #8a857d;
+  --sb-hover: rgba(29, 29, 31, 0.05);
+  --sb-tinta: #1d1d1f;
+  --sb-sobre-tinta: #f6f1e9;
+  --sb-bandeja: rgba(255, 255, 255, 0.62);
+  --sb-pestana: 26px;
+  position: fixed; z-index: 40; top: 0; bottom: 0; left: 0; width: var(--sb-w);
+  display: flex !important; flex-direction: column; gap: 0; padding: 14px 12px 12px;
+  background: var(--sb-fondo); border-right: 1px solid var(--sb-linea); color: var(--sb-t1);
+  overflow-y: auto; overflow-x: hidden; scrollbar-width: none;
+  transition: width 220ms var(--ease), transform 260ms var(--ease);
+}
+.sb::-webkit-scrollbar { display: none; }
+html[data-theme="dark"] .sb {
+  --sb-fondo: #171615;
+  --sb-linea: rgba(255, 255, 255, 0.07);
+  --sb-t1: #f2eee8;
+  --sb-t2: #cfc8be;
+  --sb-t3: #8e867c;
+  --sb-hover: rgba(255, 255, 255, 0.05);
+  --sb-tinta: #f2eee8;
+  --sb-sobre-tinta: #1b1a19;
+  --sb-bandeja: rgba(255, 255, 255, 0.045);
+}
+.sb svg.i { width: 18px; height: 18px; stroke-width: 1.7; }
+.sb :focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+
+/* la credencial: el isotipo en un cuadrado de tinta, Leverage y tu empresa */
+.sb-cab { display: flex; align-items: center; gap: 6px; padding: 2px 0 10px; }
+.sb-cred { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 12px; text-align: left; }
+.sb-cred:hover { background: var(--sb-hover); }
+.sb-cred__logo { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--sb-tinta); }
+.sb-cred__logo .logo-iso { width: 19px; height: auto; }
+html .sb .sb-cred__logo .logo-iso path { fill: var(--sb-sobre-tinta); }
+.sb-cred__txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.sb-cred__txt b { font-size: 15px; font-weight: 700; letter-spacing: -0.025em; white-space: nowrap; }
+.sb-cred__txt small { font-size: 12px; color: var(--sb-t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-plegar { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; color: var(--sb-t3); }
+.sb-plegar:hover { background: var(--sb-hover); color: var(--sb-t1); }
+
+/* las bandejas con pestaña (como las carpetas del Classroom): Tu espacio y cada grupo de secciones */
+.sb-espacio, .sb-grupo { position: relative; display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; }
+.sb-espacio::before, .sb-grupo::before {
+  content: ''; position: absolute; z-index: 0; left: 0; right: 0; top: var(--sb-pestana); bottom: 0;
+  border-radius: 0 14px 14px 14px; background: var(--sb-bandeja);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 1px 2px rgba(60, 48, 40, 0.06);
+}
+html[data-theme="dark"] :is(.sb-espacio, .sb-grupo)::before { box-shadow: none; }
+.sb-etq {
+  position: relative; z-index: 1; align-self: flex-start; height: var(--sb-pestana); margin: 0; padding: 7px 12px 0;
+  border-radius: 9px 9px 0 0; background: var(--sb-bandeja); line-height: 16px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sb-t3); white-space: nowrap;
+}
+.sb-nav { position: relative; display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+
+/* Tu espacio: la carpeta abierta (tu empresa o un cliente) y el menú para cambiarla */
+.sb-espacio .carps { position: relative; z-index: 2; padding: 6px 6px 0; }
+.sb-espacio .carp { width: 100%; height: auto; display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 7px; border-radius: 11px; background: none; box-shadow: none; color: var(--sb-t1); }
+.sb-espacio .carp:hover { background: var(--sb-hover); }
+.sb-espacio .carp .cini { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 9px; background: var(--rojo); color: #fff; font-size: 11.5px; font-weight: 700; }
+.sb-espacio .carp .ct { flex: 1; min-width: 0; display: grid; line-height: 1.2; }
+.sb-espacio .carp .ct b { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-espacio .carp .ct small { display: block; font-size: 11.5px; color: var(--sb-t3); }
+.sb-espacio .carp > .i { width: 15px; height: 15px; color: var(--sb-t3); }
+.sb-espacio .carpm { left: 0; right: 0; top: calc(100% + 6px); width: auto; padding: 6px; border-radius: 14px; background: var(--sheet); box-shadow: 0 0 0 1px var(--borde), 0 18px 40px -16px rgba(40, 30, 20, 0.35); }
+.sb-espacio .carpo { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 10px; color: var(--fg); }
+.sb-espacio .carpo .cini { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 8px; background: var(--suave); font-size: 10.5px; font-weight: 700; }
+.sb-espacio .carpo.on .cini { background: var(--rojo); color: #fff; }
+
+/* avisos que bloquean (sin Claude, sin cupo, memoria) */
+.sb-avisos { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.sb-aviso { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 6px 12px; border-radius: 12px; background: rgba(192, 57, 43, 0.1); color: var(--rojo-texto); font-size: 12.5px; font-weight: 600; text-align: left; }
+
+/* las secciones y la píldora de tinta que se desliza a la activa */
+.sb-pildora {
+  position: absolute; z-index: 1; left: 0; top: 0; width: 0; height: 40px; border-radius: 12px; background: var(--sb-tinta); pointer-events: none;
+  box-shadow: 0 6px 16px -8px rgba(29, 29, 31, 0.55); opacity: 0;
+  transition: transform 320ms var(--ease), width 320ms var(--ease), height 320ms var(--ease), opacity 160ms ease;
+}
+/* la luz interna de la activa, como en el Classroom */
+.sb-pildora::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(120% 140% at 0% 0%, rgba(255, 255, 255, 0.16), transparent 55%); }
+html[data-theme="dark"] .sb-pildora::after { background: radial-gradient(120% 140% at 0% 0%, rgba(255, 255, 255, 0.5), transparent 55%); }
+.sb-pildora::before { content: ''; position: absolute; left: -10px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--rojo); }
+.sb-item {
+  position: relative; z-index: 2; display: flex; align-items: center; gap: 12px; height: 40px; margin-inline: 6px; padding: 0 10px; border-radius: 12px;
+  color: var(--sb-t2); font-size: 14px; font-weight: 500; text-align: left; white-space: nowrap;
+  transition: color 200ms ease, background-color 160ms ease;
+}
+.sb-grupo > .sb-etq + .sb-item { margin-top: 6px; }
+.sb-item:hover:not(.is-on) { background: var(--sb-hover); color: var(--sb-t1); }
+.sb-item.is-on { color: var(--sb-sobre-tinta); font-weight: 600; }
+.sb-item:active { transform: scale(0.98); }
+.sb-item__txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sb-cuenta { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: grid; place-items: center; background: var(--rojo); color: #fff; font-size: 11px; font-weight: 700; }
+
+/* abajo: el piloto automático y las acciones */
+.sb-pie { margin-top: auto; padding-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.sb-piloto { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; background: var(--sb-bandeja); color: var(--sb-t2); text-align: left; }
+.sb-piloto:hover { color: var(--sb-t1); }
+.sb-piloto.is-on { color: var(--sb-t1); }
+.sb-piloto__txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.sb-piloto__txt b { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.sb-piloto__txt small { font-size: 11.5px; color: var(--sb-t3); white-space: nowrap; }
+.sb-piloto.is-on .sb-piloto__txt small { color: var(--green); font-weight: 600; }
+.sb-piloto__punto { position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: sb-late 1.6s ease-in-out infinite; }
+@keyframes sb-late { 50% { box-shadow: 0 0 0 5px rgba(31, 138, 76, 0); opacity: 0.55; } 0% { box-shadow: 0 0 0 0 rgba(31, 138, 76, 0.35); } }
+.sb-acciones { display: flex; gap: 4px; }
+.sb-accion { flex: 1; height: 36px; display: grid; place-items: center; border-radius: 10px; color: var(--sb-t3); }
+.sb-accion:hover { background: var(--sb-hover); color: var(--sb-t1); }
+
+/* ---------- riel (plegada): solo íconos ---------- */
+.sb.is-riel { padding-inline: 10px; --sb-pestana: 0px; }
+.sb.is-riel :is(.sb-cred__txt, .sb-etq, .sb-item__txt, .sb-piloto__txt, .sb-espacio .ct, .sb-espacio .carp > .i, .sb-espacio .carp .badge) { display: none; }
+.sb.is-riel .sb-cab { flex-direction: column; gap: 8px; }
+.sb.is-riel .sb-cred { padding: 4px 0; justify-content: center; }
+.sb.is-riel :is(.sb-espacio, .sb-grupo)::before { border-radius: 14px; }
+.sb.is-riel .sb-espacio .carp { justify-content: center; padding: 7px 0; }
+.sb.is-riel .sb-item { justify-content: center; padding: 0; margin-inline: 4px; }
+.sb.is-riel .sb-grupo > .sb-item:first-of-type { margin-top: 6px; }
+.sb.is-riel .sb-cuenta { position: absolute; top: 2px; right: 0; min-width: 16px; height: 16px; font-size: 9.5px; padding: 0 4px; }
+.sb.is-riel .sb-piloto { justify-content: center; padding: 10px 0; }
+.sb.is-riel .sb-piloto__punto { top: 6px; right: 12px; }
+.sb.is-riel .sb-acciones { flex-direction: column; }
+.sb.is-riel .sb-espacio .carpm { left: 0; right: auto; width: 240px; }
+.sb.is-riel .sb-aviso span { display: none; }
+
+/* la app de escritorio en Mac: lugar para los botones de la ventana y la barra se puede arrastrar */
+.desktop .sb { padding-top: 40px; -webkit-app-region: drag; }
+.desktop .sb :is(button, a, input, .carpm) { -webkit-app-region: no-drag; }
+
+/* ---------- tablet: el riel por defecto si la pantalla es angosta ---------- */
+@media (max-width: 1100px) and (min-width: 761px) {
+  .app.chat { grid-template-columns: 240px minmax(0, 1fr); }
+}
+
+/* ---------- celular: una barra arriba y la lateral como cajón desde la izquierda ---------- */
+@media (max-width: 760px) {
+  :root, body.sb-riel { --sb-w: 0px; }
+  .app { grid-template-rows: auto minmax(0, 1fr); padding-left: 0; }
+  .app > :is(.convs, .main, .panel) { grid-row: 2; }
+  .app .main { margin-top: 0; }
+  .sb-movil {
+    grid-row: 1; grid-column: 1 / -1; position: sticky; top: 0; z-index: 30;
+    display: flex; align-items: center; gap: 6px; min-height: 56px; padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 6px;
+    background: var(--bg); border-bottom: 1px solid var(--line);
+  }
+  .sb-movil__menu { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 11px; color: var(--fg); }
+  .sb-movil__menu .i { width: 22px; height: 22px; }
+  .sb-movil__logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; letter-spacing: -0.025em; color: var(--fg); }
+  .sb-movil__logo .logo-iso { width: 16px; height: auto; }
+  html[data-theme="dark"] .sb-movil__logo .logo-iso path { fill: var(--fg); }
+  .sb-movil__cuenta { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 18px; background: rgba(192, 57, 43, 0.1); color: var(--rojo-texto); font-weight: 700; font-size: 13px; }
+  .sb {
+    z-index: 60; width: min(300px, 86vw); height: 100vh; height: 100dvh; bottom: auto;
+    transform: translateX(-102%); box-shadow: none; overscroll-behavior: contain;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .sb-plegar { display: none; }
+  .sb.is-cajon { transform: none; box-shadow: 20px 0 60px -20px rgba(0, 0, 0, 0.45); }
+  .sb-fondo { display: block; position: fixed; inset: 0; z-index: 59; background: rgba(20, 16, 12, 0.35); opacity: 0; pointer-events: none; transition: opacity 220ms ease; touch-action: none; }
+  .sb-fondo.is-abierto { opacity: 1; pointer-events: auto; }
+  html:has(.sb.is-cajon), html:has(.sb.is-cajon) body { overflow: hidden; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb, .sb-pildora, .sb-fondo, .app { transition: none; }
+  .sb-piloto__punto { animation: none; }
+}
+.sb-espacio :is(.carp, .carpo) .badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: grid; place-items: center; background: var(--rojo); color: #fff; font-size: 11px; font-weight: 700; line-height: 1; }

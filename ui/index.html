@@ -13,6 +13,7 @@
 <link rel="icon" type="image/svg+xml" href="/ui/favicon.svg?v=3">
 <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600&amp;f[]=satoshi@700&amp;display=swap">
 <link rel="stylesheet" href="/ui/app.css">
+<link rel="stylesheet" href="/ui/atv.css">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-maximize-2" viewBox="0 0 24 24"><path d="M15 3h6v6" />
@@ -102,7 +103,9 @@
 </svg>
 </template>
 <div class="app">
-  <header class="side topbar" id="side"></header>
+  <aside class="side sb" id="side" aria-label="Barra lateral"></aside>
+  <header class="sb-movil" id="sb-movil"></header>
+  <div class="sb-fondo" id="sb-fondo" aria-hidden="true"></div>
   <aside class="convs" id="convs" aria-label="Conversaciones"></aside>
   <button class="ic reopen" data-side-toggle data-tip="Mostrar barra" aria-label="Mostrar barra"><svg class="i"><use href="#i-panel-left"/></svg></button>
   <div class="main" id="main"></div>

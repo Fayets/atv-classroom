@@ -113,3 +113,28 @@ El de Classroom está en `ATV-CLASSROOM/.claude/CONTEXTO.md`, y ese repo queda q
 
 - **2026-11-27**: se armó el mock (`mock/`, `package.json` con `dev:mock`), se levantó en el puerto 5180 y se
   recorrieron todas las vistas. Todavía no se tocó nada de `ui/`.
+- **2026-11-27 · Base y barra lateral** (primera tanda de diseño):
+  - Se creó `ui/atv.css`, que se carga después de `app.css` y concentra el rediseño, y `ui/fonts/` con Helvetica Now
+    Display (la misma del Classroom). `index.html` suma `atv.css` y tres elementos nuevos: la barra (`<aside id="side" class="side sb">`),
+    la barra del celular (`#sb-movil`) y el fondo del cajón (`#sb-fondo`).
+  - En `app.css`, los colores escritos a mano pasaron a variables:
+    - el azul `#1351C2` y sus `rgba(19,81,194,…)` son `--acento` y `--acento-rgb` (carbón en claro, hueso en oscuro);
+    - `#FF2518` y `#F65046` son `--rojo` (`#c0392b`);
+    - `#B40210` es `--rojo-texto`.
+  - Base: papel `#f6f4f0`, hojas `#fffefb`, sombra cálida y bordes suaves; en oscuro, carbón. El foco va en rojo.
+  - **Barra lateral** (`renderSide` en `01-paneles-y-tablero.js`, con el estilo del sidebar del Classroom). Reemplaza a la barra de arriba:
+    - credencial (isotipo, "Leverage" y la empresa) y botón para plegar a riel (`localStorage.sbRiel`);
+    - "Tu espacio", con el selector de carpeta (empresa o clientes) de siempre;
+    - bandejas con pestaña: Tu equipo (Tablero, Bandeja, Equipo, Roadmap), Ventas (si hay Instagram),
+      Herramientas (Juan IA, Classroom, Biblioteca) y Gestión (Tickets, Rutinas, Uso, Decisiones, Actividad, Configuración);
+    - la píldora de tinta que se desliza a la sección activa (con su filo rojo y su luz interna);
+    - abajo, el piloto automático con su estado, el navegador, el modo claro/oscuro (`data-lev-tema`, guarda `tema`) y la configuración.
+  - El menú del engranaje ya no se pinta: sus opciones están en la barra. Bandeja queda marcada también en los chats con agentes.
+  - En la app de Mac la barra deja 40 px arriba para los botones de la ventana y se puede arrastrar.
+  - **Celular (≤760 px)**: barra de arriba con menú, logo y el contador de la Bandeja; la lateral es un cajón que se
+    cierra al elegir una sección, al tocar afuera o con Esc. En el celular no hay riel.
+  - Pendiente: las pantallas en sí (Tablero, Bandeja, chat, Equipo…) todavía tienen su diseño viejo, aunque ya toman
+    la paleta y la tipografía nuevas. En el chat, la columna de conversaciones queda pegada a la barra: se rediseña con esa pantalla.
+- **Git local**: se inicializó un repo solo local en `ATV-LEVERAGE` para ver los cambios (`git diff c718430`),
+  y hay una copia de la `ui/` original en `D:\Landings - Copy\ATV\ui-original-leverage-backup`.
+  Para entregar se devuelven los archivos de `ui/` que cambiaron: `git diff --name-only c718430 -- ui`.
