@@ -220,6 +220,8 @@ createServer(async (req, res) => {
   try {
     if (p === '/' || p === '/index.html') {
       const html = (await readFile(join(UI, 'index.html'), 'utf8')).replace('__TOKEN__', 'mock')
+        // Solo en el mock: un aviso chico de que todo es de prueba (lo que en la app real sale afuera, acá se simula).
+        .replace('</body>', '<div title="Mensajes, mails, publicaciones y pagos no salen de verdad: se simulan" style="position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:90;padding:5px 12px;border-radius:999px;background:rgba(36,35,33,.82);color:#f3f0e9;font:600 11px/1.2 system-ui,sans-serif;letter-spacing:.02em;pointer-events:auto;box-shadow:0 6px 18px -8px rgba(0,0,0,.5)">Demo · datos de prueba · las acciones hacia afuera se simulan</div></body>')
       res.writeHead(200, { 'content-type': TIPOS['.html'], 'cache-control': 'no-store' })
       return res.end(html)
     }
