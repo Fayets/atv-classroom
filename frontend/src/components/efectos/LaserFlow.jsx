@@ -238,6 +238,7 @@ void main() {
   float fogAmount = uAmount.y * uAtmosphere;
   float near = exp(-adx / 150.0);
   float envelope = near * (0.3 + 0.4 * exp(-hp / 50.0) + 1.2 * exp(-p.y / 120.0));
+  float shade = 0.0;
   if (fogAmount > 0.001 && h > -2.0 && envelope * max(0.25, 6.0 * exp(-adx / 50.0)) > 0.002) {
     vec2 fq = vec2(dx / 1.7, h) / 85.0 + vec2(t * 0.012, -t * 0.03) + uExtra.zw;
     vec2 fw = vec2(fbm(fq * 1.3 + vec2(1.7, 9.2) + t * 0.03), fbm(fq * 1.3 + vec2(8.3, 2.8) - t * 0.025));
@@ -252,6 +253,8 @@ void main() {
     float smoke = smoothstep(0.3, 0.75, cloud);
     fog += BEAM * 0.35 * exp(-adx / (22.0 * beamWidth)) * (0.35 + 0.9 * smoke) * fogMask * top * drop;
     col += fog * fogAmount * (1.0 + 1.2 * lens) * mix(1.0, 0.45, uTheme);
+    // ATV: the same cloud, kept apart so the light theme can paint it as dark smoke.
+    shade = smoothstep(0.42, 0.8, cloud) * envelope * fogMask * reached;
   }
 
   if (uRevealInfo.y > 0.001 && uLens.w > 0.002) {
@@ -317,7 +320,11 @@ void main() {
     float chroma = peak - low;
     vec3 hue = (emit - low) / max(chroma, 0.0001);
     float alpha = clamp(pow(chroma, 1.35) * 1.3, 0.0, 1.0) * 0.9;
-    outColor = vec4((hue * 0.82 + 0.06) * alpha, alpha);
+    // On light paper the smoke has no color of its own and would vanish: draw it as a warm dark veil
+    // under the beam (premultiplied alpha), thinning out where the beam is bright.
+    float smokeAlpha = (1.0 - exp(-shade * 1.1)) * 0.44 * step(0.001, fogAmount) * smoothstep(-0.75, 0.25, sd * uScale);
+    float under = smokeAlpha * (1.0 - alpha);
+    outColor = vec4((hue * 0.82 + 0.06) * alpha + vec3(0.2, 0.12, 0.11) * under, alpha + under);
   } else {
     outColor = vec4(emit, peak);
   }
@@ -778,12 +785,15 @@ export const LaserFlow = ({
         }
       }
       const s = settingsRef.current;
-      const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60;
+      const elapsed = last ? (now - last) / 1000 : 1 / 60;
+      const dt = Math.min(0.05, elapsed);
       last = now;
       const moving = !s.paused && !reduce;
       if (moving) state.time += dt * s.speed;
       const introducing = state.introTime < INTRO_END;
-      if (introducing) state.introTime = Math.min(INTRO_END, state.introTime + dt);
+      // The intro follows the wall clock: with the short physics step it dragged on for ages (and the beam
+      // looked missing) whenever the browser was drawing few frames, e.g. while screen recording.
+      if (introducing) state.introTime = Math.min(INTRO_END, state.introTime + Math.min(0.25, elapsed));
 
       const { pointer, lens } = state;
       const active = s.mouseInteraction && pointer.inside && !reduce;

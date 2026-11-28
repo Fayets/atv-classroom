@@ -3,9 +3,11 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError, fetchProgramas, fetchSopsClassroom } from '../api/client'
 import AppHeader from '../components/AppHeader'
 import ArchivoModulos from '../components/clase/ArchivoModulos'
+import Miniatura from '../components/clase/Miniatura'
+import IconoRecurso from '../components/IconoRecurso'
 import { Chevron } from '../components/frentes/piezas'
-import Isotipo from '../components/marca/Isotipo'
 import { tipoRecurso, tituloLindo, urlRecurso } from '../utils/frentes'
+import { getModuloCoverUrl } from '../utils/modules'
 import '../styles/frentes.css'
 import '../styles/material.css'
 import '../styles/classroom-rediseno.css'
@@ -71,7 +73,7 @@ export default function ProgramasGridPage() {
           </div>
         </header>
 
-        {vista === 'sops' ? <VistaSops /> : error ? (
+        {vista === 'sops' ? <VistaSops programas={programas} /> : error ? (
           <p className="im-error">{error}</p>
         ) : !programas ? (
           <p className="pc-loading">Cargando módulos…</p>
@@ -88,7 +90,7 @@ const normal = (t) => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 // Todos los SOPs como una mesa de documentos: cada SOP es una hoja (una pila si trae varios documentos),
 // con el tipo de cada documento como pestaña de carpeta. Arriba, el buscador y un filtro por módulo.
 // Al tocar una hoja se abre el lector al costado, con los documentos y el video.
-function VistaSops() {
+function VistaSops({ programas }) {
   const [modulos, setModulos] = useState(null)
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
@@ -199,7 +201,7 @@ function VistaSops() {
             <ul className="cr-hojas">
               {m.sops.map((s, i) => (
                 <li key={s.clase_id} style={{ '--i': i }}>
-                  <Hoja sop={s} numero={i + 1} modulo={m.modulo} activa={abierta?.sop.clase_id === s.clase_id} onAbrir={() => setAbierta({ sop: s, modulo: m })} />
+                  <Hoja sop={s} portada={getModuloCoverUrl(programas?.find((p) => p.id === m.programa_id))} activa={abierta?.sop.clase_id === s.clase_id} onAbrir={() => setAbierta({ sop: s, modulo: m })} />
                 </li>
               ))}
             </ul>
@@ -217,32 +219,24 @@ function VistaSops() {
   )
 }
 
-// Una hoja: número y módulo arriba, el título, renglones de papel y el sello ATV. Los tipos de sus
-// documentos asoman arriba como pestañas de carpeta; con más de un documento, se ve la pila detrás.
-function Hoja({ sop, numero, modulo, activa, onAbrir }) {
-  const tipos = [...new Set(sop.documentos.map((d) => tipoRecurso(d).tag))]
+// A SOP card: the class thumbnail, its title and the platforms of its documents. With more than one
+// document the stack shows behind.
+function Hoja({ sop, portada, activa, onAbrir }) {
+  const documentos = [...new Map(sop.documentos.map((d) => [tipoRecurso(d).tag, d])).values()]
   const pila = Math.min(sop.documentos.length, 3)
   return (
     <button type="button" className={`cr-hoja${activa ? ' is-activa' : ''}`} data-pila={pila} onClick={onAbrir} aria-haspopup="dialog">
-      <span className="cr-hoja__pestanas" aria-hidden="true">
-        {tipos.map((t) => (
-          <span key={t} className={`cr-pestana is-${t.toLowerCase()}`}>{t}</span>
-        ))}
-      </span>
       <span className="cr-hoja__papel">
-        <span className="cr-hoja__cab">
-          <span className="num">SOP {String(numero).padStart(2, '0')}</span>
-          <span>{modulo}</span>
-        </span>
+        <Miniatura titulo={sop.titulo} portada={portada} clase={sop} />
         <b className="cr-hoja__titulo">{tituloLindo(sop.titulo)}</b>
         <small className="cr-hoja__seccion">{tituloLindo(sop.seccion)}</small>
-        <span className="cr-hoja__renglones" aria-hidden="true" />
         <span className="cr-hoja__pie">
-          <span>
-            {sop.documentos.length} {sop.documentos.length === 1 ? 'documento' : 'documentos'}
-            {sop.con_video === false ? '' : ' · video'}
+          <span className="cr-hoja__iconos">
+            {documentos.map((d) => (
+              <IconoRecurso key={d.id} tag={tipoRecurso(d).tag} size={18} title={tipoRecurso(d).label} />
+            ))}
           </span>
-          <Isotipo className="cr-hoja__sello" />
+          {sop.con_video === false ? null : <span>Con video</span>}
         </span>
       </span>
     </button>
@@ -282,10 +276,10 @@ function LectorSop({ sop, modulo, onCerrar }) {
             return (
               <li key={d.id}>
                 <a href={urlRecurso(d.url)} target="_blank" rel="noopener noreferrer">
-                  <span className={`cr-pestana is-${tag.toLowerCase()}`}>{tag}</span>
+                  <span className="cr-lector__icono"><IconoRecurso tag={tag} size={26} /></span>
                   <span className="cr-lector__doc">
                     <b>{/^(documento|planilla|formulario) google/i.test(d.titulo) ? label : d.titulo}</b>
-                    <small>{label}</small>
+                    {/^(documento|planilla|formulario) google/i.test(d.titulo) ? null : <small>{label}</small>}
                   </span>
                   <Chevron />
                 </a>

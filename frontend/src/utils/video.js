@@ -95,3 +95,9 @@ export function formatDuracion(segundos) {
   const secs = total % 60
   return `${mins}:${String(secs).padStart(2, '0')}`
 }
+
+/** The original frame of a YouTube video, usable as the class thumbnail. */
+export function getYoutubeThumbnail(url) {
+  const id = String(url || '').match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/))([\w-]{11})/)?.[1]
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null
+}

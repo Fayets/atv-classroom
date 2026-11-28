@@ -5,6 +5,7 @@ import { actualizarFrente, enviarConsultaCoach, fetchFrente } from '../api/frent
 import AppHeader from '../components/AppHeader'
 import { Check, Chevron, Recursos, Video } from '../components/frentes/piezas'
 import { tipoRecurso, tituloLindo, urlRecurso } from '../utils/frentes'
+import IconoRecurso from '../components/IconoRecurso'
 import '../styles/frentes.css'
 
 // Un frente = un problema del negocio trabajado con el método ATV:
@@ -68,7 +69,7 @@ function PlantillaSop({ p, nombre, link, guardando, onGuardar }) {
   return (
     <li className={`im-plantilla${link ? ' is-ok' : ''}`}>
       <a href={urlRecurso(p.url)} target="_blank" rel="noopener noreferrer" className="im-plantilla__src">
-        <span className={`pc-recurso__tag pc-tag--${t.tag.toLowerCase()}`}>{t.tag}</span>
+        <span className="pc-recurso__tag"><IconoRecurso tag={t.tag} /></span>
         <span className="im-plantilla__txt">
           <b>{nombre}</b>
           <small>{p.url.includes('/copy') ? 'Plantilla · se abre una copia para vos' : 'Plantilla · hacé una copia'}</small>

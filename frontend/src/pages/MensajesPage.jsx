@@ -15,6 +15,8 @@ import CampanaAlertas from '../components/mensajes/CampanaAlertas'
 import AccionesRapidas from '../components/mensajes/AccionesRapidas'
 import BotonQuePenso from '../components/mensajes/BotonQuePenso'
 import Avatar from '../components/mensajes/Avatar'
+import EquipoApilado from '../components/mensajes/EquipoApilado'
+import { ordenarEquipo } from '../utils/equipo'
 import RoadmapCliente from '../components/mensajes/RoadmapCliente'
 import Conversacion from '../components/mensajes/Conversacion'
 import { useEscritorio } from '../context/EscritorioContext'
@@ -24,7 +26,7 @@ import { useMensajeria } from '../context/MensajeriaContext'
 import { cuandoCorto, haceCuanto, normal } from '../utils/mensajes'
 import '../styles/mensajes.css'
 import IconoCanal from '../components/mensajes/IconoCanal'
-import { nombreVisible } from '../utils/canales'
+import { esCanalWins, nombreVisible } from '../utils/canales'
 import ContextoCliente from '../components/mensajes/ContextoCliente'
 import '../styles/contexto.css'
 import '../styles/rediseno.css'
@@ -183,7 +185,7 @@ function FilaCanal({ c, activo, onAbrir, escribe, hash = false, onEditar, arrast
   return (
     <button
       type="button"
-      className={`msj-fila${activo ? ' is-activo' : ''}${nuevo ? ' is-nuevo' : ''}`}
+      className={`msj-fila${activo ? ' is-activo' : ''}${nuevo ? ' is-nuevo' : ''}${hash && esCanalWins(c.nombre) ? ' is-wins' : ''}`}
       onClick={() => onAbrir(c.id)}
       title={arrastrable ? `${titulo}\n\nArrastralo a Inactivos para archivarlo` : titulo}
       draggable={arrastrable}
@@ -192,7 +194,6 @@ function FilaCanal({ c, activo, onAbrir, escribe, hash = false, onEditar, arrast
         e.dataTransfer.effectAllowed = 'move'
       } : undefined}
     >
-      {nuevo ? <i className="msj-fila__punto" aria-label="Mensajes sin leer" /> : null}
       <span className="msj-fila__nombre">
         {hash ? (
           c.bloqueado ? (
@@ -228,9 +229,10 @@ function FilaCanal({ c, activo, onAbrir, escribe, hash = false, onEditar, arrast
           </svg>
         </span>
       ) : null}
-      {c.menciones > 0 ? (
-        <b className="msj-fila__menciones" aria-label={`Te etiquetaron ${c.menciones} ${c.menciones === 1 ? 'vez' : 'veces'}`}>
-          {c.menciones > 99 ? '99+' : c.menciones}
+      {/* Unread messages in this channel; a leading @ means you were mentioned. */}
+      {c.menciones > 0 || nuevo ? (
+        <b className="msj-fila__n" aria-label={`${c.no_leidos || c.menciones} sin leer${c.menciones > 0 ? ', te etiquetaron' : ''}`}>
+          {c.menciones > 0 ? '@ ' : ''}{(c.no_leidos || c.menciones) > 99 ? '99+' : c.no_leidos || c.menciones}
         </b>
       ) : null}
     </button>
@@ -240,12 +242,28 @@ function FilaCanal({ c, activo, onAbrir, escribe, hash = false, onEditar, arrast
 function ItemCanal({ c, activo, onAbrir, isEquipo, escribe }) {
   const privado = c.tipo === 'cliente'
   const titulo = privado && isEquipo ? c.cliente?.nombre || c.nombre : privado ? 'Mi canal' : nombreVisible(c.nombre)
+  // The client's own channel shows the faces of the team that answers there.
+  const delCliente = privado && !isEquipo
+  const [equipo, setEquipo] = useState([])
+  useEffect(() => {
+    if (!delCliente) return undefined
+    let vivo = true
+    fetchEquipoChat()
+      .then((l) => vivo && setEquipo(l || []))
+      .catch(() => null)
+    return () => {
+      vivo = false
+    }
+  }, [delCliente])
+  const caras = delCliente ? ordenarEquipo(equipo, c.ultimo?.de === 'equipo' ? [c.ultimo.autor_nombre] : []) : []
   return (
-    <button type="button" className={`msj-item${activo ? ' is-on' : ''}${c.no_leidos ? ' is-nuevo' : ''}`} onClick={() => onAbrir(c.id)}>
+    <button type="button" className={`msj-item${delCliente ? ' msj-item--equipo' : ''}${activo ? ' is-on' : ''}${c.no_leidos ? ' is-nuevo' : ''}`} onClick={() => onAbrir(c.id)}>
       {privado && isEquipo ? (
         <Avatar persona={{ tipo: 'cliente', nombre: titulo }} size={34} />
+      ) : delCliente && caras.length ? (
+        <EquipoApilado personas={caras} size={26} />
       ) : (
-        <span className="msj-item__hash" aria-hidden="true">
+        <span className={`msj-item__hash${!privado && esCanalWins(c.nombre) ? ' is-wins' : ''}`} aria-hidden="true">
           {privado ? '#' : <IconoCanal nombre={c.nombre} className="msj-item__icono" />}
         </span>
       )}
@@ -1244,16 +1262,20 @@ export default function MensajesPage() {
           ) : null}
           {!canales ? <p className="msj-vacio">Cargando…</p> : null}
 
+          {/* The client's channel with the team is what matters most: it goes first, above the community. */}
+          {!isEquipo && resto.length ? (
+            <div className="msj-tu-equipo">
+              <p className="msj-seccion">Tu equipo de ATV</p>
+              {resto.map((c) => (
+                <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
+              ))}
+            </div>
+          ) : null}
+
           {seccionCanales}
 
           {isEquipo
             ? grupos.flatMap((g) => (g.id === 'inactivos' ? [seccionSenas, grupoDe(g)] : [grupoDe(g)]))
-            : null}
-          {!isEquipo && resto.length ? <p className="msj-seccion">Tu canal</p> : null}
-          {!isEquipo
-            ? resto.map((c) => (
-                <ItemCanal key={c.id} c={c} activo={c.id === activo} onAbrir={abrir} isEquipo={isEquipo} escribe={escriben[c.id]?.nombre} />
-              ))
             : null}
 
           </>

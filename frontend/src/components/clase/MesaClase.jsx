@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Check, Chevron, Recursos, Video } from '../frentes/piezas'
 import TextoFormateado from '../frentes/TextoFormateado'
+import Miniatura from './Miniatura'
 import { partirDescripcion, tituloLindo } from '../../utils/frentes'
 
 // Qué claves ya aplicó cada uno: es una ayuda personal, vive en el navegador.
@@ -74,10 +75,22 @@ export default function MesaClase({ clase, cargando, guardando, anterior, siguie
 
       <aside className="ms-panel" aria-label="Implementar y revisar">
         <section className="ms-paso">
-          <span className="ms-paso__n">Implementar</span>
-          <h2>{claves.length ? 'Aplicalo en tu negocio' : 'Llevalo a tu negocio'}</h2>
+          <h2>Aplicalo en tu negocio</h2>
+          {recursos.length ? (
+            <div className="ms-recursos">
+              <Recursos recursos={recursos} />
+            </div>
+          ) : null}
           {claves.length ? (
-            <>
+            // The checklist stays folded until asked for; it opens by itself when it is half done.
+            <details className="ms-pasos-det" key={clase.id} open={hechas.length > 0 && hechas.length < claves.length}>
+              <summary>
+                <span>Paso a paso</span>
+                <small className="num">
+                  {hechas.length} de {claves.length}
+                </small>
+                <Chevron dir="down" />
+              </summary>
               <ul className="ms-claves">
                 {claves.map((k, i) => {
                   const ok = hechas.includes(i)
@@ -92,31 +105,10 @@ export default function MesaClase({ clase, cargando, guardando, anterior, siguie
                   )
                 })}
               </ul>
-              <p className="ms-paso__meta num">
-                {hechas.length} de {claves.length} aplicadas
-              </p>
-            </>
-          ) : (
-            <p className="ms-paso__txt">Aplicá lo que viste y dejalo documentado en tu SOP, así queda como un proceso de tu equipo.</p>
+            </details>
+          ) : recursos.length ? null : (
+            <p className="ms-paso__txt">Aplicá lo que viste y dejalo documentado en tu SOP.</p>
           )}
-          {recursos.length ? (
-            <div className="ms-recursos">
-              <Recursos recursos={recursos} />
-            </div>
-          ) : null}
-        </section>
-
-        <section className="ms-paso ms-paso--revisar">
-          <span className="ms-paso__n">Revisar</span>
-          <div className="ms-coach">
-            <span className="im-coach__av" aria-hidden="true">
-              {(clase.coach?.nombre ?? 'ATV').slice(0, 2).toUpperCase()}
-            </span>
-            <div>
-              <b>{clase.coach ? `Lo revisás con ${clase.coach.nombre}` : 'Lo revisás con tu coach'}</b>
-              <span>{clase.coach?.area ?? 'Cuando lo tengas implementado'}</span>
-            </div>
-          </div>
           <button
             type="button"
             className={`pc-btn ms-implementar${clase.completado ? ' is-done' : ''}`}
@@ -126,27 +118,23 @@ export default function MesaClase({ clase, cargando, guardando, anterior, siguie
           >
             <Check done={clase.completado} /> {clase.completado ? 'Implementada' : 'Marcar como implementada'}
           </button>
-          {/* Dónde estás en el módulo y qué sigue: que se note que hay que ir pasando de clase. */}
-          {posicion.total ? (
-            clase.completado ? (
-              siguiente ? (
-                <button type="button" className="ms-avance is-lista" onClick={() => onIr(siguiente.id)}>
-                  <span className="ms-avance__txt">
-                    <small>Clase lista · {posicion.hechas} de {posicion.total} implementadas</small>
-                    <b>Seguí con la {posicion.numero + 1}: {tituloLindo(siguiente.titulo)}</b>
-                  </span>
-                  <span className="ms-avance__ir" aria-hidden="true"><Chevron /></span>
-                </button>
-              ) : (
-                <p className="ms-avance is-fin">
-                  <small>Última clase del módulo</small>
-                  <b>{posicion.hechas === posicion.total ? '¡Completaste el módulo!' : `Te quedan ${posicion.total - posicion.hechas} sin implementar`}</b>
-                </p>
-              )
+          <p className="ms-revisa">
+            Lo revisás con <b>{clase.coach?.nombre ?? 'tu coach'}</b>
+          </p>
+          {/* Once implemented, point to what comes next. */}
+          {posicion.total && clase.completado ? (
+            siguiente ? (
+              <button type="button" className="ms-avance is-lista" onClick={() => onIr(siguiente.id)}>
+                <span className="ms-avance__txt">
+                  <small>Clase lista · {posicion.hechas} de {posicion.total} implementadas</small>
+                  <b>Seguí con la {posicion.numero + 1}: {tituloLindo(siguiente.titulo)}</b>
+                </span>
+                <span className="ms-avance__ir" aria-hidden="true"><Chevron /></span>
+              </button>
             ) : (
-              <p className="ms-avance">
-                <small>Vas por la clase {posicion.numero} de {posicion.total}</small>
-                <b>Implementala para sumar al módulo y pasar a la siguiente</b>
+              <p className="ms-avance is-fin">
+                <small>Última clase del módulo</small>
+                <b>{posicion.hechas === posicion.total ? '¡Completaste el módulo!' : `Te quedan ${posicion.total - posicion.hechas} sin implementar`}</b>
               </p>
             )
           ) : null}
@@ -160,6 +148,7 @@ export default function MesaClase({ clase, cargando, guardando, anterior, siguie
               <span className="mt-nav__ico" aria-hidden="true">
                 <Chevron dir="left" />
               </span>
+              <Miniatura titulo={anterior.titulo} portada={clase.portada} clase={anterior} />
               <span className="mt-nav__txt">
                 <small>Anterior</small>
                 <b>{tituloLindo(anterior.titulo)}</b>
@@ -168,6 +157,7 @@ export default function MesaClase({ clase, cargando, guardando, anterior, siguie
           ) : null}
           {siguiente ? (
             <button type="button" className={`mt-nav__btn mt-nav__btn--next${anterior ? '' : ' is-sola'}`} onClick={() => onIr(siguiente.id)}>
+              <Miniatura titulo={siguiente.titulo} portada={clase.portada} clase={siguiente} />
               <span className="mt-nav__txt">
                 <small>Siguiente clase</small>
                 <b>{tituloLindo(siguiente.titulo)}</b>

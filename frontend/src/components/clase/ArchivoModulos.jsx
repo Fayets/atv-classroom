@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Chevron } from '../frentes/piezas'
-import { getModuloCoverUrl } from '../../utils/modules'
+import { getModuloCoverUrl, getModuloResumen } from '../../utils/modules'
 import '../../styles/archivo.css'
 
 // Todo el material como un archivo: cada módulo es una carpeta de cartón con su pestaña numerada, la portada
@@ -55,6 +55,7 @@ function Carpeta({ modulo: m, numero, enCurso }) {
           ? `${pct}%`
           : 'Sin empezar'
   const portada = getModuloCoverUrl(m)
+  const resumen = getModuloResumen(m)
 
   const clases = `ar-carpeta${cerrado ? ' is-cerrado' : ''}${vacio ? ' is-vacio' : ''}${m.bloqueado ? ' is-bloqueado' : ''}${completo ? ' is-completo' : ''}${enCurso ? ' is-en-curso' : ''}`
   const contenido = (
@@ -63,19 +64,13 @@ function Carpeta({ modulo: m, numero, enCurso }) {
         <span className="ar-carpeta__pestana num">{n}</span>
       </span>
 
-      {cerrado ? null : (
-        <span className="ar-carpeta__hojas" aria-hidden="true">
-          <span className="ar-hoja ar-hoja--texto">
-            <small className="num">Módulo {n}</small>
-            <b>{m.descripcion || `${m.total_clases} clases para ver e implementar`}</b>
-            <i className="ar-hoja__renglones" />
-          </span>
-          <span className="ar-hoja ar-hoja--foto">{portada ? <img src={portada} alt="" loading="lazy" decoding="async" /> : null}</span>
-        </span>
-      )}
-
       <span className="ar-carpeta__frente">
+        {/* The original cover, always visible: it tells what the module is about before opening it. */}
+        <span className="ar-carpeta__portada" aria-hidden="true">
+          {portada ? <img src={portada} alt="" loading="lazy" decoding="async" onError={(e) => e.currentTarget.remove()} /> : null}
+        </span>
         <span className="ar-carpeta__titulo">{m.titulo}</span>
+        {resumen ? <span className="ar-carpeta__resumen">{resumen}</span> : null}
         <span className="ar-carpeta__meta">
           {vacio ? null : <span className="num">{m.total_clases} clases</span>}
           <span className={`ar-carpeta__estado num${!cerrado && !completo && pct ? ' is-avance' : ''}`}>

@@ -291,6 +291,56 @@ El cliente dijo: le gustó la tipografía y lo "clean", siente el salto de calid
   con la cámara). Aplica a todos los roles: los días de acceso siguen en "Tu plan" y en la barra lateral, y el
   logout en el menú del avatar.
 
+### 2.11 Ajustes finales previos al lanzamiento (28/11/2026, **sin commitear**)
+Feedback del Loom "Cambios para lanzamiento final" (`loom.com/share/d9d2bd39f64044508e390a18327e98a3`). Estilos
+nuevos concentrados en `styles/lanzamiento.css` (se importa en `main.jsx`). **Reemplaza partes de 2.6–2.10.**
+- **Contador de Mensajes**: ahora es siempre el **número de mensajes sin leer** (ya no punto / solo menciones).
+  `utils/contador.js`, `components/Contador.jsx`. En celular hay un **acceso a Mensajes arriba** (`.app-chat`).
+- **Navegación**: Mensajes separado y destacado en la barra lateral (`.sb-item--mensajes`); la sección activa suma
+  el ícono en un cuadrado rojo.
+- **Canales**: íconos en fichas, número de sin leer por canal (con `@` si te mencionaron). **Wings = canales `wins`**
+  (`esCanalWins`): amarillos, con texto propio en el canal vacío y en el campo de escribir.
+- **Material**: las carpetas muestran la **portada original** y una línea de descripción (si el módulo no tiene,
+  sale de `MODULE_SUMMARIES` en `utils/modules.js`, **texto provisorio a validar por ATV**). Ya no asoman hojas.
+- **SOPs**: cada hoja es miniatura + título + sección + íconos de plataforma (sin pestañas ni renglones).
+- **Clase**: panel único "Aplicalo en tu negocio": recursos, "Paso a paso" plegado, botón y "Lo revisás con X".
+  Se sacaron los rótulos Implementar/Revisar y la caja "Vas por la clase X de Y".
+- **Íconos de recursos**: `components/IconoRecurso.jsx` (Docs, Sheets, Slides, Forms, Drive, Miro, Loom, YouTube,
+  WhatsApp, Notion, PDF y link genérico), dibujados a mano en SVG. La plataforma sale de `tipoRecurso`.
+- **Miniaturas**: `components/clase/Miniatura.jsx` usa `miniatura_url` (campo que **el backend todavía no manda**) o
+  el cuadro de YouTube; si no, una provisoria con el título y el dibujo del módulo.
+- **Haz del Inicio**: la entrada ahora avanza con el reloj real (antes se estiraba con pocos cuadros por segundo) y
+  se subió un poco la intensidad. No se pudo reproducir en la máquina del que grabó.
+- **Humo en modo claro** (pedido de Laureano): se ve el mismo humo que en oscuro, pero como **velo oscuro** sobre el
+  papel (`LaserFlow.jsx`, `shade` / `smokeAlpha`; intensidad en la constante `0.44`). El modo oscuro no cambia.
+- Probado en mock: PC 1440, tablet y celular, claro y oscuro (no todas las combinaciones), miembro y admin; sin
+  errores de consola, `vite build` pasa. **Coach y backend real sin probar.**
+- **Pedido en el Loom y NO hecho** (no estaba en la lista escrita): "más onda" en **Tools** y forzar a los clientes a
+  **poner foto de perfil**.
+- **Regla (28/11): no se sube ni se mergea nada a `master`; se trabaja en ramas aparte.**
+- Dato informativo: `origin/master` tiene 5 commits del chat que no están en `prueba-v1`; quien integre las ramas va a
+  encontrar conflictos en `Conversacion.jsx`, `MensajesPage.jsx` y `mensajes.css`.
+
+#### 2.11.b Más énfasis en **Mensajes** (28/11, sin commitear) — lo que más le importa al cliente
+
+Solo cambia la vista del **cliente**; la del equipo queda igual (revisada en admin).
+- **"Mi canal" primero**: en la lista va arriba de todo, bajo "Tu equipo de ATV", como tarjeta (borde, sombra suave,
+  borde rojo si hay sin leer) con las **caras apiladas del equipo** en lugar del `#`. Componente nuevo
+  `components/mensajes/EquipoApilado.jsx`; el orden sale de `utils/equipo.js` (`ordenarEquipo`: el último que escribió,
+  después coaches, después el resto), con `fetchEquipoChat` (cacheado).
+- **Cabecera de Mi canal**: antes decía el nombre del propio cliente ("Alan Klein"); ahora "Mi canal" + "Con Alejandro,
+  Lucho y Lucas del equipo de ATV" (los del equipo que escribieron en los mensajes cargados, los 3 más recientes) y sus caras.
+- **Divisor "Nuevos"** (todos los canales, cliente y equipo): antes del primer mensaje que estaba sin leer al abrir
+  (sale de `item.no_leidos` al montar `Conversacion`, contando hacia atrás los mensajes ajenos). Si no entra en pantalla,
+  el canal abre en el divisor en vez de abajo.
+- **Entrada suave** (260 ms, sube 6 px) solo de los mensajes ajenos que llegan con el canal abierto (`is-entra`: id mayor
+  al último de la primera carga). Con movimiento reducido, solo fundido.
+- Se probaron **atajos para escribir** sobre la caja ("Tengo una duda", etc.) y **se sacaron** a pedido de Laureano:
+  no los vuelvas a poner.
+- El aviso flotante del **cierre de mes** (`.cm-aviso`) ya no aparece en Mensajes: tapaba el último mensaje. Ahí lo lleva
+  la campana de arriba de la lista.
+- Estilos al final de `styles/lanzamiento.css`. Build pasa; oxlint sigue en 20 avisos (ninguno nuevo).
+
 ---
 
 ## 3. Preferencias y forma de trabajar del dueño del proyecto
@@ -303,6 +353,7 @@ El cliente dijo: le gustó la tipografía y lo "clean", siente el salto de calid
 - Pide los cambios en **PC, tablet y celular**, y en **modo claro y oscuro**.
 - Revisa con capturas marcadas; cuando dice que algo "está bien" no hay que moverlo.
 - Hacer commit/push solo cuando lo pide, y **antes de pushear actualizar este CONTEXTO.md**.
+- **Nunca subir ni mergear nada a `master`**: todo va en ramas aparte (el Classroom, en `prueba-v1`).
 - Le gusta ir "de a poco y muy preciso": varios pedidos por mensaje, cada uno verificado.
 - En esa PC hay skills instaladas solo localmente (`.claude/skills/`, emilkowalski/skills y taste-skill), excluidas
   de git con `.git/info/exclude`; no están en el repo.

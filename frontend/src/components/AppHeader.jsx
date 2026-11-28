@@ -312,6 +312,13 @@ export default function AppHeader() {
       )}
 
       <div className="app-header__right">
+      {/* Mobile: the sidebar is a closed drawer, so Messages keeps its own always-visible shortcut. */}
+      {habilitada ? (
+        <NavLink to="/mensajes" className="app-chat" aria-label="Mensajes">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14v10H9l-4 3z" /></svg>
+          <Contador valor={contador} className="app-chat__n" />
+        </NavLink>
+      ) : null}
       <ModoIconos modo={modo} onCambiar={cambiarModo} />
       {/* El perfil: el menú (Mi cuenta, cerrar sesión) se abre al pasar el mouse o al tocarlo. */}
       <div

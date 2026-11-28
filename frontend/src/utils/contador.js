@@ -1,8 +1,5 @@
-// El valor del contador de Mensajes: en cuántos chats te mencionaron (@nombre o @everyone) sin que lo hayas
-// visto o, si solo hay mensajes sin leer, PUNTO. Lo dibuja components/Contador.jsx.
-export const PUNTO = 'punto'
-
+// The Messages counter: how many messages are unread. Mentions can arrive before the unread total
+// refreshes, so the higher of both is shown. Drawn by components/Contador.jsx.
 export function valorContador(menciones, noLeidos) {
-  if (menciones > 0) return menciones
-  return noLeidos > 0 ? PUNTO : 0
+  return Math.max(noLeidos || 0, menciones || 0)
 }

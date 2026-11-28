@@ -9,7 +9,11 @@ export function tipoRecurso(recurso) {
   const url = recurso.url || ''
   if (recurso.tipo === 'pdf' || url.startsWith('/uploads/')) return { tag: 'PDF', label: 'Descargar PDF' }
   if (/docs\.google\.com\/spreadsheets/.test(url)) return { tag: 'SHEET', label: 'Planilla de Google' }
-  if (/docs\.google\.com\/forms/.test(url)) return { tag: 'FORM', label: 'Formulario de Google' }
+  if (/docs\.google\.com\/forms|forms\.gle/.test(url)) return { tag: 'FORM', label: 'Formulario de Google' }
+  if (/docs\.google\.com\/presentation/.test(url)) return { tag: 'SLIDES', label: 'Presentación de Google' }
+  if (/drive\.google\.com/.test(url)) return { tag: 'DRIVE', label: 'Archivo en Drive' }
+  if (/youtube\.com|youtu\.be/.test(url)) return { tag: 'YOUTUBE', label: 'Video en YouTube' }
+  if (/notion\.(so|site|com)/.test(url)) return { tag: 'NOTION', label: 'Página de Notion' }
   if (/docs\.google\.com/.test(url)) return { tag: 'DOC', label: 'Documento de Google' }
   if (/miro\.com/.test(url)) return { tag: 'MIRO', label: 'Tablero de Miro' }
   if (/loom\.com/.test(url)) return { tag: 'LOOM', label: 'Video en Loom' }

@@ -353,7 +353,7 @@ export default function Sidebar() {
             <div key={titulo} className={`sb-grupo${isEquipo ? '' : ' sb-grupo--espacio'}`}>
               <p className="sb-etq">{titulo}</p>
               {items.map(([to, label, icono, cuenta, exacta]) => (
-                <NavLink key={to} to={to} end={Boolean(exacta)} className={({ isActive }) => `sb-item${isActive ? ' is-on' : ''}`} title={riel ? label : undefined}>
+                <NavLink key={to} to={to} end={Boolean(exacta)} className={({ isActive }) => `sb-item${isActive ? ' is-on' : ''}${icono === 'mensajes' ? ' sb-item--mensajes' : ''}`} title={riel ? label : undefined}>
                   <Icono n={icono} />
                   <span className="sb-item__txt">{label}</span>
                   <Contador valor={cuenta} className="sb-cuenta" />

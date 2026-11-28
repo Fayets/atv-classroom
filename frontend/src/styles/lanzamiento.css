@@ -1,0 +1,179 @@
+/* ======================================================================
+   Pre-launch feedback (November 2026): messaging prominence, active
+   section and channel identity. Loaded once from main.jsx; selectors are
+   specific enough to win over the page stylesheets without !important.
+   ====================================================================== */
+
+/* ---------- active section: red icon tile + bolder label ---------- */
+html .sb .sb-item.is-on { font-weight: 700; }
+html .sb .sb-item.is-on > svg {
+  width: 28px; height: 28px; margin-left: -4px; margin-right: -5px; padding: 5px; box-sizing: border-box;
+  border-radius: 8px; background: var(--sb-rojo); color: #fff;
+}
+
+/* ---------- Messages entry: set apart from the other sections ---------- */
+html .sb .sb-grupo > .sb-item.sb-item--mensajes {
+  height: 48px; margin-block: 8px; font-weight: 700; color: var(--sb-t1);
+  background: rgba(192, 57, 43, 0.11); box-shadow: inset 0 0 0 1.5px rgba(192, 57, 43, 0.38);
+}
+html .sb .sb-item.sb-item--mensajes > svg { width: 21px; height: 21px; margin: 0; padding: 0; background: none; color: var(--sb-rojo); }
+html .sb .sb-grupo > .sb-item.sb-item--mensajes:hover:not(.is-on) { background: rgba(192, 57, 43, 0.18); }
+html .sb .sb-grupo > .sb-item.sb-item--mensajes.is-on {
+  background: var(--sb-rojo); color: #fff; box-shadow: 0 8px 18px -8px rgba(192, 57, 43, 0.75);
+}
+html .sb .sb-item.sb-item--mensajes.is-on > svg { color: #fff; }
+html .sb .sb-item--mensajes .sb-cuenta { min-width: 24px; height: 24px; border-radius: 12px; font-size: 12.5px; }
+html .sb .sb-item--mensajes.is-on .sb-cuenta { background: #fff; color: var(--sb-rojo); }
+html .sb.is-riel .sb-grupo > .sb-item.sb-item--mensajes { height: 44px; }
+html .sb.is-riel .sb-item--mensajes .sb-cuenta { min-width: 17px; height: 17px; font-size: 10px; }
+/* Messages paints its own active state: the sliding pill stays hidden behind it. */
+html .sb-nav:has(.sb-item--mensajes.is-on) .sb-pildora { visibility: hidden; }
+
+/* ---------- mobile header shortcut ---------- */
+.app-chat { display: none; }
+@media (max-width: 720px) {
+  html .app-header .app-chat {
+    position: relative; display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 12px;
+    color: #c0392b; background: rgba(192, 57, 43, 0.12);
+  }
+  .app-chat svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linejoin: round; }
+  .app-chat__n {
+    position: absolute; top: -5px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box;
+    display: grid; place-items: center; border-radius: 9px; background: #c0392b; color: #fff; font-size: 10.5px; font-weight: 700;
+  }
+  html .app-header .app-chat.active { background: #c0392b; color: #fff; }
+}
+
+/* ---------- channel list: icon tiles and unread count ---------- */
+html body .msj-root[class][class] .msj-fila .msj-fila__icono {
+  width: 24px; height: 24px; flex: none; margin: 0; padding: 4.5px; box-sizing: border-box; border-radius: 7px;
+  background: rgba(var(--m-osc, 0, 0, 0), 0.06);
+}
+html body .msj-root[class][class] .msj-fila.is-activo .msj-fila__icono { background: rgba(255, 255, 255, 0.2); }
+html body .msj-root[class][class] .msj-fila__n {
+  flex: none; min-width: 20px; height: 20px; margin-left: auto; padding: 0 6px; box-sizing: border-box; border-radius: 10px;
+  background: #c0392b; color: #fff; font-size: 11px; font-weight: 700; line-height: 20px; text-align: center; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+html body .msj-root[class][class] .msj-fila.is-activo .msj-fila__n { background: var(--m-tarjeta, #fff); color: var(--m-acento, #c0392b); }
+
+/* ---------- Wins: the only yellow channels ---------- */
+html body .msj-root[class][class] .msj-fila.is-wins:not(.is-activo) { background: rgba(255, 196, 0, 0.14); color: var(--m-t1, #1d1d1f); font-weight: 650; }
+html body .msj-root[class][class] .msj-fila.is-wins:not(.is-activo):hover { background: rgba(255, 196, 0, 0.26); }
+html body .msj-root[class][class] .msj-fila.is-wins .msj-fila__icono,
+html body .msj-root[class][class] .msj-item__hash.is-wins { background: #ffc400; color: #3d2c00; }
+html body .msj-root[class][class] .msj-fila.is-wins.is-activo { background: #ffc400; color: #3d2c00; }
+html body .msj-root[class][class] .msj-fila.is-wins.is-activo .msj-fila__icono { background: rgba(255, 255, 255, 0.55); }
+
+/* ---------- resource icons: no colored box behind a brand icon ---------- */
+html .pc-recurso__tag { background: rgba(127, 127, 127, 0.1); color: var(--pc-t2); }
+html .im-logo { display: inline-flex; align-items: center; background: none; }
+.rec-ico { display: block; flex: none; }
+.cr-lector__icono { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; background: rgba(127, 127, 127, 0.1); }
+
+/* ---------- class thumbnails, always 16:9 ---------- */
+.mini { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 8px; background: #e9e6df; container-type: inline-size; }
+.mini__img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* the module cover is 1280x660 with its drawing on the right: zoom into that corner only */
+.mini__dibujo { position: absolute; right: 0; top: 18%; width: 52%; height: 64%; background-size: 215% auto; background-position: 93% 52%; background-repeat: no-repeat; opacity: 0.9; }
+.mini__titulo {
+  position: absolute; left: 8%; top: 0; bottom: 0; width: 46%; display: flex; align-items: center;
+  font-size: max(11px, 8cqi); font-weight: 700; line-height: 1.12; letter-spacing: -0.025em; color: #1f1e1c; text-align: left; overflow: hidden;
+}
+.mini .mini__sello { position: absolute; right: 6%; bottom: 8%; width: 6cqi; height: 6cqi; color: #1f1e1c; opacity: 0.7; }
+
+/* ---------- module folders: the cover and one line of what is inside ---------- */
+html .cr-root .ar-carpeta { aspect-ratio: auto; display: flex; flex-direction: column; padding-top: 14px; height: 100%; }
+html .cr-root .ar-carpeta .ar-carpeta__frente { position: relative; flex: 1; height: auto; justify-content: flex-start; gap: 9px; padding: 10px 12px 14px; margin-top: 10px; }
+html .cr-root .ar-carpeta__portada { display: block; aspect-ratio: 1280 / 660; border-radius: 9px; overflow: hidden; background: #e9e6df; box-shadow: 0 0 0 1px rgba(70, 52, 32, 0.12); }
+.ar-carpeta__portada img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1); }
+html .cr-root .ar-carpeta__titulo { margin-top: 4px; font-size: 19px; }
+.ar-carpeta__resumen { font-size: 13px; line-height: 1.4; color: var(--ar-tinta-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html .cr-root .ar-carpeta .ar-carpeta__meta { margin-top: auto; padding-top: 4px; }
+html .cr-root .ar-carpeta.is-cerrado .ar-carpeta__portada { opacity: 0.45; filter: grayscale(1); }
+html .cr-root .ar-carpeta:active .ar-carpeta__frente { transform: scale(0.99); }
+@media (hover: hover) and (pointer: fine) { a.ar-carpeta:hover .ar-carpeta__portada img { transform: scale(1.04); } }
+@media (max-width: 720px) {
+  html .cr-root .ar-archivo { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 30px 14px; }
+  html .cr-root .ar-carpeta__titulo { font-size: 16px; }
+  html .cr-root .ar-carpeta__resumen { font-size: 12px; }
+}
+
+/* ---------- SOP cards: thumbnail, title, platforms ---------- */
+html .cr-root .cr-hoja__papel { padding: 10px 10px 12px; }
+html .cr-root .cr-hoja__titulo { margin-top: 12px; }
+html .cr-root .cr-hoja__pie { margin-top: auto; padding-top: 14px; }
+.cr-hoja__iconos { display: inline-flex; gap: 6px; }
+html .cr-root .cr-hoja { aspect-ratio: auto; height: 100%; }
+
+/* ---------- class workspace: calmer panel ---------- */
+.ms-pasos-det summary {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 2px; cursor: pointer; list-style: none;
+  border-block: 1px solid var(--pc-line); font-size: 14px; font-weight: 600; color: var(--pc-t1);
+}
+.ms-pasos-det summary::-webkit-details-marker { display: none; }
+.ms-pasos-det summary small { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--pc-t3); }
+.ms-pasos-det summary svg { width: 12px; height: 12px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; transition: transform 200ms ease; }
+.ms-pasos-det[open] summary svg { transform: rotate(180deg); }
+.ms-pasos-det .ms-claves { padding-top: 8px; }
+.ms-revisa { margin: -4px 0 0; text-align: center; font-size: 12.5px; color: var(--pc-t3); }
+.ms-revisa b { color: var(--pc-t1); font-weight: 600; }
+html .cr-root .mt-nav__btn .mini { width: 108px; flex: none; }
+@media (max-width: 720px) { html .cr-root .mt-nav__btn .mini { width: 84px; } }
+/* next / previous class: room for the thumbnail and the full title */
+html .cr-root .ms-nav .mt-nav__btn .mt-nav__txt b { white-space: normal; line-height: 1.25; }
+html .cr-root .ms-nav .mt-nav__btn--next.is-sola { grid-column: 1 / -1; width: min(100%, 480px); }
+html body .msj-root[class][class] .msj-inicio__hash.is-wins { background: #ffc400; color: #3d2c00; }
+html body .msj-root[class][class] .msj-inicio__hash.is-wins svg { color: #3d2c00; stroke: currentColor; }
+
+/* small thumbnails: the title is already written beside them, so only the drawing shows */
+@container (max-width: 130px) {
+  .mini__titulo { display: none; }
+  .mini .mini__dibujo { left: 6%; right: 6%; width: auto; top: 12%; height: 76%; }
+}
+
+/* ======================================================================
+   Messages, second pass: the client's channel with the team leads.
+   ====================================================================== */
+
+/* overlapping team faces */
+.msj-apilado { display: inline-flex; flex: none; align-items: center; isolation: isolate; }
+.msj-apilado__uno { position: relative; display: inline-flex; border-radius: 50%; box-shadow: 0 0 0 2px var(--r-bg, #fff); }
+.msj-apilado__uno + .msj-apilado__uno { margin-left: calc(var(--ap) * -0.34); }
+.msj-apilado .msj-av { width: var(--ap); height: var(--ap); }
+
+/* "Mi canal": first in the list, as a card */
+html body .msj-root[class][class] .msj-tu-equipo { margin: 0 0 4px; }
+html body .msj-root[class][class] .msj-tu-equipo .msj-seccion { margin-top: 2px; }
+html body .msj-root[class][class] .msj-item--equipo { padding: 10px; gap: 11px; border-radius: 12px; transition: background-color 150ms ease, box-shadow 150ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+html body .msj-root[class][class] .msj-item--equipo:not(.is-on) { background: var(--r-bg); box-shadow: 0 0 0 1px var(--r-linea), 0 2px 6px rgba(60, 48, 40, 0.05); }
+html body .msj-root[class][class] .msj-item--equipo.is-nuevo:not(.is-on) { box-shadow: 0 0 0 1.5px rgba(192, 57, 43, 0.42), 0 2px 8px rgba(192, 57, 43, 0.1); }
+html body .msj-root[class][class] .msj-item--equipo:active { transform: scale(0.985); }
+html body .msj-root[class][class] .msj-item--equipo.is-on .msj-apilado__uno { box-shadow: 0 0 0 2px var(--m-acento, #c0392b); }
+html body .msj-root[class][class] .msj-item--equipo .msj-item__fila b { font-weight: 700; }
+@media (hover: hover) and (pointer: fine) {
+  html body .msj-root[class][class] .msj-item--equipo:not(.is-on):hover { background: var(--r-bg); box-shadow: 0 0 0 1px var(--r-linea-2), 0 4px 12px rgba(60, 48, 40, 0.08); }
+}
+
+/* conversation header: the faces instead of a hash */
+html body .msj-root[class][class] .msj-conv__barra > .msj-apilado { margin-right: 2px; }
+
+/* "New" divider at the first message that was unread when the channel opened */
+html body .msj-root[class][class] .msj-nuevos { display: flex; align-items: center; gap: 10px; margin: 12px 20px 6px; }
+html body .msj-root[class][class] .msj-nuevos::before { content: ''; flex: 1; height: 1px; background: var(--r-rojo); opacity: 0.5; }
+html body .msj-root[class][class] .msj-nuevos span {
+  padding: 2px 9px; border-radius: 999px; background: var(--r-rojo); color: #fff;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; line-height: 16px;
+}
+
+/* a message that arrives while the channel is open settles in instead of popping */
+@keyframes msj-entra { from { opacity: 0; transform: translateY(6px); } }
+@keyframes msj-entra-suave { from { opacity: 0; } }
+html body .msj-root[class][class] .msj-m.is-entra { animation: msj-entra 260ms cubic-bezier(0.23, 1, 0.32, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  html body .msj-root[class][class] .msj-m.is-entra { animation: msj-entra-suave 200ms ease; }
+}
+
+/* the monthly-close notice floated over the newest message; here the bell above the list carries it */
+body:has(.msj-root) .cm-aviso { display: none; }

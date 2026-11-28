@@ -1,5 +1,7 @@
 import { createPortal } from 'react-dom'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import EquipoApilado from './EquipoApilado'
+import { ordenarEquipo } from '../../utils/equipo'
 import { borrarMensaje, buscarEnCanal, editarMensaje, reaccionar, enviarMensaje, fetchEquipoChat, fetchMensajes, fetchParticipantes, marcarLeido, marcarSugerenciaEnviada, marcarSugerenciaUsada, pedirSugerencia, subirAdjunto, tildarMensaje } from '../../api/mensajes'
 import { fetchVoz } from '../../api/cuenta'
 import { useAuth } from '../../context/AuthContext'
@@ -9,7 +11,7 @@ import { ACEPTA_ADJUNTOS, ES_EVERYONE, claveAutor, claveGrupo, colorPersona, col
 import Adjuntos from './Adjuntos'
 import Alerta from './Alerta'
 import Avatar from './Avatar'
-import { nombreVisible } from '../../utils/canales'
+import { esCanalWins, nombreVisible } from '../../utils/canales'
 import IconoCanal from './IconoCanal'
 import Enlaces from './Enlaces'
 import GrabarAudio, { puedeGrabar } from './GrabarAudio'
@@ -280,6 +282,14 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   const [aBorrar, setABorrar] = useState(null)
   const [vistoPor, setVistoPor] = useState(null) // id del mensaje del que alguien del equipo mira quién lo leyó
   const [equipo, setEquipo] = useState([])
+  // Unread when the channel opened: the "New" divider goes before the first of them and stays put.
+  // Opened from a link before the channel list loaded: the count is taken from the first item that arrives.
+  const sinLeerAlAbrir = useRef(item ? item.no_leidos || 0 : null)
+  if (sinLeerAlAbrir.current == null && item) sinLeerAlAbrir.current = item.no_leidos || 0
+  const nuevosListos = useRef(false)
+  const [primerNuevo, setPrimerNuevo] = useState(null)
+  const saltoANuevos = useRef(false)
+  const idInicial = useRef(null) // last id of the first load: anything above it arrived live
   const [sugerencias, setSugerencias] = useState(null) // { lista, indice, desde }
   const [atajos, setAtajos] = useState(null) // ":fu" → { lista, indice, desde }, como en Discord
   const [verEmojis, setVerEmojis] = useState(false)
@@ -338,9 +348,14 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     lejosRef.current = false
     setLejos(false)
     setNuevosAbajo(0)
+    setPrimerNuevo(null)
+    saltoANuevos.current = false
+    nuevosListos.current = false
+    idInicial.current = null
     fetchMensajes(canalId)
       .then((r) => {
         if (!vivo) return
+        idInicial.current = r.mensajes[r.mensajes.length - 1]?.id ?? 0
         setDatos(r)
         setMensajes(r.mensajes)
       })
@@ -349,6 +364,15 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
       vivo = false
     }
   }, [canalId])
+
+  // The "New" divider, once both the first page of messages and the unread count are known.
+  useEffect(() => {
+    if (nuevosListos.current || !datos || sinLeerAlAbrir.current == null) return
+    nuevosListos.current = true
+    const recibidos = datos.mensajes.filter((m) => claveAutor(m.autor) !== yo)
+    const n = sinLeerAlAbrir.current
+    if (n > 0 && recibidos.length) setPrimerNuevo(recibidos[Math.max(0, recibidos.length - n)].id)
+  }, [datos, item, yo])
 
   useEffect(() => {
     fetchEquipoChat()
@@ -458,6 +482,19 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
     ultimoVisto.current = ultimo
     altoPrevio.current = el.scrollHeight
   }, [mensajes, pendientes, datos])
+
+  // Opening a channel with more unread than fits: start at the "New" divider, not at the bottom.
+  useLayoutEffect(() => {
+    const el = lista.current
+    if (!el || !primerNuevo || saltoANuevos.current) return
+    const marca = el.querySelector('.msj-nuevos')
+    if (!marca) return
+    saltoANuevos.current = true
+    const arriba = marca.getBoundingClientRect().top - el.getBoundingClientRect().top
+    if (arriba >= 0) return
+    el.scrollTop += arriba - 12
+    pegadoAbajo.current = -el.scrollTop < 80
+  }, [primerNuevo, mensajes])
 
   // Lo que llega a este canal mientras está a la vista no suma al contador de no leídos.
   useEffect(() => {
@@ -1158,6 +1195,20 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
   // Al cliente (no recibe etiquetas guardadas), por su nombre.
   const meNombra = (m) =>
     isEquipo ? (m.menciones || []).includes(user?.usuario_id) : Boolean(miPrimerNombre && normal(m.texto || '').includes(`@${normal(miPrimerNombre)}`))
+  // The client's own channel: who on the team is actually answering here, most recent first.
+  const conElEquipo = esPrivado && !isEquipo
+  const quienesResponden = conElEquipo
+    ? [...new Set([...mensajes].reverse().filter((m) => m.autor?.tipo === 'equipo' && m.autor?.nombre).map((m) => m.autor.nombre))]
+    : []
+  const carasEquipo = conElEquipo
+    ? quienesResponden.length
+      ? quienesResponden.map((n) => equipo.find((p) => normal(p.nombre) === normal(n)) || { nombre: n })
+      : ordenarEquipo(equipo)
+    : []
+  const nombresQueResponden = quienesResponden.slice(0, 3).map(primerNombre)
+  const subtituloEquipo = nombresQueResponden.length
+    ? `Con ${nombresQueResponden.length > 1 ? `${nombresQueResponden.slice(0, -1).join(', ')} y ${nombresQueResponden.at(-1)}` : nombresQueResponden[0]} del equipo de ATV`
+    : 'Tu canal privado con el equipo de ATV'
 
   return (
     <section
@@ -1187,7 +1238,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
         ) : null}
         {esDirecto ? (
           <Avatar persona={{ tipo: tipoDelOtro, nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={30} />
-        ) : alAbrirPerfil ? null : (
+        ) : alAbrirPerfil ? null : carasEquipo.length ? (
+          <EquipoApilado personas={carasEquipo} size={30} />
+        ) : (
           <span className="msj-hash" aria-hidden="true">
             <IconoCanal nombre={canal.nombre} className="msj-hash__icono" />
           </span>
@@ -1212,9 +1265,11 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
         >
           {alAbrirPerfil ? <Avatar persona={{ tipo: 'cliente', nombre: item?.cliente?.nombre || canal.nombre }} size={32} /> : null}
           <span className="msj-conv__titulo-texto">
-          <b>{nombreCanal}</b>
+          <b>{conElEquipo ? 'Mi canal' : nombreCanal}</b>
           <span>
-            {entreClientes || conCliente
+            {conElEquipo
+              ? subtituloEquipo
+              : entreClientes || conCliente
               ? 'Mensaje privado · solo lo ven ustedes dos'
               : esDirecto
               ? 'Mensaje directo · solo lo ven ustedes dos'
@@ -1249,7 +1304,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
             {esDirecto ? (
               <Avatar persona={{ tipo: tipoDelOtro, nombre: canal.nombre, foto_url: item?.con?.foto_url }} size={56} />
             ) : (
-              <span className="msj-inicio__hash"><IconoCanal nombre={canal.nombre} className="msj-inicio__icono" /></span>
+              <span className={`msj-inicio__hash${esCanalWins(canal.nombre) ? ' is-wins' : ''}`}><IconoCanal nombre={canal.nombre} className="msj-inicio__icono" /></span>
             )}
             <b>{esDirecto ? `Este es el comienzo de tu conversación con ${canal.nombre}` : `Este es el comienzo de #${nombreCanal}`}</b>
             <span>
@@ -1268,7 +1323,9 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 : esGrupo
                   ? isEquipo
                     ? `Canal grupal. Lo ven: ${(item?.roles || []).map(nombreRol).join(', ') || 'el equipo'}.`
-                    : 'Un espacio para hablar con el equipo y con otros clientes de ATV.'
+                    : esCanalWins(canal.nombre)
+                      ? 'Acá se festeja. Una venta, una llamada agendada, un primer paso: contá tu win.'
+                      : 'Un espacio para hablar con el equipo y con otros clientes de ATV.'
                   : item?.tipo === 'archivo'
                     ? 'Chat de un cliente que pasó a inactivos en Discord. Lo ve solo el equipo de ATV.'
                     : 'Novedades del equipo de ATV para todos los clientes.'}
@@ -1297,6 +1354,11 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                   <span>{etiquetaDia(m.creado_en)}</span>
                 </div>
               ) : null}
+              {m.id === primerNuevo ? (
+                <div className="msj-nuevos" role="separator">
+                  <span>Nuevos</span>
+                </div>
+              ) : null}
               <article
                 data-mid={m.id}
                 onTouchStart={real && !m.borrado ? () => empezarPresion(m) : undefined}
@@ -1304,7 +1366,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 onTouchEnd={soltarPresion}
                 onTouchCancel={soltarPresion}
                 onContextMenu={TACTIL ? (e) => e.preventDefault() : undefined}
-                className={`msj-m${resaltado === m.id ? ' is-resaltado' : ''}${eligiendo === m.id ? ' is-eligiendo' : ''}${agrupado ? ' is-agrupado' : ''}${par ? ' is-par' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${
+                className={`msj-m${resaltado === m.id ? ' is-resaltado' : ''}${eligiendo === m.id ? ' is-eligiendo' : ''}${agrupado ? ' is-agrupado' : ''}${par ? ' is-par' : ''}${m.enviando ? ' is-enviando' : ''}${m.fallo ? ' is-fallo' : ''}${!mio && real && idInicial.current != null && m.id > idInicial.current ? ' is-entra' : ''}${
                   !mio && m.texto && (meNombra(m) || ((m.autor?.tipo === 'equipo' || esGrupo) && ES_EVERYONE.test(m.texto))) ? ' is-mencion' : ''
                 }`}
               >
@@ -1636,7 +1698,7 @@ export default function Conversacion({ canalId, item, onVolver, oculta = false, 
                 onKeyDown={teclas}
                 onPaste={alPegar}
                 onClick={(e) => e.target.selectionStart !== texto.length && setFantasma(null)}
-                placeholder={fantasma ? '' : solo1a1 ? 'Pedí tu sesión 1 a 1' : `Escribí un mensaje para ${destinatario}…`}
+                placeholder={fantasma ? '' : solo1a1 ? 'Pedí tu sesión 1 a 1' : esCanalWins(canal.nombre) ? 'Contá tu win: ¿qué lograste hoy?' : `Escribí un mensaje para ${destinatario}…`}
                 maxLength={4000}
               />
             </div>

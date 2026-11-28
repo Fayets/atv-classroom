@@ -6,3 +6,6 @@ export function nombreVisible(nombre = '') {
   const partes = nombre.split(/[┊|│]/)
   return partes.length > 1 ? partes.slice(1).join('┊').trim() || nombre : nombre.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '') || nombre
 }
+
+/** The channels where members share achievements ("wins", "wins-personales"): they get their own look. */
+export const esCanalWins = (nombre = '') => /\bwins?\b|logros?/i.test(nombre)

@@ -56,12 +56,12 @@ export default function HazGuia({ campoRef }) {
         beamPosition={posicion}
         theme={oscuro ? 'dark' : 'light'}
         color={oscuro ? '#e4685b' : '#d14a3a'}
-        intensity={oscuro ? 0.95 : 1.45}
+        intensity={oscuro ? 1.15 : 1.65}
         flare={angosto ? 1.1 : 1.6}
         spread={angosto ? 0.9 : 1.35}
         // Sin "derrame" por los costados: caía desde la mitad del campo con un borde recto sobre la lista.
         spill={0}
-        fog={angosto ? 0.1 : oscuro ? 0.2 : 0.14}
+        fog={angosto ? 0.14 : oscuro ? 0.26 : 0.18}
         dust={angosto ? 0.8 : 1.6}
         beamWidth={angosto ? 0.7 : 0.85}
         streaks={0.7}
