@@ -156,6 +156,10 @@ function renderBody() {
 		lastBody = "";
 		return renderBody();
 	}
+	// El riel del roadmap arranca con el hito elegido a la vista (en el celular, el riel se desliza de costado).
+	const riel = el.querySelector(".rm2-riel");
+	const hitoOn = riel?.querySelector(".rm2-hito.on");
+	if (hitoOn && riel.scrollWidth > riel.clientWidth) riel.scrollLeft = hitoOn.offsetLeft - (riel.clientWidth - hitoOn.offsetWidth) / 2;
 	const opened = view.type === "agent" && chatScrolled !== view.id;
 	chatScrolled = view.type === "agent" ? view.id : null;
 	// Solo se baja al abrir el chat o si estabas abajo. Que el agente esté trabajando o que haya un mensaje

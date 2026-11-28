@@ -395,153 +395,112 @@ function modeloHtml(a) {
 	return `<div class="omods" role="radiogroup" aria-label="Modelo"><span class="olabel">Modelo</span>${opciones}</div>`;
 }
 
-/** El Equipo como una constelación en vivo (estilos .eq en atv.css). En el centro, vos; en la primera órbita, el
- * Asistente; cada área es un sector con su capitán y su gente más afuera. Las órdenes de la última semana se ven
- * como hilos que van de quien pidió a quien recibió, y las de la última hora llevan una luz que viaja por el hilo.
- * Al tocar un agente, a la derecha aparece su credencial (como la de Mi cuenta del Classroom): qué está haciendo,
- * quién se lo pidió, lo que espera tu OK y los botones para chatear o editar su ficha. Abajo, lo último que se dijeron.
- * Las animaciones quedan atadas al reloj de la página (drawOrg): repintar no las hace arrancar de nuevo. */
+/** El Equipo como un organigrama vivo y limpio (estilos .eq2 en atv.css). Arriba, vos y el Asistente, que reparte el
+ * trabajo; abajo, cada área es una bandeja con su capitán y su gente, y al pie de cada una la última orden que se
+ * pasaron adentro (así se ve que colaboran, sin un mapa de líneas). El estado de cada uno es un punto y una palabra.
+ * A la derecha, la credencial del elegido, del mismo alto que el equipo. Debajo de las dos columnas, de borde a
+ * borde, lo último que se dijeron. Los números de la cabecera filtran: tocá "Trabajando" y se apaga el resto. */
 let eqSel = null;
-const EQ_HORA = 3600_000;
-
-/** Dónde va cada uno, en un lienzo de 1000 × 1000 con vos en el centro. */
-function eqPosiciones() {
-	const pos = { dueno: { x: 500, y: 500, ang: -90 } };
-	const assistant = state.agents.find(a => a.role === "asistente");
-	if (assistant) pos[assistant.id] = { x: 500, y: 500 - 150, ang: -90 };
-	const areas = [...new Set(state.agents.filter(a => a.department && a.role !== "asistente").map(a => a.department))];
-	const sueltos = state.agents.filter(a => !a.department && a.role !== "asistente");
-	const n = Math.max(1, areas.length);
-	const span = 360 / n;
-	const polar = (r, grados) => ({ x: 500 + r * Math.cos((grados * Math.PI) / 180), y: 500 + r * Math.sin((grados * Math.PI) / 180), ang: grados });
-	const sectores = areas.map((d, i) => {
-		const centro = -90 + span / 2 + i * span;
-		const gente = state.agents.filter(a => a.department === d);
-		const capitan = gente.find(a => a.role === "captain" || a.role === "head-content") ?? gente[0];
-		pos[capitan.id] = polar(300, centro);
-		const resto = gente.filter(a => a !== capitan);
-		const paso = Math.min(span * 0.62 / Math.max(1, resto.length - 1), 28);
-		resto.forEach((a, j) => (pos[a.id] = polar(resto.length > 4 && j % 2 ? 385 : 425, centro + (j - (resto.length - 1) / 2) * paso)));
-		return { d, centro, desde: centro - span / 2, hasta: centro + span / 2, etiqueta: polar(478, centro) };
-	});
-	sueltos.forEach((a, j) => (pos[a.id] = polar(230, -90 + (j + 1) * 40)));
-	return { pos, sectores };
-}
+let eqFiltro = null;
+const EQ_ESTADO = { trabaja: "Trabajando", pide: "Te necesita", fila: "En fila", duerme: "Dormido", libre: "Disponible" };
 
 function equipoHtml() {
-	const { pos, sectores } = eqPosiciones();
 	const assistant = state.agents.find(a => a.role === "asistente");
 	if (!eqSel || !state.agents.some(a => a.id === eqSel)) eqSel = state.agents.find(a => a.busy)?.id ?? assistant?.id ?? state.agents[0]?.id ?? null;
-	const ahora = Date.now();
 	const piden = id => pending().filter(r => r.agentId === id).length + proposed().filter(k => k.agentId === id).length;
 	const estado = a => (a.busy ? "trabaja" : piden(a.id) ? "pide" : a.queued ? "fila" : a.asleep ? "duerme" : "libre");
-	const ESTADO = { trabaja: "Trabajando", pide: "Te necesita", fila: "En fila", duerme: "Dormido", libre: "Disponible" };
-
-	// Los hilos: cada par que se habló en la semana, curvado hacia el centro. Las charlas de la última hora, encendidas.
-	const pares = new Map();
-	for (const t of talks().filter(t => ahora - new Date(t.at).getTime() < WEEK_MS)) {
-		if (!pos[t.from] || !pos[t.to] || t.from === t.to) continue;
-		const clave = `${t.from}>${t.to}`;
-		const p = pares.get(clave) ?? { from: t.from, to: t.to, n: 0, ultima: 0 };
-		p.n += 1;
-		p.ultima = Math.max(p.ultima, new Date(t.at).getTime());
-		pares.set(clave, p);
-	}
-	const curva = (a, b, tiron = 0.35) => {
-		const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-		const cx = mx + (500 - mx) * tiron, cy = my + (500 - my) * tiron;
-		return `M${a.x.toFixed(1)} ${a.y.toFixed(1)}Q${cx.toFixed(1)} ${cy.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
-	};
-	const jerarquia = state.agents.map(a => [bossId(a) ?? "dueno", a.id]).filter(([p, c]) => pos[p] && pos[c]).map(([p, c]) => `<path class="eq-rama" data-a="${p}" data-b="${c}" d="${curva(pos[p], pos[c], 0)}"/>`).join("");
-	const hilos = [...pares.values()].map((p, i) => {
-		const vivo = ahora - p.ultima < EQ_HORA;
-		const d = curva(pos[p.from], pos[p.to], 0.28 + (i % 3) * 0.06);
-		return `<g class="eq-hilo ${vivo ? "vivo" : ""}" data-a="${p.from}" data-b="${p.to}"><path d="${d}"/>${vivo ? `<circle r="5"><animateMotion dur="${2.4 + (i % 4) * 0.5}s" repeatCount="indefinite" path="${d}"/></circle>` : ""}</g>`;
-	}).join("");
-	const sectoresSvg = sectores.map((s, i) => {
-		const arco = (r, a0, a1) => {
-			const p0 = [500 + r * Math.cos((a0 * Math.PI) / 180), 500 + r * Math.sin((a0 * Math.PI) / 180)];
-			const p1 = [500 + r * Math.cos((a1 * Math.PI) / 180), 500 + r * Math.sin((a1 * Math.PI) / 180)];
-			return [p0, p1];
-		};
-		const [o0, o1] = arco(470, s.desde + 1.5, s.hasta - 1.5);
-		const [i0, i1] = arco(210, s.desde + 1.5, s.hasta - 1.5);
-		const grande = s.hasta - s.desde > 180 ? 1 : 0;
-		return `<path class="eq-sector ${i % 2 ? "par" : ""}" data-area="${esc(s.d)}" d="M${i0[0]} ${i0[1]}L${o0[0]} ${o0[1]}A470 470 0 ${grande} 1 ${o1[0]} ${o1[1]}L${i1[0]} ${i1[1]}A210 210 0 ${grande} 0 ${i0[0]} ${i0[1]}Z"/>`;
-	}).join("");
-
-	const nodo = a => {
-		const p = pos[a.id];
-		if (!p) return "";
-		const e = estado(a);
-		const n = piden(a.id);
-		const tam = a.role === "asistente" ? "xl" : a.role === "captain" || a.role === "head-content" ? "lg" : "md";
-		return `<button class="eq-nodo is-${e} ${tam} ${eqSel === a.id ? "on" : ""}" style="left:${p.x / 10}%;top:${p.y / 10}%" data-eq-sel="${a.id}" data-eq-nodo="${a.id}" aria-label="${esc(a.name)}: ${ESTADO[e]}" aria-pressed="${eqSel === a.id}"><span class="eq-cara">${avatar(a)}<i class="eq-aro" aria-hidden="true"></i>${n ? `<span class="eq-pide">${n}</span>` : ""}</span><span class="eq-nom">${esc(a.name)}</span></button>`;
-	};
 	const { name, company } = state.settings?.owner ?? {};
-	const centro = `<div class="eq-centro" style="left:50%;top:50%" data-eq-nodo="dueno"><span class="eq-yo">${esc(initials(name || "Vos"))}</span><span class="eq-nom">Vos</span></div>`;
-	const etiquetas = sectores.map(s => `<span class="eq-area" style="left:${s.etiqueta.x / 10}%;top:${s.etiqueta.y / 10}%" data-area="${esc(s.d)}">${esc(nombre(s.d))}</span>`).join("");
-
-	const trabajando = state.agents.filter(a => a.busy).length;
-	const totalPiden = state.agents.reduce((t, a) => t + piden(a.id), 0);
-	const enFila = state.agents.filter(a => a.queued && !a.busy).length;
-	const leyenda = [["trabaja", "Trabajando", trabajando], ["pide", "Te necesitan", state.agents.filter(a => piden(a.id)).length], ["fila", "En fila", enFila], ["libre", "Disponibles", state.agents.filter(a => estado(a) === "libre").length]].map(([k, t, n]) => `<span class="eq-ley is-${k}"><i></i>${t}<b>${n}</b></span>`).join("");
 	const quienEq = id => (id === "dueno" ? "Vos" : who(id));
 	const textoEq = txt => {
 		const linea = String(txt ?? "").split(/\n/)[0];
-		return (/^[A-Z0-9_]+$/.test(linea) ? actionOf({ kind: "accion", title: linea }).title : linea).slice(0, 90);
+		return (/^[A-Z0-9_]+$/.test(linea) ? actionOf({ kind: "accion", title: linea }).title : linea).slice(0, 120);
 	};
-	const ultimas = talks().filter(t => t.from !== t.to).slice(0, 6).map(t => `<li><button data-eq-sel="${esc(t.from === "dueno" ? t.to : t.from)}">${t.from === "dueno" ? `<span class="eq-yo sm">${esc(initials(name || "Vos"))}</span>` : avatar({ id: t.from }, "xs")}<span class="eq-dijo"><b>${esc(quienEq(t.from))}</b> → <b>${esc(quienEq(t.to))}</b><small>${esc(textoEq(t.text))}</small></span><time>${ago(t.at)}</time></button></li>`).join("");
+	// En los capitanes, el punto y la palabra; en su gente, solo el punto (la palabra queda para el lector de pantalla y al pasar el mouse).
+	const est = (a, conTexto = true) => {
+		const e = estado(a);
+		const n = piden(a.id);
+		const t = `${EQ_ESTADO[e]}${e === "pide" && n > 1 ? ` · ${n}` : ""}`;
+		return conTexto ? `<span class="eq2-est is-${e}"><i aria-hidden="true"></i>${t}</span>` : `<span class="eq2-est is-${e} solo" title="${t}"><i aria-hidden="true"></i><span class="tbvh">${t}</span></span>`;
+	};
+	const tenue = a => (eqFiltro && estado(a) !== eqFiltro ? "is-tenue" : "");
+	const cargo = a => (a.title && a.title !== a.name ? a.title : "") || ROLE_NAMES[a.role] || "Agente";
+	const tarea = a => {
+		if (!a.busy && !a.queued) return "";
+		const o = ordenDe(a);
+		return `<span class="eq2-tarea">${esc(a.busy && a.ahora ? pasoLegible(a.ahora) : o ? textoEq(o.text) : "Trabajando")}</span>`;
+	};
+	const fila = (a, grande = false) => `<button class="eq2-ag ${grande ? "is-capitan" : ""} ${eqSel === a.id ? "on" : ""} ${tenue(a)}" data-eq-sel="${a.id}" aria-pressed="${eqSel === a.id}">${avatar(a, grande ? "md" : "sm")}<span class="eq2-ag__txt"><b>${esc(a.name)}</b><small>${esc(cargo(a))}</small>${tarea(a)}</span>${est(a, grande)}</button>`;
 
-	const rows = state.kpis.filter(k => k.state === "aprobada").map(k => {
-		const r = state.readings.filter(x => x.kpi === k.id).at(-1);
-		return `<tr><td>${esc(k.name)}</td><td>${r?.value ?? (r ? "falló" : "—")}</td><td>${esc(k.target)}</td></tr>`;
-	});
-	const kpis = rows.length ? `<h3 class="clabel">KPIs</h3><div class="kt" style="margin:0;max-width:none"><table><thead><tr><th>KPI</th><th>Hoy</th><th>Meta</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>` : "";
 	const editing = state.agents.find(a => a.id === agentEdit);
 	const modal = editing
 		? `<div class="omodal" data-modal-close><div class="ocard" role="dialog" aria-label="Ficha de ${esc(editing.name)}" data-modal-stay><div class="ohead"><span class="oface">${avatar(editing)}</span><span class="ct"><b>${esc(editing.name)}</b><small>${editing.department ? esc(nombre(editing.department)) : "Tu mano derecha"}</small></span><button class="b" data-agent="${editing.id}">Abrir chat</button></div><label>Nombre<input id="agent-name" value="${esc(editing.name)}" maxlength="40" autocomplete="off"></label><label>Cargo<input id="agent-title" value="${esc(editing.title ?? "")}" placeholder="${esc(ROLE_NAMES[editing.role] ?? "Agente")}" autocomplete="off"></label>${modeloHtml(editing)}${editing.role === "asistente" ? "" : `<label>Reporta a<select id="agent-boss">${state.agents.filter(a => a.id !== editing.id).map(a => `<option value="${a.id}" ${a.id === bossId(editing) ? "selected" : ""}>${esc(a.name)}</option>`).join("")}</select></label>`}${agentError ? `<div class="soft-note">${esc(agentError)}</div>` : ""}<div class="fa">${editing.role === "asistente" ? "" : `<button class="b ghost danger" data-agent-remove="${editing.id}">${removing ? "¿Seguro?" : "Sacar"}</button>`}<span class="sp"></span><button class="b ghost" data-modal-close>Cancelar</button><button class="b go" data-agent-save="${editing.id}">Guardar</button></div></div></div>`
 		: "";
 	if (!state.agents.length) return `<div class="eqm"><div class="orghint">Tu equipo crece cuando le pedís al Asistente que arme un departamento.</div></div>${modal}`;
 
+	// Las áreas, cada una con su capitán primero y la última orden que se pasaron adentro.
+	const areas = [...new Set(state.agents.filter(a => a.department && a.role !== "asistente").map(a => a.department))];
+	const sueltos = state.agents.filter(a => !a.department && a.role !== "asistente");
+	const bandeja = d => {
+		const gente = state.agents.filter(a => a.department === d);
+		const capitan = gente.find(a => a.role === "captain" || a.role === "head-content") ?? gente[0];
+		const resto = gente.filter(a => a !== capitan);
+		const ids = new Set(gente.map(a => a.id));
+		const adentro = (state.comms ?? []).filter(c => ids.has(c.from) && ids.has(c.to) && c.from !== c.to).at(-1);
+		const trabajando = gente.filter(a => a.busy).length;
+		return `<section class="eq2-area" aria-label="${esc(nombre(d))}"><header><span class="eq2-pestana">${esc(nombre(d))}</span><small>${gente.length} ${gente.length === 1 ? "persona" : "personas"}${trabajando ? ` · <b>${trabajando} trabajando</b>` : ""}</small></header>${fila(capitan, true)}${resto.length ? `<div class="eq2-gente">${resto.map(a => fila(a)).join("")}</div>` : ""}${adentro ? `<button class="eq2-hilo" data-eq-sel="${esc(adentro.to)}" title="${esc(textoEq(adentro.text))}"><span><b>${esc(who(adentro.from))}</b> le pidió a <b>${esc(who(adentro.to))}</b> · ${ago(adentro.at).toLowerCase()}</span><em>“${esc(textoEq(adentro.text))}”</em></button>` : ""}</section>`;
+	};
+
+	const cuentas = Object.keys(EQ_ESTADO).map(k => [k, state.agents.filter(a => estado(a) === k).length]).filter(([k, n]) => n || k === "trabaja");
+	const filtros = `<div class="eq2-filtros" role="group" aria-label="Filtrar por estado">${cuentas.map(([k, n]) => `<button class="eq2-est is-${k} ${eqFiltro === k ? "on" : ""}" data-eq-filtro="${k}" aria-pressed="${eqFiltro === k}"><i aria-hidden="true"></i>${EQ_ESTADO[k]}<b>${n}</b></button>`).join("")}</div>`;
+	const ultimas = talks().filter(t => t.from !== t.to).slice(0, 8).map(t => {
+		const cara = id => (id === "dueno" ? `<span class="lv-ava xs">${esc(initials(name || "Vos"))}</span>` : avatar({ id }, "xs"));
+		return `<li><button data-eq-sel="${esc(t.from === "dueno" ? t.to : t.from)}"><span class="eq2-par">${cara(t.from)}<i aria-hidden="true">→</i>${cara(t.to)}<span><b>${esc(quienEq(t.from))}</b> a <b>${esc(quienEq(t.to))}</b></span><time>${ago(t.at)}</time></span><p>${esc(textoEq(t.text))}</p></button></li>`;
+	}).join("");
+
+	const rows = state.kpis.filter(k => k.state === "aprobada").map(k => {
+		const r = state.readings.filter(x => x.kpi === k.id).at(-1);
+		return `<tr><td>${esc(k.name)}</td><td>${r?.value ?? (r ? "falló" : "—")}</td><td>${esc(k.target)}</td></tr>`;
+	});
+	const kpis = rows.length ? `<h3 class="clabel">KPIs</h3><div class="kt" style="margin:0;max-width:none"><table><thead><tr><th>KPI</th><th>Hoy</th><th>Meta</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>` : "";
+	const trabajando = state.agents.filter(a => a.busy).length;
 	const titulo = trabajando ? `${state.agents.length} agentes, <em>${trabajando} trabajando ahora.</em>` : `${state.agents.length} agentes, <em>todos tranquilos.</em>`;
-	return `<div class="eqm">
+	return `<div class="eqm eq2">
 	<header class="eq-cab">
 		<div><p class="tb2-ojo">Tu equipo · en vivo${carpeta ? ` · ${esc(state.carpeta?.nombre ?? "")}` : company ? ` · ${esc(company)}` : ""}</p><h1>${titulo}</h1></div>
-		<div class="eq-leyenda">${leyenda}</div>
+		${filtros}
 	</header>
-	<div class="eq-cuerpo">
-		<section class="eq-cielo" aria-label="Mapa del equipo">
-			<div class="eq-lienzo" id="eq-lienzo">
-				<svg class="eq-svg" viewBox="0 0 1000 1000" aria-hidden="true">
-					<circle class="eq-orbita" cx="500" cy="500" r="150"/><circle class="eq-orbita" cx="500" cy="500" r="300"/><circle class="eq-orbita fina" cx="500" cy="500" r="425"/>
-					${sectoresSvg}${jerarquia}${hilos}
-				</svg>
-				${etiquetas}${centro}${state.agents.map(nodo).join("")}
+	<div class="eq2-cuerpo">
+		<section class="eq2-mapa" aria-label="Tu equipo">
+			<div class="eq2-cima">
+				<span class="eq2-yo"><span class="lv-ava">${esc(initials(name || "Vos"))}</span><span><b>Vos</b><small>Decidís y aprobás</small></span></span>
+				<span class="eq2-flecha" aria-hidden="true"></span>
+				${assistant ? fila(assistant, true) : ""}
 			</div>
-			<p class="eq-pista">Tocá a alguien para ver su credencial. Las líneas rojas son órdenes de la última hora.</p>
+			<p class="eq2-reparte">El Asistente reparte lo que le pedís entre las áreas.</p>
+			<div class="eq2-areas">${areas.map(bandeja).join("")}${sueltos.length ? `<section class="eq2-area"><header><span class="eq2-pestana">Sin área</span></header><div class="eq2-gente">${sueltos.map(a => fila(a)).join("")}</div></section>` : ""}</div>
 		</section>
-		<aside class="eq-lado">${eqCredencial(state.agents.find(a => a.id === eqSel), estado, ESTADO, piden)}
-			${ultimas ? `<section class="eq-feed"><h2>Lo último que se dijeron</h2><ol>${ultimas}</ol></section>` : ""}
-		</aside>
+		${eqCredencial(state.agents.find(a => a.id === eqSel), estado, EQ_ESTADO, piden)}
 	</div>
+	${ultimas ? `<section class="eq2-feed" aria-label="Lo último que se dijeron"><header><h2>Lo último que se dijeron</h2><small>Órdenes, pedidos y reportes entre el equipo y vos</small></header><ol>${ultimas}</ol></section>` : ""}
 	${kpis}
 </div>${modal}`;
 }
 
-/** La credencial del agente elegido: la lámina oscura con sus iniciales de fondo, como la de Mi cuenta del Classroom. */
+/** La credencial del agente elegido: la lámina oscura con sus iniciales de fondo, como la de Mi cuenta del Classroom.
+ * Se estira hasta el final del equipo: abajo, lo último que entregó. */
 function eqCredencial(a, estado, ESTADO, piden) {
 	if (!a) return "";
 	const e = estado(a);
 	const orden = ordenDe(a);
-	const paso = a.busy ? (a.ahora ? pasoLegible(a.ahora) : "Trabajando") : a.queued ? "En fila, arranca en un rato" : a.asleep ? "Dormido hasta que lo llamen" : "Disponible para lo que le pidas";
+	const paso = a.busy ? (a.ahora ? pasoLegible(a.ahora) : "Trabajando") : a.queued ? "Arranca cuando se libere" : a.asleep ? "Dormido hasta que lo llamen" : "Disponible para lo que le pidas";
 	const cargo = (a.title && a.title !== a.name ? a.title : "") || ROLE_NAMES[a.role] || "Agente";
 	const pedidos = pending().filter(r => r.agentId === a.id);
-	const entregas = state.requests.filter(r => r.agentId === a.id && r.kind === "entrega").length;
+	const entregas = state.requests.filter(r => r.agentId === a.id && r.kind === "entrega" && r.state !== "reemplazado");
 	const charlas = talks().filter(t => (t.from === a.id || t.to === a.id) && Date.now() - new Date(t.at).getTime() < WEEK_MS).length;
 	const modelo = MODELOS.find(([id]) => id === (a.modelo ?? (typeof a.model === "string" ? a.model : "")))?.[1];
 	const jefe = bossId(a);
-	return `<article class="eq-cred is-${e}" aria-label="Credencial de ${esc(a.name)}">
+	const hechas = state.requests.filter(r => r.agentId === a.id && r.state !== "pendiente" && r.state !== "reemplazado").sort((x, y) => y.at.localeCompare(x.at)).slice(0, 4);
+	return `<article class="eq-cred eq2-cred is-${e}" aria-label="Credencial de ${esc(a.name)}">
 		<div class="eq-cred__lamina">
 			<span class="eq-cred__mono" aria-hidden="true">${esc(initials(a.name))}</span>
 			<div class="eq-cred__tapa"><span>ATV · Agente</span><span class="eq-cred__estado"><i></i>${ESTADO[e]}</span></div>
@@ -549,42 +508,36 @@ function eqCredencial(a, estado, ESTADO, piden) {
 			<div class="eq-cred__chips">${a.department ? `<span>${esc(nombre(a.department))}</span>` : `<span>Mano derecha</span>`}${modelo ? `<span>${esc(modelo)}</span>` : ""}${jefe ? `<span>Reporta a ${esc(who(jefe))}</span>` : ""}</div>
 		</div>
 		<div class="eq-cred__talon">
-			<div class="eq-cred__ahora"><small>Ahora</small><p><i class="${a.busy ? "tbgira" : "tbespera"}" aria-hidden="true"></i>${esc(paso)}</p>${orden ? `<blockquote>“${esc(orden.text.split(/\n/)[0].trim().slice(0, 140))}”<cite>${esc(orden.from === "dueno" ? "Se lo pediste vos" : `Se lo pidió ${who(orden.from)}`)} · hace ${lasted(orden.at, new Date())}</cite></blockquote>` : ""}</div>
-			<dl class="eq-cred__cifras"><div><dt>Esperan tu OK</dt><dd class="${piden(a.id) ? "rojo" : ""}">${piden(a.id)}</dd></div><div><dt>Entregas</dt><dd>${entregas}</dd></div><div><dt>Charlas · 7 días</dt><dd>${charlas}</dd></div></dl>
-			${pedidos.length ? `<button class="eq-cred__pide" data-ver-pedido="${pedidos[0].id}">${ic("inbox")}<span><b>${esc(actionOf(pedidos[0])?.title ?? pedidos[0].title)}</b><small>Espera tu OK</small></span>${ic("chevron-right")}</button>` : ""}
+			<div class="eq-cred__ahora"><small>Ahora</small><p><span class="eq2-est is-${e}"><i aria-hidden="true"></i></span>${esc(paso)}</p>${orden ? `<blockquote>“${esc(orden.text.split(/\n/)[0].trim().slice(0, 140))}”<cite>${esc(orden.from === "dueno" ? "Se lo pediste vos" : `Se lo pidió ${who(orden.from)}`)} · hace ${lasted(orden.at, new Date())}</cite></blockquote>` : ""}</div>
+			<dl class="eq-cred__cifras"><div><dt>Esperan tu OK</dt><dd class="${piden(a.id) ? "rojo" : ""}">${piden(a.id)}</dd></div><div><dt>Entregas</dt><dd>${entregas.length}</dd></div><div><dt>Charlas · 7 días</dt><dd>${charlas}</dd></div></dl>
+			${pedidos.map(p => `<div class="eq2-pide"><span><b>${esc(actionOf(p)?.title ?? p.title)}</b><small>Espera tu OK · ${ago(p.at).toLowerCase()}</small></span><button class="b go" data-approve="${p.id}">Aprobar</button><button class="b" data-ver-pedido="${p.id}">Ver</button></div>`).join("")}
+			${hechas.length ? `<div class="eq2-hechas"><small>Lo último que hizo</small><ul>${hechas.map(r => `<li>${r.file ? `<button data-file="${esc(r.file)}">` : "<span>"}<b>${esc(actionOf(r)?.title ?? r.title)}</b><em>${({ aprobado: r.porPiloto ? "Aprobado por el piloto" : "Aprobado", cambios: "Con cambios", rechazado: "Rechazado" })[r.state] ?? ""} · ${ago(r.at).toLowerCase()}</em>${r.file ? "</button>" : "</span>"}</li>`).join("")}</ul></div>` : ""}
 			<div class="eq-cred__bots"><button class="b go" data-agent="${a.id}">Abrir chat</button><button class="b" data-edit-agent="${a.id}">Editar ficha</button></div>
 		</div>
 	</article>`;
 }
 
-/** Después de pintar: las animaciones siguen el reloj de la página (no arrancan de nuevo con cada repintado). */
+/** Después de pintar: si quedara alguna animación, sigue el reloj de la página (no arranca de nuevo con cada repintado). */
 function drawOrg() {
 	const raiz = document.querySelector(".eqm");
 	if (!raiz) return;
 	for (const anim of raiz.getAnimations({ subtree: true })) anim.startTime = 0;
-	const svg = raiz.querySelector(".eq-svg");
-	if (svg?.setCurrentTime) svg.setCurrentTime((performance.now() / 1000) % 60);
 }
 
 document.addEventListener("click", e => {
+	const filtro = e.target.closest?.("[data-eq-filtro]");
+	if (filtro) {
+		eqFiltro = eqFiltro === filtro.dataset.eqFiltro ? null : filtro.dataset.eqFiltro;
+		lastBody = "";
+		return renderBody();
+	}
 	const t = e.target.closest?.("[data-eq-sel]");
 	if (!t) return;
 	eqSel = t.dataset.eqSel;
 	lastBody = "";
 	renderBody();
-	// En pantallas angostas la credencial queda abajo del mapa: se baja hasta ella.
+	// En pantallas angostas la credencial queda abajo del equipo: se baja hasta ella.
 	if (matchMedia("(max-width:1100px)").matches) document.querySelector(".eq-cred")?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
-});
-/** Al pasar por alguien se encienden sus hilos y su rama; lo demás se apaga un poco. */
-document.addEventListener("mouseover", e => {
-	const lienzo = document.getElementById("eq-lienzo");
-	if (!lienzo) return;
-	const id = e.target.closest?.("[data-eq-nodo]")?.dataset.eqNodo ?? null;
-	if (lienzo.dataset.foco === (id ?? "")) return;
-	lienzo.dataset.foco = id ?? "";
-	lienzo.classList.toggle("con-foco", Boolean(id));
-	for (const el of lienzo.querySelectorAll("[data-a]")) el.classList.toggle("foco", Boolean(id) && (el.dataset.a === id || el.dataset.b === id));
-	for (const el of lienzo.querySelectorAll("[data-eq-nodo]")) el.classList.toggle("foco", el.dataset.eqNodo === id);
 });
 
 const SECTIONS = [

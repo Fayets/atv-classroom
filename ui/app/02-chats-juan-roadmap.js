@@ -489,21 +489,35 @@ document.addEventListener("submit", async e => {
 	void cargarHiloBandeja();
 });
 
-/** El pedido del tablero va al Asistente, y se abre su chat para ver cómo lo reparte. */
-document.addEventListener("submit", e => {
+/** El pedido del tablero va a quien elegiste (el Asistente por defecto) y se abre su chat en la Bandeja,
+ * donde se ve tu mensaje y lo que contesta. Si no se pudo mandar, el texto vuelve a la caja. */
+document.addEventListener("submit", async e => {
 	if (e.target.id !== "tb-form") return;
 	e.preventDefault();
 	const caja = document.getElementById("tb-input");
 	const texto = caja.value.trim();
-	const asistente = state.agents.find(a => a.role === "asistente");
-	if (!texto || !asistente) return;
+	const destino = tbDestino();
+	if (!texto || !destino || audiosEnCamino()) return;
 	caja.value = "";
 	caja.style.height = "";
-	go({ type: "agent", id: asistente.id });
-	const input = document.getElementById("input");
-	if (!input) return;
-	input.value = texto;
-	void send();
+	bandejaChat = destino.id;
+	store("bandejaChat", bandejaChat);
+	bwAbierto = true;
+	bwFoco = null;
+	bwBajarHasta = Date.now() + 15_000;
+	bwEnviando.push({ chat: destino.id, text: texto, at: new Date().toISOString() });
+	go({ type: "bandeja" });
+	const res = await api(`/agents/${destino.id}/order`, { method: "POST", body: JSON.stringify({ text: texto }) }).catch(() => null);
+	if (!res?.ok) {
+		bwEnviando.splice(bwEnviando.findIndex(s => s.text === texto), 1);
+		avisoDeVoz("Tu pedido no llegó. Probá de nuevo.");
+		renderBody();
+		const otra = document.getElementById("bw-input");
+		if (otra) otra.value = texto;
+		return;
+	}
+	await loadState();
+	void cargarHiloBandeja();
 });
 
 /** Al escribir @ en el chat de un agente aparecen Juan, que responde antes de que el agente actúe, y Jeremy, que revisa lo que hizo. */
@@ -731,49 +745,97 @@ function rmAltoTarjeta(p) {
 	return 32 + 22 + lineas(p.detalle) * 20 + tareas + pie + entregas * 34 + partes;
 }
 
+/** El Roadmap como una expedición por hitos (estilos .rm2 en atv.css). Arriba, el plan y cuánto falta en total; en el
+ * medio, el riel de hitos: cada uno con su número (o el tilde), su estado y su barrita, y el elegido en tinta; abajo, el
+ * hito elegido entero: sus tareas por partes (se tildan, se editan y se suman como siempre), y al costado su punto de
+ * encuentro, lo que se logró, lo que se entregó, quiénes trabajan en él y las notas. Se pasa de hito tocando el riel o
+ * con las flechas de abajo. Las acciones (data-rm-*) son las mismas de antes. */
 function roadmapHtml() {
 	const r = state.roadmap;
 	if (!r) return `<div class="empty"><b>Todavía no hay roadmap</b>Cuando le des al Asistente un plan de varios pasos, aparece acá: un paso por vez, con lo que va tildando el equipo.</div>`;
 	const actual = r.pasos.find(p => p.estado === "en curso");
-	// 0 es "todos cerrados": tocar el paso abierto lo pliega y queda su título, como los demás.
-	const abierto = rmAbierto === 0 ? null : (r.pasos.find(p => p.n === rmAbierto) ?? actual ?? r.pasos.at(-1));
-	let y = RM.top;
-	const nodos = r.pasos.map((p, i) => {
-		const x = i % 2 ? RM.der : RM.izq;
-		const nodo = { p, x, y };
-		y += p.n === abierto?.n ? Math.max(RM.fila, (rmAltos.get(p.n) ?? rmAltoTarjeta(p)) + 56) : RM.fila;
-		return nodo;
-	});
-	const tramo = (a, b) => `M${a.x} ${a.y} C ${a.x} ${a.y + (b.y - a.y) * 0.6}, ${b.x} ${a.y + (b.y - a.y) * 0.4}, ${b.x} ${b.y}`;
-	const hechos = nodos.findIndex(n => n.p.estado !== "aprobado");
-	const tramos = nodos.slice(1).map((b, i) => `<path class="${i < (hechos < 0 ? nodos.length : hechos) ? "hecho" : ""}" d="${tramo(nodos[i], b)}"/>`).join("");
+	const abierto = r.pasos.find(p => p.n === rmAbierto) ?? actual ?? r.pasos.at(-1);
+	const hechasDe = p => p.tareas.filter(t => t.estado === "hecha").length;
+	const total = r.pasos.reduce((n, p) => n + p.tareas.length, 0);
+	const hechas = r.pasos.reduce((n, p) => n + hechasDe(p), 0);
+	const aprobados = r.pasos.filter(p => p.estado === "aprobado").length;
+	const pct = total ? Math.round((hechas / total) * 100) : 0;
+	const ESTADO = { aprobado: "Aprobado", "en curso": "En curso", pendiente: "Más adelante" };
+	const fecha = iso => new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
 	const marca = { aprobado: "hecha", espera_ok: "espera", hecha: "hecha", pendiente: "" };
-	const tarea = t => `<li class="${marca[t.estado]}"><button class="rmcheck" data-rm-tarea="${esc(t.id)}" data-hecha="${t.estado === "hecha" ? "" : "1"}" aria-label="${t.estado === "hecha" ? "Destildar" : "Tildar"}: ${esc(t.texto)}">${t.estado === "hecha" ? ic("check") : ""}</button><span class="rmtexto"><span class="rmt" data-rm-editar="tarea" data-id="${esc(t.id)}" title="Tocá para editar">${esc(t.texto)}</span>${t.quien ? `<small>${esc(t.quien)}</small>` : ""}${rmEntregaHtml(t)}</span>${t.estado === "espera_ok" ? `<button class="rmok" data-view="bandeja">Tu OK</button>` : ""}${rmLinkDe(t) || t.archivo ? "" : `<button class="rmborrar rmcitar-t" data-rm-citar="${esc(t.texto)}" data-rm-ref="tarea del roadmap" aria-label="Pedir un cambio en: ${esc(t.texto)}" title="Pedir un cambio">${ic("pencil")}</button>`}<button class="rmborrar" data-rm-borrar-tarea="${esc(t.id)}" data-texto="${esc(t.texto)}" aria-label="Sacar la tarea: ${esc(t.texto)}" title="Sacar la tarea">${ic("x")}</button></li>`;
-	// Con partes, el paso se lee en orden: cada tramo con sus tareas, sus entregas y su cierre.
+	const tarea = t => {
+		const pedido = state.requests.find(x => x.tareaRoadmap === t.id && x.state === "pendiente");
+		return `<li class="${marca[t.estado]}"><button class="rmcheck" data-rm-tarea="${esc(t.id)}" data-hecha="${t.estado === "hecha" ? "" : "1"}" aria-label="${t.estado === "hecha" ? "Destildar" : "Tildar"}: ${esc(t.texto)}">${t.estado === "hecha" ? ic("check") : ""}</button><span class="rmtexto"><span class="rmt" data-rm-editar="tarea" data-id="${esc(t.id)}" title="Tocá para editar">${esc(t.texto)}</span>${t.quien ? `<small>${esc(t.quien)}</small>` : ""}${rmEntregaHtml(t)}</span>${t.estado === "espera_ok" ? `<button class="rmok" ${pedido ? `data-ver-pedido="${pedido.id}"` : `data-view="bandeja"`}>Tu OK</button>` : ""}${rmLinkDe(t) || t.archivo ? "" : `<button class="rmborrar rmcitar-t" data-rm-citar="${esc(t.texto)}" data-rm-ref="tarea del roadmap" aria-label="Pedir un cambio en: ${esc(t.texto)}" title="Pedir un cambio">${ic("pencil")}</button>`}<button class="rmborrar" data-rm-borrar-tarea="${esc(t.id)}" data-texto="${esc(t.texto)}" aria-label="Sacar la tarea: ${esc(t.texto)}" title="Sacar la tarea">${ic("x")}</button></li>`;
+	};
+	// Con partes, el hito se lee en orden: cada tramo con sus tareas y su cierre.
 	const cuerpo = p => {
 		const mas = parte => (p.estado === "aprobado" ? "" : `<button class="rmmas" data-rm-agregar="tarea" data-n="${p.n}" data-parte="${esc(parte ?? "")}">+ Agregar tarea</button>`);
-		if (!p.partes?.length) return `<ul>${p.tareas.map(tarea).join("")}</ul>${mas()}`;
+		if (!p.tareas.length) return p.subpasosPedidos && Date.now() - Date.parse(p.subpasosPedidos) < 15 * 60_000 ? `<p class="rmvacio rmarmando">Juan está armando los subpasos…</p>` : `<div class="rmsinpasos"><p class="rmvacio">Todavía no tiene subpasos.</p><button class="b" data-rm-subpasos>Que Juan arme los subpasos</button>${mas()}</div>`;
+		if (!p.partes?.length) return `<div class="rmparte"><ul>${p.tareas.map(tarea).join("")}</ul>${mas()}</div>`;
 		const enCurso = p.partes.find(pa => p.tareas.some(t => t.parte === pa.clave && t.estado !== "hecha") || !p.tareas.some(t => t.parte === pa.clave));
 		const tramo = pa => {
 			const suyas = p.tareas.filter(t => t.parte === pa.clave);
-			const hechas = suyas.filter(t => t.estado === "hecha").length;
-			const estado = suyas.length && hechas === suyas.length ? "hecha" : pa === enCurso && p.estado === "en curso" ? "ahora" : "";
-			return `<div class="rmparte ${estado}"><div class="rmparte-h"><span class="rmparte-n">${estado === "hecha" ? ic("check") : `${p.n}${esc(pa.clave)}`}</span><b>${esc(pa.titulo)}</b><small>${hechas} de ${suyas.length}</small></div><ul>${suyas.map(tarea).join("")}</ul>${mas(pa.clave)}${pa.cierre ? `<div class="rmparte-c">Cierra cuando: ${esc(pa.cierre)}</div>` : ""}</div>`;
+			const listas = suyas.filter(t => t.estado === "hecha").length;
+			const estado = suyas.length && listas === suyas.length ? "hecha" : pa === enCurso && p.estado === "en curso" ? "ahora" : "";
+			return `<div class="rmparte ${estado}"><div class="rmparte-h"><span class="rmparte-n">${estado === "hecha" ? ic("check") : `${p.n}${esc(pa.clave)}`}</span><b>${esc(pa.titulo)}</b><small>${listas} de ${suyas.length}</small></div><ul>${suyas.map(tarea).join("")}</ul>${mas(pa.clave)}${pa.cierre ? `<div class="rmparte-c">Cierra cuando: ${esc(pa.cierre)}</div>` : ""}</div>`;
 		};
 		const sueltas = p.tareas.filter(t => !p.partes.some(pa => pa.clave === t.parte));
-		return `${p.partes.map(tramo).join(`<div class="rmparte-f" aria-hidden="true">↓</div>`)}${sueltas.length ? `<div class="rmparte otras"><div class="rmparte-h"><b>Otras tareas del paso</b></div><ul>${sueltas.map(tarea).join("")}</ul></div>` : ""}`;
+		return `${p.partes.map(tramo).join("")}${sueltas.length ? `<div class="rmparte otras"><div class="rmparte-h"><b>Otras tareas del hito</b></div><ul>${sueltas.map(tarea).join("")}</ul></div>` : ""}`;
 	};
-	const tarjeta = ({ p, x, y }) => {
-		const lado = x === RM.izq ? `left:${x + 52}px` : `left:${x - 52 - 400}px`;
-		const listas = p.tareas.filter(t => t.estado === "hecha").length;
-		const pie = p.estado === "en curso" ? `<div class="rmgate"><span class="rmrombo"></span><span><b>Punto de encuentro</b>${esc(p.listoCuando || "Revisás lo de este paso y lo aprobás")}</span><button class="b p" data-rm-aprobar="${p.n}" data-faltan="${p.tareas.length - listas}">${p.n === r.pasos.length ? "Aprobar y cerrar el plan" : `Aprobar y abrir el paso ${p.n + 1}`}</button></div>` : p.estado === "aprobado" ? `<div class="rmdone">${ic("check")}Aprobado ${p.aprobadoAt ? ago(p.aprobadoAt) : ""}</div>` : `<div class="rmdone">Se abre cuando apruebes el paso ${p.n - 1}</div>`;
-		const masPaso = `<button class="rmmas rmmas-paso" data-rm-agregar="paso" data-n="${p.n}">+ Agregar un paso después de este</button>`;
-		return `<div class="rmcard" data-rm-n="${p.n}" style="${lado};top:${y - 28}px"><div class="rmh"><b data-rm-editar="titulo" data-n="${p.n}" title="Tocá para editar">${esc(p.titulo)}</b>${p.tareas.length ? `<span>${listas} de ${p.tareas.length}</span>` : ""}<button class="rmborrar-paso" data-rm-borrar-paso="${p.n}" data-titulo="${esc(p.titulo)}" aria-label="Sacar el paso ${p.n}: ${esc(p.titulo)}" title="Sacar el paso">${ic("trash-2")}</button></div>${p.detalle ? `<p data-rm-editar="detalle" data-n="${p.n}" title="Tocá para editar">${esc(p.detalle)}</p>` : ""}${p.tareas.length ? `<div class="rmbar"><i style="transform:scaleX(${listas / p.tareas.length})"></i></div>${cuerpo(p)}` : (p.subpasosPedidos && Date.now() - Date.parse(p.subpasosPedidos) < 15 * 60_000 ? `<p class="rmvacio rmarmando">Juan está armando los subpasos…</p>` : `<div class="rmsinpasos"><p class="rmvacio">Todavía no tiene subpasos.</p><button class="b" data-rm-subpasos>Que Juan arme los subpasos</button></div>`)}${pie}${masPaso}</div>`;
+	// Quiénes trabajan en el hito: los nombres de las tareas, con su cara si son del equipo.
+	const equipoDe = p => [...new Set(p.tareas.map(t => t.quien).filter(Boolean))].map(n => {
+		const ag = state.agents.find(a => a.name === n);
+		const hechasSuyas = p.tareas.filter(t => t.quien === n && t.estado === "hecha").length;
+		const suyas = p.tareas.filter(t => t.quien === n).length;
+		return `<li${ag ? ` data-agent="${ag.id}" role="button" tabindex="0"` : ""}>${ag ? avatar(ag, "xs") : `<span class="lv-ava xs">${esc(initials(n === "Vos" ? state.settings?.owner?.name || "Vos" : n))}</span>`}<span><b>${esc(n)}</b><small>${hechasSuyas} de ${suyas}</small></span></li>`;
+	}).join("");
+	const entregasDe = p => p.tareas.flatMap(t => [rmLinkDe(t) && { link: rmLinkDe(t), t }, t.archivo && { archivo: t.archivo, t }].filter(Boolean));
+
+	const hito = p => {
+		const listas = hechasDe(p);
+		const clase = p.estado === "aprobado" ? "ok" : p.estado === "en curso" ? "ahora" : "";
+		return `<li class="rm2-hito ${clase} ${p.n === abierto.n ? "on" : ""}"><button data-rm-paso="${p.n}" aria-current="${p.n === abierto.n ? "step" : "false"}"><span class="rm2-punto">${p.estado === "aprobado" ? ic("check") : p.n}</span><span class="rm2-hito__txt"><small>${ESTADO[p.estado] ?? ""}</small><b>${esc(p.titulo)}</b><span class="rm2-barrita" aria-hidden="true"><i style="width:${p.tareas.length ? (listas / p.tareas.length) * 100 : 0}%"></i></span><small>${p.tareas.length ? `${listas} de ${p.tareas.length} tareas` : "Sin tareas"}</small></span></button></li>`;
 	};
-	const etiqueta = ({ p, x, y }) => `<button class="rmlabel ${x === RM.izq ? "" : "der"}" data-rm-paso="${p.n}" style="${x === RM.izq ? `left:${x + 40}px` : `left:${x - 40 - 240}px`};top:${y - 18}px"><b>${esc(p.titulo)}</b><small>${p.estado === "aprobado" ? "Aprobado" : p.estado === "en curso" ? `En curso · ${p.tareas.filter(t => t.estado === "hecha").length} de ${p.tareas.length}` : esc(p.detalle ?? "")}</small></button>`;
-	const nodo = ({ p, x, y }) => `<button class="rmnodo ${p.estado === "aprobado" ? "ok" : p.estado === "en curso" ? "ahora" : ""} ${p.n === abierto?.n ? "abierto" : ""}" data-rm-paso="${p.n}" style="left:${x - 24}px;top:${y - 24}px" aria-label="Paso ${p.n}: ${esc(p.titulo)}">${p.estado === "aprobado" ? ic("check") : p.n}</button>`;
-	const alto = y + 80;
-	return `<div class="rmap" id="rmap"><div class="rmtitulo"><small class="rmtitulo-ojo">Roadmap · ${actual ? `paso ${actual.n} de ${r.pasos.length}` : "plan terminado"}</small><b>${esc(r.titulo)}</b><span class="rmtitulo-barra" aria-hidden="true">${r.pasos.map(p => `<i class="${p.estado === "aprobado" ? "ok" : p.estado === "en curso" ? "ahora" : ""}"></i>`).join("")}</span></div><div class="rmundo" id="rmundo" style="width:${RM.ancho}px;height:${alto}px;transform:translate(${rmVista.x}px,${rmVista.y}px) scale(${rmVista.s})"><svg class="rmcamino" width="${RM.ancho}" height="${alto}" aria-hidden="true">${tramos}</svg>${nodos.map(nodo).join("")}${nodos.filter(n => n.p.n !== abierto?.n).map(etiqueta).join("")}${abierto ? tarjeta(nodos.find(n => n.p.n === abierto.n)) : ""}</div></div>`;
+
+	const p = abierto;
+	const listas = hechasDe(p);
+	const anterior = r.pasos.find(x => x.n === p.n - 1);
+	const siguiente = r.pasos.find(x => x.n === p.n + 1);
+	const fechas = [p.inicio && `Arrancó el ${fecha(p.inicio)}`, p.aprobadoAt && `aprobado el ${fecha(p.aprobadoAt)}`].filter(Boolean).join(", ");
+	const puerta = p.estado === "en curso"
+		? `<div class="rm2-puerta"><span class="rmrombo" aria-hidden="true"></span><small>Punto de encuentro</small><p>${esc(p.listoCuando || "Revisás lo de este hito y lo aprobás")}</p><button class="b go" data-rm-aprobar="${p.n}" data-faltan="${p.tareas.length - listas}">${p.n === r.pasos.length ? "Aprobar y cerrar el plan" : `Aprobar y abrir el hito ${p.n + 1}`}</button>${p.tareas.length - listas ? `<span class="rm2-faltan">Faltan ${p.tareas.length - listas} ${p.tareas.length - listas === 1 ? "tarea" : "tareas"}</span>` : ""}</div>`
+		: p.estado === "aprobado"
+			? `<div class="rm2-puerta is-ok">${ic("check")}<small>Hito aprobado${p.aprobadoAt ? ` · ${ago(p.aprobadoAt).toLowerCase()}` : ""}</small>${p.listoCuando ? `<p>${esc(p.listoCuando)}</p>` : ""}</div>`
+			: `<div class="rm2-puerta is-luego"><small>Todavía no arrancó</small><p>Se abre cuando apruebes el hito ${p.n - 1}${anterior ? `, «${esc(anterior.titulo)}»` : ""}.</p>${p.listoCuando ? `<p class="rm2-cuando">Va a estar listo cuando: ${esc(p.listoCuando)}</p>` : ""}</div>`;
+	const entregas = entregasDe(p);
+	const lado = `<aside class="rm2-lado">
+		${puerta}
+		${p.resultado ? `<section class="rm2-caja rm2-logro"><h3>Lo que se logró</h3><p>${esc(p.resultado)}</p></section>` : ""}
+		<section class="rm2-caja"><h3>Entregas<span>${entregas.length}</span></h3>${entregas.length ? `<div class="rm2-entregas">${entregas.map(e => rmFila(e.link ? { link: e.link } : { archivo: e.archivo }, "", e.t)).join("")}</div>` : `<p class="rm2-vacio">Lo que entregue el equipo en este hito va a quedar acá.</p>`}</section>
+		${equipoDe(p) ? `<section class="rm2-caja"><h3>Quiénes trabajan</h3><ul class="rm2-gente">${equipoDe(p)}</ul></section>` : ""}
+		${p.notas?.length ? `<section class="rm2-caja"><h3>Notas</h3><ul class="rm2-notas">${p.notas.map(n => `<li>${esc(n)}</li>`).join("")}</ul></section>` : ""}
+	</aside>`;
+	return `<div class="rm2" id="rm2">
+	<header class="rm2-cab">
+		<div class="rm2-titulo"><p class="tb2-ojo">Roadmap · ${actual ? `hito ${actual.n} de ${r.pasos.length}` : "plan terminado"}</p><h1>${esc(r.titulo)}</h1>${r.meta ? `<p class="rm2-meta">${ic("route")}<span>Meta: <b>${esc(r.meta)}</b></span></p>` : ""}</div>
+		<div class="rm2-avance" aria-label="Avance del plan"><b>${pct}<small>%</small></b><span><small>${hechas} de ${total} tareas · ${aprobados} de ${r.pasos.length} hitos aprobados</small><span class="rm2-tira" aria-hidden="true">${r.pasos.map(x => `<i class="${x.estado === "aprobado" ? "ok" : x.estado === "en curso" ? "ahora" : ""}" style="--lleno:${x.tareas.length ? hechasDe(x) / x.tareas.length : 0}"></i>`).join("")}</span></span></div>
+	</header>
+	<nav class="rm2-riel" aria-label="Hitos del plan"><ol>${r.pasos.map(hito).join("")}</ol></nav>
+	<section class="rm2-paso is-${p.estado === "aprobado" ? "ok" : p.estado === "en curso" ? "ahora" : "luego"}" aria-label="Hito ${p.n}: ${esc(p.titulo)}">
+		<div class="rm2-principal">
+			<header class="rm2-paso__cab">
+				<p class="rm2-paso__ojo"><span>Hito ${p.n} de ${r.pasos.length}</span><span class="rm2-chip">${ESTADO[p.estado] ?? ""}</span>${fechas ? `<span class="rm2-fechas">${fechas}</span>` : ""}</p>
+				<h2 data-rm-editar="titulo" data-n="${p.n}" title="Tocá para editar">${esc(p.titulo)}</h2>
+				${p.detalle ? `<p class="rm2-detalle" data-rm-editar="detalle" data-n="${p.n}" title="Tocá para editar">${esc(p.detalle)}</p>` : `<p class="rm2-detalle rm2-sin" data-rm-editar="detalle" data-n="${p.n}">Sumá una descripción</p>`}
+				${p.tareas.length ? `<div class="rm2-progreso"><span class="rm2-barrita" aria-hidden="true"><i style="width:${(listas / p.tareas.length) * 100}%"></i></span><small>${listas} de ${p.tareas.length} tareas listas</small></div>` : ""}
+			</header>
+			<div class="rm2-tareas">${cuerpo(p)}</div>
+			<footer class="rm2-pie"><button class="rmmas" data-rm-agregar="paso" data-n="${p.n}">+ Agregar un hito después de este</button><button class="rm2-sacar" data-rm-borrar-paso="${p.n}" data-titulo="${esc(p.titulo)}">${ic("trash-2")}Sacar el hito</button></footer>
+		</div>
+		${lado}
+	</section>
+	<nav class="rm2-pasar" aria-label="Pasar de hito">${anterior ? `<button data-rm-paso="${anterior.n}">${ic("chevron-left")}<span><small>Hito ${anterior.n}</small><b>${esc(anterior.titulo)}</b></span></button>` : "<span></span>"}${siguiente ? `<button class="sig" data-rm-paso="${siguiente.n}"><span><small>Hito ${siguiente.n}</small><b>${esc(siguiente.titulo)}</b></span>${ic("chevron-right")}</button>` : "<span></span>"}</nav>
+</div>`;
 }
 
 /** Editar en el lugar: el texto pasa a ser un campo; Enter guarda, Esc cancela y salir del campo también guarda. */
@@ -862,12 +924,12 @@ document.addEventListener("click", e => {
 		rmAbierto = null;
 		return void rmPost("/roadmap/aprobar", { paso: Number(d.rmAprobar) });
 	}
-	const tocado = Number(d.rmPaso);
-	const r = state.roadmap;
-	const abiertoAhora = rmAbierto === 0 ? null : (rmAbierto ?? r?.pasos.find(p => p.estado === "en curso")?.n ?? r?.pasos.at(-1)?.n);
-	rmAbierto = tocado === abiertoAhora ? 0 : tocado;
+	// Tocar un hito (en el riel o en las flechas de abajo) lo abre abajo; el riel acompaña para que se vea el elegido.
+	rmAbierto = Number(d.rmPaso);
 	lastBody = "";
 	renderBody();
+	document.querySelector(".rm2-hito.on")?.scrollIntoView({ block: "nearest", inline: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+	if (t.closest(".rm2-pasar")) document.querySelector(".rm2-riel")?.scrollIntoView({ block: "start", behavior: "smooth" });
 });
 
 // Moverse por el mapa: arrastrar para desplazarse, pellizcar o Ctrl + rueda para acercar. Solo se toca el transform.

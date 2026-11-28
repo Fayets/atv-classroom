@@ -36,22 +36,55 @@ export const swipes = () => ({
 })
 
 const t = (id, texto, estado, quien, extra = {}) => ({ id, texto, estado, quien, ...extra })
+// Cada paso puede traer, además de sus tareas: inicio y fin (fechas), resultado (lo que se logró, al aprobarlo) y notas.
 export const roadmap = () => ({
   titulo: 'Lanzamiento del programa High Ticket · diciembre',
+  meta: '30 alumnos nuevos a USD 1.500 antes del 31 de diciembre',
   pasos: [
-    { n: 1, titulo: 'Oferta y precio', detalle: 'Definir qué incluye el programa y a cuánto se vende.', estado: 'aprobado', aprobadoAt: hace(9000), tareas: [t('t1', 'Escribir la oferta en una página', 'hecha', 'Tomás', { archivo: '/mock/work/oferta.md' }), t('t2', 'Comparar precios de 5 competidores', 'hecha', 'Lucía')] },
-    { n: 2, titulo: 'Landing y VSL', detalle: 'La página de venta y el video que la acompaña.', estado: 'aprobado', aprobadoAt: hace(4000), tareas: [t('t3', 'Landing del programa', 'hecha', 'Nicolás', { link: 'https://escaladigital.com/programa' }), t('t4', 'Guion del VSL', 'hecha', 'Bruno')] },
     {
-      n: 3, titulo: 'Contenido de calentamiento', detalle: 'Dos semanas de historias y reels que preparen el lanzamiento.', estado: 'en curso', listoCuando: 'Están los 10 reels y las 4 secuencias listas para publicar.',
+      n: 1, titulo: 'Oferta y precio', detalle: 'Definir qué incluye el programa, a quién va dirigido y a cuánto se vende.', estado: 'aprobado', inicio: hace(30000), aprobadoAt: hace(24000),
+      resultado: 'Programa de 12 semanas a USD 1.500, con 3 cuotas de USD 550. Garantía de 14 días.',
+      listoCuando: 'La oferta entra en una página y el precio está validado con 10 conversaciones.',
+      partes: [{ clave: 'a', titulo: 'Investigación', cierre: 'Tenés los precios del mercado' }, { clave: 'b', titulo: 'La oferta escrita', cierre: 'Aprobás la página de la oferta' }],
+      tareas: [
+        t('t1', 'Comparar precios de 5 competidores', 'hecha', 'Lucía', { parte: 'a', archivo: '/mock/work/precios-competencia.md' }),
+        t('t1b', 'Encuesta a 40 seguidores sobre qué pagarían', 'hecha', 'Tomás', { parte: 'a', link: 'https://forms.gle/encuesta-precio' }),
+        t('t1c', 'Leer las 10 llamadas de venta del último mes', 'hecha', 'Joaquín', { parte: 'a' }),
+        t('t2', 'Escribir la oferta en una página', 'hecha', 'Tomás', { parte: 'b', archivo: '/mock/work/oferta.md', versiones: [{ archivo: '/mock/work/oferta-v1.md' }] }),
+        t('t2b', 'Definir bonos y garantía', 'hecha', 'Vos', { parte: 'b' }),
+        t('t2c', 'Validar el precio en 10 conversaciones', 'hecha', 'Martín', { parte: 'b' }),
+      ],
+      notas: ['3 de cada 10 pidieron precio sin que se lo ofrezcan: la oferta está viva.', 'Se descartó el plan anual: nadie lo eligió en la encuesta.'],
+    },
+    {
+      n: 2, titulo: 'Landing y VSL', detalle: 'La página de venta, el formulario de aplicación y el video que la acompaña.', estado: 'aprobado', inicio: hace(24000), aprobadoAt: hace(9000),
+      resultado: 'Landing publicada con 4,1 % de conversión a aplicación en la primera semana. VSL de 12 minutos.',
+      listoCuando: 'La landing está publicada, el formulario manda las aplicaciones a Calendly y el VSL está arriba.',
+      partes: [{ clave: 'a', titulo: 'Guion y video', cierre: 'Aprobás el guion del VSL' }, { clave: 'b', titulo: 'Página y formulario', cierre: 'La landing queda publicada' }],
+      tareas: [
+        t('t4', 'Guion del VSL', 'hecha', 'Bruno', { parte: 'a', archivo: '/mock/work/guion-vsl.md' }),
+        t('t4b', 'Grabar el VSL', 'hecha', 'Vos', { parte: 'a' }),
+        t('t4c', 'Editar el VSL con subtítulos', 'hecha', 'Mateo', { parte: 'a', link: 'https://www.youtube.com/watch?v=vsl-programa' }),
+        t('t3', 'Landing del programa', 'hecha', 'Nicolás', { parte: 'b', link: 'https://escaladigital.com/programa' }),
+        t('t3b', 'Formulario de aplicación conectado a Calendly', 'hecha', 'Agustina', { parte: 'b', link: 'https://escaladigital.com/aplicar' }),
+        t('t3c', 'Píxel de Meta y conversiones', 'hecha', 'Nicolás', { parte: 'b' }),
+      ],
+      notas: ['El formulario se rompió un día (ticket T-12): se arregló en 3 horas.'],
+    },
+    {
+      n: 3, titulo: 'Contenido de calentamiento', detalle: 'Dos semanas de historias y reels que preparen el lanzamiento.', estado: 'en curso', inicio: hace(9000), listoCuando: 'Están los 10 reels y las 4 secuencias listas para publicar.',
       partes: [{ clave: 'a', titulo: 'Guiones', cierre: 'Aprobás los guiones' }, { clave: 'b', titulo: 'Grabación y edición' }],
       tareas: [
         t('t5', 'Guiones de 10 reels', 'hecha', 'Bruno', { parte: 'a', archivo: '/mock/work/guiones-semana.md' }),
-        t('t6', 'Secuencias de historias con casos', 'espera_ok', 'Camila', { parte: 'a' }),
+        t('t6', 'Secuencias de historias con casos', 'espera_ok', 'Camila', { parte: 'a', archivo: '/mock/work/secuencias-casos.md' }),
         t('t7', 'Grabar los reels', 'pendiente', 'Vos', { parte: 'b' }),
         t('t8', 'Editar y subtitular', 'pendiente', 'Mateo', { parte: 'b' }),
       ],
     },
-    { n: 4, titulo: 'Anuncios', detalle: 'Campaña de USD 1.200 hacia la landing.', estado: 'pendiente', tareas: [t('t9', 'Creativos para Meta', 'pendiente', 'Valentina'), t('t10', 'Públicos y presupuesto', 'pendiente', 'Lucía')] },
-    { n: 5, titulo: 'Ventas', detalle: 'Setters y closers listos para la ola de chats.', estado: 'pendiente', tareas: [t('t11', 'Guion de setteo actualizado', 'pendiente', 'Martín')] },
+    {
+      n: 4, titulo: 'Anuncios', detalle: 'Campaña de USD 1.200 hacia la landing, con tres públicos.', estado: 'pendiente', listoCuando: 'Las tres campañas están cargadas en Meta y aprobaste el presupuesto.',
+      tareas: [t('t9', 'Creativos para Meta', 'pendiente', 'Valentina'), t('t10', 'Públicos y presupuesto', 'pendiente', 'Lucía'), t('t10b', 'Reglas para pausar lo que no funciona', 'pendiente', 'Valentina')],
+    },
+    { n: 5, titulo: 'Ventas', detalle: 'Setters y closers listos para la ola de chats.', estado: 'pendiente', listoCuando: 'El guion de setteo está actualizado y hay agenda para 40 llamadas.', tareas: [t('t11', 'Guion de setteo actualizado', 'pendiente', 'Martín'), t('t12', 'Agenda de llamadas de diciembre', 'pendiente', 'Joaquín')] },
   ],
 })

@@ -21,7 +21,7 @@ function avisoDeVoz(texto) {
 /** A quién le habla. Se decide al empezar: si después mira otro chat, el audio va igual a donde lo grabó. */
 function destinoDeVoz(caja) {
 	if (caja === "juan-input") return { tipo: "juan", chat: juanAbierto, proyecto: proyectoElegido() };
-	if (caja === "tb-input") return { tipo: "tablero", id: state.agents.find(a => a.role === "asistente")?.id };
+	if (caja === "tb-input") return { tipo: "tablero", id: tbDestino()?.id };
 	if (caja === "bw-input") return bandejaChat === "ceo" ? { tipo: "ceo", carpeta } : { tipo: "bandeja", id: bandejaChat };
 	return view.type === "ceo" ? { tipo: "ceo", carpeta } : { tipo: "agente", id: view.id };
 }

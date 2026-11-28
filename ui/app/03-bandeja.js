@@ -139,7 +139,7 @@ function pasosBandejaHtml(e) {
 function hiloBandejaHtml(c) {
 	if (!c) return `<main class="bwhilo-caja"></main>`;
 	const esCeo = c.id === "ceo";
-	const cab = `<header class="bwhcab"><button class="ic bwvolver" data-bw-volver aria-label="Volver a los chats">${ic("chevron-left")}</button>${esCeo ? `<span class="bwcara">${ic("hash")}</span>` : avatar(c.a, "bw")}<span class="bwhq"><b>${esc(esCeo ? "ceo" : c.nombre)}</b><small>${esCeo ? "Lo que te reportan los directores" : esc([nombre(c.a.department ?? ""), c.a.busy ? "trabajando…" : c.a.queued ? "en fila" : "disponible"].filter(Boolean).join(" · "))}</small></span>${esCeo ? "" : `<button class="b" data-agent="${esc(c.id)}">Ver su trabajo</button>`}</header>`;
+	const cab = `<header class="bwhcab"><button class="ic bwvolver" data-bw-volver aria-label="Volver a los chats">${ic("chevron-left")}</button>${esCeo ? `<span class="bwcara">${ic("hash")}</span>` : avatar(c.a, "bw")}<span class="bwhq"><b>${esc(esCeo ? "ceo" : c.nombre)}</b><small>${esCeo ? "Lo que te reportan los directores" : esc([nombre(c.a.department ?? ""), c.a.busy ? "trabajando…" : c.a.queued ? "en fila" : "disponible"].filter(Boolean).join(" · "))}</small></span>${esCeo ? "" : `<span class="bwhacc">${agInfoBotones()}<button class="b" data-agent="${esc(c.id)}">Ver su trabajo</button></span>`}</header>`;
 	// En #ceo, lo que escribiste vos va como mensaje tuyo (a la derecha), no como un reporte.
 	const eventos = esCeo ? [...state.ceo.map(p => (p.agentId === "dueno" ? { at: p.at, tipo: "yo", texto: p.text } : { at: p.at, tipo: "reporte", p, deQuien: true })), ...bwEnviando.filter(s => s.chat === "ceo").map(s => ({ at: s.at, tipo: "yo", texto: s.text, enviando: true }))] : eventosDe(c.id);
 	let dia = "";

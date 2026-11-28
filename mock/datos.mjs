@@ -37,23 +37,35 @@ export function estado() {
       motorNuevo: true,
       blocked: [],
     },
-    agents: agentes,
+    agents: structuredClone(agentes),
     requests: [
       { id: 'r1', kind: 'accion', title: 'GMAIL_SEND_EMAIL', author: 'Martín', agentId: 'ven-capitan', at: hace(18), state: 'pendiente', payload: JSON.stringify({ recipient_email: 'lucas@clientefit.com', subject: 'Tu llamada del jueves', body: 'Hola Lucas, te confirmo la llamada del jueves a las 16 h.' }) },
       { id: 'r2', kind: 'ok', title: 'Plan de anuncios para diciembre', author: 'Valentina', agentId: 'mkt-capitan', at: hace(42), state: 'pendiente', note: 'Tres campañas con presupuesto de USD 1.200 en total.' },
       { id: 'r3', kind: 'entrega', title: 'Guiones de reels de la semana', author: 'Bruno', agentId: 'con-guionista', at: hace(95), state: 'pendiente', file: '/mock/work/guiones-semana.md' },
       { id: 'r4', kind: 'entrega', title: 'Reporte de ventas de noviembre', author: 'Lucía', agentId: 'mkt-analista', at: hace(150), state: 'aprobado', file: '/mock/work/reporte-ventas.pdf' },
       { id: 'r5', kind: 'entrega', title: 'Calendario de contenido', author: 'Camila', agentId: 'con-capitan', at: hace(220), state: 'aprobado', file: '/mock/work/calendario.html' },
+      { id: 'r7', kind: 'entrega', title: 'Secuencias de historias con casos', author: 'Camila', agentId: 'con-capitan', at: hace(64), state: 'pendiente', file: '/mock/work/secuencias-casos.md', tareaRoadmap: 't6' },
+      // Lo de días anteriores: el historial tiene qué mostrar en Ayer, 7 días y 30 días.
+      { id: 'r20', kind: 'entrega', title: 'Análisis de la competencia', author: 'Tomás', agentId: 'mkt-estratega', at: hace(1500), state: 'aprobado', decididoAt: hace(1440), file: '/mock/work/competencia.md' },
+      { id: 'r21', kind: 'accion', title: 'GMAIL_SEND_EMAIL', author: 'Joaquín', agentId: 'ven-closer', at: hace(1620), state: 'aprobado', decididoAt: hace(1600), payload: JSON.stringify({ recipient_email: 'juli@gomez.com', subject: 'Bienvenida al programa', body: 'Hola Juli, ¡bienvenida! Te paso los accesos.' }) },
+      { id: 'r22', kind: 'ok', title: 'Subir el presupuesto del anuncio del webinar', author: 'Valentina', agentId: 'mkt-capitan', at: hace(1700), state: 'rechazado', decididoAt: hace(1650), note: 'De USD 20 a USD 45 por día.' },
+      { id: 'r23', kind: 'entrega', title: 'Guion de la llamada de venta (v2)', author: 'Joaquín', agentId: 'ven-closer', at: hace(4300), state: 'aprobado', decididoAt: hace(4200), file: '/mock/work/guion-llamada.md' },
+      { id: 'r24', kind: 'entrega', title: 'Reporte semanal de anuncios', author: 'Lucía', agentId: 'mkt-analista', at: hace(7300), state: 'aprobado', decididoAt: hace(7200), file: '/mock/work/reporte-anuncios.md' },
+      { id: 'r25', kind: 'entrega', title: 'Arreglo del formulario de aplicación', author: 'Agustina', agentId: 'sis-bugs', at: hace(15000), state: 'aprobado', decididoAt: hace(14900), file: '/mock/work/formulario.md' },
+      { id: 'r26', kind: 'ok', title: 'Plan de 90 días en Miro', author: 'Tomás', agentId: 'mkt-estratega', at: hace(26000), state: 'aprobado', decididoAt: hace(25800), note: 'Los tres frentes del trimestre.' },
+      { id: 'r27', kind: 'entrega', title: 'Landing del programa High Ticket', author: 'Nicolás', agentId: 'sis-capitan', at: hace(36000), state: 'aprobado', decididoAt: hace(35900), file: '/mock/work/landing.md' },
       { id: 'r6', kind: 'accion', title: 'INSTAGRAM_POST_MESSAGE', author: 'Sofía', agentId: 'ven-setter', at: hace(7), state: 'pendiente', payload: JSON.stringify({ to: '@nati.fit', message: '¡Hola Nati! Vi que te interesó el programa, ¿te cuento cómo funciona?' }) },
     ],
     kpis: [
       { id: 'k1', name: 'Llamadas agendadas por semana', target: '25', proposedBy: 'Martín', agentId: 'ven-capitan', state: 'propuesta', at: hace(60), command: 'contar agendas de Calendly de los últimos 7 días' },
-      { id: 'k2', name: 'Costo por lead', target: 'USD 4', proposedBy: 'Valentina', agentId: 'mkt-capitan', state: 'activo', at: hace(4000) },
+      { id: 'k2', name: 'Costo por lead', target: 'USD 4', proposedBy: 'Valentina', agentId: 'mkt-capitan', state: 'aprobada', at: hace(4000) },
     ],
-    readings: [],
+    readings: [{ kpi: 'k2', value: 'USD 4,20', at: hace(300) }],
     ceo: [
       { id: 'c1', agentId: 'asistente', author: 'Asistente', at: hace(300), text: '**Resumen del día**\n\n- Se agendaron 6 llamadas.\n- Salieron 3 reels.\n- El costo por lead bajó a USD 4,20.' },
       { id: 'c2', agentId: 'mkt-capitan', author: 'Valentina', at: hace(55), text: 'Armé el plan de anuncios de diciembre. Está en la Bandeja esperando tu OK.' },
+      { id: 'c4', agentId: 'asistente', author: 'Asistente', at: hace(1700), text: '**Resumen del día**\n\n- Entró Juli al programa.\n- Tomás terminó el análisis de la competencia.' },
+      { id: 'c5', agentId: 'mkt-analista', author: 'Lucía', at: hace(7250), text: 'Dejé el reporte semanal de anuncios: el costo por lead bajó 12 %.' },
       { id: 'c3', agentId: 'ven-capitan', author: 'Martín', at: hace(20), text: 'Hoy cerramos 2 ventas del programa High Ticket. @Franco, Joaquín te deja las notas de las llamadas.' },
     ],
     comms: [
@@ -61,6 +73,10 @@ export function estado() {
       { id: 'm2', from: 'ven-capitan', to: 'ven-setter', at: hace(12), text: 'Respondé los DMs nuevos y calificá a los que preguntaron por el programa.' },
       { id: 'm3', from: 'dueno', to: 'asistente', at: hace(30), text: 'Quiero el reporte de la semana para mañana a la mañana.' },
       { id: 'm4', from: 'mkt-capitan', to: 'mkt-analista', at: hace(15), text: 'Pasame los números de los anuncios de la última semana.' },
+      { id: 'm5', from: 'con-capitan', to: 'con-guionista', at: hace(140), text: 'Escribí los guiones de los 10 reels de calentamiento.' },
+      { id: 'm6', from: 'con-capitan', to: 'con-editor', at: hace(70), text: 'Cuando Franco grabe, editá y subtitulá los reels.' },
+      { id: 'm7', from: 'sis-capitan', to: 'sis-bugs', at: hace(600), text: 'Revisá por qué el calendario no sincroniza con Google.' },
+      { id: 'm8', from: 'asistente', to: 'ven-capitan', at: hace(200), text: 'Preparale a Franco el seguimiento de los leads de esta semana.' },
     ],
     beats: {
       'mkt-capitan': { checks: ['Revisar el costo por lead el viernes', 'Ver si los creativos nuevos superan a los viejos'] },
@@ -112,6 +128,21 @@ export const mensajes = {
     { id: 'a2', role: 'assistant', at: hace(29), steps: [{ kind: 'leer', text: 'Leyendo los números de la semana' }, { kind: 'herramienta', text: 'Pidiendo datos a Lucía' }] },
     { id: 'a3', role: 'assistant', text: 'Listo, Franco. Le pedí a Lucía los números de anuncios y a Martín los de ventas. Mañana a las 9 h lo tenés en #ceo.', at: hace(28) },
   ],
+}
+
+/** Las veces que corrió cada rutina en el último mes: el historial también las muestra. */
+export function corridas() {
+  const lista = []
+  const hoy = new Date()
+  for (const r of rutinas.filter((x) => x.prendida)) {
+    for (let d = 30; d >= 0; d--) {
+      const cuando = new Date(hoy)
+      cuando.setDate(hoy.getDate() - d)
+      cuando.setHours(r.hora, 0, 0, 0)
+      if (r.dias.includes(cuando.getDay()) && cuando < hoy) lista.push({ id: `run-${r.id}-${d}`, rutina: r.id, departamento: r.departamento, rol: r.rol, at: cuando.toISOString() })
+    }
+  }
+  return lista
 }
 
 export const rutinas = [

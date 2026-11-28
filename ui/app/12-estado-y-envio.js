@@ -141,33 +141,7 @@ for (const type of ["dragover", "drop"]) {
 	});
 }
 
-/** Panel a la derecha, el mismo de los archivos. */
-function sidePanel(title, html) {
-	document.getElementById("file").innerHTML = `<aside class="filepanel"><div class="p-head"><span class="doc">${ic("file-text")}</span><span>${esc(title)}</span><button class="ic" data-close-file aria-label="Cerrar">${ic("x")}</button></div><div class="p-list">${html}</div></aside>`;
-}
-
-document.addEventListener("click", async e => {
-	const a = activeAgent();
-	if (!a) return;
-	if (e.target.closest("[data-agent-files]")) {
-		const res = await api(`/agents/${a.id}/files`);
-		const files = res.ok ? await res.json() : [];
-		sidePanel(`Archivos de ${a.name}`, files.length ? files.map(f => `<button class="prow" data-file="${esc(f.path)}">${esc(f.name)}</button>`).join("") : `<p class="muted">Todavía no guardó archivos.</p>`);
-	}
-	if (e.target.closest("[data-agent-log]")) {
-		const said = (state.comms ?? []).filter(c => c.from === a.id || c.to === a.id).slice(-30).reverse();
-		const mine = (state.tickets ?? []).filter(t => t.owner === a.id);
-		const waits = state.beats?.[a.id]?.checks ?? [];
-		const list = [...waits.map(w => `<div class="prow"><b>Espera</b> ${esc(w)}</div>`), ...mine.map(t => `<div class="prow"><b>${t.id}</b> ${esc(t.title)} · ${t.state}</div>`), ...said.map(c => `<div class="prow"><b>${esc(who(c.from))} → ${esc(who(c.to))}</b> ${esc(c.text.slice(0, 120))}<small>${ago(c.at)}</small></div>`)];
-		sidePanel(`Actividad de ${a.name}`, list.join("") || `<p class="muted">Sin actividad todavía.</p>`);
-	}
-	if (e.target.closest("[data-agent-card]")) {
-		const id = a.id;
-		document.querySelector('.side [data-view="equipo"]').click();
-		agentEdit = id;
-		renderBody();
-	}
-});
+// Archivos, Actividad y Ficha del agente se abren en el panel de al lado del chat (renderPanel, en 01): el chat no se cierra.
 
 async function send() {
 	const input = document.getElementById("input");

@@ -1,6 +1,7 @@
 // La barra lateral, con el diseño del Classroom de ATV (atv.css): arriba la credencial (Leverage y tu empresa) y
 // "Tu espacio" (la carpeta abierta: tu empresa o un cliente); en el medio las secciones en bandejas con pestaña y
-// la píldora de tinta que se desliza a la activa; abajo el piloto automático, el navegador y el modo claro/oscuro.
+// la píldora de tinta que se desliza a la activa. La barra es solo para navegar: el piloto automático, el modo
+// claro/oscuro y tu perfil (cuenta, configuración, navegador y sesión) van arriba a la derecha, como en el Classroom.
 // En tablet se puede plegar a un riel de íconos; en el celular es un cajón que se abre desde la barra de arriba.
 // Los botones conservan sus data-view / data-section / data-dock: los clics los maneja 13-acciones-y-avisos.js.
 let sbRiel = stored("sbRiel", false);
@@ -30,8 +31,6 @@ function renderSide() {
 		const cuenta = id === "bandeja" && count ? `<span class="sb-cuenta">${count}</span>` : "";
 		return `<button class="sb-item ${on ? "is-on" : ""}" data-view="${id}" ${on ? 'aria-current="page"' : ""} title="${texto}">${ic(icono)}<span class="sb-item__txt">${texto}</span>${cuenta}</button>`;
 	};
-	const modo = state.settings?.autopiloto?.modo ?? "apagado";
-	const piloto = { apagado: "Apagado", interno: "Aprueba lo interno", todo: "Aprueba todo" }[modo];
 	const empresa = state.settings?.owner?.company || "Tu empresa";
 	setHtml("side", `
 	<div class="sb-cab">
@@ -40,15 +39,7 @@ function renderSide() {
 	</div>
 	<div class="sb-espacio"><span class="sb-etq">Tu espacio</span>${carpetaSelector()}</div>
 	${avisos ? `<div class="sb-avisos">${avisos}</div>` : ""}
-	<nav class="sb-nav" aria-label="Principal"><span class="sb-pildora" aria-hidden="true"></span>${SB_SECCIONES().map(([titulo, items]) => `<div class="sb-grupo"><span class="sb-etq">${titulo}</span>${items.map(item).join("")}</div>`).join("")}</nav>
-	<div class="sb-pie">
-		<button class="sb-piloto ${modo === "apagado" ? "" : "is-on"}" data-section="general" title="Piloto automático: ${piloto}">${ic("plane")}<span class="sb-piloto__txt"><b>Piloto automático</b><small>${piloto}</small></span>${modo === "apagado" ? "" : `<i class="sb-piloto__punto ${modo}"></i>`}</button>
-		<div class="sb-acciones">
-			<button class="sb-accion" data-dock aria-label="Tu navegador" title="Tu navegador">${ic("globe")}</button>
-			<button class="sb-accion" data-lev-tema aria-label="${temaOscuro() ? "Modo claro" : "Modo oscuro"}" title="${temaOscuro() ? "Modo claro" : "Modo oscuro"}">${temaOscuro() ? SOL : ic("moon")}</button>
-			<button class="sb-accion" data-section="general" aria-label="Configuración" title="Configuración">${ic("sliders-horizontal")}</button>
-		</div>
-	</div>`);
+	<nav class="sb-nav" aria-label="Principal"><span class="sb-pildora" aria-hidden="true"></span>${SB_SECCIONES().map(([titulo, items]) => `<div class="sb-grupo"><span class="sb-etq">${titulo}</span>${items.map(item).join("")}</div>`).join("")}</nav>`);
 	const side = document.getElementById("side");
 	side.classList.add("sb");
 	const riel = sbRiel && !sbCelular.matches;
@@ -58,6 +49,7 @@ function renderSide() {
 	document.body.classList.toggle("sb-riel", riel);
 	moverPildora();
 	renderBarraMovil(count);
+	renderArriba();
 	document.querySelector(".app")?.classList.toggle("chat", esVistaDeChat());
 	renderConvs();
 	renderPanel();
@@ -102,9 +94,48 @@ addEventListener("resize", () => {
 	moverPildora();
 });
 
-/** En el celular: la barra de arriba con el menú (abre el cajón), el logo y lo que espera tu OK. */
+/** En el celular: la barra de arriba con el menú (abre el cajón), el logo, lo que espera tu OK y tu perfil. */
 function renderBarraMovil(count) {
-	setHtml("sb-movil", `<button class="sb-movil__menu" data-sb-cajon aria-label="Abrir el menú"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button><button class="sb-movil__logo" data-view="tablero" aria-label="Ir al tablero">${document.getElementById("logo").innerHTML}<span>Leverage</span></button><span class="sp"></span>${count ? `<button class="sb-movil__cuenta" data-view="bandeja" aria-label="Bandeja: ${count} sin ver">${ic("inbox")}<span>${count}</span></button>` : ""}`);
+	setHtml("sb-movil", `<button class="sb-movil__menu" data-sb-cajon aria-label="Abrir el menú"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button><button class="sb-movil__logo" data-view="tablero" aria-label="Ir al tablero">${document.getElementById("logo").innerHTML}<span>Leverage</span></button><span class="sp"></span>${count ? `<button class="sb-movil__cuenta" data-view="bandeja" aria-label="Bandeja: ${count} sin ver">${ic("inbox")}<span>${count}</span></button>` : ""}${sbCelular.matches ? perfilHtml(true) : ""}`);
+}
+
+/** Arriba de todo, como en el Classroom: a la izquierda dónde estás (migas) y a la derecha el piloto automático,
+ * el modo claro/oscuro y tu perfil. El perfil abre un menú con tu cuenta, la configuración, el navegador y la sesión. */
+let perfilAbierto = false;
+const SALIR = '<svg class="i" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg>';
+function migasHtml() {
+	const activa = ([id, , , activas = [id]]) => activas.includes(view.type);
+	const grupo = SB_SECCIONES().find(([, items]) => items.some(activa));
+	const item = grupo?.[1].find(activa);
+	const niveles = [grupo?.[0], item?.[2]];
+	if (view.type === "agent") niveles.push(activeAgent()?.name);
+	if (view.type === "ceo") niveles.push("#ceo");
+	if (view.type === "historial") niveles.push(histTab === "hist" ? "Historial" : "Programados");
+	if (view.type === "bandeja" && bwAbierto && bandejaChat) niveles.push(bandejaChat === "ceo" ? "#ceo" : state.agents.find(a => a.id === bandejaChat)?.name);
+	const lista = niveles.filter(Boolean);
+	return `<nav class="lv-migas" aria-label="Estás en">${lista.map((n, i) => (i === 1 && item && lista.length > 2 ? `<button data-view="${item[0]}">${esc(n)}</button>` : `<span ${i === lista.length - 1 ? 'aria-current="page"' : ""}>${esc(n)}</span>`)).join('<i aria-hidden="true">›</i>')}</nav>`;
+}
+function perfilHtml(movil = false) {
+	const { name = "", company = "" } = state.settings?.owner ?? {};
+	const modo = state.settings?.autopiloto?.modo ?? "apagado";
+	const piloto = { apagado: "Apagado", interno: "Aprueba lo interno", todo: "Aprueba todo" }[modo];
+	const conectado = state.login !== false;
+	const temaMenu = `<button role="menuitem" data-lev-tema>${temaOscuro() ? SOL : ic("moon")}<span>${temaOscuro() ? "Modo claro" : "Modo oscuro"}</span></button>`;
+	const menu = perfilAbierto ? `<div class="lv-menu" role="menu" aria-label="Tu perfil">
+		<div class="lv-menu__yo"><span class="lv-ava lg">${esc(initials(name || "Vos"))}</span><span><b>${esc(name || "Vos")}</b><small>${esc(company || "Tu empresa")}</small></span></div>
+		<button role="menuitem" data-section="cuentas">${ic("user-round")}<span>Mi cuenta<small>${conectado ? "Sesión de Claude conectada" : "Falta iniciar sesión"}</small></span></button>
+		<button role="menuitem" data-section="general">${ic("settings")}<span>Configuración</span></button>
+		${movil ? `<button role="menuitem" data-section="general">${ic("plane")}<span>Piloto automático<small>${piloto}</small></span></button>${temaMenu}` : ""}
+		<button role="menuitem" data-dock>${ic("globe")}<span>Tu navegador</span></button>
+		<hr>
+		${conectado ? `<button role="menuitem" class="lv-menu__salir" data-lv-salir>${SALIR}<span>Cerrar sesión de Claude</span></button>` : `<button role="menuitem" class="lv-menu__entrar" data-section="cuentas">${SALIR}<span>Iniciar sesión con Claude</span></button>`}
+	</div>` : "";
+	const tema = `<div class="lv-tema" role="group" aria-label="Modo de color"><button data-lev-tema="light" aria-pressed="${!temaOscuro()}" aria-label="Modo claro" title="Modo claro">${SOL}</button><button data-lev-tema="dark" aria-pressed="${temaOscuro()}" aria-label="Modo oscuro" title="Modo oscuro">${ic("moon")}</button></div>`;
+	const pilotoBtn = `<button class="lv-piloto ${modo === "apagado" ? "" : "is-on"}" data-section="general" title="Piloto automático: ${piloto}" aria-label="Piloto automático: ${piloto}">${ic("plane")}<span>${modo === "apagado" ? "Piloto apagado" : `Piloto · ${piloto.toLowerCase()}`}</span></button>`;
+	return `<div class="lv-der ${movil ? "is-movil" : ""}">${movil ? "" : pilotoBtn + tema}<div class="lv-perfil"><button class="lv-ava" data-lv-perfil aria-haspopup="menu" aria-expanded="${perfilAbierto}" aria-label="Tu perfil">${esc(initials(name || "Vos"))}</button>${menu}</div></div>`;
+}
+function renderArriba() {
+	setHtml("lv-top", sbCelular.matches ? "" : migasHtml() + perfilHtml());
 }
 
 document.addEventListener("click", e => {
@@ -120,8 +151,30 @@ document.addEventListener("click", e => {
 		renderSide();
 		return;
 	}
-	if (e.target.closest("[data-lev-tema]")) {
-		themePref = temaOscuro() ? "light" : "dark";
+	if (e.target.closest("[data-lv-perfil]")) {
+		perfilAbierto = !perfilAbierto;
+		renderSide();
+		return;
+	}
+	// Cualquier opción del menú (o tocar afuera) lo cierra.
+	if (perfilAbierto && !e.target.closest(".lv-menu__yo")) {
+		perfilAbierto = false;
+		setTimeout(renderSide);
+	}
+	if (e.target.closest("[data-lv-salir]")) {
+		if (!confirm("¿Cerrás la sesión de Claude? Tus agentes dejan de trabajar hasta que vuelvas a entrar.")) return;
+		void (async () => {
+			const res = await api("/claude/salir", { method: "POST" });
+			if (!res.ok) avisoDeVoz("No se pudo cerrar la sesión desde acá: quitá la cuenta en Mi cuenta.");
+			await loadState();
+			renderSide();
+		})();
+		return;
+	}
+	const tema = e.target.closest("[data-lev-tema]");
+	if (tema) {
+		const pedido = tema.dataset.levTema;
+		themePref = pedido === "light" || pedido === "dark" ? pedido : temaOscuro() ? "light" : "dark";
 		store("tema", themePref);
 		applyLook();
 		renderSide();
@@ -136,26 +189,160 @@ document.addEventListener("click", e => {
 	}
 });
 addEventListener("keydown", e => {
+	if (e.key === "Escape" && perfilAbierto) {
+		perfilAbierto = false;
+		renderSide();
+	}
 	if (e.key === "Escape" && sbCajon) {
 		sbCajon = false;
 		renderSide();
 	}
 });
 
-/** Al costado del chat con un agente: en qué anda, lo que espera tu OK y lo que fue dejando. */
-function renderPanel() {
-	const a = view.type === "agent" ? activeAgent() : null;
-	document.querySelector(".app")?.classList.toggle("conpanel", Boolean(a));
-	if (!a) return setHtml("panel", "");
-	const orden = ordenDe(a);
-	const piden = pending().filter(r => r.agentId === a.id);
-	const archivos = state.requests.filter(r => r.agentId === a.id && r.file).slice(-5).reverse();
-	const estado = a.busy ? `<span class="pnpaso"><i class="tbgira" aria-hidden="true"></i><span class="tbrespira">${esc(a.ahora ? pasoLegible(a.ahora) : "Trabajando")}</span></span>` : `<span class="pnpaso"><i class="tbespera" aria-hidden="true"></i><span>${a.queued ? "En fila, arranca en un rato" : a.asleep ? "Dormido" : "Disponible"}</span></span>`;
-	const tipo = r => ({ ok: "Pide tu OK", accion: "Quiere hacer esto", entrega: "Entrega" })[r.kind] ?? "Pide tu OK";
-	setHtml("panel", `<section class="pnsec"><h2>${a.busy || a.queued ? "Trabajo en curso" : "Último pedido"}</h2>${orden ? `<p class="pnorden">${esc(orden.text.split(/\n/)[0].trim().slice(0, 160))}</p><small>Se lo pidió ${esc(orden.from === "dueno" ? "vos" : who(orden.from))} · hace ${lasted(orden.at, new Date())}</small>` : `<p class="pnorden muted">Todavía no recibió pedidos.</p>`}${estado}</section>
-	${piden.length ? `<section class="pnsec"><h2>Espera tu OK <span>${piden.length}</span></h2>${piden.map(r => `<div class="pnpide"><b>${esc(actionOf(r)?.title ?? r.title)}</b><small class="${r.kind === "accion" ? "riesgo" : ""}">${tipo(r)}</small><div class="tbbots"><button class="b p" data-approve="${r.id}">Aprobar</button><button class="b" data-ver-pedido="${r.id}">Ver</button></div></div>`).join("")}</section>` : ""}
-	<section class="pnsec"><h2>Archivos <span>${archivos.length || ""}</span></h2>${archivos.length ? archivos.map(r => `<button class="pnarch" data-file="${esc(r.file)}"><b>${esc(r.title)}</b><small>${ago(r.at)}</small></button>`).join("") : `<p class="muted">Lo que entregue va a aparecer acá.</p>`}<button class="tbmas" data-agent-files>Ver todos sus archivos</button></section>`);
+/** Al costado del chat con un agente, solo cuando lo pedís con los íconos de arriba del chat (Archivos, Actividad y
+ * Ficha): un panel que se suma al lado de la charla sin cerrarla. En el celular sube como una hoja desde abajo y la
+ * charla sigue atrás. Es el único lugar con esa información: el panel fijo de antes ("Último pedido", "Archivos") ya no está. */
+let agInfo = null;
+let agArchivos = { id: "", firma: "", lista: null };
+let fiBorrador = null;
+const AG_INFO = [["archivos", "folder", "Archivos"], ["actividad", "clock", "Actividad"], ["ficha", "user-round", "Ficha"]];
+/** El agente del chat abierto: el del chat de trabajo o el de la Bandeja. */
+const agInfoAgente = () => (view.type === "agent" ? activeAgent() : view.type === "bandeja" && bwAbierto && bandejaChat && bandejaChat !== "ceo" ? state.agents.find(a => a.id === bandejaChat) : null);
+const agInfoBotones = () => AG_INFO.map(([id, icono, texto]) => `<button class="ic ag-info-btn ${agInfo === id ? "on" : ""}" data-ag-info="${id}" data-tip="${texto}" aria-label="${texto}" aria-pressed="${agInfo === id}">${ic(icono)}</button>`).join("");
+function agEstado(a) {
+	const piden = pending().filter(r => r.agentId === a.id).length;
+	if (a.busy) return ["trabaja", "Trabajando"];
+	if (piden) return ["pide", "Te necesita"];
+	if (a.queued) return ["fila", "En fila"];
+	if (a.asleep) return ["duerme", "Dormido"];
+	return ["libre", "Disponible"];
 }
+
+function renderPanel() {
+	const a = agInfo ? agInfoAgente() : null;
+	document.querySelector(".app")?.classList.toggle("conpanel", Boolean(a));
+	if (!a) {
+		fiBorrador = null;
+		return setHtml("panel", "");
+	}
+	const panel = document.getElementById("panel");
+	if (!panel.querySelector(".ag-info")) setHtml("panel", `<div class="ag-info" role="complementary"><div id="ag-info-cab"></div><div class="ag-info__cuerpo" id="ag-info-cuerpo"></div></div>`);
+	const [clase, texto] = agEstado(a);
+	setHtml("ag-info-cab", `<header class="ag-info__cab">${avatar(a, "sm")}<span class="ag-info__quien"><b>${esc(a.name)}</b><span class="tb2-ag is-${clase === "trabaja" ? "trabaja" : clase === "fila" ? "fila" : clase}"><i aria-hidden="true"></i>${texto}</span></span><button class="ic" data-ag-info-cerrar aria-label="Cerrar el panel">${ic("x")}</button></header><div class="ag-info__tabs" role="tablist">${AG_INFO.map(([id, icono, t]) => `<button role="tab" aria-selected="${agInfo === id}" class="${agInfo === id ? "on" : ""}" data-ag-info="${id}">${ic(icono)}${t}</button>`).join("")}</div>`);
+	setHtml("ag-info-cuerpo", agInfo === "archivos" ? agArchivosHtml(a) : agInfo === "actividad" ? agActividadHtml(a) : agFichaHtml(a));
+}
+
+function agArchivosHtml(a) {
+	const firma = state.requests.filter(r => r.agentId === a.id && r.file).map(r => r.id).join();
+	if (agArchivos.id !== a.id || agArchivos.firma !== firma) {
+		agArchivos = { id: a.id, firma, lista: agArchivos.id === a.id ? agArchivos.lista : null };
+		void (async () => {
+			const res = await api(`/agents/${a.id}/files`).catch(() => null);
+			if (agArchivos.id !== a.id) return;
+			agArchivos.lista = res?.ok ? await res.json() : [];
+			renderPanel();
+		})();
+	}
+	if (!agArchivos.lista) return `<p class="ag-info__vacio">Buscando sus archivos…</p>`;
+	if (!agArchivos.lista.length) return `<div class="ag-info__vacio"><b>Todavía no guardó archivos</b>Lo que entregue va a aparecer acá.</div>`;
+	const ext = p => (/\.([a-z0-9]+)$/i.exec(p ?? "")?.[1] ?? "doc").toUpperCase();
+	const estado = { pendiente: ["Espera tu OK", "rojo"], aprobado: ["Aprobado", "ok"], cambios: ["Con cambios", ""], rechazado: ["Rechazado", ""], reemplazado: ["Versión vieja", ""] };
+	return `<ul class="ag-arch">${agArchivos.lista.map(f => {
+		const e = estado[f.state];
+		return `<li><button data-file="${esc(f.path)}"><span class="tb2-hoja" aria-hidden="true"><i>${esc(ext(f.path))}</i></span><span class="ag-arch__txt"><b>${esc(f.title ?? f.name)}</b><small>${esc(f.name)}${f.at ? ` · ${ago(f.at).toLowerCase()}` : ""}</small></span>${e ? `<span class="btag ${e[1]}">${e[0]}</span>` : ""}</button></li>`;
+	}).join("")}</ul>`;
+}
+
+function agActividadHtml(a) {
+	const orden = ordenDe(a);
+	const [, texto] = agEstado(a);
+	const paso = a.busy ? (a.ahora ? pasoLegible(a.ahora) : "Trabajando") : a.queued ? "Arranca cuando se libere" : a.asleep ? "Dormido hasta que lo llamen" : "Libre para lo que le pidas";
+	const piden = pending().filter(r => r.agentId === a.id);
+	const anota = state.beats?.[a.id]?.checks ?? [];
+	const tickets = (state.tickets ?? []).filter(t => t.owner === a.id);
+	const charlas = (state.comms ?? []).filter(c => c.from === a.id || c.to === a.id).slice(-12).reverse();
+	const quien = id => (id === "dueno" ? "Vos" : who(id));
+	const bloque = (titulo, n, cuerpo) => `<section class="ag-blq"><h3>${titulo}${n ? `<span>${n}</span>` : ""}</h3>${cuerpo}</section>`;
+	return `${bloque("Ahora", 0, `<div class="ag-ahora"><p>${esc(texto)} · ${esc(paso)}</p>${orden ? `<blockquote>“${esc(orden.text.split(/\n/)[0].trim().slice(0, 160))}”<cite>${esc(orden.from === "dueno" ? "Se lo pediste vos" : `Se lo pidió ${who(orden.from)}`)} · hace ${lasted(orden.at, new Date())}</cite></blockquote>` : `<p class="ag-info__vacio">Todavía no recibió pedidos.</p>`}</div>`)}
+	${piden.length ? bloque("Espera tu OK", piden.length, piden.map(r => `<div class="ag-pide"><b>${esc(actionOf(r)?.title ?? r.title)}</b><small>${({ ok: "Pide tu OK", accion: "Quiere hacer esto", entrega: "Entrega" })[r.kind] ?? "Pide tu OK"} · ${ago(r.at).toLowerCase()}</small><div><button class="b go" data-approve="${r.id}">Aprobar</button><button class="b" data-ver-pedido="${r.id}">Ver</button></div></div>`).join("")) : ""}
+	${anota.length ? bloque("Se anotó para revisar", anota.length, `<ul class="ag-lista">${anota.map(c => `<li>${esc(c)}</li>`).join("")}</ul>`) : ""}
+	${tickets.length ? bloque("Tickets", tickets.length, `<ul class="ag-lista">${tickets.map(t => `<li><b>${esc(t.id)}</b> ${esc(t.title)}<small>${esc(t.state)}</small></li>`).join("")}</ul>`) : ""}
+	${bloque("Charlas con el equipo", charlas.length, charlas.length ? `<ol class="ag-charlas">${charlas.map(c => `<li><span><b>${esc(quien(c.from))}</b> → <b>${esc(quien(c.to))}</b><time>${ago(c.at)}</time></span><p>${esc(String(c.text).split("\n")[0].slice(0, 140))}</p></li>`).join("")}</ol>` : `<p class="ag-info__vacio">No habló con nadie esta semana.</p>`)}`;
+}
+
+/** La ficha se edita acá mismo y se guarda sin salir del chat. Lo que escribís queda en un borrador:
+ * los repintados (el estado se actualiza cada pocos segundos) no lo borran. */
+function agFichaHtml(a) {
+	if (fiBorrador?.id !== a.id) fiBorrador = { id: a.id, name: a.name, title: a.title ?? "", boss: bossId(a) ?? "", error: "", guardado: false };
+	const f = fiBorrador;
+	const modelo = MODELOS.find(([id]) => id === (a.modelo ?? (typeof a.model === "string" ? a.model : "")))?.[1];
+	return `<div class="ag-ficha">
+		<dl class="ag-datos"><div><dt>Área</dt><dd>${esc(a.department ? nombre(a.department) : "Mano derecha")}</dd></div><div><dt>Modelo</dt><dd>${esc(modelo ?? "—")}</dd></div><div><dt>Reporta a</dt><dd>${esc(bossId(a) ? who(bossId(a)) : "Vos")}</dd></div><div><dt>Entregas</dt><dd>${state.requests.filter(r => r.agentId === a.id && r.kind === "entrega").length}</dd></div></dl>
+		<form class="ag-form" id="ag-ficha-form">
+			<label>Nombre<input id="fi-name" value="${esc(f.name)}" maxlength="40" autocomplete="off" required></label>
+			<label>Cargo<input id="fi-title" value="${esc(f.title)}" placeholder="${esc(ROLE_NAMES[a.role] ?? "Agente")}" autocomplete="off"></label>
+			${modeloHtml(a)}
+			${a.role === "asistente" ? "" : `<label>Reporta a<select id="fi-boss">${state.agents.filter(x => x.id !== a.id).map(x => `<option value="${x.id}" ${x.id === f.boss ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label>`}
+			${f.error ? `<div class="soft-note">${esc(f.error)}</div>` : ""}
+			<div class="ag-form__pie">${f.guardado ? `<span class="ag-ok">${ic("check")}Guardado</span>` : ""}<span class="sp"></span><button class="b go" type="submit">Guardar</button></div>
+		</form>
+	</div>`;
+}
+
+document.addEventListener("input", e => {
+	if (!fiBorrador || !e.target.closest?.("#ag-ficha-form")) return;
+	if (e.target.id === "fi-name") fiBorrador.name = e.target.value;
+	if (e.target.id === "fi-title") fiBorrador.title = e.target.value;
+	if (e.target.id === "fi-boss") fiBorrador.boss = e.target.value;
+	fiBorrador.guardado = false;
+});
+document.addEventListener("change", e => {
+	if (fiBorrador && e.target.id === "fi-boss") fiBorrador.boss = e.target.value;
+});
+document.addEventListener("submit", async e => {
+	if (e.target.id !== "ag-ficha-form") return;
+	e.preventDefault();
+	const a = agInfoAgente();
+	if (!a || !fiBorrador) return;
+	const modelo = e.target.querySelector("input[name=agent-model]:checked")?.value;
+	const res = await api(`/agents/${a.id}`, { method: "PATCH", body: JSON.stringify({ name: fiBorrador.name.trim(), title: fiBorrador.title.trim(), ...(a.role === "asistente" ? {} : { managerId: fiBorrador.boss }), ...(modelo ? { model: modelo } : {}) }) });
+	const cuerpo = res.ok ? {} : await res.json().catch(() => ({}));
+	await loadState();
+	fiBorrador = { ...fiBorrador, name: res.ok ? (agInfoAgente()?.name ?? fiBorrador.name) : fiBorrador.name, error: res.ok ? "" : (cuerpo.error ?? "No se pudo guardar"), guardado: res.ok };
+	modeloEnFicha = null;
+	renderSide();
+	renderHead();
+	lastBody = "";
+	renderBody();
+});
+document.addEventListener("click", e => {
+	const t = e.target.closest("[data-ag-info]");
+	if (t) {
+		agInfo = agInfo === t.dataset.agInfo && t.classList.contains("ag-info-btn") ? null : t.dataset.agInfo;
+		if (agInfo !== "ficha") fiBorrador = null;
+		renderPanel();
+		renderHead();
+		lastBody = "";
+		if (view.type === "bandeja") renderBody();
+		return;
+	}
+	if (e.target.closest("[data-ag-info-cerrar]")) {
+		agInfo = null;
+		renderPanel();
+		renderHead();
+		lastBody = "";
+		if (view.type === "bandeja") renderBody();
+	}
+});
+addEventListener("keydown", e => {
+	if (e.key === "Escape" && agInfo && !document.querySelector(".omodal")) {
+		agInfo = null;
+		renderPanel();
+		renderHead();
+		lastBody = "";
+		if (view.type === "bandeja") renderBody();
+	}
+});
 
 /** Con quién hablás: el canal, el Asistente y cada área con sus agentes. Vive al costado del chat. */
 function renderConvs() {
@@ -200,40 +387,197 @@ function cuandoTexto(fecha) {
 	return `${DIAS[fecha.getDay()][0].toUpperCase()}${DIAS[fecha.getDay()].slice(1)} ${h}`;
 }
 
-/** Lo que el equipo hace solo y lo que ya hizo, al lado. */
-function historialHtml() {
-	const rutinas = (extra.routines ?? []).filter(r => r.prendida).map(r => ({ r, cuando: proximaVez(r) })).sort((a, b) => (a.cuando ?? Infinity) - (b.cuando ?? Infinity));
+/** La cápsula de arriba del Tablero: lo de hoy, lo que viene (Programados) y lo que ya pasó (Historial). */
+let histTab = stored("histTab", "prog");
+let histRango = "hoy";
+let histCuantos = 60;
+const tbCapsula = () => `<div class="seg tbseg" role="tablist">${[["tablero", "", "Hoy"], ["historial", "prog", "Programados"], ["historial", "hist", "Historial"]].map(([v, tab, texto]) => {
+	const on = view.type === v && (!tab || histTab === tab);
+	return `<button role="tab" aria-selected="${on}" class="${on ? "on" : ""}" data-view="${v}" ${tab ? `data-hist-tab="${tab}"` : ""}>${texto}</button>`;
+}).join("")}</div>`;
+const fechaLarga = d => {
+	const f = d.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+	return f[0].toUpperCase() + f.slice(1);
+};
+const diaClave = d => new Date(d).toDateString();
+function diaNombre(d) {
+	const dias = Math.round((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86_400_000);
+	if (dias === 0) return "Hoy";
+	if (dias === 1) return "Mañana";
+	if (dias === -1) return "Ayer";
+	return fechaLarga(new Date(d));
+}
+
+/** Programados: solo lo que va a pasar. Cada vez que corre una rutina en los próximos 7 días, por día; hoy, primero y marcado. */
+function programadosHtml() {
+	const ahora = new Date();
+	const rutinas = extra.routines ?? [];
+	const veces = [];
+	for (const r of rutinas.filter(r => r.prendida)) {
+		for (let d = 0; d < 7; d++) {
+			const cuando = new Date(ahora);
+			cuando.setDate(ahora.getDate() + d);
+			cuando.setHours(r.hora, 0, 0, 0);
+			if (r.dias.includes(cuando.getDay()) && cuando > ahora) veces.push({ r, cuando });
+		}
+	}
+	veces.sort((a, b) => a.cuando - b.cuando);
+	const dias = Map.groupBy ? Map.groupBy(veces, v => diaClave(v.cuando)) : new Map(veces.reduce((m, v) => m.set(diaClave(v.cuando), [...(m.get(diaClave(v.cuando)) ?? []), v]), new Map()));
+	const hoyClave = diaClave(ahora);
+	if (!dias.has(hoyClave)) dias.set(hoyClave, []);
+	const orden = [...dias.keys()].sort((a, b) => new Date(a) - new Date(b));
+	const quien = r => state.agents.find(a => a.department === r.departamento && a.role === r.rol);
+	const fila = ({ r, cuando }) => {
+		const ag = quien(r);
+		return `<li class="hs2-fila"><time>${hora(cuando.toISOString())}</time><span class="hs2-que">${ag ? avatar(ag, "xs") : ""}<span><b>${esc(rutinaNombre(r))}</b><small>${esc(rutinaQuien(r))} · ${DIAS_CORTOS(r.dias)}</small></span></span><span class="hs2-acc"><button class="b" data-rut-pausa="${esc(r.id)}" data-dep="${esc(r.departamento)}">Pausar</button></span></li>`;
+	};
+	const instagram = state.instagram?.connected ? `<li class="hs2-fila is-siempre"><time>Cada hora</time><span class="hs2-que"><span class="hs2-ico">${ic("instagram")}</span><span><b>Guardar las historias de Instagram</b><small>Leverage${state.instagram.lastSync ? ` · la última, ${hora(state.instagram.lastSync)}` : ""}</small></span></span><span class="hs2-acc"></span></li>` : "";
+	const grupos = orden.map(clave => {
+		const lista = dias.get(clave);
+		const esHoy = clave === hoyClave;
+		return `<section class="hs2-dia ${esHoy ? "is-hoy" : ""}"><h3>${diaNombre(clave)}<small>${esHoy ? fechaLarga(ahora) : `${lista.length} ${lista.length === 1 ? "cosa" : "cosas"}`}</small></h3><ol>${esHoy ? instagram : ""}${lista.map(fila).join("") || (esHoy && !instagram ? `<li class="hs2-nada">No queda nada programado para hoy.</li>` : "")}</ol></section>`;
+	}).join("");
+	const pausadas = rutinas.filter(r => !r.prendida);
 	const latidos = Object.entries(state.beats ?? {}).filter(([, b]) => b.checks.length);
-	const filas = [
-		...(state.instagram?.connected ? [`<div><b>Guardar las historias de Instagram</b><small>Leverage · cada hora${state.instagram.lastSync ? ` · la última, ${hora(state.instagram.lastSync)}` : ""}</small></div>`] : []),
-		...rutinas.map(({ r, cuando }) => `<div><b>${esc(rutinaNombre(r))}</b><small>${esc(rutinaQuien(r))} · ${DIAS_CORTOS(r.dias)} a las ${r.hora}${cuando ? ` · ${cuandoTexto(cuando).toLowerCase()}` : ""}</small></div>`),
-	];
-	// Lo que cada agente se anotó para revisar: es una nota suya, así que va cerrada y corta.
-	const corto = t => (t.length > 140 ? `${t.slice(0, 137).trimEnd()}…` : t);
-	const esperan = latidos.map(([id, b]) => `<details class="hsesp"><summary><span><b>${esc(who(id))}</b><small> · ${b.checks.length} ${b.checks.length === 1 ? "cosa" : "cosas"}</small></span><span class="hschev" aria-hidden="true">›</span></summary><ul>${b.checks.map(c => `<li title="${esc(c)}">${esc(corto(c))}</li>`).join("")}</ul></details>`);
-	const fecha = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
-	return `<div class="tablero">
-	<div class="tbhead"><div><small>${fecha[0].toUpperCase()}${fecha.slice(1)}</small><h1>Lo que hace solo y lo que ya hizo</h1></div><div class="seg tbseg"><button class="${view.type === "tablero" ? "on" : ""}" data-view="tablero">Hoy</button><button class="${view.type === "historial" ? "on" : ""}" data-view="historial">Programado e historial</button></div></div>
-	<div class="hsdos">
-		<section class="tbcol"><h2><i class="aro" aria-hidden="true"></i>Programado<span>${filas.length}</span></h2>${filas.length ? `<div class="tblista">${filas.join("")}</div>` : `<p class="tbvacio">No hay nada programado. Las rutinas se prenden en Rutinas.</p>`}${esperan.length ? `<h2 class="hsh2"><i class="aro" aria-hidden="true"></i>Lo que están esperando<span>${esperan.length}</span></h2><div class="tblista">${esperan.join("")}</div>` : ""}</section>
-		<section class="tbcol hshist"><h2><i class="piedra" aria-hidden="true"></i>Historial</h2><div class="hsfiltros">${[["hoy", "Hoy"], ["ayer", "Ayer"], ["semana", "Últimos 7 días"]].map(([id, txt]) => `<button class="chipb ${histPeriodo === id ? "on" : ""}" data-hist-periodo="${id}">${txt}</button>`).join("")}</div>${porPersonaHtml(histPeriodo)}</section>
-	</div>
+	const aside = `<aside class="hs2-lado">
+		<section class="hs2-caja"><h3>En pausa<span>${pausadas.length}</span></h3>${pausadas.length ? `<ul>${pausadas.map(r => `<li><span><b>${esc(rutinaNombre(r))}</b><small>${esc(rutinaQuien(r))} · ${DIAS_CORTOS(r.dias)} a las ${r.hora}</small></span><button class="b" data-rut-sigue="${esc(r.id)}" data-dep="${esc(r.departamento)}">Reanudar</button></li>`).join("")}</ul>` : `<p class="hs2-vacio">Ninguna rutina está en pausa.</p>`}</section>
+		${latidos.length ? `<section class="hs2-caja"><h3>Para revisar<span>${latidos.reduce((n, [, b]) => n + b.checks.length, 0)}</span></h3><ul>${latidos.map(([id, b]) => b.checks.map(c => `<li><span>${avatar({ id }, "xs")}<span><b>${esc(c)}</b><small>Se lo anotó ${esc(who(id))}</small></span></span></li>`).join("")).join("")}</ul></section>` : ""}
+		<button class="tb2-link" data-view="rutinas">Todas las rutinas ${ic("chevron-right")}</button>
+	</aside>`;
+	return `<div class="hs2-cuerpo"><div class="hs2-agenda">${grupos}</div>${aside}</div>`;
+}
+
+/** Historial: solo lo que ya pasó, del más nuevo al más viejo, por día. Se arma con lo mismo que ves en el resto de la app. */
+const HIST_RANGOS = [["hoy", "Hoy"], ["ayer", "Ayer"], ["7", "Últimos 7 días"], ["30", "Últimos 30 días"], ["todo", "Todo el historial"]];
+function eventosHistorial() {
+	const ahora = Date.now();
+	const nombreDe = id => (id === "dueno" ? "Vos" : who(id));
+	const titulo = r => (actionOf(r)?.title ?? r.title).replace(/^Crear tablero en Miro: /, "");
+	const ev = [];
+	for (const r of state.requests) {
+		if (r.at) ev.push({ at: r.at, id: r.agentId, texto: `<b>${esc(r.author)}</b> ${r.kind === "entrega" ? "entregó" : r.kind === "accion" ? "pidió permiso para" : "te propuso"} «${esc(titulo(r))}»`, file: r.file, pide: r.state === "pendiente" ? r.id : null, tag: r.state === "pendiente" ? ["Espera tu OK", "rojo"] : null });
+		const decision = { aprobado: r.porPiloto ? "El piloto aprobó" : "Aprobaste", cambios: "Pediste cambios en", rechazado: "Rechazaste", reemplazado: "Pediste cambios en" }[r.state];
+		if (r.decididoAt && decision) ev.push({ at: r.decididoAt, id: r.porPiloto ? "piloto" : "dueno", texto: `${decision} «${esc(titulo(r))}»${r.nota ? `<small>“${esc(r.nota)}”</small>` : ""}`, file: r.state === "aprobado" ? r.file : null, tag: r.state === "aprobado" ? ["Aprobado", "ok"] : r.state === "rechazado" ? ["Rechazado", ""] : ["Cambios", ""] });
+	}
+	for (const p of state.ceo) if (p.at && !["Te necesito"].includes(p.story?.tag ?? "")) ev.push({ at: p.at, id: p.agentId, texto: p.agentId === "dueno" ? `Escribiste en #ceo: ${esc(String(p.text).split("\n")[0].slice(0, 90))}` : `<b>${esc(p.author)}</b> reportó en #ceo: ${esc((p.story?.title || String(p.text ?? "").replace(/\*\*/g, "").split("\n")[0]).slice(0, 90))}`, ceo: true });
+	for (const k of state.kpis) {
+		if (k.at) ev.push({ at: k.at, id: k.agentId, texto: `<b>${esc(k.proposedBy)}</b> propuso medir «${esc(k.name)}»`, tag: k.state === "propuesta" ? ["Espera tu OK", "rojo"] : null });
+		if (k.decididoAt) ev.push({ at: k.decididoAt, id: "dueno", texto: `${k.state === "aprobada" ? "Sumaste la métrica" : "Descartaste la métrica"} «${esc(k.name)}»`, tag: k.state === "aprobada" ? ["Aprobado", "ok"] : null });
+	}
+	for (const c of state.comms ?? []) if (c.at && c.from === "dueno") ev.push({ at: c.at, id: "dueno", texto: `Le pediste a <b>${esc(nombreDe(c.to))}</b>: ${esc(String(c.text).split("\n")[0].slice(0, 90))}` });
+	for (const c of state.corridas ?? []) {
+		const r = (extra.routines ?? []).find(x => x.id === c.rutina && x.departamento === c.departamento) ?? { id: c.rutina, departamento: c.departamento, rol: c.rol };
+		const ag = state.agents.find(a => a.department === c.departamento && a.role === c.rol);
+		ev.push({ at: c.at, id: ag?.id, texto: `Corrió la rutina «${esc(rutinaNombre(r))}»`, rutina: true });
+	}
+	return ev.filter(e => e.at && Date.parse(e.at) <= ahora + 60_000).sort((a, b) => b.at.localeCompare(a.at));
+}
+function historialListaHtml() {
+	const hoy = new Date();
+	hoy.setHours(0, 0, 0, 0);
+	const desde = { hoy: hoy.getTime(), ayer: hoy.getTime() - 86_400_000, 7: hoy.getTime() - 6 * 86_400_000, 30: hoy.getTime() - 29 * 86_400_000, todo: 0 }[histRango];
+	const hasta = histRango === "ayer" ? hoy.getTime() : Number.POSITIVE_INFINITY;
+	const todos = eventosHistorial();
+	const lista = todos.filter(e => Date.parse(e.at) >= desde && Date.parse(e.at) < hasta);
+	const cuenta = id => todos.filter(e => Date.parse(e.at) >= { hoy: hoy.getTime(), ayer: hoy.getTime() - 86_400_000, 7: hoy.getTime() - 6 * 86_400_000, 30: hoy.getTime() - 29 * 86_400_000, todo: 0 }[id] && Date.parse(e.at) < (id === "ayer" ? hoy.getTime() : Infinity)).length;
+	const filtros = `<div class="hs2-filtros" role="group" aria-label="Período">${HIST_RANGOS.map(([id, txt]) => `<button class="${histRango === id ? "on" : ""}" aria-pressed="${histRango === id}" data-hist-rango="${id}">${txt}<span>${cuenta(id)}</span></button>`).join("")}</div>`;
+	if (!lista.length) return `${filtros}<div class="tb2-vacio hs2-vacio-g"><b>${histRango === "hoy" ? "Hoy todavía no pasó nada" : "No pasó nada en esos días"}</b><span>Lo que haga tu equipo y lo que decidas vos queda acá.</span></div>`;
+	const ver = lista.slice(0, histCuantos);
+	const dias = Map.groupBy ? Map.groupBy(ver, e => diaClave(e.at)) : new Map(ver.reduce((m, e) => m.set(diaClave(e.at), [...(m.get(diaClave(e.at)) ?? []), e]), new Map()));
+	const cara = e => (e.id === "dueno" ? `<span class="lv-ava xs">${esc(initials(state.settings?.owner?.name || "Vos"))}</span>` : e.id === "piloto" ? `<span class="hs2-ico">${ic("plane")}</span>` : e.rutina && !e.id ? `<span class="hs2-ico">${ic("clock")}</span>` : avatar({ id: e.id }, "xs"));
+	const fila = e => `<li class="hs2-fila ${e.rutina ? "is-rutina" : ""}"><time>${hora(e.at)}</time><span class="hs2-que">${cara(e)}<span class="hs2-txt">${e.texto}</span></span><span class="hs2-acc">${e.tag ? `<span class="btag ${e.tag[1]}">${e.tag[0]}</span>` : ""}${e.pide ? `<button class="b go" data-approve="${e.pide}">Aprobar</button><button class="b" data-ver-pedido="${e.pide}">Ver</button>` : e.file ? `<button class="b" data-file="${esc(e.file)}">Abrir</button>` : e.ceo ? `<button class="b" data-view="ceo">Ver</button>` : ""}</span></li>`;
+	const grupos = [...dias].map(([clave, l]) => `<section class="hs2-dia ${diaNombre(clave) === "Hoy" ? "is-hoy" : ""}"><h3>${diaNombre(clave)}<small>${diaNombre(clave) === "Hoy" ? fechaLarga(new Date()) : `${l.length} ${l.length === 1 ? "cosa" : "cosas"}`}</small></h3><ol>${l.map(fila).join("")}</ol></section>`).join("");
+	return `${filtros}<div class="hs2-agenda">${grupos}</div>${lista.length > histCuantos ? `<button class="tbmas hs2-mas" data-hist-mas-todo>Ver ${Math.min(60, lista.length - histCuantos)} más (quedan ${lista.length - histCuantos})</button>` : ""}`;
+}
+
+function historialHtml() {
+	const prog = histTab !== "hist";
+	return `<div class="tablero tb2 hs2">
+	<header class="tb2-cab">
+		<div class="tb2-titulo"><p class="tb2-ojo">${fechaLarga(new Date())}</p><h1>${prog ? `Lo que tu equipo <em>tiene agendado.</em>` : `Lo que ya <em>pasó.</em>`}</h1></div>
+		${tbCapsula()}
+	</header>
+	${prog ? programadosHtml() : historialListaHtml()}
 </div>`;
 }
 
-/** El inicio, con el diseño del Classroom (estilos .tb2 en atv.css): el saludo, el marcador del día y cuatro bloques.
- * Lo que espera tu OK va primero y más grande; al lado, quién está trabajando ahora; abajo, lo que se entregó hoy
- * (como hojas, con el tipo de archivo) y lo que viene programado (como una agenda). Al pie, el pedido al Asistente.
+document.addEventListener("click", async e => {
+	const tab = e.target.closest("[data-hist-tab]");
+	if (tab) {
+		histTab = tab.dataset.histTab;
+		store("histTab", histTab);
+		lastBody = "";
+		if (view.type === "historial") renderBody();
+		renderArriba();
+		return;
+	}
+	const rango = e.target.closest("[data-hist-rango]");
+	if (rango) {
+		histRango = rango.dataset.histRango;
+		histCuantos = 60;
+		lastBody = "";
+		return renderBody();
+	}
+	if (e.target.closest("[data-hist-mas-todo]")) {
+		histCuantos += 60;
+		lastBody = "";
+		return renderBody();
+	}
+	const pausa = e.target.closest("[data-rut-pausa],[data-rut-sigue]");
+	if (pausa) {
+		const prendida = "rutSigue" in pausa.dataset;
+		pausa.disabled = true;
+		const res = await api("/routines", { method: "POST", body: JSON.stringify({ departamento: pausa.dataset.dep, id: pausa.dataset.rutPausa ?? pausa.dataset.rutSigue, prendida }) });
+		if (res.ok) extra.routines = await res.json();
+		lastBody = "";
+		renderBody();
+	}
+});
+
+/** A quién le escribís desde el Tablero: el Asistente por defecto, o cualquiera del equipo. */
+let tbPara = stored("tbPara", "");
+let tbParaAbierto = false;
+const tbDestino = () => state.agents.find(a => a.id === tbPara) ?? state.agents.find(a => a.role === "asistente") ?? state.agents[0];
+function tbParaHtml() {
+	const d = tbDestino();
+	if (!d) return "";
+	const lista = tbParaAbierto ? `<div class="tb2-para__lista" role="listbox" aria-label="A quién le escribís">${state.agents.map(a => `<button type="button" role="option" aria-selected="${a.id === d.id}" data-tb-para-elegir="${a.id}">${avatar(a, "xs")}<span><b>${esc(a.name)}</b><small>${esc(a.department ? nombre(a.department) : "Tu mano derecha")}</small></span>${a.id === d.id ? ic("check") : ""}</button>`).join("")}</div>` : "";
+	return `<div class="tb2-para"><button type="button" class="tb2-para__btn" data-tb-para aria-haspopup="listbox" aria-expanded="${tbParaAbierto}" title="Cambiar a quién le escribís">${avatar(d, "xs")}<b>${esc(d.name)}</b>${ic("chevron-down")}</button><span class="tb2-coma" aria-hidden="true">,</span>${lista}</div>`;
+}
+document.addEventListener("click", e => {
+	if (e.target.closest("[data-tb-para]")) {
+		tbParaAbierto = !tbParaAbierto;
+		lastBody = "";
+		return renderBody();
+	}
+	const elegido = e.target.closest("[data-tb-para-elegir]");
+	if (elegido) {
+		tbPara = elegido.dataset.tbParaElegir;
+		store("tbPara", tbPara);
+		tbParaAbierto = false;
+		lastBody = "";
+		renderBody();
+		document.getElementById("tb-input")?.focus();
+		return;
+	}
+	if (tbParaAbierto && !e.target.closest(".tb2-para")) {
+		tbParaAbierto = false;
+		lastBody = "";
+		renderBody();
+	}
+});
+
+/** El inicio, con el diseño del Classroom (estilos .tb2 en atv.css): el saludo, el marcador del día y los bloques.
+ * Lo que espera tu OK va primero y más grande; al lado, quién está trabajando ahora y las métricas que te proponen
+ * (otro tipo de pedido, con otro diseño); abajo, lo que se entregó hoy y lo que viene. Al pie, el pedido al equipo.
  * No tiene animaciones de entrada: el tablero se vuelve a pintar entero cada pocos segundos. */
 function tableroHtml() {
 	const okReq = [...pending()].sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""));
 	const okKpi = proposed();
 	const enCurso = state.agents.filter(a => a.busy || a.queued).sort((a, b) => Number(Boolean(b.busy)) - Number(Boolean(a.busy)));
-	const entregas = state.requests.filter(r => r.kind === "entrega" && hoyEs(r.at)).sort((a, b) => b.at.localeCompare(a.at));
+	const entregas = state.requests.filter(r => r.kind === "entrega" && hoyEs(r.at) && r.state !== "reemplazado").sort((a, b) => b.at.localeCompare(a.at));
 	const rutinas = (extra.routines ?? []).filter(r => r.prendida).map(r => ({ r, cuando: proximaVez(r) })).filter(x => x.cuando).sort((a, b) => a.cuando - b.cuando);
-	const totalOk = okReq.length + okKpi.length;
 	const ahora = new Date();
-	const fecha = ahora.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 	const h = ahora.getHours();
 	const saludo = h < 6 || h >= 20 ? "Buenas noches" : h < 13 ? "Buen día" : "Buenas tardes";
 	const primerNombre = (state.settings?.owner?.name ?? "").split(/\s+/)[0];
@@ -253,14 +597,15 @@ function tableroHtml() {
 			<div class="tb2-bots"><button class="b go" data-approve="${r.id}">Aprobar</button><button class="b" data-ver-pedido="${r.id}">Ver</button></div>
 		</article>`;
 	};
-	const kpiCard = k => `<article class="tb2-pide"><span class="tb2-tipo">Nuevo KPI</span><b class="tb2-pide__t">${esc(k.name)}</b><span class="tb2-quien"><span>${esc(k.proposedBy)} · meta ${esc(k.target)}</span></span><div class="tb2-bots"><button class="b" data-ver-pedido="${k.id}">Ver</button></div></article>`;
+	// Una métrica propuesta no es un pedido de trabajo: se ve como una ficha de número, con la meta en grande.
+	const kpiCard = k => `<article class="tb2-kpi"><div class="tb2-kpi__meta"><small>Meta</small><b>${esc(k.target)}</b></div><div class="tb2-kpi__txt"><b>${esc(k.name)}</b><small>La propone ${esc(k.proposedBy)}${k.command ? ` · se mide: ${esc(k.command)}` : ""}</small><div class="tb2-kpi__bots"><button class="b go" data-kpi-ok="${k.id}">Sumar la métrica</button><button class="b" data-kpi-no="${k.id}">Descartar</button></div></div></article>`;
 	const cursoCard = a => {
 		const orden = ordenDe(a);
-		const paso = a.busy ? (a.ahora ? pasoLegible(a.ahora) : "Trabajando") : "En fila, arranca en un rato";
+		const paso = a.busy ? (a.ahora ? pasoLegible(a.ahora) : "Trabajando") : "Arranca cuando se libere";
 		const area = a.department ? nombre(a.department) : ROLE_NAMES[a.role] ?? "";
-		return `<button class="tb2-curso ${a.busy ? "is-trabaja" : ""}" data-agent="${a.id}">
-			<span class="tb2-curso__av">${avatar(a, "sm")}<i aria-hidden="true"></i></span>
-			<span class="tb2-curso__txt"><b>${esc(a.name)}<small>${esc(area)}</small></b>${orden ? `<span class="tb2-curso__tarea">${esc(orden.text.split(/\n/)[0].trim().slice(0, 110))}</span>` : ""}<span class="tb2-curso__paso"><i class="${a.busy ? "tbgira" : "tbespera"}" aria-hidden="true"></i><span class="${a.busy ? "tbrespira" : ""}">${esc(paso)}</span>${orden ? `<small>· ${lasted(orden.at, ahora)}</small>` : ""}</span></span>
+		return `<button class="tb2-curso ${a.busy ? "is-trabaja" : "is-fila"}" data-agent="${a.id}">
+			${avatar(a, "sm")}
+			<span class="tb2-curso__txt"><span class="tb2-curso__cab"><b>${esc(a.name)}<small>${esc(area)}</small></b><span class="tb2-ag ${a.busy ? "is-trabaja" : "is-fila"}"><i aria-hidden="true"></i>${a.busy ? "Trabajando" : "En fila"}${a.busy && orden ? ` · ${lasted(orden.at, ahora)}` : ""}</span></span>${orden ? `<span class="tb2-curso__tarea">${esc(orden.text.split(/\n/)[0].trim().slice(0, 110))}</span>` : ""}<span class="tb2-curso__paso">${esc(paso)}</span></span>
 		</button>`;
 	};
 	const extension = ruta => (/\.([a-z0-9]+)$/i.exec(ruta ?? "")?.[1] ?? "").toUpperCase();
@@ -275,34 +620,36 @@ function tableroHtml() {
 	const vacio = (titulo, texto) => `<div class="tb2-vacio"><b>${titulo}</b><span>${texto}</span></div>`;
 	const sec = (clave, titulo, n, cuerpo, extraCab = "") => `<section class="tb2-sec tb2-${clave}" aria-label="${titulo}"><header class="tb2-sec__cab"><h2>${titulo}</h2>${n ? `<span class="tb2-n">${n}</span>` : ""}<span class="sp"></span>${extraCab}</header>${cuerpo}</section>`;
 	const cifra = (n, texto, cls = "") => `<div class="tb2-cifra ${cls}"><b>${n}</b><small>${texto}</small></div>`;
+	const d = tbDestino();
 	return `<div class="tablero tb2">
 	<header class="tb2-cab">
-		<div class="tb2-titulo"><p class="tb2-ojo">${fecha[0].toUpperCase()}${fecha.slice(1)}${empresa ? `<span class="tb2-ojo__emp"> · ${esc(empresa)}</span>` : ""}</p><h1>${saludo}${primerNombre ? `, ${esc(primerNombre)}` : ""}.<br><em>Esto es lo de tu equipo hoy.</em></h1></div>
-		<div class="seg tbseg"><button class="${view.type === "tablero" ? "on" : ""}" data-view="tablero">Hoy</button><button class="${view.type === "historial" ? "on" : ""}" data-view="historial">Programado e historial</button></div>
+		<div class="tb2-titulo"><p class="tb2-ojo">${fechaLarga(ahora)}${empresa ? `<span class="tb2-ojo__emp"> · ${esc(empresa)}</span>` : ""}</p><h1>${saludo}${primerNombre ? `, ${esc(primerNombre)}` : ""}.<br><em>Esto es lo de tu equipo hoy.</em></h1></div>
+		${tbCapsula()}
 	</header>
 	<div class="tb2-marcador" role="list">
-		${cifra(totalOk, totalOk === 1 ? "espera tu OK" : "esperan tu OK", totalOk ? "is-pide" : "")}
+		${cifra(okReq.length, okReq.length === 1 ? "espera tu OK" : "esperan tu OK", okReq.length ? "is-pide" : "")}
 		${cifra(enCurso.filter(a => a.busy).length, "trabajando ahora", enCurso.some(a => a.busy) ? "is-vivo" : "")}
 		${cifra(entregas.length, entregas.length === 1 ? "entrega hoy" : "entregas hoy")}
 		${cifra(agenda.length, "en la agenda")}
 	</div>
 	<div class="tb2-grilla">
 		<div class="tb2-col">
-		${sec("ok", "Esperan tu OK", totalOk, totalOk ? `<div class="tb2-lista">${okReq.map(okCard).join("")}${okKpi.map(kpiCard).join("")}</div>` : vacio("Nada espera tu OK", "Cuando alguien del equipo te pida algo, aparece acá."), totalOk ? `<button class="tb2-link" data-view="bandeja">Ir a la Bandeja ${ic("chevron-right")}</button>` : "")}
-		${sec("hecho", "Entregado hoy", entregas.length, entregas.length ? `<div class="tb2-entregas">${entregas.slice(0, 6).map(entregaCard).join("")}</div>${entregas.length > 6 ? `<button class="tb2-link" data-view="historial">Ver las otras ${entregas.length - 6} ${ic("chevron-right")}</button>` : ""}` : vacio("Todavía no hay entregas hoy", "Lo que el equipo termine va a quedar acá, listo para abrir."))}
+		${sec("ok", "Esperan tu OK", okReq.length, okReq.length ? `<div class="tb2-lista">${okReq.map(okCard).join("")}</div>` : vacio("Nada espera tu OK", "Cuando alguien del equipo te pida algo, aparece acá."), okReq.length ? `<button class="tb2-link" data-view="bandeja">Ir a la Bandeja ${ic("chevron-right")}</button>` : "")}
+		${sec("hecho", "Entregado hoy", entregas.length, entregas.length ? `<div class="tb2-entregas">${entregas.slice(0, 6).map(entregaCard).join("")}</div>${entregas.length > 6 ? `<button class="tb2-link" data-view="historial" data-hist-tab="hist">Ver las otras ${entregas.length - 6} ${ic("chevron-right")}</button>` : ""}` : vacio("Todavía no hay entregas hoy", "Lo que el equipo termine va a quedar acá, listo para abrir."))}
 		</div><div class="tb2-col">
-		${sec("vivo", "Trabajando ahora", enCurso.length, enCurso.length ? `<div class="tb2-lista">${enCurso.map(cursoCard).join("")}</div>` : vacio("Nadie está trabajando", "Pedile algo al Asistente y lo reparte con el equipo."), `<span class="tb2-envivo ${enCurso.some(a => a.busy) ? "on" : ""}"><i></i>En vivo</span>`)}
-		${sec("prog", "Lo que viene", agenda.length, agenda.length ? `<ol class="tb2-agenda">${agenda.slice(0, 6).map(x => `<li><span class="tb2-agenda__cuando">${esc(x.cuando)}</span><span class="tb2-agenda__txt"><b>${esc(x.nombre)}</b><small>${esc(x.quien)}</small></span></li>`).join("")}</ol>${agenda.length > 6 ? `<button class="tb2-link" data-view="historial">Ver todo lo programado ${ic("chevron-right")}</button>` : ""}` : vacio("No hay nada programado", "Las rutinas se prenden en Rutinas."))}
+		${sec("vivo", "Trabajando ahora", enCurso.length, enCurso.length ? `<div class="tb2-lista">${enCurso.map(cursoCard).join("")}</div>` : vacio("Nadie está trabajando", `Escribile a ${esc(d?.name ?? "tu equipo")} arriba y lo pone en marcha.`))}
+		${okKpi.length ? sec("kpis", "Métricas propuestas", okKpi.length, `<p class="tb2-sec__nota">Tu equipo quiere medir esto todos los días. No es trabajo para aprobar: es un número para seguir.</p><div class="tb2-lista">${okKpi.map(kpiCard).join("")}</div>`) : ""}
+		${sec("prog", "Lo que viene", agenda.length, agenda.length ? `<ol class="tb2-agenda">${agenda.slice(0, 6).map(x => `<li><span class="tb2-agenda__cuando">${esc(x.cuando)}</span><span class="tb2-agenda__txt"><b>${esc(x.nombre)}</b><small>${esc(x.quien)}</small></span></li>`).join("")}</ol>` : vacio("No hay nada programado", "Las rutinas se prenden en Rutinas."), `<button class="tb2-link" data-view="historial" data-hist-tab="prog">Ver todo ${ic("chevron-right")}</button>`)}
 		</div>
 	</div>
-	<form class="tbpedido" id="tb-form"><span class="tbpara">Para: Asistente</span><label class="tbcampo"><span class="tbvh">Pedido para tu equipo</span><textarea id="tb-input" rows="1" autocomplete="off" placeholder="Pedile algo a tu equipo…"></textarea></label>${botonVoz("tb-input")}<button class="send" aria-label="Enviar">${ic("arrow-up")}</button></form>
+	<form class="tbpedido tb2-pedido" id="tb-form">${tbParaHtml()}<label class="tbcampo"><span class="tbvh">Pedido para ${esc(d?.name ?? "tu equipo")}</span><textarea id="tb-input" rows="1" autocomplete="off" placeholder="${d?.role === "asistente" && !sbCelular.matches ? "armame el reporte de la semana para mañana…" : "¿qué necesitás?"}"></textarea></label>${botonVoz("tb-input")}<button class="send" aria-label="Enviar">${ic("arrow-up")}</button></form>
 </div>`;
 }
 
 function headerFor(a) {
 	const asks = pending().some(r => r.agentId === a.id);
 	const pill = a.busy ? `<span class="pill">Trabajando</span>` : asks ? `<span class="pill wait">Espera tu OK</span>` : `<span class="pill idle">${a.queued ? "En fila" : a.asleep ? "Dormido" : "Disponible"}</span>`;
-	return `<div class="head">${avatar(a, "hd")}<h1>${esc(a.name)}</h1><span class="sp"></span>${pill}<button class="ic" data-agent-files data-tip="Archivos" aria-label="Archivos">${ic("folder")}</button><button class="ic" data-agent-log data-tip="Actividad" aria-label="Actividad">${ic("clock")}</button><button class="ic" data-agent-card data-tip="Ficha" aria-label="Ficha">${ic("ellipsis")}</button></div>`;
+	return `<div class="head">${avatar(a, "hd")}<h1>${esc(a.name)}</h1><span class="sp"></span>${pill}${agInfoBotones()}</div>`;
 }
 
 let noticesOn = readPref("avisos", false);

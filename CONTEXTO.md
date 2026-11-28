@@ -333,3 +333,44 @@ El de Classroom está en `ATV-CLASSROOM/.claude/CONTEXTO.md`, y ese repo queda q
 - **Git local**: se inicializó un repo solo local en `ATV-LEVERAGE` para ver los cambios (`git diff c718430`),
   y hay una copia de la `ui/` original en `D:\Landings - Copy\ATV\ui-original-leverage-backup`.
   Para entregar se devuelven los archivos de `ui/` que cambiaron: `git diff --name-only c718430 -- ui`.
+- **2026-11-28 · Tu equipo, segunda vuelta** (pedido "Modificaciones del sistema — Tu equipo"):
+  - **Arriba a la derecha, como en el Classroom** (`renderArriba`, `perfilHtml` y `migasHtml` en 01; `#lv-top` en `index.html`):
+    a la izquierda, las migas (Tu equipo › Bandeja › Sofía); a la derecha, el piloto automático, el modo claro/oscuro
+    (dos íconos) y tu avatar, que abre el menú (Mi cuenta, Configuración, Tu navegador y Cerrar o iniciar sesión de Claude).
+    La barra lateral quedó solo para navegar: se sacó el pie (piloto, navegador, modo y configuración).
+    En el celular, el avatar va en la barra de arriba y el menú suma el piloto y el modo.
+    - "Cerrar sesión de Claude" llama a `POST /claude/salir`. **Esa ruta no existe en el servidor real** (no se encontró
+      cómo se cierra la sesión): si falla, avisa que se quite la cuenta en Mi cuenta. ATV tiene que confirmar la ruta.
+  - **Tablero** (`tableroHtml` en 01):
+    - "Trabajando ahora": sin aros que giran; una pastilla verde "Trabajando · 12 min" (o "En fila") y lo que está haciendo debajo, con un filo verde.
+    - La caja de abajo es una frase: "**Asistente**, …". El nombre es un botón para elegir a quién le escribís (`tbPara`, se guarda).
+      Lo que mandás va a `POST /agents/:id/order` y se abre ese chat en la Bandeja, donde se ve tu mensaje y la respuesta.
+      Antes iba al chat de trabajo y en el mock no llegaba (el mock no atendía `/order`).
+    - Las **métricas propuestas** (ej. "Llamadas agendadas por semana") ya no se mezclan con "Esperan tu OK": van aparte, en
+      otro bloque y con otro diseño (la meta en grande, "Sumar la métrica" / "Descartar").
+    - La cápsula de arriba ahora tiene tres: **Hoy · Programados · Historial**.
+  - **Programados** (solo lo que viene): cada vez que corre una rutina en los próximos 7 días, por día, con **Hoy** primero y
+    marcado. Cada una se puede **pausar**; las pausadas quedan al costado con **Reanudar** (usa `POST /routines`). Al costado,
+    lo que los agentes se anotaron para revisar.
+  - **Historial** (solo lo que pasó): por día, del más nuevo al más viejo, con filtros **Hoy, Ayer, Últimos 7 días, Últimos 30
+    días y Todo** (con la cantidad en cada uno). Junta pedidos, entregas, lo que decidiste (y lo que aprobó el piloto), reportes
+    de #ceo, KPIs, lo que le pediste a cada uno y las rutinas que corrieron.
+    - Lee dos datos nuevos si vienen: `requests[].decididoAt` (cuándo se decidió) y `state.corridas` (las rutinas que corrieron).
+      **El servidor real puede no mandarlos** (⚠ sin verificar): sin ellos, el historial muestra igual lo demás.
+  - **Bandeja y chat** (`renderPanel` en 01): se sacó el panel fijo de la derecha ("Último pedido", "Archivos"). Los íconos de
+    arriba del chat (**Archivos, Actividad, Ficha**) abren un panel al costado **sin cerrar el chat**, también en la Bandeja.
+    La ficha se edita y guarda ahí mismo (`PATCH /agents/:id`). En tablet ancha el panel va al lado y se guarda la lista;
+    en tablet angosta y celular sube desde abajo. La Bandeja en tablet angosta pasa a "lista o chat", como el celular.
+  - **Equipo** (`equipoHtml` en 04): se cambió la constelación por un organigrama limpio: vos → el Asistente, y cada área como
+    una bandeja con pestaña, con su capitán y su gente. El estado es un punto (y la palabra en los capitanes); al pie de cada área,
+    la última orden que se pasaron adentro. Los números de arriba filtran por estado. A la derecha la credencial, del mismo alto,
+    con lo que espera tu OK (Aprobar/Ver) y lo último que hizo. Abajo, de borde a borde, **"Lo último que se dijeron"** en fichas.
+  - **Roadmap** (`roadmapHtml` en 02): se cambió el sendero que se arrastraba por un **riel de hitos** (cada uno con su estado y
+    su barrita, el elegido en tinta) y, abajo, el hito entero: tareas por partes, y al costado el punto de encuentro, lo que se
+    logró, las entregas, quiénes trabajan y las notas. Flechas para pasar de hito. Las acciones son las mismas (`data-rm-*`).
+    Lee campos opcionales nuevos del roadmap: `meta`, y en cada paso `inicio`, `resultado` y `notas`.
+  - **Mock** (no se entrega): `mock/equipo.mjs` simula al equipo: pedirle algo a un agente (el Asistente lo reparte por tema y el
+    agente entrega), aprobar / pedir cambios / rechazar, KPIs, editar o sacar un agente, todas las rutas del roadmap, #ceo,
+    rutinas y la sesión de Claude. **Los datos se guardan en `mock/.guardado.json`** (no va a git): sobreviven a reiniciar el
+    server. Para volver a cero: borrar ese archivo o `POST /mock/reiniciar`. El roadmap de prueba tiene 2 hitos completos.
+  - Probado en 1440, 1024, tablet (768) y celular (375), claro y oscuro, sin errores de consola ni desborde horizontal.
