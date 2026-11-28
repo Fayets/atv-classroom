@@ -114,6 +114,8 @@ export function vista() {
     secuencias: [
       sec('s1', 600, 'Caso de Nati: de 0 a 12 alumnas', 'BOFU', 'No sé cómo vender online', 'Caso de alumno', 'Escribí PROGRAMA', [2100, 1840, 1610, 1390, 1220], R(21, 15, 9, 4, 3, 2, 8), 'ok', 'Funcionó', 'Trajo 21 chats y 8 calificados: la mejor de la semana.'),
       sec('s2', 2100, 'Un día en mi estudio', 'TOFU', 'No tengo tiempo', 'Historia personal', '', [2600, 2010, 1500], R(4, 2, 1, 0, 0, 0, 1), 'neutro', 'Normal', 'Mucha vista y pocos chats: no pedía nada.'),
+      // La semana que viene: una secuencia armándose, con pasos pendientes, programados y uno ya publicado.
+      { ...sec('s4', 120, 'Semana de lanzamiento: 5 días hacia la llamada', 'BOFU', 'Miedo a mostrarme', 'Caso de alumno', 'Agendá tu llamada', [1650, 0, 0, 0, 0], R(3, 2, 1, 0, 0, 0, 1), 'neutro', 'En curso', 'Salió la primera historia; las otras cuatro se van armando.'), plan: [{ estado: 'publicada' }, { estado: 'programada', fecha: new Date(Date.now() + 20 * 3600_000).toISOString() }, { estado: 'programada', fecha: new Date(Date.now() + 44 * 3600_000).toISOString() }, { estado: 'en_preparacion' }, { estado: 'pendiente' }], pasos: ['El caso de Nati, antes', 'Qué cambió en 90 días', 'El miedo a mostrarse', 'Cómo es la llamada', 'Agendá tu llamada'] },
       sec('s3', 4300, 'El error que más veo', 'MOFU', 'Miedo a mostrarme', 'Error común', 'Respondé GUIA', [1900, 1700, 1480, 1300], R(12, 8, 4, 2, 1, 1, 4), 'ok', 'Funcionó', 'Buena retención: llegó el 68 % hasta el pedido.'),
     ],
     ideas: [

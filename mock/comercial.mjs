@@ -146,8 +146,73 @@ export function crearComercial({ st, equipo }) {
       if (usuario) anotar(usuario, `Se le pidió a ${setter.name} revisar el seteo`)
       return { ok: true, agente: setter.id }
     }
+    return postContenido(p, c)
+  }
+
+  // ---------- Contenido: etiquetas corregidas, estado de cada paso de una secuencia y lo que se le pide al equipo ----------
+  st.contenido ??= { etiquetas: {}, pasos: {}, leido: false }
+  const ct = st.contenido
+  function vista() {
+    const d = ventas.vista()
+    for (const x of [...d.secuencias, ...d.ideas]) {
+      const e = ct.etiquetas[x.id] ?? x.versiones?.map((y) => ct.etiquetas[y.id]).find(Boolean)
+      if (e) x.etiqueta = { ...x.etiqueta, ...e }
+    }
+    for (const s of d.secuencias) {
+      s.historias.forEach((h, i) => {
+        h.estado = s.plan?.[i]?.estado ?? 'publicada'
+        if (s.plan?.[i]?.fecha) h.fecha = s.plan[i].fecha
+        if (s.pasos?.[i]) h.texto = s.pasos[i]
+        Object.assign(h, ct.pasos[`${s.id}:${i}`] ?? {})
+      })
+    }
+    if (ct.leido) d.sinLeer = 0
+    return d
+  }
+  const persona = (rol, dep) => st.agents.find((a) => a.role === rol) ?? st.agents.find((a) => a.department === dep)
+  function postContenido(p, c) {
+    if (p === '/ig/etiqueta') {
+      for (const pieza of c.piezas ?? []) if (pieza.id) ct.etiquetas[pieza.id] = { ...(ct.etiquetas[pieza.id] ?? {}), ...Object.fromEntries(Object.entries(pieza).filter(([k, val]) => k !== 'id' && val !== undefined)) }
+      return { ok: true }
+    }
+    if (p === '/contenido/leer') {
+      const a = persona('analista', 'marketing')
+      if (a) equipo.pedir(a.id, 'Leé las piezas de contenido que faltan y etiquetalas: etapa, dolor, ángulo y pedido.')
+      setTimeout(() => {
+        ct.leido = true
+        equipo.guardar?.()
+      }, 6000)
+      return { ok: true, nombre: a?.name ?? 'El Analista' }
+    }
+    if (p === '/contenido/versiones') {
+      const g = persona('guionista', 'contenido')
+      if (!g) return { error: 'No hay guionista en el equipo' }
+      equipo.pedir(g.id, `Escribí 3 versiones nuevas de «${c.titulo ?? 'esta pieza'}» (${c.que ?? ''}).`)
+      return { ok: true, nombre: g.name }
+    }
+    // Un paso de una secuencia: pedírselo al Guionista, programarlo, publicarlo o volverlo a pendiente.
+    if (p === '/ig/contenido/paso') {
+      const s = ventas.vista().secuencias.find((x) => x.id === c.secuencia)
+      if (!s || !s.historias[c.paso]) return { error: 'No existe ese paso' }
+      const k = `${s.id}:${c.paso}`
+      if (c.accion === 'pedir') {
+        const g = persona('guionista', 'contenido')
+        if (g) equipo.pedir(g.id, `Armá la historia ${Number(c.paso) + 1} de «${s.etiqueta.titulo}»: ${s.pasos?.[c.paso] ?? ''}.`)
+        ct.pasos[k] = { estado: 'en_preparacion' }
+      } else if (c.accion === 'programar') ct.pasos[k] = { estado: 'programada', fecha: new Date(Date.now() + 24 * 3600_000).toISOString() }
+      else if (c.accion === 'publicar') ct.pasos[k] = { estado: 'publicada', fecha: ahoraIso(), vistas: Math.round((s.historias[0].vistas || 1500) * (0.9 - Number(c.paso) * 0.08)) }
+      else if (c.accion === 'pendiente') ct.pasos[k] = { estado: 'pendiente', vistas: 0 }
+      else return { error: 'Acción desconocida' }
+      return { ok: true }
+    }
     return undefined
   }
 
-  return { get, post }
+  const getBase = get
+  function getTodo(p, url) {
+    if (p === '/ig/vista') return vista()
+    return getBase(p, url)
+  }
+
+  return { get: getTodo, post }
 }

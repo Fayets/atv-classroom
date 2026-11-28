@@ -185,7 +185,7 @@ function contenidoHtml() {
 	const falta = d.sinLeer ? `<div class="ctn-falta"><span>${ctn.pidio ? `${esc(ctn.pidio)} está leyendo ${ctnPl(d.sinLeer, "pieza", "piezas")}. Se completa solo.` : `${d.sinLeer === 1 ? "Falta leer 1 pieza" : `Faltan leer ${num(d.sinLeer)} piezas`} para saber qué dolor, ángulo y pedido tienen.`}</span>${ctn.pidio ? "" : `<button class="b p" data-ctn-leer>Pedírselo al Analista</button>`}</div>` : "";
 	const ve = d.seVe.length ? `<aside class="ctn-ve"><h2>Lo que se ve</h2>${d.seVe.map(v => `<div><b>${esc(v.numero)}</b><p>${esc(v.texto)}<small>${esc(v.detalle)}</small></p></div>`).join("")}</aside>` : "";
 	const abierto = ctnTodo().find(x => x.id === ctn.abierto);
-	return `<div class="ctn"><div class="ctn-todo"><header class="vt-cab ctn-cabeza"><span class="vt-tit"><b>Contenido</b><small>@${esc(state.instagram?.username ?? "")} · lo que trajo cada historia y cada reel</small></span></header>${barra}${ctn.error ? `<div class="ctn-aviso fila">${esc(ctn.error)}</div>` : ""}${ctnVentas()}${falta}<div class="ctn-alto ${ve ? "" : "solo"}"><div class="ctn-mapa">${ctnMapa()}</div>${ve}</div>${ctnSecuencias()}${ctnReels()}</div><div class="ctn-velo ${abierto ? "on" : ""}" data-ctn-cerrar></div><aside class="ctn-drawer ${abierto ? "on" : ""}" ${abierto ? `role="dialog" aria-label="${esc(ctnTitulo(abierto))}"` : ""}>${abierto ? ctnDetalle(abierto) : ""}</aside></div>`;
+	return `<div class="ctn"><div class="ctn-todo"><header class="vt-cab ctn-cabeza"><span class="vt-tit"><b>Contenido</b><small>@${esc(state.instagram?.username ?? "")} · lo que trajo cada historia y cada reel</small></span></header>${barra}${ctn.error ? `<div class="ctn-aviso fila">${esc(ctn.error)}</div>` : ""}<section class="ctn-n ctn-res2" aria-label="Resumen"><header class="ctn-n__cab"><h2>Resumen</h2><small>Lo que trajo tu contenido en el período. Tocalo para verlo en Ventas.</small></header>${ctnVentas()}${falta}${ve}</section>${ctnEmbudoEstrategia()}${ctnSecuencias2()}${ctnReels()}</div><div class="ctn-velo ${abierto ? "on" : ""}" data-ctn-cerrar></div><aside class="ctn-drawer ${abierto ? "on" : ""}" ${abierto ? `role="dialog" aria-label="${esc(ctnTitulo(abierto))}"` : ""}>${abierto ? ctnDetalle(abierto) : ""}</aside></div>`;
 }
 
 /** Abre la ficha de una pieza desde otra vista (por ejemplo, "Qué lo trajo" en un contacto). */
@@ -276,4 +276,106 @@ document.addEventListener("keydown", e => {
 		Object.assign(ctn, { abierto: null, editando: false, aviso: "" });
 		renderBody();
 	}
+});
+
+// ---------- Contenido en tres niveles: resumen → embudo de contenido (TOFU, MOFU, BOFU) → secuencias ----------
+// Lo de arriba se entiende en segundos; cada etapa del embudo se toca para ver sus piezas, y cada secuencia se abre
+// para ver sus pasos en orden (con su estado: pendiente, en preparación, programada o publicada) y lo que se puede hacer.
+const CTN_NOMBRE = {
+	TOFU: ["Atracción y descubrimiento", "Que te conozca gente nueva: llega lejos, todavía no vende."],
+	MOFU: ["Consideración y confianza", "Que te crean: casos, errores comunes y cómo trabajás."],
+	BOFU: ["Conversión y venta", "Que te escriban: pide la llamada o la compra."],
+};
+let ctnSecAbierta = stored("ctnSec", null);
+const ctnPiezas = x => x.versiones?.length ?? 1;
+const ctnVistas = x => (x.k === "s" ? x.historias.reduce((t, h) => t + (h.vistas || 0), 0) : x.vistas);
+
+function ctnEmbudoEstrategia() {
+	const leidas = ctnTodo().filter(x => x.etiqueta?.etapa);
+	const total = leidas.reduce((t, x) => t + ctnPiezas(x), 0) || 1;
+	const etapas = CTN_ETAPAS.map(e => {
+		const xs = leidas.filter(x => x.etiqueta.etapa === e);
+		const suma = k => xs.reduce((t, x) => t + (x.r?.[k] ?? 0), 0);
+		return { e, xs, piezas: xs.reduce((t, x) => t + ctnPiezas(x), 0), vistas: xs.reduce((t, x) => t + ctnVistas(x), 0), chats: suma("chats"), calif: suma("calificados"), cierres: suma("cierres") };
+	});
+	// Desequilibrios: una etapa con muy poco contenido, o un dolor que no tiene nada que venda.
+	const avisos = etapas.filter(x => x.piezas / total < 0.2).map(x => `Hay poco contenido de <b>${CTN_NOMBRE[x.e][0].toLowerCase()}</b> (${x.e}): ${x.piezas ? `${Math.round((x.piezas / total) * 100)} %` : "nada"} de lo publicado.`);
+	for (const dolor of ctn.datos.dolores ?? []) if (!leidas.some(x => x.etiqueta.etapa === "BOFU" && ctnDolor(x).toLowerCase() === dolor.toLowerCase())) avisos.push(`«${esc(dolor)}» no tiene contenido que pida la llamada (BOFU).`);
+	const filas = etapas.map((x, i) => {
+		const on = ctn.etapa === x.e;
+		return `<button class="ctn-et2 n${i} ${on ? "on" : ""} ${ctn.etapa && !on ? "tenue" : ""}" data-ctn-etapa="${on ? "" : x.e}" aria-pressed="${on}">
+			<span class="ctn-et2__q"><span class="ctn-et2__cod">${ctnEmbudo(x.e)}${x.e}</span><b>${CTN_NOMBRE[x.e][0]}</b><small>${CTN_NOMBRE[x.e][1]}</small></span>
+			<span class="ctn-et2__num"><span><b>${x.piezas}</b><small>${Math.round((x.piezas / total) * 100)} % de las piezas</small></span><span><b>${ctnMil(x.vistas)}</b><small>vistas</small></span><span><b>${num(x.chats)}</b><small>chats</small></span><span><b>${num(x.calif)}</b><small>${ctn.datos.seCalifica ? "calificados" : "pitches"}</small></span></span>
+		</button>`;
+	}).join(`<span class="ctn-et2__flecha" aria-hidden="true"></span>`);
+	const sel = etapas.find(x => x.e === ctn.etapa);
+	const detalle = sel ? `<div class="ctn-et2__det"><header><b>${CTN_NOMBRE[sel.e][0]}</b><small>${ctnPl(sel.xs.length, "pieza", "piezas")} · ${sel.chats ? `${(sel.chats / Math.max(1, sel.piezas)).toFixed(1).replace(".", ",")} chats por pieza` : "todavía sin chats"}${sel.cierres ? ` · ${ctnPl(sel.cierres, "cierre", "cierres")}` : ""}</small><button class="lnk" data-ctn-etapa="">Ver todas las etapas</button></header>${sel.xs.length ? `<div class="ctn-cel">${sel.xs.map(ctnFicha).join("")}</div>` : `<p class="ctn-nada">Todavía no hay piezas en esta etapa.</p>`}</div>` : "";
+	return `<section class="ctn-n ctn-embudo2" aria-label="Distribución del contenido">
+		<header class="ctn-n__cab"><h2>Tu embudo de contenido</h2><small>Una sola estrategia en tres etapas: atraer, generar confianza y vender. Tocá una para ver sus piezas.</small></header>
+		<div class="ctn-reparto" aria-hidden="true">${etapas.map((x, i) => `<i class="n${i}" style="flex:${Math.max(x.piezas, 0.15)}"><span>${x.e} ${Math.round((x.piezas / total) * 100)} %</span></i>`).join("")}</div>
+		<div class="ctn-et2s">${filas}</div>
+		${avisos.length ? `<ul class="ctn-desq">${avisos.map(a => `<li>${a}</li>`).join("")}</ul>` : ""}
+		${detalle}
+		<details class="ctn-pordolor"><summary>Ver el contenido por dolor y etapa</summary><div class="ctn-mapa">${ctnMapa()}</div></details>
+	</section>`;
+}
+
+const CTN_ESTADO = { pendiente: ["Pendiente", ""], en_preparacion: ["En preparación", "prep"], programada: ["Programada", "prog"], publicada: ["Publicada", "pub"] };
+function ctnProximo(x) {
+	const h = x.historias;
+	const i = h.findIndex(y => y.estado === "pendiente");
+	if (i >= 0) return `Armar la historia ${i + 1}${h[i].texto ? `: «${h[i].texto}»` : ""}`;
+	const j = h.findIndex(y => y.estado === "en_preparacion");
+	if (j >= 0) return `El Guionista arma la historia ${j + 1}; después, programarla`;
+	const k = h.find(y => y.estado === "programada");
+	if (k) return `Sale ${k.fecha ? `el ${ctnDia(k.fecha)} a las ${ctnHora(k.fecha)}` : "pronto"}`;
+	if (!x.etiqueta?.pedido) return "Sumarle un pedido al final";
+	return x.lectura.tono === "ok" ? "Repetirla con otro caso" : x.lectura.tono === "mal" ? "Cambiar el gancho de la primera historia" : "Probar otro gancho";
+}
+function ctnSecuencias2() {
+	const todas = ctn.datos.secuencias;
+	const lista = ctnNuevas(todas.filter(ctnPasa));
+	const fila = x => {
+		const h = x.historias;
+		const pub = h.filter(y => y.estado === "publicada").length;
+		const abierta = ctnSecAbierta === x.id;
+		const e = x.etiqueta ?? {};
+		const pasos = abierta ? `<ol class="ctn-pasos">${h.map((y, i) => {
+			const [nombre, cls] = CTN_ESTADO[y.estado] ?? CTN_ESTADO.publicada;
+			const clave = `${x.id}:${i}`;
+			const acc = { pendiente: `<button class="b" data-ctn-paso="${clave}:pedir">Pedírsela al Guionista</button><button class="b" data-ctn-paso="${clave}:programar">Programar</button>`, en_preparacion: `<button class="b" data-ctn-paso="${clave}:programar">Programar</button>`, programada: `<button class="b go" data-ctn-paso="${clave}:publicar">Publicar ahora</button><button class="lnk" data-ctn-paso="${clave}:pendiente">Volver a pendiente</button>`, publicada: "" }[y.estado ?? "publicada"];
+			return `<li class="is-${cls || "pend"}"><span class="ctn-paso__n">${i + 1}</span><span class="ctn-paso__im">${y.estado === "publicada" && y.imagen ? `<img src="${esc(ctnImg(y.imagen))}" alt="" loading="lazy">` : ""}</span><span class="ctn-paso__q"><b>${esc(y.texto || `Historia ${i + 1}`)}</b><small><span class="ctn-est ${cls}">${nombre}</span>${y.estado === "publicada" ? ` · ${num(y.vistas)} vistas` : y.estado === "programada" && y.fecha ? ` · ${ctnDia(y.fecha)} ${ctnHora(y.fecha)}` : ""}${e.pedido && e.pedido_en === i + 1 ? ` · <em>acá pide «${esc(e.pedido)}»</em>` : ""}</small></span><span class="ctn-paso__acc">${acc}</span></li>`;
+		}).join("")}</ol><div class="ctn-sq__pie">${ctnResultado(x)}<p>${esc(x.lectura.porque)}</p><button class="b" data-ctn-abrir="${esc(x.id)}">Ver el detalle completo</button></div>` : "";
+		return `<article class="ctn-sq ${abierta ? "on" : ""}"><button class="ctn-sq__cab" data-ctn-sec="${esc(x.id)}" aria-expanded="${abierta}">
+			<span class="ctn-sq__q"><b>${esc(ctnTitulo(x))}</b><small>${e.etapa ? `${CTN_NOMBRE[e.etapa][0]}${e.dolor ? ` · ${esc(e.dolor)}` : ""}` : "Sin leer todavía"}</small></span>
+			<span class="ctn-sq__est">${ctnPastilla(x)}</span>
+			<span class="ctn-sq__prog"><span class="ctn-sq__barra"><i style="width:${(pub / h.length) * 100}%"></i></span><small>${pub} de ${h.length} publicadas</small></span>
+			<span class="ctn-sq__sig"><small>Próximo</small>${esc(ctnProximo(x))}</span>
+			${ic(abierta ? "chevron-up" : "chevron-down")}
+		</button>${pasos}</article>`;
+	};
+	return `<section class="ctn-n ctn-secs" aria-label="Secuencias"><header class="ctn-n__cab"><h2>Secuencias</h2><small>${lista.length === todas.length ? ctnPl(todas.length, "secuencia", "secuencias") : `${lista.length} de ${todas.length}`} · tocá una para ver sus pasos</small></header>${lista.map(fila).join("") || `<p class="ctn-nada">${todas.length ? "Ninguna secuencia con esos filtros." : "No hay historias en este período."}</p>`}</section>`;
+}
+
+document.addEventListener("click", async e => {
+	if (view.type !== "contenido") return;
+	const sec = e.target.closest("[data-ctn-sec]");
+	if (sec) {
+		ctnSecAbierta = ctnSecAbierta === sec.dataset.ctnSec ? null : sec.dataset.ctnSec;
+		store("ctnSec", ctnSecAbierta);
+		lastBody = "";
+		return renderBody();
+	}
+	const paso = e.target.closest("[data-ctn-paso]");
+	if (!paso) return;
+	const [secuencia, i, accion] = paso.dataset.ctnPaso.split(":");
+	paso.disabled = true;
+	const r = await api("/ig/contenido/paso", { method: "POST", body: JSON.stringify({ secuencia, paso: Number(i), accion }) }).catch(() => null);
+	const d = r ? await r.json().catch(() => ({})) : {};
+	ctn.aviso = r?.ok ? "" : (d.error ?? "No se pudo hacer.");
+	if (!r?.ok) avisoDeVoz(ctn.aviso);
+	else if (accion === "pedir") avisoDeVoz("Listo: se la pediste al Guionista. Te avisa en la Bandeja.");
+	await cargarContenido();
+	lastBody = "";
+	renderBody();
 });
