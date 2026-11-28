@@ -12,6 +12,7 @@ import { extname, join, normalize, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { estado, mensajes, rutinas, hace, uso, corridas } from './datos.mjs'
 import { crearEquipo } from './equipo.mjs'
+import { crearComercial, semillaVentas } from './comercial.mjs'
 import * as ventas from './ventas.mjs'
 import * as bib from './biblioteca.mjs'
 import * as cls from './classroom.mjs'
@@ -23,12 +24,13 @@ const TIPOS = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=
 
 // Los datos viven en un solo lugar y se guardan en disco (el server real también guarda su estado).
 const GUARDADO = join(RAIZ, 'mock', '.guardado.json')
-const VERSION_DATOS = 3
+const VERSION_DATOS = 4
 function semilla() {
   const st = estado()
   st.roadmaps = bib.roadmaps()
   delete st.roadmap
   st.corridas = corridas()
+  st.ventas = semillaVentas()
   return { version: VERSION_DATOS, st, chats: structuredClone(mensajes), rut: structuredClone(rutinas) }
 }
 async function cargar() {
@@ -42,7 +44,7 @@ async function cargar() {
     return semilla()
   }
 }
-let datos, st, chats, rut, equipo
+let datos, st, chats, rut, equipo, comercial
 let guardando = null
 const guardar = () => {
   clearTimeout(guardando)
@@ -52,6 +54,7 @@ function usar(d) {
   datos = d
   ;({ st, chats, rut } = d)
   equipo = crearEquipo({ st, chats, rut, guardar })
+  comercial = crearComercial({ st, equipo })
 }
 usar(await cargar())
 
@@ -86,6 +89,9 @@ async function appJs() {
 
 // Respuestas de las rutas GET que no son /state. Lo que no está acá devuelve una lista vacía.
 function rutaGet(p, url) {
+  // Ventas: oportunidades, llamadas, notas y chats con lo que se cambió (mock/comercial.mjs).
+  const deVentas = comercial.get(p, url)
+  if (deVentas !== undefined) return deVentas
   // Ventas y Contenido (mock/ventas.mjs)
   if (p === '/embudos') return {
     negocio: { pitch: 'Programa High Ticket para profesionales del bienestar que quieren vender online: 12 semanas, con acompañamiento 1 a 1.', web: 'https://escaladigital.com' },
@@ -116,7 +122,7 @@ function rutaGet(p, url) {
   const deEquipo = equipo.get(p)
   if (deEquipo !== undefined) return deEquipo
   // Varios proyectos en roadmaps; roadmap sigue siendo el que está en marcha (lo leen Juan IA y otras partes).
-  if (p === '/state') return { ...st, roadmap: st.roadmaps.find((r) => r.pasos.some((x) => x.estado !== 'aprobado')) ?? st.roadmaps[0] ?? null }
+  if (p === '/state') return { ...st, ventas: undefined, roadmap: st.roadmaps.find((r) => r.pasos.some((x) => x.estado !== 'aprobado')) ?? st.roadmaps[0] ?? null }
   if (p === '/routines') return rut
   const m = /^\/agents\/([^/]+)\/messages$/.exec(p)
   if (m) return chats[m[1]] ?? []
@@ -143,6 +149,8 @@ async function rutaPost(p, cuerpo, metodo) {
     return { ok: true }
   }
   // Tu equipo: pedidos a los agentes, aprobaciones, KPIs, fichas, roadmap, #ceo y rutinas (mock/equipo.mjs).
+  const deVentas = comercial.post(p, cuerpo, metodo)
+  if (deVentas !== undefined) return deVentas
   const deEquipo = equipo.post(p, cuerpo, metodo)
   if (deEquipo !== undefined) return deEquipo
   // Classroom: tomar/marcar/soltar una consulta, pedirle a Juan IA la respuesta, mandarla o descartarla, y el modo del piloto.

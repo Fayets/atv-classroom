@@ -128,6 +128,7 @@ async function traerLlamadasDm() {
 
 function abrirDms() {
 	void traerLlamadasDm();
+	void cargarContactos();
 	// Al abrir trae 100 (dos tandas de 50, lo más que da la conexión por vez); el resto, bajando en la lista.
 	void cargarBandejaDms().then(() => (dms.lista.length < 100 && dms.siguiente ? cargarBandejaDms(true) : undefined));
 	if (dms.abierto) void abrirChatDm(dms.abierto);
@@ -419,6 +420,7 @@ async function cargarContactos() {
 		ctos.error = "";
 	} else ctos.error = r?.status === 404 ? "La base del equipo todavía no tiene Contactos: hay que actualizarla." : (d.error ?? "No se pudieron traer los contactos.");
 	if (view.type === "dms" && dms.modo === "contactos") pintarContactos();
+	else if (view.type === "dms" && dms.modo === "bandeja") renderBody();
 }
 
 async function traerNotasCto(usuario) {
@@ -669,12 +671,13 @@ function dmsHtml() {
 	const modos = ventasModos(dms.modo);
 	if (dms.modo === "reporte") return `<div class="dmsrep">${modos}${reporteHtml()}</div>`;
 	if (dms.modo === "contactos") return `<div class="dmsrep ctos">${modos}${contactosVentasHtml()}</div>`;
-	return `<div class="dmsrep">${modos}${dmsBandejaHtml()}</div>`;
+	// Oportunidades (08-y-oportunidades.js): el centro comercial. La bandeja de chats vieja (dmsBandejaHtml) quedó sin usar.
+	return `<div class="dmsrep">${modos}${oportunidadesHtml()}</div>`;
 }
 
 /** Las pestañas de Ventas, iguales en los cuatro modos y arriba de todo (en la columna de chats no entran). */
 function ventasModos(actual) {
-	const pestanas = [["bandeja", "Bandeja"], ["reporte", "Reporte"], ["contactos", "Contactos"], ["auto", "Automatizaciones"]];
+	const pestanas = [["bandeja", "Oportunidades"], ["reporte", "Reporte"], ["contactos", "Contactos"], ["auto", "Automatizaciones"]];
 	// Arriba, el nombre de la sección y la cuenta, y al lado las pestañas en la cápsula del Classroom (atv.css).
 	return `<div class="vt-cab"><span class="vt-tit"><b>Ventas</b><small>@${esc(state.instagram?.username ?? "")} · Instagram</small></span><div class="dmmodos" role="tablist">${pestanas.map(([id, n]) => `<button role="tab" aria-selected="${actual === id}" class="${actual === id ? "on" : ""}" ${id === "auto" ? `data-view="auto"` : `data-dm-modo="${id}"`}>${n}</button>`).join("")}</div></div>`;
 }

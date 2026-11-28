@@ -290,5 +290,5 @@ export function crearEquipo({ st, chats, rut, guardar }) {
     return undefined
   }
 
-  return { post, get }
+  return { post, get, pedir, guardar }
 }
