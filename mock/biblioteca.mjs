@@ -88,3 +88,25 @@ export const roadmap = () => ({
     { n: 5, titulo: 'Ventas', detalle: 'Setters y closers listos para la ola de chats.', estado: 'pendiente', listoCuando: 'El guion de setteo está actualizado y hay agenda para 40 llamadas.', tareas: [t('t11', 'Guion de setteo actualizado', 'pendiente', 'Martín'), t('t12', 'Agenda de llamadas de diciembre', 'pendiente', 'Joaquín')] },
   ],
 })
+
+// Los proyectos del Roadmap: el lanzamiento (el de arriba), un webinar que recién arranca y uno ya terminado.
+export const roadmaps = () => [
+  { id: 'rm-lanzamiento', creadoAt: hace(31000), ...roadmap() },
+  {
+    id: 'rm-webinar', creadoAt: hace(4300), titulo: 'Webinar de enero · "Vendé tu programa sin anuncios"', meta: '400 inscriptos y 25 aplicaciones al programa',
+    pasos: [
+      { n: 1, titulo: 'Tema y landing de registro', detalle: 'El tema que más chats trajo y la página para anotarse.', estado: 'en curso', inicio: hace(4300), listoCuando: 'La landing está publicada y el formulario manda los datos al CRM.', tareas: [t('w1', 'Elegir el tema con los datos de las historias', 'hecha', 'Tomás'), t('w2', 'Landing de registro', 'pendiente', 'Nicolás'), t('w3', 'Secuencia de mails de recordatorio', 'pendiente', 'Joaquín')] },
+      { n: 2, titulo: 'Difusión', detalle: 'Historias, reels y anuncios chicos para llenar el webinar.', estado: 'pendiente', listoCuando: 'Hay 400 inscriptos.', tareas: [t('w4', '10 historias de difusión', 'pendiente', 'Camila'), t('w5', 'Anuncio de USD 300 a la landing', 'pendiente', 'Valentina')] },
+      { n: 3, titulo: 'El webinar', detalle: 'Guion, presentación y la oferta al final.', estado: 'pendiente', tareas: [t('w6', 'Guion y diapositivas', 'pendiente', 'Bruno'), t('w7', 'Ensayo con Franco', 'pendiente', 'Vos')] },
+      { n: 4, titulo: 'Seguimiento', detalle: 'Llamar a los que aplicaron en las 48 h siguientes.', estado: 'pendiente', tareas: [t('w8', 'Agenda de llamadas', 'pendiente', 'Martín')] },
+    ],
+  },
+  {
+    id: 'rm-whatsapp', creadoAt: hace(60000), terminadoAt: hace(33000), titulo: 'Ordenar las ventas por WhatsApp', meta: 'Responder todos los chats en menos de 1 hora',
+    pasos: [
+      { n: 1, titulo: 'Respuestas rápidas', detalle: 'Las 12 preguntas que más se repiten, contestadas.', estado: 'aprobado', inicio: hace(60000), aprobadoAt: hace(52000), resultado: '12 respuestas guardadas en WhatsApp Business.', tareas: [t('z1', 'Juntar las preguntas que más se repiten', 'hecha', 'Sofía'), t('z2', 'Escribir las respuestas', 'hecha', 'Sofía', { archivo: '/mock/work/respuestas-rapidas.md' })] },
+      { n: 2, titulo: 'Etiquetas y seguimiento', detalle: 'Cada chat con su etiqueta: nuevo, calificado, agendado, cliente.', estado: 'aprobado', inicio: hace(52000), aprobadoAt: hace(41000), resultado: 'Nadie queda sin respuesta: el setter revisa las etiquetas dos veces por día.', tareas: [t('z3', 'Armar las etiquetas', 'hecha', 'Martín'), t('z4', 'Rutina de revisión', 'hecha', 'Sofía')] },
+      { n: 3, titulo: 'Medir', detalle: 'Tiempo de respuesta y cuántos chats llegan a llamada.', estado: 'aprobado', inicio: hace(41000), aprobadoAt: hace(33000), resultado: 'Tiempo de respuesta promedio: 38 minutos (antes, 6 horas). 1 de cada 4 chats agenda.', tareas: [t('z5', 'Reporte semanal de WhatsApp', 'hecha', 'Lucía', { archivo: '/mock/work/reporte-whatsapp.md' })] },
+    ],
+  },
+]

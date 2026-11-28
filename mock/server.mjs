@@ -23,10 +23,11 @@ const TIPOS = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=
 
 // Los datos viven en un solo lugar y se guardan en disco (el server real también guarda su estado).
 const GUARDADO = join(RAIZ, 'mock', '.guardado.json')
-const VERSION_DATOS = 2
+const VERSION_DATOS = 3
 function semilla() {
   const st = estado()
-  st.roadmap = bib.roadmap()
+  st.roadmaps = bib.roadmaps()
+  delete st.roadmap
   st.corridas = corridas()
   return { version: VERSION_DATOS, st, chats: structuredClone(mensajes), rut: structuredClone(rutinas) }
 }
@@ -114,7 +115,8 @@ function rutaGet(p, url) {
 
   const deEquipo = equipo.get(p)
   if (deEquipo !== undefined) return deEquipo
-  if (p === '/state') return st
+  // Varios proyectos en roadmaps; roadmap sigue siendo el que está en marcha (lo leen Juan IA y otras partes).
+  if (p === '/state') return { ...st, roadmap: st.roadmaps.find((r) => r.pasos.some((x) => x.estado !== 'aprobado')) ?? st.roadmaps[0] ?? null }
   if (p === '/routines') return rut
   const m = /^\/agents\/([^/]+)\/messages$/.exec(p)
   if (m) return chats[m[1]] ?? []

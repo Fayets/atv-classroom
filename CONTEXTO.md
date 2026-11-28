@@ -374,3 +374,19 @@ El de Classroom está en `ATV-CLASSROOM/.claude/CONTEXTO.md`, y ese repo queda q
     rutinas y la sesión de Claude. **Los datos se guardan en `mock/.guardado.json`** (no va a git): sobreviven a reiniciar el
     server. Para volver a cero: borrar ese archivo o `POST /mock/reiniciar`. El roadmap de prueba tiene 2 hitos completos.
   - Probado en 1440, 1024, tablet (768) y celular (375), claro y oscuro, sin errores de consola ni desborde horizontal.
+- **2026-11-28 · Ajustes del Tablero y Roadmap con proyectos**:
+  - Caja del Tablero: en vez de la coma, una rayita vertical (`.tb2-sep`) entre el agente y lo que escribís; los textos de
+    ayuda arrancan en mayúscula ("Armame el reporte…", "¿Qué necesitás?"). En el celular no lleva la flechita.
+  - **Roadmap con varios proyectos** (`roadmapHtml` → lista; `proyectoHtml(r)` → un proyecto, en 02):
+    - La pantalla principal es **Tus proyectos**: los que están en marcha (en qué hito van, %, un riel chiquito de hitos,
+      quiénes trabajan, cuántas tareas esperan tu OK) y abajo los **Terminados**. "Nuevo proyecto" abre un formulario
+      (nombre y meta) que crea el proyecto con un primer hito vacío (`POST /roadmap/nuevo`).
+    - Al entrar a un proyecto se ve el roadmap de siempre, con "‹ Tus proyectos" arriba y el nombre en las migas.
+    - **Cuando se aprueba el último hito**, el proyecto queda terminado: arriba aparece el cierre (sello verde, fecha,
+      lo que se logró) con "Ver los otros en marcha" y "Nuevo proyecto", y en la lista pasa a Terminados.
+    - Cada acción del roadmap manda `roadmap: <id>` del proyecto. La interfaz lee `state.roadmaps` (lista) y, si el
+      server solo manda `state.roadmap` (uno), lo muestra como lista de uno. **El server real tiene uno solo**
+      (⚠ ATV tiene que sumar `roadmaps`, el `roadmap` en cada acción y `/roadmap/nuevo`).
+    - Arreglo: en oscuro, el número del hito elegido que todavía no arrancó no se veía.
+  - Mock: 3 proyectos (lanzamiento, webinar de enero que recién arranca y uno terminado); `/state` sigue mandando
+    `roadmap` (el que está en marcha) para Juan IA. `VERSION_DATOS` pasó a 3 (los datos guardados viejos se descartan solos).

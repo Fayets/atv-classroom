@@ -124,7 +124,7 @@ export function crearEquipo({ st, chats, rut, guardar }) {
         })
       }
       // Si el pedido era una tarea del roadmap, la tarea queda hecha.
-      const t = st.roadmap?.pasos.flatMap((p) => p.tareas).find((x) => x.id === r.tareaRoadmap)
+      const t = tareaPorId(r.tareaRoadmap)
       if (t) t.estado = 'hecha'
     } else if (/cambios/.test(accion)) {
       r.state = 'cambios'
@@ -142,7 +142,7 @@ export function crearEquipo({ st, chats, rut, guardar }) {
     } else {
       r.state = 'rechazado'
       if (a) decir(a.id, 'Entendido, lo dejo de lado.')
-      const t = st.roadmap?.pasos.flatMap((p) => p.tareas).find((x) => x.id === r.tareaRoadmap)
+      const t = tareaPorId(r.tareaRoadmap)
       if (t) t.estado = 'pendiente'
     }
     return { ok: true }
@@ -174,7 +174,7 @@ export function crearEquipo({ st, chats, rut, guardar }) {
     const antes = a.name
     a.name = nombre
     // Las tareas del roadmap dicen quién las hace por nombre.
-    for (const t of st.roadmap?.pasos.flatMap((p) => p.tareas) ?? []) if (t.quien === antes) t.quien = nombre
+    for (const t of todasLasTareas()) if (t.quien === antes) t.quien = nombre
     if ('title' in cambios) a.title = String(cambios.title ?? '').trim() || undefined
     if (cambios.managerId) a.managerId = cambios.managerId
     if (cambios.model) a.model = cambios.model
@@ -193,11 +193,23 @@ export function crearEquipo({ st, chats, rut, guardar }) {
   }
 
   // ---------- Roadmap ----------
-  const rm = () => st.roadmap
-  const renumerar = () => rm().pasos.forEach((p, i) => (p.n = i + 1))
-  const tareaPorId = (id) => rm()?.pasos.flatMap((p) => p.tareas).find((t) => t.id === id)
+  // Hay varios proyectos (st.roadmaps). Cada pedido dice de cuál es (roadmap: id); si no lo dice, el primero en marcha.
+  const enMarcha = () => st.roadmaps.find((x) => x.pasos.some((p) => p.estado !== 'aprobado')) ?? st.roadmaps[0]
+  const proyecto = (id) => st.roadmaps.find((x) => x.id === id) ?? enMarcha()
+  const todasLasTareas = () => st.roadmaps.flatMap((x) => x.pasos.flatMap((p) => p.tareas))
+  const renumerar = (r) => r.pasos.forEach((p, i) => (p.n = i + 1))
+  const tareaPorId = (id) => todasLasTareas().find((t) => t.id === id)
+  function nuevoProyecto(c) {
+    const titulo = String(c.titulo ?? '').trim()
+    if (!titulo) return { error: 'Falta el nombre del proyecto' }
+    const id = uid('rm')
+    st.roadmaps.unshift({ id, titulo, meta: String(c.meta ?? '').trim() || undefined, creadoAt: ahoraIso(), pasos: [{ n: 1, titulo: 'Primer hito', detalle: '', estado: 'en curso', inicio: ahoraIso(), tareas: [] }] })
+    reportar(asistente()?.id ?? 'asistente', `Arrancamos un proyecto nuevo: **${titulo}**. Cuando quieras, Juan arma las tareas del primer hito.`)
+    return { ok: true, id }
+  }
   function roadmap(ruta, c) {
-    const r = rm()
+    if (ruta === 'nuevo') return nuevoProyecto(c)
+    const r = proyecto(c.roadmap)
     if (!r) return { error: 'No hay roadmap' }
     const paso = r.pasos.find((p) => p.n === c.paso)
     if (ruta === 'tarea') {
@@ -207,7 +219,8 @@ export function crearEquipo({ st, chats, rut, guardar }) {
       Object.assign(paso, { estado: 'aprobado', aprobadoAt: ahoraIso() })
       const sig = r.pasos.find((p) => p.n === paso.n + 1)
       if (sig) Object.assign(sig, { estado: 'en curso', inicio: ahoraIso() })
-      reportar(asistente()?.id ?? 'asistente', `Aprobaste el paso ${paso.n} del roadmap, **${paso.titulo}**.${sig ? ` Arrancamos con «${sig.titulo}».` : ' El plan quedó terminado.'}`)
+      if (!r.pasos.some((p) => p.estado !== 'aprobado')) r.terminadoAt = ahoraIso()
+      reportar(asistente()?.id ?? 'asistente', `Aprobaste el hito ${paso.n} de **${r.titulo}**, «${paso.titulo}».${sig ? ` Arrancamos con «${sig.titulo}».` : ' El proyecto quedó terminado.'}`)
     } else if (ruta === 'editar') {
       if (c.tarea) {
         const t = tareaPorId(c.tarea)
@@ -215,7 +228,7 @@ export function crearEquipo({ st, chats, rut, guardar }) {
       } else if (c.agregarTarea && paso) paso.tareas.push({ id: uid('t'), texto: c.texto, estado: 'pendiente', quien: 'Vos', ...(c.parte ? { parte: c.parte } : {}) })
       else if (c.agregarPaso && paso) {
         r.pasos.splice(r.pasos.indexOf(paso) + 1, 0, { n: 0, titulo: c.titulo, detalle: '', estado: 'pendiente', tareas: [] })
-        renumerar()
+        renumerar(r)
       } else if (paso) {
         if (c.titulo) paso.titulo = c.titulo
         if (c.detalle) paso.detalle = c.detalle
@@ -224,7 +237,7 @@ export function crearEquipo({ st, chats, rut, guardar }) {
       if (c.tarea) for (const p of r.pasos) p.tareas = p.tareas.filter((t) => t.id !== c.tarea)
       else if (paso) {
         r.pasos.splice(r.pasos.indexOf(paso), 1)
-        renumerar()
+        renumerar(r)
         if (!r.pasos.some((p) => p.estado === 'en curso')) {
           const prox = r.pasos.find((p) => p.estado === 'pendiente')
           if (prox) prox.estado = 'en curso'
@@ -260,7 +273,7 @@ export function crearEquipo({ st, chats, rut, guardar }) {
     if ((m = /^\/agents\/([^/]+)\/(order|messages)$/.exec(p))) return c.text ? pedir(m[1], String(c.text)) : { error: 'Falta el texto' }
     if ((m = /^\/requests\/([^/]+)\/(approve|aprobar|cambios|reject|rechazar)$/.exec(p))) return decidir(m[1], m[2], c.nota)
     if ((m = /^\/kpis\/([^/]+)\/(aprobar|rechazar)$/.exec(p))) return kpi(m[1], m[2])
-    if ((m = /^\/roadmap\/(tarea|aprobar|editar|borrar|subpasos)$/.exec(p))) return roadmap(m[1], c)
+    if ((m = /^\/roadmap\/(tarea|aprobar|editar|borrar|subpasos|nuevo)$/.exec(p))) return roadmap(m[1], c)
     if (p === '/ceo' && c.text) return ceo(String(c.text))
     if ((m = /^\/agents\/([^/]+)$/.exec(p)) && (metodo === 'PATCH' || metodo === 'DELETE')) return editarAgente(m[1], c, metodo)
     if (p === '/routines' && c.id) {

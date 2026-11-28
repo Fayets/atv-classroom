@@ -110,6 +110,7 @@ function migasHtml() {
 	const niveles = [grupo?.[0], item?.[2]];
 	if (view.type === "agent") niveles.push(activeAgent()?.name);
 	if (view.type === "ceo") niveles.push("#ceo");
+	if (view.type === "roadmap" && rmProyecto) niveles.push(rmProyectos().find(r => r.id === rmProyecto)?.titulo.split(" · ")[0]);
 	if (view.type === "historial") niveles.push(histTab === "hist" ? "Historial" : "Programados");
 	if (view.type === "bandeja" && bwAbierto && bandejaChat) niveles.push(bandejaChat === "ceo" ? "#ceo" : state.agents.find(a => a.id === bandejaChat)?.name);
 	const lista = niveles.filter(Boolean);
@@ -542,7 +543,7 @@ function tbParaHtml() {
 	const d = tbDestino();
 	if (!d) return "";
 	const lista = tbParaAbierto ? `<div class="tb2-para__lista" role="listbox" aria-label="A quién le escribís">${state.agents.map(a => `<button type="button" role="option" aria-selected="${a.id === d.id}" data-tb-para-elegir="${a.id}">${avatar(a, "xs")}<span><b>${esc(a.name)}</b><small>${esc(a.department ? nombre(a.department) : "Tu mano derecha")}</small></span>${a.id === d.id ? ic("check") : ""}</button>`).join("")}</div>` : "";
-	return `<div class="tb2-para"><button type="button" class="tb2-para__btn" data-tb-para aria-haspopup="listbox" aria-expanded="${tbParaAbierto}" title="Cambiar a quién le escribís">${avatar(d, "xs")}<b>${esc(d.name)}</b>${ic("chevron-down")}</button><span class="tb2-coma" aria-hidden="true">,</span>${lista}</div>`;
+	return `<div class="tb2-para"><button type="button" class="tb2-para__btn" data-tb-para aria-haspopup="listbox" aria-expanded="${tbParaAbierto}" title="Cambiar a quién le escribís">${avatar(d, "xs")}<b>${esc(d.name)}</b>${ic("chevron-down")}</button><span class="tb2-sep" aria-hidden="true"></span>${lista}</div>`;
 }
 document.addEventListener("click", e => {
 	if (e.target.closest("[data-tb-para]")) {
@@ -637,12 +638,12 @@ function tableroHtml() {
 		${sec("ok", "Esperan tu OK", okReq.length, okReq.length ? `<div class="tb2-lista">${okReq.map(okCard).join("")}</div>` : vacio("Nada espera tu OK", "Cuando alguien del equipo te pida algo, aparece acá."), okReq.length ? `<button class="tb2-link" data-view="bandeja">Ir a la Bandeja ${ic("chevron-right")}</button>` : "")}
 		${sec("hecho", "Entregado hoy", entregas.length, entregas.length ? `<div class="tb2-entregas">${entregas.slice(0, 6).map(entregaCard).join("")}</div>${entregas.length > 6 ? `<button class="tb2-link" data-view="historial" data-hist-tab="hist">Ver las otras ${entregas.length - 6} ${ic("chevron-right")}</button>` : ""}` : vacio("Todavía no hay entregas hoy", "Lo que el equipo termine va a quedar acá, listo para abrir."))}
 		</div><div class="tb2-col">
-		${sec("vivo", "Trabajando ahora", enCurso.length, enCurso.length ? `<div class="tb2-lista">${enCurso.map(cursoCard).join("")}</div>` : vacio("Nadie está trabajando", `Escribile a ${esc(d?.name ?? "tu equipo")} arriba y lo pone en marcha.`))}
+		${sec("vivo", "Trabajando ahora", enCurso.length, enCurso.length ? `<div class="tb2-lista">${enCurso.map(cursoCard).join("")}</div>` : vacio("Nadie está trabajando", `Escribile a ${esc(d?.name ?? "tu equipo")} abajo y lo pone en marcha.`))}
 		${okKpi.length ? sec("kpis", "Métricas propuestas", okKpi.length, `<p class="tb2-sec__nota">Tu equipo quiere medir esto todos los días. No es trabajo para aprobar: es un número para seguir.</p><div class="tb2-lista">${okKpi.map(kpiCard).join("")}</div>`) : ""}
 		${sec("prog", "Lo que viene", agenda.length, agenda.length ? `<ol class="tb2-agenda">${agenda.slice(0, 6).map(x => `<li><span class="tb2-agenda__cuando">${esc(x.cuando)}</span><span class="tb2-agenda__txt"><b>${esc(x.nombre)}</b><small>${esc(x.quien)}</small></span></li>`).join("")}</ol>` : vacio("No hay nada programado", "Las rutinas se prenden en Rutinas."), `<button class="tb2-link" data-view="historial" data-hist-tab="prog">Ver todo ${ic("chevron-right")}</button>`)}
 		</div>
 	</div>
-	<form class="tbpedido tb2-pedido" id="tb-form">${tbParaHtml()}<label class="tbcampo"><span class="tbvh">Pedido para ${esc(d?.name ?? "tu equipo")}</span><textarea id="tb-input" rows="1" autocomplete="off" placeholder="${d?.role === "asistente" && !sbCelular.matches ? "armame el reporte de la semana para mañana…" : "¿qué necesitás?"}"></textarea></label>${botonVoz("tb-input")}<button class="send" aria-label="Enviar">${ic("arrow-up")}</button></form>
+	<form class="tbpedido tb2-pedido" id="tb-form">${tbParaHtml()}<label class="tbcampo"><span class="tbvh">Pedido para ${esc(d?.name ?? "tu equipo")}</span><textarea id="tb-input" rows="1" autocomplete="off" placeholder="${d?.role === "asistente" && !sbCelular.matches ? "Armame el reporte de la semana para mañana…" : "¿Qué necesitás?"}"></textarea></label>${botonVoz("tb-input")}<button class="send" aria-label="Enviar">${ic("arrow-up")}</button></form>
 </div>`;
 }
 

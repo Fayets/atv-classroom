@@ -750,9 +750,59 @@ function rmAltoTarjeta(p) {
  * hito elegido entero: sus tareas por partes (se tildan, se editan y se suman como siempre), y al costado su punto de
  * encuentro, lo que se logró, lo que se entregó, quiénes trabajan en él y las notas. Se pasa de hito tocando el riel o
  * con las flechas de abajo. Las acciones (data-rm-*) son las mismas de antes. */
+/** Los proyectos: el server manda roadmaps (varios); si solo manda roadmap (uno), es la lista de uno. */
+let rmProyecto = null;
+let rmNuevo = false;
+const rmProyectos = () => state.roadmaps ?? (state.roadmap ? [{ id: "principal", ...state.roadmap }] : []);
+const rmTerminado = r => r.pasos.length > 0 && r.pasos.every(p => p.estado === "aprobado");
+
+/** La pantalla principal del Roadmap: tus proyectos en marcha (cada uno con su riel de hitos chiquito, en qué hito va y
+ * quiénes trabajan) y, abajo, los terminados. Tocar uno abre su roadmap. "Nuevo proyecto" arranca otro. */
 function roadmapHtml() {
-	const r = state.roadmap;
-	if (!r) return `<div class="empty"><b>Todavía no hay roadmap</b>Cuando le des al Asistente un plan de varios pasos, aparece acá: un paso por vez, con lo que va tildando el equipo.</div>`;
+	const lista = rmProyectos();
+	const abierto = lista.find(r => r.id === rmProyecto);
+	if (abierto) return proyectoHtml(abierto);
+	rmProyecto = null;
+	const enMarcha = lista.filter(r => !rmTerminado(r));
+	const terminados = lista.filter(rmTerminado);
+	const fecha = iso => new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+	const ficha = r => {
+		const total = r.pasos.reduce((n, p) => n + p.tareas.length, 0);
+		const hechas = r.pasos.reduce((n, p) => n + p.tareas.filter(t => t.estado === "hecha").length, 0);
+		const pct = total ? Math.round((hechas / total) * 100) : 0;
+		const actual = r.pasos.find(p => p.estado === "en curso");
+		const fin = rmTerminado(r);
+		const gente = [...new Set(r.pasos.flatMap(p => p.tareas.map(t => t.quien)).filter(Boolean))].slice(0, 5);
+		const esperan = r.pasos.flatMap(p => p.tareas).filter(t => t.estado === "espera_ok").length;
+		const caras = gente.map(n => {
+			const ag = state.agents.find(a => a.name === n);
+			return ag ? avatar(ag, "xs") : `<span class="lv-ava xs">${esc(initials(n === "Vos" ? state.settings?.owner?.name || "Vos" : n))}</span>`;
+		}).join("");
+		return `<li><button class="rm3-ficha ${fin ? "is-fin" : ""}" data-rm-proyecto="${esc(r.id)}">
+			<span class="rm3-ficha__cab"><span class="rm2-chip">${fin ? "Terminado" : actual ? `Hito ${actual.n} de ${r.pasos.length}` : "Sin arrancar"}</span>${esperan ? `<span class="rm3-ok">${esperan} ${esperan === 1 ? "espera" : "esperan"} tu OK</span>` : ""}<span class="rm3-pct">${pct}<small>%</small></span></span>
+			<b class="rm3-ficha__t">${esc(r.titulo)}</b>
+			${r.meta ? `<span class="rm3-meta">Meta: ${esc(r.meta)}</span>` : ""}
+			<span class="rm3-riel" aria-hidden="true">${r.pasos.map(p => `<i class="${p.estado === "aprobado" ? "ok" : p.estado === "en curso" ? "ahora" : ""}"></i>`).join("")}</span>
+			<span class="rm3-ahora">${fin ? `Terminado${r.terminadoAt ? ` el ${fecha(r.terminadoAt)}` : ""} · ${r.pasos.length} hitos, ${total} tareas` : actual ? `Ahora: <b>${esc(actual.titulo)}</b> · ${actual.tareas.filter(t => t.estado === "hecha").length} de ${actual.tareas.length} tareas` : "Todavía no arrancó"}</span>
+			<span class="rm3-pie"><span class="rm3-caras">${caras}</span><span class="rm3-abrir">Abrir ${ic("chevron-right")}</span></span>
+		</button></li>`;
+	};
+	const nuevo = rmNuevo
+		? `<form class="rm3-nuevo" id="rm-nuevo"><b>Proyecto nuevo</b><label>Nombre<input id="rm-nuevo-titulo" maxlength="80" placeholder="Ej.: Lanzamiento del curso de marzo" autocomplete="off" required></label><label>Meta <small>(opcional)</small><input id="rm-nuevo-meta" maxlength="120" placeholder="Ej.: 50 alumnos antes del 31 de marzo" autocomplete="off"></label><div class="rm3-nuevo__bots"><button type="button" class="b" data-rm-nuevo-no>Cancelar</button><button class="b go">Crear proyecto</button></div><small class="rm3-nota">Arranca con un primer hito vacío: Juan te arma las tareas o las sumás vos.</small></form>`
+		: "";
+	return `<div class="rm2 rm3" id="rm2">
+	<header class="rm2-cab">
+		<div class="rm2-titulo"><p class="tb2-ojo">Roadmap · tus proyectos</p><h1>${enMarcha.length ? `${enMarcha.length} ${enMarcha.length === 1 ? "proyecto" : "proyectos"} <em>en marcha.</em>` : "Ningún proyecto <em>en marcha.</em>"}</h1></div>
+		${rmNuevo ? "" : `<button class="b go rm3-crear" data-rm-nuevo>${ic("plus")}Nuevo proyecto</button>`}
+	</header>
+	${nuevo}
+	${enMarcha.length ? `<ul class="rm3-lista">${enMarcha.map(ficha).join("")}</ul>` : `<div class="tb2-vacio"><b>No hay proyectos en marcha</b><span>Creá uno, o pedile al Asistente un plan de varios pasos y aparece acá.</span></div>`}
+	${terminados.length ? `<section class="rm3-hechos"><h2>Terminados<span>${terminados.length}</span></h2><ul class="rm3-lista">${terminados.map(ficha).join("")}</ul></section>` : ""}
+</div>`;
+}
+
+/** Un proyecto: el roadmap como expedición por hitos (lo de abajo). */
+function proyectoHtml(r) {
 	const actual = r.pasos.find(p => p.estado === "en curso");
 	const abierto = r.pasos.find(p => p.n === rmAbierto) ?? actual ?? r.pasos.at(-1);
 	const hechasDe = p => p.tareas.filter(t => t.estado === "hecha").length;
@@ -815,9 +865,14 @@ function roadmapHtml() {
 		${equipoDe(p) ? `<section class="rm2-caja"><h3>Quiénes trabajan</h3><ul class="rm2-gente">${equipoDe(p)}</ul></section>` : ""}
 		${p.notas?.length ? `<section class="rm2-caja"><h3>Notas</h3><ul class="rm2-notas">${p.notas.map(n => `<li>${esc(n)}</li>`).join("")}</ul></section>` : ""}
 	</aside>`;
+	const fin = rmTerminado(r);
+	const otros = rmProyectos().filter(x => x.id !== r.id && !rmTerminado(x)).length;
+	const banner = fin ? `<section class="rm3-fin"><span class="rm3-fin__sello">${ic("check")}</span><div><small>Proyecto terminado${r.terminadoAt ? ` · ${new Date(r.terminadoAt).toLocaleDateString("es-AR", { day: "numeric", month: "long" })}` : ""}</small><b>Se aprobaron los ${r.pasos.length} hitos y las ${total} tareas.</b>${r.pasos.at(-1)?.resultado ? `<p>${esc(r.pasos.at(-1).resultado)}</p>` : ""}</div><span class="sp"></span><button class="b" data-rm-proyecto="">${otros === 1 ? "Ver el otro en marcha" : otros ? `Ver los otros ${otros} en marcha` : "Volver a tus proyectos"}</button><button class="b go" data-rm-nuevo data-rm-proyecto="">${ic("plus")}Nuevo proyecto</button></section>` : "";
 	return `<div class="rm2" id="rm2">
+	<button class="rm3-volver" data-rm-proyecto="">${ic("chevron-left")}Tus proyectos</button>
+	${banner}
 	<header class="rm2-cab">
-		<div class="rm2-titulo"><p class="tb2-ojo">Roadmap · ${actual ? `hito ${actual.n} de ${r.pasos.length}` : "plan terminado"}</p><h1>${esc(r.titulo)}</h1>${r.meta ? `<p class="rm2-meta">${ic("route")}<span>Meta: <b>${esc(r.meta)}</b></span></p>` : ""}</div>
+		<div class="rm2-titulo"><p class="tb2-ojo">Proyecto · ${actual ? `hito ${actual.n} de ${r.pasos.length}` : fin ? "terminado" : "sin arrancar"}</p><h1>${esc(r.titulo)}</h1>${r.meta ? `<p class="rm2-meta">${ic("route")}<span>Meta: <b>${esc(r.meta)}</b></span></p>` : ""}</div>
 		<div class="rm2-avance" aria-label="Avance del plan"><b>${pct}<small>%</small></b><span><small>${hechas} de ${total} tareas · ${aprobados} de ${r.pasos.length} hitos aprobados</small><span class="rm2-tira" aria-hidden="true">${r.pasos.map(x => `<i class="${x.estado === "aprobado" ? "ok" : x.estado === "en curso" ? "ahora" : ""}" style="--lleno:${x.tareas.length ? hechasDe(x) / x.tareas.length : 0}"></i>`).join("")}</span></span></div>
 	</header>
 	<nav class="rm2-riel" aria-label="Hitos del plan"><ol>${r.pasos.map(hito).join("")}</ol></nav>
@@ -837,6 +892,50 @@ function roadmapHtml() {
 	<nav class="rm2-pasar" aria-label="Pasar de hito">${anterior ? `<button data-rm-paso="${anterior.n}">${ic("chevron-left")}<span><small>Hito ${anterior.n}</small><b>${esc(anterior.titulo)}</b></span></button>` : "<span></span>"}${siguiente ? `<button class="sig" data-rm-paso="${siguiente.n}"><span><small>Hito ${siguiente.n}</small><b>${esc(siguiente.titulo)}</b></span>${ic("chevron-right")}</button>` : "<span></span>"}</nav>
 </div>`;
 }
+
+/** Entrar a un proyecto, volver a la lista y crear uno. Ir a Roadmap desde la barra (o las migas) vuelve a la lista. */
+document.addEventListener("click", e => {
+	if (e.target.closest("[data-view=roadmap]")) {
+		rmProyecto = null;
+		rmNuevo = false;
+		return;
+	}
+	const nuevo = e.target.closest("[data-rm-nuevo],[data-rm-nuevo-no]");
+	if (nuevo) {
+		rmNuevo = "rmNuevo" in nuevo.dataset;
+		rmProyecto = null;
+		lastBody = "";
+		renderBody();
+		renderArriba();
+		document.getElementById("rm-nuevo-titulo")?.focus();
+		document.getElementById("body")?.scrollTo({ top: 0 });
+		return;
+	}
+	const t = e.target.closest("[data-rm-proyecto]");
+	if (!t) return;
+	rmProyecto = t.dataset.rmProyecto || null;
+	rmAbierto = null;
+	lastBody = "";
+	renderBody();
+	renderArriba();
+	document.getElementById("body")?.scrollTo({ top: 0 });
+});
+document.addEventListener("submit", async e => {
+	if (e.target.id !== "rm-nuevo") return;
+	e.preventDefault();
+	const titulo = document.getElementById("rm-nuevo-titulo").value.trim();
+	if (!titulo) return;
+	const res = await api("/roadmap/nuevo", { method: "POST", body: JSON.stringify({ titulo, meta: document.getElementById("rm-nuevo-meta").value.trim() }) });
+	const cuerpo = await res.json().catch(() => ({}));
+	if (!res.ok) return avisoDeVoz(cuerpo.error ?? "No se pudo crear el proyecto.");
+	rmNuevo = false;
+	await loadState();
+	rmProyecto = cuerpo.id ?? null;
+	rmAbierto = null;
+	lastBody = "";
+	renderBody();
+	renderArriba();
+});
 
 /** Editar en el lugar: el texto pasa a ser un campo; Enter guarda, Esc cancela y salir del campo también guarda. */
 function rmEditor(el, valor, guardar, multilinea = false, placeholder = "") {
@@ -869,7 +968,8 @@ function rmEditor(el, valor, guardar, multilinea = false, placeholder = "") {
 }
 
 async function rmPost(ruta, cuerpo) {
-	const res = await api(ruta, { method: "POST", body: JSON.stringify(cuerpo) });
+	// Cada acción dice de qué proyecto es (el server real con un solo roadmap lo ignora).
+	const res = await api(ruta, { method: "POST", body: JSON.stringify({ ...cuerpo, ...(rmProyecto && rmProyecto !== "principal" ? { roadmap: rmProyecto } : {}) }) });
 	if (!res.ok) alert((await res.json().catch(() => ({}))).error ?? "No se pudo");
 	await loadState();
 	lastBody = "";
